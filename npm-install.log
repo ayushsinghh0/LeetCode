@@ -1,0 +1,26 @@
+﻿node.exe : npm warn tar TAR_ENTRY_ERROR UNKNOWN: unknown error, open 
+'D:\ayuu\Leetcode\node_modules\get-nonce\dist\es2015\index.js'
+At line:1 char:1
++ & "C:\Program Files\nodejs/node.exe" "C:\Program Files\nodejs/node_mo ...
++ ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    + CategoryInfo          : NotSpecified: (npm warn tar TA...s2015\index.js':String) [], RemoteException
+    + FullyQualifiedErrorId : NativeCommandError
+ 
+npm warn tar TAR_ENTRY_ERROR UNKNOWN: unknown error, open 
+'D:\ayuu\Leetcode\node_modules\use-callback-ref\dist\es2015\assignRef.js'
+npm warn deprecated whatwg-encoding@3.1.1: Use @exodus/bytes instead for a more spec-conformant and faster 
+implementation
+npm warn deprecated recharts@2.15.4: 1.x and 2.x branches are no longer active. Bump to Recharts v3 to receive latest 
+features and bugfixes. See https://github.com/recharts/recharts/wiki/3.0-migration-guide
+
+added 452 packages, and audited 453 packages in 2m
+
+137 packages are looking for funding
+  run `npm fund` for details
+
+2 moderate severity vulnerabilities
+
+To address all issues, run:
+  npm audit fix
+
+Run `npm audit` for details.

@@ -1,0 +1,78 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    --background: 222 47% 5%;
+    --foreground: 226 100% 97%;
+    --card: 224 40% 8%;
+    --card-foreground: 226 100% 97%;
+    --popover: 224 45% 7%;
+    --popover-foreground: 226 100% 97%;
+    --primary: 258 90% 66%;
+    --primary-foreground: 0 0% 100%;
+    --secondary: 224 30% 14%;
+    --secondary-foreground: 226 100% 97%;
+    --muted: 224 30% 14%;
+    --muted-foreground: 220 15% 65%;
+    --accent: 190 95% 50%;
+    --accent-foreground: 222 47% 5%;
+    --destructive: 0 72% 51%;
+    --destructive-foreground: 0 0% 100%;
+    --border: 224 30% 18%;
+    --input: 224 30% 18%;
+    --ring: 258 90% 66%;
+  }
+  .light {
+    --background: 226 60% 97%;
+    --foreground: 224 47% 10%;
+    --card: 0 0% 100%;
+    --card-foreground: 224 47% 10%;
+    --popover: 0 0% 100%;
+    --popover-foreground: 224 47% 10%;
+    --primary: 258 85% 58%;
+    --primary-foreground: 0 0% 100%;
+    --secondary: 226 40% 92%;
+    --secondary-foreground: 224 47% 10%;
+    --muted: 226 40% 92%;
+    --muted-foreground: 224 15% 40%;
+    --accent: 190 90% 42%;
+    --accent-foreground: 0 0% 100%;
+    --destructive: 0 72% 51%;
+    --destructive-foreground: 0 0% 100%;
+    --border: 226 30% 85%;
+    --input: 226 30% 85%;
+    --ring: 258 85% 58%;
+  }
+  body {
+    @apply bg-background text-foreground antialiased;
+  }
+  /* fixed gradient backdrop */
+  body::before {
+    content: '';
+    position: fixed;
+    inset: 0;
+    z-index: -1;
+    background:
+      radial-gradient(60rem 40rem at 10% -10%, hsl(258 90% 40% / 0.25), transparent 60%),
+      radial-gradient(50rem 35rem at 110% 20%, hsl(190 95% 40% / 0.18), transparent 60%),
+      radial-gradient(40rem 40rem at 50% 120%, hsl(320 80% 40% / 0.12), transparent 60%);
+  }
+  .light body::before { opacity: 0.5; }
+}
+
+@layer components {
+  .glass {
+    @apply rounded-2xl border border-white/10 bg-white/[0.04] backdrop-blur-xl shadow-[0_8px_32px_rgb(0_0_0/0.25)];
+  }
+  .light .glass {
+    @apply border-black/5 bg-white/70 shadow-[0_8px_32px_rgb(0_0_0/0.08)];
+  }
+  .text-gradient {
+    @apply bg-gradient-to-r from-violet-400 to-cyan-400 bg-clip-text text-transparent;
+  }
+  .bg-accent-gradient {
+    @apply bg-gradient-to-r from-violet-500 to-cyan-500;
+  }
+}

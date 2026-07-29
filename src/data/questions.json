@@ -1,0 +1,3775 @@
+[
+  {
+    "id": 1,
+    "title": "Valid Palindrome",
+    "pattern": "two-pointers",
+    "difficulty": "easy",
+    "estimatedTime": 15
+  },
+  {
+    "id": 2,
+    "title": "3Sum",
+    "pattern": "two-pointers",
+    "difficulty": "medium",
+    "estimatedTime": 25
+  },
+  {
+    "id": 3,
+    "title": "Remove nth Node from End of List",
+    "pattern": "two-pointers",
+    "difficulty": "medium",
+    "estimatedTime": 25
+  },
+  {
+    "id": 4,
+    "title": "Sort Colors",
+    "pattern": "two-pointers",
+    "difficulty": "medium",
+    "estimatedTime": 25
+  },
+  {
+    "id": 5,
+    "title": "Reverse Words in a String",
+    "pattern": "two-pointers",
+    "difficulty": "medium",
+    "estimatedTime": 25
+  },
+  {
+    "id": 6,
+    "title": "Valid Word Abbreviation",
+    "pattern": "two-pointers",
+    "difficulty": "easy",
+    "estimatedTime": 15
+  },
+  {
+    "id": 7,
+    "title": "Valid Palindrome II",
+    "pattern": "two-pointers",
+    "difficulty": "easy",
+    "estimatedTime": 15
+  },
+  {
+    "id": 8,
+    "title": "Lowest Common Ancestor of a Binary Tree III",
+    "pattern": "two-pointers",
+    "difficulty": "medium",
+    "estimatedTime": 25
+  },
+  {
+    "id": 9,
+    "title": "Strobogrammatic Number",
+    "pattern": "two-pointers",
+    "difficulty": "easy",
+    "estimatedTime": 15
+  },
+  {
+    "id": 10,
+    "title": "Minimum Number of Moves to Make Palindrome",
+    "pattern": "two-pointers",
+    "difficulty": "hard",
+    "estimatedTime": 40
+  },
+  {
+    "id": 11,
+    "title": "Next Palindrome Using Same Digits",
+    "pattern": "two-pointers",
+    "difficulty": "hard",
+    "estimatedTime": 40
+  },
+  {
+    "id": 12,
+    "title": "Count Subarrays With Fixed Bounds",
+    "pattern": "two-pointers",
+    "difficulty": "hard",
+    "estimatedTime": 40
+  },
+  {
+    "id": 13,
+    "title": "Find the Lexicographically Largest String From Box II",
+    "pattern": "two-pointers",
+    "difficulty": "hard",
+    "estimatedTime": 40
+  },
+  {
+    "id": 14,
+    "title": "Get the Maximum Score",
+    "pattern": "two-pointers",
+    "difficulty": "hard",
+    "estimatedTime": 40
+  },
+  {
+    "id": 15,
+    "title": "Create Maximum Number",
+    "pattern": "two-pointers",
+    "difficulty": "hard",
+    "estimatedTime": 40
+  },
+  {
+    "id": 16,
+    "title": "Append Characters to String to Make Subsequence",
+    "pattern": "two-pointers",
+    "difficulty": "medium",
+    "estimatedTime": 25
+  },
+  {
+    "id": 17,
+    "title": "Squares of a Sorted Array",
+    "pattern": "two-pointers",
+    "difficulty": "easy",
+    "estimatedTime": 15
+  },
+  {
+    "id": 18,
+    "title": "Reverse String",
+    "pattern": "two-pointers",
+    "difficulty": "easy",
+    "estimatedTime": 15
+  },
+  {
+    "id": 19,
+    "title": "Intersection of Two Linked Lists",
+    "pattern": "two-pointers",
+    "difficulty": "easy",
+    "estimatedTime": 15
+  },
+  {
+    "id": 20,
+    "title": "Partition Labels",
+    "pattern": "two-pointers",
+    "difficulty": "medium",
+    "estimatedTime": 25
+  },
+  {
+    "id": 21,
+    "title": "Remove Element",
+    "pattern": "two-pointers",
+    "difficulty": "easy",
+    "estimatedTime": 15
+  },
+  {
+    "id": 22,
+    "title": "String Compression",
+    "pattern": "two-pointers",
+    "difficulty": "medium",
+    "estimatedTime": 25
+  },
+  {
+    "id": 23,
+    "title": "Rotate Array",
+    "pattern": "two-pointers",
+    "difficulty": "medium",
+    "estimatedTime": 25
+  },
+  {
+    "id": 24,
+    "title": "Next Permutation",
+    "pattern": "two-pointers",
+    "difficulty": "medium",
+    "estimatedTime": 25
+  },
+  {
+    "id": 25,
+    "title": "Remove Duplicates from Sorted Array",
+    "pattern": "two-pointers",
+    "difficulty": "easy",
+    "estimatedTime": 15
+  },
+  {
+    "id": 26,
+    "title": "Reverse Vowels of a String",
+    "pattern": "two-pointers",
+    "difficulty": "easy",
+    "estimatedTime": 15
+  },
+  {
+    "id": 27,
+    "title": "Is Subsequence",
+    "pattern": "two-pointers",
+    "difficulty": "easy",
+    "estimatedTime": 15
+  },
+  {
+    "id": 28,
+    "title": "Merge Strings Alternately",
+    "pattern": "two-pointers",
+    "difficulty": "easy",
+    "estimatedTime": 15
+  },
+  {
+    "id": 29,
+    "title": "Compare Version Numbers",
+    "pattern": "two-pointers",
+    "difficulty": "medium",
+    "estimatedTime": 25
+  },
+  {
+    "id": 30,
+    "title": "Move Zeroes",
+    "pattern": "two-pointers",
+    "difficulty": "medium",
+    "estimatedTime": 25
+  },
+  {
+    "id": 31,
+    "title": "Longest Subarray of 1's After Deleting One Element",
+    "pattern": "two-pointers",
+    "difficulty": "medium",
+    "estimatedTime": 25
+  },
+  {
+    "id": 32,
+    "title": "Backspace String Compare",
+    "pattern": "two-pointers",
+    "difficulty": "medium",
+    "estimatedTime": 25
+  },
+  {
+    "id": 33,
+    "title": "Next Greater Element III",
+    "pattern": "two-pointers",
+    "difficulty": "medium",
+    "estimatedTime": 25
+  },
+  {
+    "id": 34,
+    "title": "Rotating the Box",
+    "pattern": "two-pointers",
+    "difficulty": "medium",
+    "estimatedTime": 25
+  },
+  {
+    "id": 35,
+    "title": "Happy Number",
+    "pattern": "fast-slow-pointers",
+    "difficulty": "easy",
+    "estimatedTime": 15
+  },
+  {
+    "id": 36,
+    "title": "Linked List Cycle",
+    "pattern": "fast-slow-pointers",
+    "difficulty": "easy",
+    "estimatedTime": 15
+  },
+  {
+    "id": 37,
+    "title": "Middle of the Linked List",
+    "pattern": "fast-slow-pointers",
+    "difficulty": "easy",
+    "estimatedTime": 15
+  },
+  {
+    "id": 38,
+    "title": "Circular Array Loop",
+    "pattern": "fast-slow-pointers",
+    "difficulty": "medium",
+    "estimatedTime": 25
+  },
+  {
+    "id": 39,
+    "title": "Find The Duplicate Number",
+    "pattern": "fast-slow-pointers",
+    "difficulty": "medium",
+    "estimatedTime": 25
+  },
+  {
+    "id": 40,
+    "title": "Palindrome Linked List",
+    "pattern": "fast-slow-pointers",
+    "difficulty": "easy",
+    "estimatedTime": 15
+  },
+  {
+    "id": 41,
+    "title": "Linked List Cycle III",
+    "pattern": "fast-slow-pointers",
+    "difficulty": "medium",
+    "estimatedTime": 25
+  },
+  {
+    "id": 42,
+    "title": "Linked List Cycle IV",
+    "pattern": "fast-slow-pointers",
+    "difficulty": "medium",
+    "estimatedTime": 25
+  },
+  {
+    "id": 43,
+    "title": "Maximum Twin Sum of a Linked List",
+    "pattern": "fast-slow-pointers",
+    "difficulty": "medium",
+    "estimatedTime": 25
+  },
+  {
+    "id": 44,
+    "title": "Split a Circular Linked List",
+    "pattern": "fast-slow-pointers",
+    "difficulty": "medium",
+    "estimatedTime": 25
+  },
+  {
+    "id": 45,
+    "title": "Repeated DNA Sequences",
+    "pattern": "sliding-window",
+    "difficulty": "medium",
+    "estimatedTime": 25
+  },
+  {
+    "id": 46,
+    "title": "Sliding Window Maximum",
+    "pattern": "sliding-window",
+    "difficulty": "hard",
+    "estimatedTime": 40
+  },
+  {
+    "id": 47,
+    "title": "Minimum Window Subsequence",
+    "pattern": "sliding-window",
+    "difficulty": "hard",
+    "estimatedTime": 40
+  },
+  {
+    "id": 48,
+    "title": "Longest Repeating Character Replacement",
+    "pattern": "sliding-window",
+    "difficulty": "medium",
+    "estimatedTime": 25
+  },
+  {
+    "id": 49,
+    "title": "Minimum Window Substring",
+    "pattern": "sliding-window",
+    "difficulty": "hard",
+    "estimatedTime": 40
+  },
+  {
+    "id": 50,
+    "title": "Longest Substring without Repeating Characters",
+    "pattern": "sliding-window",
+    "difficulty": "medium",
+    "estimatedTime": 25
+  },
+  {
+    "id": 51,
+    "title": "Minimum Size Subarray Sum",
+    "pattern": "sliding-window",
+    "difficulty": "medium",
+    "estimatedTime": 25
+  },
+  {
+    "id": 52,
+    "title": "Best Time to Buy and Sell Stock",
+    "pattern": "sliding-window",
+    "difficulty": "easy",
+    "estimatedTime": 15
+  },
+  {
+    "id": 53,
+    "title": "Fruit Into Baskets",
+    "pattern": "sliding-window",
+    "difficulty": "medium",
+    "estimatedTime": 25
+  },
+  {
+    "id": 54,
+    "title": "Frequency of the Most Frequent Element",
+    "pattern": "sliding-window",
+    "difficulty": "medium",
+    "estimatedTime": 25
+  },
+  {
+    "id": 55,
+    "title": "Maximum Average Subarray I",
+    "pattern": "sliding-window",
+    "difficulty": "easy",
+    "estimatedTime": 15
+  },
+  {
+    "id": 56,
+    "title": "Diet Plan Performance",
+    "pattern": "sliding-window",
+    "difficulty": "easy",
+    "estimatedTime": 15
+  },
+  {
+    "id": 57,
+    "title": "Subarrays with K Different Integers",
+    "pattern": "sliding-window",
+    "difficulty": "hard",
+    "estimatedTime": 40
+  },
+  {
+    "id": 58,
+    "title": "Count Subarrays With Score Less Than K",
+    "pattern": "sliding-window",
+    "difficulty": "hard",
+    "estimatedTime": 40
+  },
+  {
+    "id": 59,
+    "title": "Count Substrings With K-Frequency Characters II",
+    "pattern": "sliding-window",
+    "difficulty": "hard",
+    "estimatedTime": 40
+  },
+  {
+    "id": 60,
+    "title": "Substring with Concatenation of All Words",
+    "pattern": "sliding-window",
+    "difficulty": "hard",
+    "estimatedTime": 40
+  },
+  {
+    "id": 61,
+    "title": "Binary Subarrays With Sum",
+    "pattern": "sliding-window",
+    "difficulty": "medium",
+    "estimatedTime": 25
+  },
+  {
+    "id": 62,
+    "title": "Permutation in String",
+    "pattern": "sliding-window",
+    "difficulty": "medium",
+    "estimatedTime": 25
+  },
+  {
+    "id": 63,
+    "title": "Number of Substrings Containing All Three Characters",
+    "pattern": "sliding-window",
+    "difficulty": "medium",
+    "estimatedTime": 25
+  },
+  {
+    "id": 64,
+    "title": "Find the Index of the First Occurrence in a String",
+    "pattern": "sliding-window",
+    "difficulty": "medium",
+    "estimatedTime": 25
+  },
+  {
+    "id": 65,
+    "title": "Max Consecutive Ones III",
+    "pattern": "sliding-window",
+    "difficulty": "medium",
+    "estimatedTime": 25
+  },
+  {
+    "id": 66,
+    "title": "Longest Subarray With Diff At Most Limit",
+    "pattern": "sliding-window",
+    "difficulty": "medium",
+    "estimatedTime": 25
+  },
+  {
+    "id": 67,
+    "title": "Subarray Product Less Than K",
+    "pattern": "sliding-window",
+    "difficulty": "medium",
+    "estimatedTime": 25
+  },
+  {
+    "id": 68,
+    "title": "Merge Intervals",
+    "pattern": "intervals",
+    "difficulty": "medium",
+    "estimatedTime": 25
+  },
+  {
+    "id": 69,
+    "title": "Insert Interval",
+    "pattern": "intervals",
+    "difficulty": "medium",
+    "estimatedTime": 25
+  },
+  {
+    "id": 70,
+    "title": "Interval List Intersections",
+    "pattern": "intervals",
+    "difficulty": "medium",
+    "estimatedTime": 25
+  },
+  {
+    "id": 71,
+    "title": "Employee Free Time",
+    "pattern": "intervals",
+    "difficulty": "hard",
+    "estimatedTime": 40
+  },
+  {
+    "id": 72,
+    "title": "Task Scheduler",
+    "pattern": "intervals",
+    "difficulty": "medium",
+    "estimatedTime": 25
+  },
+  {
+    "id": 73,
+    "title": "Meeting Rooms II",
+    "pattern": "intervals",
+    "difficulty": "medium",
+    "estimatedTime": 25
+  },
+  {
+    "id": 74,
+    "title": "Remove Covered Intervals",
+    "pattern": "intervals",
+    "difficulty": "medium",
+    "estimatedTime": 25
+  },
+  {
+    "id": 75,
+    "title": "Count Days Without Meetings",
+    "pattern": "intervals",
+    "difficulty": "medium",
+    "estimatedTime": 25
+  },
+  {
+    "id": 76,
+    "title": "Car Pooling",
+    "pattern": "intervals",
+    "difficulty": "medium",
+    "estimatedTime": 25
+  },
+  {
+    "id": 77,
+    "title": "Data Stream as Disjoint Intervals",
+    "pattern": "intervals",
+    "difficulty": "hard",
+    "estimatedTime": 40
+  },
+  {
+    "id": 78,
+    "title": "Minimum Interval to Include Each Query",
+    "pattern": "intervals",
+    "difficulty": "hard",
+    "estimatedTime": 40
+  },
+  {
+    "id": 79,
+    "title": "Reverse Linked List",
+    "pattern": "linked-list-inplace",
+    "difficulty": "easy",
+    "estimatedTime": 15
+  },
+  {
+    "id": 80,
+    "title": "Reverse Nodes in k-Group",
+    "pattern": "linked-list-inplace",
+    "difficulty": "hard",
+    "estimatedTime": 40
+  },
+  {
+    "id": 81,
+    "title": "Reverse Linked List II",
+    "pattern": "linked-list-inplace",
+    "difficulty": "medium",
+    "estimatedTime": 25
+  },
+  {
+    "id": 82,
+    "title": "Reorder List",
+    "pattern": "linked-list-inplace",
+    "difficulty": "medium",
+    "estimatedTime": 25
+  },
+  {
+    "id": 83,
+    "title": "Swapping Nodes in a Linked List",
+    "pattern": "linked-list-inplace",
+    "difficulty": "medium",
+    "estimatedTime": 25
+  },
+  {
+    "id": 84,
+    "title": "Reverse Nodes In Even Length Groups",
+    "pattern": "linked-list-inplace",
+    "difficulty": "medium",
+    "estimatedTime": 25
+  },
+  {
+    "id": 85,
+    "title": "Swap Nodes in Pairs",
+    "pattern": "linked-list-inplace",
+    "difficulty": "medium",
+    "estimatedTime": 25
+  },
+  {
+    "id": 86,
+    "title": "Split Linked List in Parts",
+    "pattern": "linked-list-inplace",
+    "difficulty": "medium",
+    "estimatedTime": 25
+  },
+  {
+    "id": 87,
+    "title": "Remove Linked List Elements",
+    "pattern": "linked-list-inplace",
+    "difficulty": "easy",
+    "estimatedTime": 15
+  },
+  {
+    "id": 88,
+    "title": "Delete N Nodes After M Nodes of a Linked List",
+    "pattern": "linked-list-inplace",
+    "difficulty": "easy",
+    "estimatedTime": 15
+  },
+  {
+    "id": 89,
+    "title": "Remove Duplicates from Sorted List",
+    "pattern": "linked-list-inplace",
+    "difficulty": "easy",
+    "estimatedTime": 15
+  },
+  {
+    "id": 90,
+    "title": "Insert into a Sorted Circular Linked List",
+    "pattern": "linked-list-inplace",
+    "difficulty": "medium",
+    "estimatedTime": 25
+  },
+  {
+    "id": 91,
+    "title": "Odd Even Linked List",
+    "pattern": "linked-list-inplace",
+    "difficulty": "medium",
+    "estimatedTime": 25
+  },
+  {
+    "id": 92,
+    "title": "Rotate List",
+    "pattern": "linked-list-inplace",
+    "difficulty": "medium",
+    "estimatedTime": 25
+  },
+  {
+    "id": 93,
+    "title": "Maximize Capital",
+    "pattern": "two-heaps",
+    "difficulty": "hard",
+    "estimatedTime": 40
+  },
+  {
+    "id": 94,
+    "title": "Find Median from a Data Stream",
+    "pattern": "two-heaps",
+    "difficulty": "hard",
+    "estimatedTime": 40
+  },
+  {
+    "id": 95,
+    "title": "Sliding Window Median",
+    "pattern": "two-heaps",
+    "difficulty": "hard",
+    "estimatedTime": 40
+  },
+  {
+    "id": 96,
+    "title": "Schedule Tasks on Minimum Machines",
+    "pattern": "two-heaps",
+    "difficulty": "medium",
+    "estimatedTime": 25
+  },
+  {
+    "id": 97,
+    "title": "Meeting Rooms III",
+    "pattern": "two-heaps",
+    "difficulty": "hard",
+    "estimatedTime": 40
+  },
+  {
+    "id": 98,
+    "title": "Minimum Cost to Connect Sticks",
+    "pattern": "two-heaps",
+    "difficulty": "medium",
+    "estimatedTime": 25
+  },
+  {
+    "id": 99,
+    "title": "Longest Happy String",
+    "pattern": "two-heaps",
+    "difficulty": "medium",
+    "estimatedTime": 25
+  },
+  {
+    "id": 100,
+    "title": "Maximum Average Pass Ratio",
+    "pattern": "two-heaps",
+    "difficulty": "medium",
+    "estimatedTime": 25
+  },
+  {
+    "id": 101,
+    "title": "The Number of the Smallest Unoccupied Chair",
+    "pattern": "two-heaps",
+    "difficulty": "medium",
+    "estimatedTime": 25
+  },
+  {
+    "id": 102,
+    "title": "Largest Number After Digit Swaps by Parity",
+    "pattern": "two-heaps",
+    "difficulty": "easy",
+    "estimatedTime": 15
+  },
+  {
+    "id": 103,
+    "title": "Find Right Interval",
+    "pattern": "two-heaps",
+    "difficulty": "medium",
+    "estimatedTime": 25
+  },
+  {
+    "id": 104,
+    "title": "Construct Target Array with Multiple Sums",
+    "pattern": "two-heaps",
+    "difficulty": "hard",
+    "estimatedTime": 40
+  },
+  {
+    "id": 105,
+    "title": "Merge Sorted Array",
+    "pattern": "k-way-merge",
+    "difficulty": "easy",
+    "estimatedTime": 15
+  },
+  {
+    "id": 106,
+    "title": "Kth Smallest Number in M Sorted Lists",
+    "pattern": "k-way-merge",
+    "difficulty": "medium",
+    "estimatedTime": 25
+  },
+  {
+    "id": 107,
+    "title": "Find K Pairs with Smallest Sums",
+    "pattern": "k-way-merge",
+    "difficulty": "medium",
+    "estimatedTime": 25
+  },
+  {
+    "id": 108,
+    "title": "Merge K Sorted Lists",
+    "pattern": "k-way-merge",
+    "difficulty": "hard",
+    "estimatedTime": 40
+  },
+  {
+    "id": 109,
+    "title": "Kth Smallest Element in a Sorted Matrix",
+    "pattern": "k-way-merge",
+    "difficulty": "medium",
+    "estimatedTime": 25
+  },
+  {
+    "id": 110,
+    "title": "K-th Smallest Prime Fraction",
+    "pattern": "k-way-merge",
+    "difficulty": "medium",
+    "estimatedTime": 25
+  },
+  {
+    "id": 111,
+    "title": "Super Ugly Number",
+    "pattern": "k-way-merge",
+    "difficulty": "medium",
+    "estimatedTime": 25
+  },
+  {
+    "id": 112,
+    "title": "Kth Largest Element in a Stream",
+    "pattern": "top-k-elements",
+    "difficulty": "easy",
+    "estimatedTime": 15
+  },
+  {
+    "id": 113,
+    "title": "Reorganize String",
+    "pattern": "top-k-elements",
+    "difficulty": "medium",
+    "estimatedTime": 25
+  },
+  {
+    "id": 114,
+    "title": "K Closest Points to Origin",
+    "pattern": "top-k-elements",
+    "difficulty": "medium",
+    "estimatedTime": 25
+  },
+  {
+    "id": 115,
+    "title": "Top K Frequent Elements",
+    "pattern": "top-k-elements",
+    "difficulty": "medium",
+    "estimatedTime": 25
+  },
+  {
+    "id": 116,
+    "title": "Kth Largest Element in an Array",
+    "pattern": "top-k-elements",
+    "difficulty": "medium",
+    "estimatedTime": 25
+  },
+  {
+    "id": 117,
+    "title": "Maximal Score After Applying K Operations",
+    "pattern": "top-k-elements",
+    "difficulty": "medium",
+    "estimatedTime": 25
+  },
+  {
+    "id": 118,
+    "title": "Find the Kth Largest Integer in the Array",
+    "pattern": "top-k-elements",
+    "difficulty": "medium",
+    "estimatedTime": 25
+  },
+  {
+    "id": 119,
+    "title": "Third Maximum Number",
+    "pattern": "top-k-elements",
+    "difficulty": "easy",
+    "estimatedTime": 15
+  },
+  {
+    "id": 120,
+    "title": "Find Subsequence of Length K with the Largest Sum",
+    "pattern": "top-k-elements",
+    "difficulty": "easy",
+    "estimatedTime": 15
+  },
+  {
+    "id": 121,
+    "title": "Minimum Cost to Hire K Workers",
+    "pattern": "top-k-elements",
+    "difficulty": "hard",
+    "estimatedTime": 40
+  },
+  {
+    "id": 122,
+    "title": "Smallest Range Covering Elements from K Lists",
+    "pattern": "top-k-elements",
+    "difficulty": "hard",
+    "estimatedTime": 40
+  },
+  {
+    "id": 123,
+    "title": "Maximum Performance of a Team",
+    "pattern": "top-k-elements",
+    "difficulty": "hard",
+    "estimatedTime": 40
+  },
+  {
+    "id": 124,
+    "title": "K Maximum Sum Combinations From Two Arrays",
+    "pattern": "top-k-elements",
+    "difficulty": "hard",
+    "estimatedTime": 40
+  },
+  {
+    "id": 125,
+    "title": "K Empty Slots",
+    "pattern": "top-k-elements",
+    "difficulty": "hard",
+    "estimatedTime": 40
+  },
+  {
+    "id": 126,
+    "title": "Find the K-Sum of an Array",
+    "pattern": "top-k-elements",
+    "difficulty": "hard",
+    "estimatedTime": 40
+  },
+  {
+    "id": 127,
+    "title": "Maximum Product After K Increments",
+    "pattern": "top-k-elements",
+    "difficulty": "medium",
+    "estimatedTime": 25
+  },
+  {
+    "id": 128,
+    "title": "Least Number of Unique Integers after K Removals",
+    "pattern": "top-k-elements",
+    "difficulty": "medium",
+    "estimatedTime": 25
+  },
+  {
+    "id": 129,
+    "title": "Final Array State After K Multiplication Operations I",
+    "pattern": "top-k-elements",
+    "difficulty": "easy",
+    "estimatedTime": 15
+  },
+  {
+    "id": 130,
+    "title": "Binary Search",
+    "pattern": "modified-binary-search",
+    "difficulty": "easy",
+    "estimatedTime": 15
+  },
+  {
+    "id": 131,
+    "title": "Search in Rotated Sorted Array",
+    "pattern": "modified-binary-search",
+    "difficulty": "medium",
+    "estimatedTime": 25
+  },
+  {
+    "id": 132,
+    "title": "First Bad Version",
+    "pattern": "modified-binary-search",
+    "difficulty": "easy",
+    "estimatedTime": 15
+  },
+  {
+    "id": 133,
+    "title": "Find K Closest Elements",
+    "pattern": "modified-binary-search",
+    "difficulty": "medium",
+    "estimatedTime": 25
+  },
+  {
+    "id": 134,
+    "title": "Single Element in a Sorted Array",
+    "pattern": "modified-binary-search",
+    "difficulty": "medium",
+    "estimatedTime": 25
+  },
+  {
+    "id": 135,
+    "title": "Split Array Largest Sum",
+    "pattern": "modified-binary-search",
+    "difficulty": "hard",
+    "estimatedTime": 40
+  },
+  {
+    "id": 136,
+    "title": "The K Weakest Rows in a Matrix",
+    "pattern": "modified-binary-search",
+    "difficulty": "easy",
+    "estimatedTime": 15
+  },
+  {
+    "id": 137,
+    "title": "Maximum Value at a Given Index in a Bounded Array",
+    "pattern": "modified-binary-search",
+    "difficulty": "medium",
+    "estimatedTime": 25
+  },
+  {
+    "id": 138,
+    "title": "Search in Rotated Sorted Array II",
+    "pattern": "modified-binary-search",
+    "difficulty": "medium",
+    "estimatedTime": 25
+  },
+  {
+    "id": 139,
+    "title": "Count Pairs Whose Sum is Less than Target",
+    "pattern": "modified-binary-search",
+    "difficulty": "easy",
+    "estimatedTime": 15
+  },
+  {
+    "id": 140,
+    "title": "Find Minimum in Rotated Sorted Array II",
+    "pattern": "modified-binary-search",
+    "difficulty": "hard",
+    "estimatedTime": 40
+  },
+  {
+    "id": 141,
+    "title": "Maximum Running Time of N Computers",
+    "pattern": "modified-binary-search",
+    "difficulty": "hard",
+    "estimatedTime": 40
+  },
+  {
+    "id": 142,
+    "title": "Minimize Max Distance to Gas Station",
+    "pattern": "modified-binary-search",
+    "difficulty": "hard",
+    "estimatedTime": 40
+  },
+  {
+    "id": 143,
+    "title": "Divide Chocolate",
+    "pattern": "modified-binary-search",
+    "difficulty": "hard",
+    "estimatedTime": 40
+  },
+  {
+    "id": 144,
+    "title": "Split Array Into Two Arrays to Minimize Sum Difference",
+    "pattern": "modified-binary-search",
+    "difficulty": "hard",
+    "estimatedTime": 40
+  },
+  {
+    "id": 145,
+    "title": "Number of Flowers in Full Bloom",
+    "pattern": "modified-binary-search",
+    "difficulty": "hard",
+    "estimatedTime": 40
+  },
+  {
+    "id": 146,
+    "title": "Koko Eating Bananas",
+    "pattern": "modified-binary-search",
+    "difficulty": "medium",
+    "estimatedTime": 25
+  },
+  {
+    "id": 147,
+    "title": "Search Insert Position",
+    "pattern": "modified-binary-search",
+    "difficulty": "easy",
+    "estimatedTime": 15
+  },
+  {
+    "id": 148,
+    "title": "Find Peak Element",
+    "pattern": "modified-binary-search",
+    "difficulty": "medium",
+    "estimatedTime": 25
+  },
+  {
+    "id": 149,
+    "title": "Find First and Last Position of Element in Sorted Array",
+    "pattern": "modified-binary-search",
+    "difficulty": "medium",
+    "estimatedTime": 25
+  },
+  {
+    "id": 150,
+    "title": "Kth Smallest Product of Two Sorted Arrays",
+    "pattern": "modified-binary-search",
+    "difficulty": "hard",
+    "estimatedTime": 40
+  },
+  {
+    "id": 151,
+    "title": "Sqrt(x)",
+    "pattern": "modified-binary-search",
+    "difficulty": "medium",
+    "estimatedTime": 25
+  },
+  {
+    "id": 152,
+    "title": "Reaching Points",
+    "pattern": "modified-binary-search",
+    "difficulty": "medium",
+    "estimatedTime": 25
+  },
+  {
+    "id": 153,
+    "title": "Kth Missing Positive Number",
+    "pattern": "modified-binary-search",
+    "difficulty": "medium",
+    "estimatedTime": 25
+  },
+  {
+    "id": 154,
+    "title": "Subsets",
+    "pattern": "subsets",
+    "difficulty": "medium",
+    "estimatedTime": 25
+  },
+  {
+    "id": 155,
+    "title": "Permutations",
+    "pattern": "subsets",
+    "difficulty": "medium",
+    "estimatedTime": 25
+  },
+  {
+    "id": 156,
+    "title": "Letter Combinations of a Phone Number",
+    "pattern": "subsets",
+    "difficulty": "medium",
+    "estimatedTime": 25
+  },
+  {
+    "id": 157,
+    "title": "Generate Parentheses",
+    "pattern": "subsets",
+    "difficulty": "medium",
+    "estimatedTime": 25
+  },
+  {
+    "id": 158,
+    "title": "Find K-Sum Subsets",
+    "pattern": "subsets",
+    "difficulty": "medium",
+    "estimatedTime": 25
+  },
+  {
+    "id": 159,
+    "title": "Letter Case Permutation",
+    "pattern": "subsets",
+    "difficulty": "medium",
+    "estimatedTime": 25
+  },
+  {
+    "id": 160,
+    "title": "Letter Tile Possibilities",
+    "pattern": "subsets",
+    "difficulty": "medium",
+    "estimatedTime": 25
+  },
+  {
+    "id": 161,
+    "title": "Subsets II",
+    "pattern": "subsets",
+    "difficulty": "medium",
+    "estimatedTime": 25
+  },
+  {
+    "id": 162,
+    "title": "Jump Game I",
+    "pattern": "greedy",
+    "difficulty": "medium",
+    "estimatedTime": 25
+  },
+  {
+    "id": 163,
+    "title": "Boats to Save People",
+    "pattern": "greedy",
+    "difficulty": "medium",
+    "estimatedTime": 25
+  },
+  {
+    "id": 164,
+    "title": "Gas Stations",
+    "pattern": "greedy",
+    "difficulty": "medium",
+    "estimatedTime": 25
+  },
+  {
+    "id": 165,
+    "title": "Two City Scheduling",
+    "pattern": "greedy",
+    "difficulty": "medium",
+    "estimatedTime": 25
+  },
+  {
+    "id": 166,
+    "title": "Minimum Number of Refueling Stops",
+    "pattern": "greedy",
+    "difficulty": "hard",
+    "estimatedTime": 40
+  },
+  {
+    "id": 167,
+    "title": "Largest Palindromic Number",
+    "pattern": "greedy",
+    "difficulty": "medium",
+    "estimatedTime": 25
+  },
+  {
+    "id": 168,
+    "title": "Jump Game II",
+    "pattern": "greedy",
+    "difficulty": "medium",
+    "estimatedTime": 25
+  },
+  {
+    "id": 169,
+    "title": "Number of Steps to Reduce a Binary Number to One",
+    "pattern": "greedy",
+    "difficulty": "medium",
+    "estimatedTime": 25
+  },
+  {
+    "id": 170,
+    "title": "Rearranging Fruits",
+    "pattern": "greedy",
+    "difficulty": "hard",
+    "estimatedTime": 40
+  },
+  {
+    "id": 171,
+    "title": "Maximum Swap",
+    "pattern": "greedy",
+    "difficulty": "medium",
+    "estimatedTime": 25
+  },
+  {
+    "id": 172,
+    "title": "Can Place Flowers",
+    "pattern": "greedy",
+    "difficulty": "easy",
+    "estimatedTime": 15
+  },
+  {
+    "id": 173,
+    "title": "Largest Odd Number in String",
+    "pattern": "greedy",
+    "difficulty": "easy",
+    "estimatedTime": 15
+  },
+  {
+    "id": 174,
+    "title": "Assign Cookies",
+    "pattern": "greedy",
+    "difficulty": "easy",
+    "estimatedTime": 15
+  },
+  {
+    "id": 175,
+    "title": "Candy",
+    "pattern": "greedy",
+    "difficulty": "hard",
+    "estimatedTime": 40
+  },
+  {
+    "id": 176,
+    "title": "Minimum Replacements to Sort the Array",
+    "pattern": "greedy",
+    "difficulty": "hard",
+    "estimatedTime": 40
+  },
+  {
+    "id": 177,
+    "title": "Sort an Array",
+    "pattern": "greedy",
+    "difficulty": "medium",
+    "estimatedTime": 25
+  },
+  {
+    "id": 178,
+    "title": "Text Justification",
+    "pattern": "greedy",
+    "difficulty": "hard",
+    "estimatedTime": 40
+  },
+  {
+    "id": 179,
+    "title": "Best Time to Buy and Sell Stock II",
+    "pattern": "greedy",
+    "difficulty": "medium",
+    "estimatedTime": 25
+  },
+  {
+    "id": 180,
+    "title": "Wildcard Matching",
+    "pattern": "greedy",
+    "difficulty": "hard",
+    "estimatedTime": 40
+  },
+  {
+    "id": 181,
+    "title": "Remove K Digits",
+    "pattern": "greedy",
+    "difficulty": "medium",
+    "estimatedTime": 25
+  },
+  {
+    "id": 182,
+    "title": "Largest Number",
+    "pattern": "greedy",
+    "difficulty": "medium",
+    "estimatedTime": 25
+  },
+  {
+    "id": 183,
+    "title": "Strong Password Checker",
+    "pattern": "greedy",
+    "difficulty": "hard",
+    "estimatedTime": 40
+  },
+  {
+    "id": 184,
+    "title": "Maximum Points After Enemy Battles",
+    "pattern": "greedy",
+    "difficulty": "medium",
+    "estimatedTime": 25
+  },
+  {
+    "id": 185,
+    "title": "Integer to Roman",
+    "pattern": "greedy",
+    "difficulty": "medium",
+    "estimatedTime": 25
+  },
+  {
+    "id": 186,
+    "title": "N-Queens II",
+    "pattern": "backtracking",
+    "difficulty": "hard",
+    "estimatedTime": 40
+  },
+  {
+    "id": 187,
+    "title": "Word Search",
+    "pattern": "backtracking",
+    "difficulty": "medium",
+    "estimatedTime": 25
+  },
+  {
+    "id": 188,
+    "title": "House Robber III",
+    "pattern": "backtracking",
+    "difficulty": "medium",
+    "estimatedTime": 25
+  },
+  {
+    "id": 189,
+    "title": "Restore IP Addresses",
+    "pattern": "backtracking",
+    "difficulty": "medium",
+    "estimatedTime": 25
+  },
+  {
+    "id": 190,
+    "title": "Flood Fill",
+    "pattern": "backtracking",
+    "difficulty": "easy",
+    "estimatedTime": 15
+  },
+  {
+    "id": 191,
+    "title": "Minimum Moves to Spread Stones Over Grid",
+    "pattern": "backtracking",
+    "difficulty": "medium",
+    "estimatedTime": 25
+  },
+  {
+    "id": 192,
+    "title": "Sudoku Solver",
+    "pattern": "backtracking",
+    "difficulty": "hard",
+    "estimatedTime": 40
+  },
+  {
+    "id": 193,
+    "title": "Matchsticks to Square",
+    "pattern": "backtracking",
+    "difficulty": "medium",
+    "estimatedTime": 25
+  },
+  {
+    "id": 194,
+    "title": "Binary Watch",
+    "pattern": "backtracking",
+    "difficulty": "easy",
+    "estimatedTime": 15
+  },
+  {
+    "id": 195,
+    "title": "Optimal Account Balancing",
+    "pattern": "backtracking",
+    "difficulty": "hard",
+    "estimatedTime": 40
+  },
+  {
+    "id": 196,
+    "title": "Split a String Into the Max Number of Unique Substrings",
+    "pattern": "backtracking",
+    "difficulty": "medium",
+    "estimatedTime": 25
+  },
+  {
+    "id": 197,
+    "title": "Binary Tree Paths",
+    "pattern": "backtracking",
+    "difficulty": "easy",
+    "estimatedTime": 15
+  },
+  {
+    "id": 198,
+    "title": "All Paths From Source to Target",
+    "pattern": "backtracking",
+    "difficulty": "medium",
+    "estimatedTime": 25
+  },
+  {
+    "id": 199,
+    "title": "Remove Invalid Parentheses",
+    "pattern": "backtracking",
+    "difficulty": "hard",
+    "estimatedTime": 40
+  },
+  {
+    "id": 200,
+    "title": "Unique Paths III",
+    "pattern": "backtracking",
+    "difficulty": "hard",
+    "estimatedTime": 40
+  },
+  {
+    "id": 201,
+    "title": "N-Queens",
+    "pattern": "backtracking",
+    "difficulty": "hard",
+    "estimatedTime": 40
+  },
+  {
+    "id": 202,
+    "title": "Combinations",
+    "pattern": "backtracking",
+    "difficulty": "medium",
+    "estimatedTime": 25
+  },
+  {
+    "id": 203,
+    "title": "Word Ladder II",
+    "pattern": "backtracking",
+    "difficulty": "hard",
+    "estimatedTime": 40
+  },
+  {
+    "id": 204,
+    "title": "Flip Game",
+    "pattern": "backtracking",
+    "difficulty": "easy",
+    "estimatedTime": 15
+  },
+  {
+    "id": 205,
+    "title": "Additive Number",
+    "pattern": "backtracking",
+    "difficulty": "medium",
+    "estimatedTime": 25
+  },
+  {
+    "id": 206,
+    "title": "0/1 Knapsack",
+    "pattern": "dynamic-programming",
+    "difficulty": "medium",
+    "estimatedTime": 25
+  },
+  {
+    "id": 207,
+    "title": "Coin Change",
+    "pattern": "dynamic-programming",
+    "difficulty": "medium",
+    "estimatedTime": 25
+  },
+  {
+    "id": 208,
+    "title": "N-th Tribonacci Number",
+    "pattern": "dynamic-programming",
+    "difficulty": "easy",
+    "estimatedTime": 15
+  },
+  {
+    "id": 209,
+    "title": "Partition Equal Subset Sum",
+    "pattern": "dynamic-programming",
+    "difficulty": "medium",
+    "estimatedTime": 25
+  },
+  {
+    "id": 210,
+    "title": "Counting Bits",
+    "pattern": "dynamic-programming",
+    "difficulty": "easy",
+    "estimatedTime": 15
+  },
+  {
+    "id": 211,
+    "title": "01 Matrix",
+    "pattern": "dynamic-programming",
+    "difficulty": "medium",
+    "estimatedTime": 25
+  },
+  {
+    "id": 212,
+    "title": "House Robber II",
+    "pattern": "dynamic-programming",
+    "difficulty": "medium",
+    "estimatedTime": 25
+  },
+  {
+    "id": 213,
+    "title": "Maximum Product Subarray",
+    "pattern": "dynamic-programming",
+    "difficulty": "medium",
+    "estimatedTime": 25
+  },
+  {
+    "id": 214,
+    "title": "Combination Sum",
+    "pattern": "dynamic-programming",
+    "difficulty": "medium",
+    "estimatedTime": 25
+  },
+  {
+    "id": 215,
+    "title": "Word Break",
+    "pattern": "dynamic-programming",
+    "difficulty": "medium",
+    "estimatedTime": 25
+  },
+  {
+    "id": 216,
+    "title": "Palindromic Substrings",
+    "pattern": "dynamic-programming",
+    "difficulty": "medium",
+    "estimatedTime": 25
+  },
+  {
+    "id": 217,
+    "title": "Longest Common Subsequence",
+    "pattern": "dynamic-programming",
+    "difficulty": "medium",
+    "estimatedTime": 25
+  },
+  {
+    "id": 218,
+    "title": "Word Break II",
+    "pattern": "dynamic-programming",
+    "difficulty": "hard",
+    "estimatedTime": 40
+  },
+  {
+    "id": 219,
+    "title": "Decode Ways",
+    "pattern": "dynamic-programming",
+    "difficulty": "medium",
+    "estimatedTime": 25
+  },
+  {
+    "id": 220,
+    "title": "Count the Number of Good Subsequences",
+    "pattern": "dynamic-programming",
+    "difficulty": "medium",
+    "estimatedTime": 25
+  },
+  {
+    "id": 221,
+    "title": "Climbing Stairs",
+    "pattern": "dynamic-programming",
+    "difficulty": "easy",
+    "estimatedTime": 15
+  },
+  {
+    "id": 222,
+    "title": "Binary Tree Cameras",
+    "pattern": "dynamic-programming",
+    "difficulty": "hard",
+    "estimatedTime": 40
+  },
+  {
+    "id": 223,
+    "title": "Number of Ways to Form a Target String Given a Dictionary",
+    "pattern": "dynamic-programming",
+    "difficulty": "hard",
+    "estimatedTime": 40
+  },
+  {
+    "id": 224,
+    "title": "Pascal's Triangle",
+    "pattern": "dynamic-programming",
+    "difficulty": "easy",
+    "estimatedTime": 15
+  },
+  {
+    "id": 225,
+    "title": "Triangle",
+    "pattern": "dynamic-programming",
+    "difficulty": "medium",
+    "estimatedTime": 25
+  },
+  {
+    "id": 226,
+    "title": "Frog Jump",
+    "pattern": "dynamic-programming",
+    "difficulty": "hard",
+    "estimatedTime": 40
+  },
+  {
+    "id": 227,
+    "title": "Cherry Pickup",
+    "pattern": "dynamic-programming",
+    "difficulty": "hard",
+    "estimatedTime": 40
+  },
+  {
+    "id": 228,
+    "title": "Regular Expression Matching",
+    "pattern": "dynamic-programming",
+    "difficulty": "hard",
+    "estimatedTime": 40
+  },
+  {
+    "id": 229,
+    "title": "Dungeon Game",
+    "pattern": "dynamic-programming",
+    "difficulty": "hard",
+    "estimatedTime": 40
+  },
+  {
+    "id": 230,
+    "title": "Burst Balloons",
+    "pattern": "dynamic-programming",
+    "difficulty": "hard",
+    "estimatedTime": 40
+  },
+  {
+    "id": 231,
+    "title": "Shortest Common Supersequence",
+    "pattern": "dynamic-programming",
+    "difficulty": "hard",
+    "estimatedTime": 40
+  },
+  {
+    "id": 232,
+    "title": "Interleaving String",
+    "pattern": "dynamic-programming",
+    "difficulty": "medium",
+    "estimatedTime": 25
+  },
+  {
+    "id": 233,
+    "title": "Maximal Rectangle",
+    "pattern": "dynamic-programming",
+    "difficulty": "hard",
+    "estimatedTime": 40
+  },
+  {
+    "id": 234,
+    "title": "Longest Increasing Path in a Matrix",
+    "pattern": "dynamic-programming",
+    "difficulty": "hard",
+    "estimatedTime": 40
+  },
+  {
+    "id": 235,
+    "title": "Min Cost Climbing Stairs",
+    "pattern": "dynamic-programming",
+    "difficulty": "easy",
+    "estimatedTime": 15
+  },
+  {
+    "id": 236,
+    "title": "Number of Longest Increasing Subsequence",
+    "pattern": "dynamic-programming",
+    "difficulty": "medium",
+    "estimatedTime": 25
+  },
+  {
+    "id": 237,
+    "title": "Distinct Subsequences",
+    "pattern": "dynamic-programming",
+    "difficulty": "hard",
+    "estimatedTime": 40
+  },
+  {
+    "id": 238,
+    "title": "Cheapest Flights Within K Stops",
+    "pattern": "dynamic-programming",
+    "difficulty": "medium",
+    "estimatedTime": 25
+  },
+  {
+    "id": 239,
+    "title": "Minimum Path Sum",
+    "pattern": "dynamic-programming",
+    "difficulty": "medium",
+    "estimatedTime": 25
+  },
+  {
+    "id": 240,
+    "title": "Best Time to Buy and Sell Stock III",
+    "pattern": "dynamic-programming",
+    "difficulty": "hard",
+    "estimatedTime": 40
+  },
+  {
+    "id": 241,
+    "title": "Maximal Square",
+    "pattern": "dynamic-programming",
+    "difficulty": "medium",
+    "estimatedTime": 25
+  },
+  {
+    "id": 242,
+    "title": "The Number of Good Subsets",
+    "pattern": "dynamic-programming",
+    "difficulty": "hard",
+    "estimatedTime": 40
+  },
+  {
+    "id": 243,
+    "title": "Freedom Trail",
+    "pattern": "dynamic-programming",
+    "difficulty": "hard",
+    "estimatedTime": 40
+  },
+  {
+    "id": 244,
+    "title": "Soup Servings",
+    "pattern": "dynamic-programming",
+    "difficulty": "medium",
+    "estimatedTime": 25
+  },
+  {
+    "id": 245,
+    "title": "Number of People Aware of a Secret",
+    "pattern": "dynamic-programming",
+    "difficulty": "medium",
+    "estimatedTime": 25
+  },
+  {
+    "id": 246,
+    "title": "Edit Distance",
+    "pattern": "dynamic-programming",
+    "difficulty": "medium",
+    "estimatedTime": 25
+  },
+  {
+    "id": 247,
+    "title": "Missing Number",
+    "pattern": "cyclic-sort",
+    "difficulty": "easy",
+    "estimatedTime": 15
+  },
+  {
+    "id": 248,
+    "title": "First Missing Positive",
+    "pattern": "cyclic-sort",
+    "difficulty": "hard",
+    "estimatedTime": 40
+  },
+  {
+    "id": 249,
+    "title": "Find the Corrupt Pair",
+    "pattern": "cyclic-sort",
+    "difficulty": "medium",
+    "estimatedTime": 25
+  },
+  {
+    "id": 250,
+    "title": "Find the First K Missing Positive Numbers",
+    "pattern": "cyclic-sort",
+    "difficulty": "easy",
+    "estimatedTime": 15
+  },
+  {
+    "id": 251,
+    "title": "Sort Array By Parity II",
+    "pattern": "cyclic-sort",
+    "difficulty": "easy",
+    "estimatedTime": 15
+  },
+  {
+    "id": 252,
+    "title": "Cyclic Sort",
+    "pattern": "cyclic-sort",
+    "difficulty": "easy",
+    "estimatedTime": 15
+  },
+  {
+    "id": 253,
+    "title": "Compilation Order",
+    "pattern": "topological-sort",
+    "difficulty": "medium",
+    "estimatedTime": 25
+  },
+  {
+    "id": 254,
+    "title": "Alien Dictionary",
+    "pattern": "topological-sort",
+    "difficulty": "hard",
+    "estimatedTime": 40
+  },
+  {
+    "id": 255,
+    "title": "Verifying an Alien Dictionary",
+    "pattern": "topological-sort",
+    "difficulty": "easy",
+    "estimatedTime": 15
+  },
+  {
+    "id": 256,
+    "title": "Course Schedule II",
+    "pattern": "topological-sort",
+    "difficulty": "medium",
+    "estimatedTime": 25
+  },
+  {
+    "id": 257,
+    "title": "Course Schedule",
+    "pattern": "topological-sort",
+    "difficulty": "medium",
+    "estimatedTime": 25
+  },
+  {
+    "id": 258,
+    "title": "Find All Possible Recipes from Given Supplies",
+    "pattern": "topological-sort",
+    "difficulty": "medium",
+    "estimatedTime": 25
+  },
+  {
+    "id": 259,
+    "title": "Build a Matrix with Conditions",
+    "pattern": "topological-sort",
+    "difficulty": "hard",
+    "estimatedTime": 40
+  },
+  {
+    "id": 260,
+    "title": "Longest Path With Different Adjacent Characters",
+    "pattern": "topological-sort",
+    "difficulty": "hard",
+    "estimatedTime": 40
+  },
+  {
+    "id": 261,
+    "title": "Parallel Courses III",
+    "pattern": "topological-sort",
+    "difficulty": "hard",
+    "estimatedTime": 40
+  },
+  {
+    "id": 262,
+    "title": "Parallel Courses",
+    "pattern": "topological-sort",
+    "difficulty": "medium",
+    "estimatedTime": 25
+  },
+  {
+    "id": 263,
+    "title": "Sort Items by Groups Respecting Dependencies",
+    "pattern": "topological-sort",
+    "difficulty": "hard",
+    "estimatedTime": 40
+  },
+  {
+    "id": 264,
+    "title": "Collect Coins in a Tree",
+    "pattern": "topological-sort",
+    "difficulty": "medium",
+    "estimatedTime": 25
+  },
+  {
+    "id": 265,
+    "title": "Sum of Mutated Array Closest to Target",
+    "pattern": "sort-search",
+    "difficulty": "medium",
+    "estimatedTime": 25
+  },
+  {
+    "id": 266,
+    "title": "Contains Duplicate II",
+    "pattern": "sort-search",
+    "difficulty": "easy",
+    "estimatedTime": 15
+  },
+  {
+    "id": 267,
+    "title": "Find K-th Smallest Pair Distance",
+    "pattern": "sort-search",
+    "difficulty": "hard",
+    "estimatedTime": 40
+  },
+  {
+    "id": 268,
+    "title": "Maximum Number of Integers to Choose from a Range I",
+    "pattern": "sort-search",
+    "difficulty": "medium",
+    "estimatedTime": 25
+  },
+  {
+    "id": 269,
+    "title": "Find the Distance Value Between Two Arrays",
+    "pattern": "sort-search",
+    "difficulty": "easy",
+    "estimatedTime": 15
+  },
+  {
+    "id": 270,
+    "title": "Find Target Indices After Sorting Array",
+    "pattern": "sort-search",
+    "difficulty": "easy",
+    "estimatedTime": 15
+  },
+  {
+    "id": 271,
+    "title": "Russian Doll Envelopes",
+    "pattern": "sort-search",
+    "difficulty": "hard",
+    "estimatedTime": 40
+  },
+  {
+    "id": 272,
+    "title": "Minimum Operations to Make All Array Elements Equal",
+    "pattern": "sort-search",
+    "difficulty": "medium",
+    "estimatedTime": 25
+  },
+  {
+    "id": 273,
+    "title": "Longest Subsequence With Limited Sum",
+    "pattern": "sort-search",
+    "difficulty": "easy",
+    "estimatedTime": 15
+  },
+  {
+    "id": 274,
+    "title": "Range Sum of Sorted Subarray Sums",
+    "pattern": "sort-search",
+    "difficulty": "medium",
+    "estimatedTime": 25
+  },
+  {
+    "id": 275,
+    "title": "Magnetic Force Between Two Balls",
+    "pattern": "sort-search",
+    "difficulty": "medium",
+    "estimatedTime": 25
+  },
+  {
+    "id": 276,
+    "title": "Minimum Space Wasted from Packaging",
+    "pattern": "sort-search",
+    "difficulty": "hard",
+    "estimatedTime": 40
+  },
+  {
+    "id": 277,
+    "title": "Two Sum Less Than K",
+    "pattern": "sort-search",
+    "difficulty": "easy",
+    "estimatedTime": 15
+  },
+  {
+    "id": 278,
+    "title": "Valid Triangle Number",
+    "pattern": "sort-search",
+    "difficulty": "medium",
+    "estimatedTime": 25
+  },
+  {
+    "id": 279,
+    "title": "Count Pairs in Two Arrays",
+    "pattern": "sort-search",
+    "difficulty": "medium",
+    "estimatedTime": 25
+  },
+  {
+    "id": 280,
+    "title": "Put Marbles in Bags",
+    "pattern": "sort-search",
+    "difficulty": "hard",
+    "estimatedTime": 40
+  },
+  {
+    "id": 281,
+    "title": "H-Index",
+    "pattern": "sort-search",
+    "difficulty": "medium",
+    "estimatedTime": 25
+  },
+  {
+    "id": 282,
+    "title": "Reverse Pairs",
+    "pattern": "sort-search",
+    "difficulty": "hard",
+    "estimatedTime": 40
+  },
+  {
+    "id": 283,
+    "title": "Minimum Time Difference",
+    "pattern": "sort-search",
+    "difficulty": "medium",
+    "estimatedTime": 25
+  },
+  {
+    "id": 284,
+    "title": "Set Matrix Zeros",
+    "pattern": "matrices",
+    "difficulty": "medium",
+    "estimatedTime": 25
+  },
+  {
+    "id": 285,
+    "title": "Rotate Image",
+    "pattern": "matrices",
+    "difficulty": "medium",
+    "estimatedTime": 25
+  },
+  {
+    "id": 286,
+    "title": "Spiral Matrix",
+    "pattern": "matrices",
+    "difficulty": "medium",
+    "estimatedTime": 25
+  },
+  {
+    "id": 287,
+    "title": "Where Will the Ball Fall",
+    "pattern": "matrices",
+    "difficulty": "medium",
+    "estimatedTime": 25
+  },
+  {
+    "id": 288,
+    "title": "Island Perimeter",
+    "pattern": "matrices",
+    "difficulty": "easy",
+    "estimatedTime": 15
+  },
+  {
+    "id": 289,
+    "title": "Convert 1D Array Into 2D Array",
+    "pattern": "matrices",
+    "difficulty": "easy",
+    "estimatedTime": 15
+  },
+  {
+    "id": 290,
+    "title": "Spiral Matrix II",
+    "pattern": "matrices",
+    "difficulty": "medium",
+    "estimatedTime": 25
+  },
+  {
+    "id": 291,
+    "title": "Flip Columns For Maximum Number of Equal Rows",
+    "pattern": "matrices",
+    "difficulty": "medium",
+    "estimatedTime": 25
+  },
+  {
+    "id": 292,
+    "title": "Number of Spaces Cleaning Robot Cleaned",
+    "pattern": "matrices",
+    "difficulty": "medium",
+    "estimatedTime": 25
+  },
+  {
+    "id": 293,
+    "title": "Transpose Matrix",
+    "pattern": "matrices",
+    "difficulty": "easy",
+    "estimatedTime": 15
+  },
+  {
+    "id": 294,
+    "title": "Count Negative Numbers in a Sorted Matrix",
+    "pattern": "matrices",
+    "difficulty": "easy",
+    "estimatedTime": 15
+  },
+  {
+    "id": 295,
+    "title": "Minimum Time Takes to Reach Destination Without Drowning",
+    "pattern": "matrices",
+    "difficulty": "hard",
+    "estimatedTime": 40
+  },
+  {
+    "id": 296,
+    "title": "Smallest Rectangle Enclosing Black Pixels",
+    "pattern": "matrices",
+    "difficulty": "hard",
+    "estimatedTime": 40
+  },
+  {
+    "id": 297,
+    "title": "Minimize Maximum Value in a Grid",
+    "pattern": "matrices",
+    "difficulty": "hard",
+    "estimatedTime": 40
+  },
+  {
+    "id": 298,
+    "title": "Kth Smallest Number in Multiplication Table",
+    "pattern": "matrices",
+    "difficulty": "hard",
+    "estimatedTime": 40
+  },
+  {
+    "id": 299,
+    "title": "Swim in Rising Water",
+    "pattern": "matrices",
+    "difficulty": "hard",
+    "estimatedTime": 40
+  },
+  {
+    "id": 300,
+    "title": "Best Meeting Point",
+    "pattern": "matrices",
+    "difficulty": "hard",
+    "estimatedTime": 40
+  },
+  {
+    "id": 301,
+    "title": "Game of Life",
+    "pattern": "matrices",
+    "difficulty": "medium",
+    "estimatedTime": 25
+  },
+  {
+    "id": 302,
+    "title": "Toeplitz Matrix",
+    "pattern": "matrices",
+    "difficulty": "easy",
+    "estimatedTime": 15
+  },
+  {
+    "id": 303,
+    "title": "Diagonal Traverse",
+    "pattern": "matrices",
+    "difficulty": "medium",
+    "estimatedTime": 25
+  },
+  {
+    "id": 304,
+    "title": "Basic Calculator",
+    "pattern": "stacks",
+    "difficulty": "hard",
+    "estimatedTime": 40
+  },
+  {
+    "id": 305,
+    "title": "Remove All Adjacent Duplicates In String",
+    "pattern": "stacks",
+    "difficulty": "easy",
+    "estimatedTime": 15
+  },
+  {
+    "id": 306,
+    "title": "Minimum Remove to Make Valid Parentheses",
+    "pattern": "stacks",
+    "difficulty": "medium",
+    "estimatedTime": 25
+  },
+  {
+    "id": 307,
+    "title": "Exclusive Time of Functions",
+    "pattern": "stacks",
+    "difficulty": "medium",
+    "estimatedTime": 25
+  },
+  {
+    "id": 308,
+    "title": "Flatten Nested List Iterator",
+    "pattern": "stacks",
+    "difficulty": "medium",
+    "estimatedTime": 25
+  },
+  {
+    "id": 309,
+    "title": "Implement Queue Using Stacks",
+    "pattern": "stacks",
+    "difficulty": "easy",
+    "estimatedTime": 15
+  },
+  {
+    "id": 310,
+    "title": "Valid Parentheses",
+    "pattern": "stacks",
+    "difficulty": "easy",
+    "estimatedTime": 15
+  },
+  {
+    "id": 311,
+    "title": "Decode String",
+    "pattern": "stacks",
+    "difficulty": "medium",
+    "estimatedTime": 25
+  },
+  {
+    "id": 312,
+    "title": "Daily Temperatures",
+    "pattern": "stacks",
+    "difficulty": "medium",
+    "estimatedTime": 25
+  },
+  {
+    "id": 313,
+    "title": "Minimum String Length After Removing Substrings",
+    "pattern": "stacks",
+    "difficulty": "easy",
+    "estimatedTime": 15
+  },
+  {
+    "id": 314,
+    "title": "Number of Valid Subarrays",
+    "pattern": "stacks",
+    "difficulty": "hard",
+    "estimatedTime": 40
+  },
+  {
+    "id": 315,
+    "title": "Number of Visible People in a Queue",
+    "pattern": "stacks",
+    "difficulty": "hard",
+    "estimatedTime": 40
+  },
+  {
+    "id": 316,
+    "title": "Parsing A Boolean Expression",
+    "pattern": "stacks",
+    "difficulty": "hard",
+    "estimatedTime": 40
+  },
+  {
+    "id": 317,
+    "title": "Remove Duplicate Letters",
+    "pattern": "stacks",
+    "difficulty": "medium",
+    "estimatedTime": 25
+  },
+  {
+    "id": 318,
+    "title": "Longest Valid Parentheses",
+    "pattern": "stacks",
+    "difficulty": "hard",
+    "estimatedTime": 40
+  },
+  {
+    "id": 319,
+    "title": "Next Greater Element IV",
+    "pattern": "stacks",
+    "difficulty": "hard",
+    "estimatedTime": 40
+  },
+  {
+    "id": 320,
+    "title": "Maximum Width Ramp",
+    "pattern": "stacks",
+    "difficulty": "medium",
+    "estimatedTime": 25
+  },
+  {
+    "id": 321,
+    "title": "Basic Calculator II",
+    "pattern": "stacks",
+    "difficulty": "medium",
+    "estimatedTime": 25
+  },
+  {
+    "id": 322,
+    "title": "Remove All Adjacent Duplicates in String II",
+    "pattern": "stacks",
+    "difficulty": "medium",
+    "estimatedTime": 25
+  },
+  {
+    "id": 323,
+    "title": "Simplify Path",
+    "pattern": "stacks",
+    "difficulty": "medium",
+    "estimatedTime": 25
+  },
+  {
+    "id": 324,
+    "title": "Network Delay Time",
+    "pattern": "graphs",
+    "difficulty": "medium",
+    "estimatedTime": 25
+  },
+  {
+    "id": 325,
+    "title": "Paths in Maze That Lead to Same Room",
+    "pattern": "graphs",
+    "difficulty": "medium",
+    "estimatedTime": 25
+  },
+  {
+    "id": 326,
+    "title": "Clone Graph",
+    "pattern": "graphs",
+    "difficulty": "medium",
+    "estimatedTime": 25
+  },
+  {
+    "id": 327,
+    "title": "Graph Valid Tree",
+    "pattern": "graphs",
+    "difficulty": "medium",
+    "estimatedTime": 25
+  },
+  {
+    "id": 328,
+    "title": "Bus Routes",
+    "pattern": "graphs",
+    "difficulty": "hard",
+    "estimatedTime": 40
+  },
+  {
+    "id": 329,
+    "title": "Reconstruct Itinerary",
+    "pattern": "graphs",
+    "difficulty": "hard",
+    "estimatedTime": 40
+  },
+  {
+    "id": 330,
+    "title": "Lucky Numbers in a Matrix",
+    "pattern": "graphs",
+    "difficulty": "easy",
+    "estimatedTime": 15
+  },
+  {
+    "id": 331,
+    "title": "Path with Maximum Probability",
+    "pattern": "graphs",
+    "difficulty": "medium",
+    "estimatedTime": 25
+  },
+  {
+    "id": 332,
+    "title": "Reorder Routes to Make All Paths Lead to the City Zero",
+    "pattern": "graphs",
+    "difficulty": "medium",
+    "estimatedTime": 25
+  },
+  {
+    "id": 333,
+    "title": "Tree Diameter",
+    "pattern": "graphs",
+    "difficulty": "medium",
+    "estimatedTime": 25
+  },
+  {
+    "id": 334,
+    "title": "Find the Town Judge",
+    "pattern": "graphs",
+    "difficulty": "easy",
+    "estimatedTime": 15
+  },
+  {
+    "id": 335,
+    "title": "Find Center of Star Graph",
+    "pattern": "graphs",
+    "difficulty": "easy",
+    "estimatedTime": 15
+  },
+  {
+    "id": 336,
+    "title": "Longest Cycle in a Graph",
+    "pattern": "graphs",
+    "difficulty": "hard",
+    "estimatedTime": 40
+  },
+  {
+    "id": 337,
+    "title": "Minimum Cost to Make at Least One Valid Path in a Grid",
+    "pattern": "graphs",
+    "difficulty": "hard",
+    "estimatedTime": 40
+  },
+  {
+    "id": 338,
+    "title": "Shortest Cycle in a Graph",
+    "pattern": "graphs",
+    "difficulty": "hard",
+    "estimatedTime": 40
+  },
+  {
+    "id": 339,
+    "title": "Shortest Path Visiting All Nodes",
+    "pattern": "graphs",
+    "difficulty": "hard",
+    "estimatedTime": 40
+  },
+  {
+    "id": 340,
+    "title": "Max Area of Island",
+    "pattern": "graphs",
+    "difficulty": "medium",
+    "estimatedTime": 25
+  },
+  {
+    "id": 341,
+    "title": "Shortest Path in a Grid with Obstacles Elimination",
+    "pattern": "graphs",
+    "difficulty": "medium",
+    "estimatedTime": 25
+  },
+  {
+    "id": 342,
+    "title": "Flatten Binary Tree to Linked List",
+    "pattern": "tree-dfs",
+    "difficulty": "medium",
+    "estimatedTime": 25
+  },
+  {
+    "id": 343,
+    "title": "Diameter of Binary Tree",
+    "pattern": "tree-dfs",
+    "difficulty": "easy",
+    "estimatedTime": 15
+  },
+  {
+    "id": 344,
+    "title": "Serialize and Deserialize Binary Tree",
+    "pattern": "tree-dfs",
+    "difficulty": "hard",
+    "estimatedTime": 40
+  },
+  {
+    "id": 345,
+    "title": "Invert Binary Tree",
+    "pattern": "tree-dfs",
+    "difficulty": "easy",
+    "estimatedTime": 15
+  },
+  {
+    "id": 346,
+    "title": "Binary Tree Maximum Path Sum",
+    "pattern": "tree-dfs",
+    "difficulty": "hard",
+    "estimatedTime": 40
+  },
+  {
+    "id": 347,
+    "title": "Convert Sorted Array to Binary Search Tree",
+    "pattern": "tree-dfs",
+    "difficulty": "easy",
+    "estimatedTime": 15
+  },
+  {
+    "id": 348,
+    "title": "Build Binary Tree from Preorder and Inorder Traversal",
+    "pattern": "tree-dfs",
+    "difficulty": "medium",
+    "estimatedTime": 25
+  },
+  {
+    "id": 349,
+    "title": "Binary Tree Right Side View",
+    "pattern": "tree-dfs",
+    "difficulty": "medium",
+    "estimatedTime": 25
+  },
+  {
+    "id": 350,
+    "title": "Lowest Common Ancestor of a Binary Tree",
+    "pattern": "tree-dfs",
+    "difficulty": "medium",
+    "estimatedTime": 25
+  },
+  {
+    "id": 351,
+    "title": "Validate Binary Search Tree",
+    "pattern": "tree-dfs",
+    "difficulty": "medium",
+    "estimatedTime": 25
+  },
+  {
+    "id": 352,
+    "title": "Nested List Weight Sum II",
+    "pattern": "tree-dfs",
+    "difficulty": "medium",
+    "estimatedTime": 25
+  },
+  {
+    "id": 353,
+    "title": "Inorder Successor in BST",
+    "pattern": "tree-dfs",
+    "difficulty": "medium",
+    "estimatedTime": 25
+  },
+  {
+    "id": 354,
+    "title": "Height of Binary Tree After Subtree Removal Queries",
+    "pattern": "tree-dfs",
+    "difficulty": "hard",
+    "estimatedTime": 40
+  },
+  {
+    "id": 355,
+    "title": "Maximum Depth of Binary Tree",
+    "pattern": "tree-dfs",
+    "difficulty": "easy",
+    "estimatedTime": 15
+  },
+  {
+    "id": 356,
+    "title": "Kth Smallest Element in a BST",
+    "pattern": "tree-dfs",
+    "difficulty": "medium",
+    "estimatedTime": 25
+  },
+  {
+    "id": 357,
+    "title": "Delete Nodes And Return Forest",
+    "pattern": "tree-dfs",
+    "difficulty": "medium",
+    "estimatedTime": 25
+  },
+  {
+    "id": 358,
+    "title": "Sum of Distances in a Tree",
+    "pattern": "tree-dfs",
+    "difficulty": "hard",
+    "estimatedTime": 40
+  },
+  {
+    "id": 359,
+    "title": "Recover a Tree From Preorder Traversal",
+    "pattern": "tree-dfs",
+    "difficulty": "hard",
+    "estimatedTime": 40
+  },
+  {
+    "id": 360,
+    "title": "Binary Tree Preorder Traversal",
+    "pattern": "tree-dfs",
+    "difficulty": "easy",
+    "estimatedTime": 15
+  },
+  {
+    "id": 361,
+    "title": "Univalued Binary Tree",
+    "pattern": "tree-dfs",
+    "difficulty": "easy",
+    "estimatedTime": 15
+  },
+  {
+    "id": 362,
+    "title": "Path Sum",
+    "pattern": "tree-dfs",
+    "difficulty": "easy",
+    "estimatedTime": 15
+  },
+  {
+    "id": 363,
+    "title": "Closest Binary Search Tree Value",
+    "pattern": "tree-dfs",
+    "difficulty": "easy",
+    "estimatedTime": 15
+  },
+  {
+    "id": 364,
+    "title": "Level Order Traversal of Binary Tree",
+    "pattern": "tree-bfs",
+    "difficulty": "medium",
+    "estimatedTime": 25
+  },
+  {
+    "id": 365,
+    "title": "Binary Tree Zigzag Level Order Traversal",
+    "pattern": "tree-bfs",
+    "difficulty": "medium",
+    "estimatedTime": 25
+  },
+  {
+    "id": 366,
+    "title": "Populating Next Right Pointers in Each Node",
+    "pattern": "tree-bfs",
+    "difficulty": "medium",
+    "estimatedTime": 25
+  },
+  {
+    "id": 367,
+    "title": "Vertical Order Traversal of a Binary Tree",
+    "pattern": "tree-bfs",
+    "difficulty": "hard",
+    "estimatedTime": 40
+  },
+  {
+    "id": 368,
+    "title": "Symmetric Tree",
+    "pattern": "tree-bfs",
+    "difficulty": "easy",
+    "estimatedTime": 15
+  },
+  {
+    "id": 369,
+    "title": "Word Ladder",
+    "pattern": "tree-bfs",
+    "difficulty": "hard",
+    "estimatedTime": 40
+  },
+  {
+    "id": 370,
+    "title": "Connect All Siblings of a Binary Tree",
+    "pattern": "tree-bfs",
+    "difficulty": "medium",
+    "estimatedTime": 25
+  },
+  {
+    "id": 371,
+    "title": "Two Sum IV - Input is a BST",
+    "pattern": "tree-bfs",
+    "difficulty": "easy",
+    "estimatedTime": 15
+  },
+  {
+    "id": 372,
+    "title": "Find Minimum Diameter After Merging Two Trees",
+    "pattern": "tree-bfs",
+    "difficulty": "hard",
+    "estimatedTime": 40
+  },
+  {
+    "id": 373,
+    "title": "Closest Node to Path in Tree",
+    "pattern": "tree-bfs",
+    "difficulty": "hard",
+    "estimatedTime": 40
+  },
+  {
+    "id": 374,
+    "title": "Frog Position After T Seconds",
+    "pattern": "tree-bfs",
+    "difficulty": "hard",
+    "estimatedTime": 40
+  },
+  {
+    "id": 375,
+    "title": "Average of Levels in Binary Tree",
+    "pattern": "tree-bfs",
+    "difficulty": "easy",
+    "estimatedTime": 15
+  },
+  {
+    "id": 376,
+    "title": "Open the Lock",
+    "pattern": "tree-bfs",
+    "difficulty": "medium",
+    "estimatedTime": 25
+  },
+  {
+    "id": 377,
+    "title": "Shortest Distance from All Buildings",
+    "pattern": "tree-bfs",
+    "difficulty": "medium",
+    "estimatedTime": 25
+  },
+  {
+    "id": 378,
+    "title": "Implement Trie",
+    "pattern": "trie",
+    "difficulty": "medium",
+    "estimatedTime": 25
+  },
+  {
+    "id": 379,
+    "title": "Search Suggestions System",
+    "pattern": "trie",
+    "difficulty": "medium",
+    "estimatedTime": 25
+  },
+  {
+    "id": 380,
+    "title": "Replace Words",
+    "pattern": "trie",
+    "difficulty": "medium",
+    "estimatedTime": 25
+  },
+  {
+    "id": 381,
+    "title": "Design Add and Search Words Data Structure",
+    "pattern": "trie",
+    "difficulty": "medium",
+    "estimatedTime": 25
+  },
+  {
+    "id": 382,
+    "title": "Word Search II",
+    "pattern": "trie",
+    "difficulty": "hard",
+    "estimatedTime": 40
+  },
+  {
+    "id": 383,
+    "title": "Top K Frequent Words",
+    "pattern": "trie",
+    "difficulty": "medium",
+    "estimatedTime": 25
+  },
+  {
+    "id": 384,
+    "title": "Lexicographical Numbers",
+    "pattern": "trie",
+    "difficulty": "medium",
+    "estimatedTime": 25
+  },
+  {
+    "id": 385,
+    "title": "Longest Common Prefix",
+    "pattern": "trie",
+    "difficulty": "easy",
+    "estimatedTime": 15
+  },
+  {
+    "id": 386,
+    "title": "Index Pairs of a String",
+    "pattern": "trie",
+    "difficulty": "easy",
+    "estimatedTime": 15
+  },
+  {
+    "id": 387,
+    "title": "K-th Smallest in Lexicographical Order",
+    "pattern": "trie",
+    "difficulty": "hard",
+    "estimatedTime": 40
+  },
+  {
+    "id": 388,
+    "title": "Palindrome Pairs",
+    "pattern": "trie",
+    "difficulty": "hard",
+    "estimatedTime": 40
+  },
+  {
+    "id": 389,
+    "title": "Longest Common Suffix Queries",
+    "pattern": "trie",
+    "difficulty": "hard",
+    "estimatedTime": 40
+  },
+  {
+    "id": 390,
+    "title": "Map Sum Pairs",
+    "pattern": "trie",
+    "difficulty": "medium",
+    "estimatedTime": 25
+  },
+  {
+    "id": 391,
+    "title": "Check If a Word is a Prefix of Any Word in a Sentence",
+    "pattern": "trie",
+    "difficulty": "easy",
+    "estimatedTime": 15
+  },
+  {
+    "id": 392,
+    "title": "Longest Word With All Prefixes",
+    "pattern": "trie",
+    "difficulty": "medium",
+    "estimatedTime": 25
+  },
+  {
+    "id": 393,
+    "title": "Design HashMap",
+    "pattern": "hash-maps",
+    "difficulty": "easy",
+    "estimatedTime": 15
+  },
+  {
+    "id": 394,
+    "title": "Fraction to Recurring Decimal",
+    "pattern": "hash-maps",
+    "difficulty": "medium",
+    "estimatedTime": 25
+  },
+  {
+    "id": 395,
+    "title": "Logger Rate Limiter",
+    "pattern": "hash-maps",
+    "difficulty": "easy",
+    "estimatedTime": 15
+  },
+  {
+    "id": 396,
+    "title": "Next Greater Element I",
+    "pattern": "hash-maps",
+    "difficulty": "easy",
+    "estimatedTime": 15
+  },
+  {
+    "id": 397,
+    "title": "Isomorphic Strings",
+    "pattern": "hash-maps",
+    "difficulty": "easy",
+    "estimatedTime": 15
+  },
+  {
+    "id": 398,
+    "title": "Find Duplicate File in System",
+    "pattern": "hash-maps",
+    "difficulty": "medium",
+    "estimatedTime": 25
+  },
+  {
+    "id": 399,
+    "title": "Longest Palindrome",
+    "pattern": "hash-maps",
+    "difficulty": "easy",
+    "estimatedTime": 15
+  },
+  {
+    "id": 400,
+    "title": "Continuous Subarray Sum",
+    "pattern": "hash-maps",
+    "difficulty": "medium",
+    "estimatedTime": 25
+  },
+  {
+    "id": 401,
+    "title": "Unique Number of Occurrences",
+    "pattern": "hash-maps",
+    "difficulty": "easy",
+    "estimatedTime": 15
+  },
+  {
+    "id": 402,
+    "title": "High Five",
+    "pattern": "hash-maps",
+    "difficulty": "easy",
+    "estimatedTime": 15
+  },
+  {
+    "id": 403,
+    "title": "Bulls and Cows",
+    "pattern": "hash-maps",
+    "difficulty": "medium",
+    "estimatedTime": 25
+  },
+  {
+    "id": 404,
+    "title": "Number of Wonderful Substrings",
+    "pattern": "hash-maps",
+    "difficulty": "medium",
+    "estimatedTime": 25
+  },
+  {
+    "id": 405,
+    "title": "Number of Distinct Islands",
+    "pattern": "hash-maps",
+    "difficulty": "medium",
+    "estimatedTime": 25
+  },
+  {
+    "id": 406,
+    "title": "Custom Sort String",
+    "pattern": "hash-maps",
+    "difficulty": "medium",
+    "estimatedTime": 25
+  },
+  {
+    "id": 407,
+    "title": "Total Appeal of a String",
+    "pattern": "hash-maps",
+    "difficulty": "hard",
+    "estimatedTime": 40
+  },
+  {
+    "id": 408,
+    "title": "Dot Product of Two Sparse Vectors",
+    "pattern": "hash-maps",
+    "difficulty": "medium",
+    "estimatedTime": 25
+  },
+  {
+    "id": 409,
+    "title": "Longest Happy Prefix",
+    "pattern": "hash-maps",
+    "difficulty": "hard",
+    "estimatedTime": 40
+  },
+  {
+    "id": 410,
+    "title": "Find Longest Self-Contained Substring",
+    "pattern": "hash-maps",
+    "difficulty": "hard",
+    "estimatedTime": 40
+  },
+  {
+    "id": 411,
+    "title": "Intersection of Two Arrays",
+    "pattern": "hash-maps",
+    "difficulty": "easy",
+    "estimatedTime": 15
+  },
+  {
+    "id": 412,
+    "title": "Word Pattern",
+    "pattern": "hash-maps",
+    "difficulty": "easy",
+    "estimatedTime": 15
+  },
+  {
+    "id": 413,
+    "title": "Valid Sudoku",
+    "pattern": "hash-maps",
+    "difficulty": "medium",
+    "estimatedTime": 25
+  },
+  {
+    "id": 414,
+    "title": "Roman to Integer",
+    "pattern": "hash-maps",
+    "difficulty": "easy",
+    "estimatedTime": 15
+  },
+  {
+    "id": 415,
+    "title": "Contiguous Array",
+    "pattern": "hash-maps",
+    "difficulty": "medium",
+    "estimatedTime": 25
+  },
+  {
+    "id": 416,
+    "title": "Jewels and Stones",
+    "pattern": "hash-maps",
+    "difficulty": "easy",
+    "estimatedTime": 15
+  },
+  {
+    "id": 417,
+    "title": "Vowel Spellchecker",
+    "pattern": "hash-maps",
+    "difficulty": "medium",
+    "estimatedTime": 25
+  },
+  {
+    "id": 418,
+    "title": "N-Repeated Element in Size 2N Array",
+    "pattern": "hash-maps",
+    "difficulty": "easy",
+    "estimatedTime": 15
+  },
+  {
+    "id": 419,
+    "title": "Powerful Integers",
+    "pattern": "hash-maps",
+    "difficulty": "medium",
+    "estimatedTime": 25
+  },
+  {
+    "id": 420,
+    "title": "Before and After Puzzle",
+    "pattern": "hash-maps",
+    "difficulty": "medium",
+    "estimatedTime": 25
+  },
+  {
+    "id": 421,
+    "title": "Intersection of Two Arrays II",
+    "pattern": "hash-maps",
+    "difficulty": "easy",
+    "estimatedTime": 15
+  },
+  {
+    "id": 422,
+    "title": "Subarray Sum Equals K",
+    "pattern": "hash-maps",
+    "difficulty": "medium",
+    "estimatedTime": 25
+  },
+  {
+    "id": 423,
+    "title": "Identify the Largest Outlier in an Array",
+    "pattern": "hash-maps",
+    "difficulty": "medium",
+    "estimatedTime": 25
+  },
+  {
+    "id": 424,
+    "title": "Find the Length of the Longest Common Prefix",
+    "pattern": "hash-maps",
+    "difficulty": "medium",
+    "estimatedTime": 25
+  },
+  {
+    "id": 425,
+    "title": "Palindrome Permutation",
+    "pattern": "tracking",
+    "difficulty": "easy",
+    "estimatedTime": 15
+  },
+  {
+    "id": 426,
+    "title": "Valid Anagram",
+    "pattern": "tracking",
+    "difficulty": "easy",
+    "estimatedTime": 15
+  },
+  {
+    "id": 427,
+    "title": "Design Tic-Tac-Toe",
+    "pattern": "tracking",
+    "difficulty": "medium",
+    "estimatedTime": 25
+  },
+  {
+    "id": 428,
+    "title": "Group Anagrams",
+    "pattern": "tracking",
+    "difficulty": "medium",
+    "estimatedTime": 25
+  },
+  {
+    "id": 429,
+    "title": "Maximum Frequency Stack",
+    "pattern": "tracking",
+    "difficulty": "hard",
+    "estimatedTime": 40
+  },
+  {
+    "id": 430,
+    "title": "First Unique Character in a String",
+    "pattern": "tracking",
+    "difficulty": "easy",
+    "estimatedTime": 15
+  },
+  {
+    "id": 431,
+    "title": "Find All Anagrams in a String",
+    "pattern": "tracking",
+    "difficulty": "medium",
+    "estimatedTime": 25
+  },
+  {
+    "id": 432,
+    "title": "Longest Palindrome by Concatenating Two-Letter Words",
+    "pattern": "tracking",
+    "difficulty": "medium",
+    "estimatedTime": 25
+  },
+  {
+    "id": 433,
+    "title": "Ransom Note",
+    "pattern": "tracking",
+    "difficulty": "easy",
+    "estimatedTime": 15
+  },
+  {
+    "id": 434,
+    "title": "Minimum Number of Pushes to Type Word II",
+    "pattern": "tracking",
+    "difficulty": "medium",
+    "estimatedTime": 25
+  },
+  {
+    "id": 435,
+    "title": "Rank Teams by Votes",
+    "pattern": "tracking",
+    "difficulty": "medium",
+    "estimatedTime": 25
+  },
+  {
+    "id": 436,
+    "title": "Pairs of Songs With Total Durations Divisible by 60",
+    "pattern": "tracking",
+    "difficulty": "medium",
+    "estimatedTime": 25
+  },
+  {
+    "id": 437,
+    "title": "Count Anagrams",
+    "pattern": "tracking",
+    "difficulty": "hard",
+    "estimatedTime": 40
+  },
+  {
+    "id": 438,
+    "title": "Divide Array Into Increasing Sequences",
+    "pattern": "tracking",
+    "difficulty": "hard",
+    "estimatedTime": 40
+  },
+  {
+    "id": 439,
+    "title": "Max Consecutive Ones",
+    "pattern": "tracking",
+    "difficulty": "easy",
+    "estimatedTime": 15
+  },
+  {
+    "id": 440,
+    "title": "Count and Say",
+    "pattern": "tracking",
+    "difficulty": "medium",
+    "estimatedTime": 25
+  },
+  {
+    "id": 441,
+    "title": "Find Words That Can Be Formed by Characters",
+    "pattern": "tracking",
+    "difficulty": "easy",
+    "estimatedTime": 15
+  },
+  {
+    "id": 442,
+    "title": "Check if One String Swap Can Make Strings Equal",
+    "pattern": "tracking",
+    "difficulty": "easy",
+    "estimatedTime": 15
+  },
+  {
+    "id": 443,
+    "title": "Find Pivot Index",
+    "pattern": "tracking",
+    "difficulty": "medium",
+    "estimatedTime": 25
+  },
+  {
+    "id": 444,
+    "title": "Sort Array by Increasing Frequency",
+    "pattern": "tracking",
+    "difficulty": "medium",
+    "estimatedTime": 25
+  },
+  {
+    "id": 445,
+    "title": "Concatenation of Array",
+    "pattern": "tracking",
+    "difficulty": "medium",
+    "estimatedTime": 25
+  },
+  {
+    "id": 446,
+    "title": "Zigzag Conversion",
+    "pattern": "tracking",
+    "difficulty": "medium",
+    "estimatedTime": 25
+  },
+  {
+    "id": 447,
+    "title": "Zero Array Transformation I",
+    "pattern": "tracking",
+    "difficulty": "medium",
+    "estimatedTime": 25
+  },
+  {
+    "id": 448,
+    "title": "Count Binary Substrings",
+    "pattern": "tracking",
+    "difficulty": "medium",
+    "estimatedTime": 25
+  },
+  {
+    "id": 449,
+    "title": "Redundant Connection",
+    "pattern": "union-find",
+    "difficulty": "medium",
+    "estimatedTime": 25
+  },
+  {
+    "id": 450,
+    "title": "Number of Islands",
+    "pattern": "union-find",
+    "difficulty": "medium",
+    "estimatedTime": 25
+  },
+  {
+    "id": 451,
+    "title": "Most Stones Removed with Same Row or Column",
+    "pattern": "union-find",
+    "difficulty": "medium",
+    "estimatedTime": 25
+  },
+  {
+    "id": 452,
+    "title": "Longest Consecutive Sequence",
+    "pattern": "union-find",
+    "difficulty": "medium",
+    "estimatedTime": 25
+  },
+  {
+    "id": 453,
+    "title": "Last Day Where You Can Still Cross",
+    "pattern": "union-find",
+    "difficulty": "hard",
+    "estimatedTime": 40
+  },
+  {
+    "id": 454,
+    "title": "Regions Cut by Slashes",
+    "pattern": "union-find",
+    "difficulty": "medium",
+    "estimatedTime": 25
+  },
+  {
+    "id": 455,
+    "title": "Accounts Merge",
+    "pattern": "union-find",
+    "difficulty": "medium",
+    "estimatedTime": 25
+  },
+  {
+    "id": 456,
+    "title": "Minimize Malware Spread",
+    "pattern": "union-find",
+    "difficulty": "hard",
+    "estimatedTime": 40
+  },
+  {
+    "id": 457,
+    "title": "Evaluate Division",
+    "pattern": "union-find",
+    "difficulty": "medium",
+    "estimatedTime": 25
+  },
+  {
+    "id": 458,
+    "title": "Find if Path Exists in Graph",
+    "pattern": "union-find",
+    "difficulty": "easy",
+    "estimatedTime": 15
+  },
+  {
+    "id": 459,
+    "title": "The Skyline Problem",
+    "pattern": "union-find",
+    "difficulty": "hard",
+    "estimatedTime": 40
+  },
+  {
+    "id": 460,
+    "title": "Similar String Groups",
+    "pattern": "union-find",
+    "difficulty": "hard",
+    "estimatedTime": 40
+  },
+  {
+    "id": 461,
+    "title": "Optimize Water Distribution in a Village",
+    "pattern": "union-find",
+    "difficulty": "hard",
+    "estimatedTime": 40
+  },
+  {
+    "id": 462,
+    "title": "Number of Islands II",
+    "pattern": "union-find",
+    "difficulty": "hard",
+    "estimatedTime": 40
+  },
+  {
+    "id": 463,
+    "title": "Snapshot Array",
+    "pattern": "custom-data-structures",
+    "difficulty": "medium",
+    "estimatedTime": 25
+  },
+  {
+    "id": 464,
+    "title": "Time-Based Key-Value Store",
+    "pattern": "custom-data-structures",
+    "difficulty": "medium",
+    "estimatedTime": 25
+  },
+  {
+    "id": 465,
+    "title": "Implement LRU Cache",
+    "pattern": "custom-data-structures",
+    "difficulty": "medium",
+    "estimatedTime": 25
+  },
+  {
+    "id": 466,
+    "title": "Insert Delete GetRandom O(1)",
+    "pattern": "custom-data-structures",
+    "difficulty": "medium",
+    "estimatedTime": 25
+  },
+  {
+    "id": 467,
+    "title": "Min Stack",
+    "pattern": "custom-data-structures",
+    "difficulty": "medium",
+    "estimatedTime": 25
+  },
+  {
+    "id": 468,
+    "title": "Range Module",
+    "pattern": "custom-data-structures",
+    "difficulty": "hard",
+    "estimatedTime": 40
+  },
+  {
+    "id": 469,
+    "title": "Shortest Word Distance II",
+    "pattern": "custom-data-structures",
+    "difficulty": "medium",
+    "estimatedTime": 25
+  },
+  {
+    "id": 470,
+    "title": "LFU Cache",
+    "pattern": "custom-data-structures",
+    "difficulty": "hard",
+    "estimatedTime": 40
+  },
+  {
+    "id": 471,
+    "title": "Moving Average from Data Stream",
+    "pattern": "custom-data-structures",
+    "difficulty": "easy",
+    "estimatedTime": 15
+  },
+  {
+    "id": 472,
+    "title": "Two Sum III - Data structure design",
+    "pattern": "custom-data-structures",
+    "difficulty": "easy",
+    "estimatedTime": 15
+  },
+  {
+    "id": 473,
+    "title": "Range Sum Query - Immutable",
+    "pattern": "custom-data-structures",
+    "difficulty": "easy",
+    "estimatedTime": 15
+  },
+  {
+    "id": 474,
+    "title": "Design HashSet",
+    "pattern": "custom-data-structures",
+    "difficulty": "easy",
+    "estimatedTime": 15
+  },
+  {
+    "id": 475,
+    "title": "Max Stack",
+    "pattern": "custom-data-structures",
+    "difficulty": "hard",
+    "estimatedTime": 40
+  },
+  {
+    "id": 476,
+    "title": "Stream of Characters",
+    "pattern": "custom-data-structures",
+    "difficulty": "hard",
+    "estimatedTime": 40
+  },
+  {
+    "id": 477,
+    "title": "All O'one Data Structures",
+    "pattern": "custom-data-structures",
+    "difficulty": "hard",
+    "estimatedTime": 40
+  },
+  {
+    "id": 478,
+    "title": "Finding MK Average",
+    "pattern": "custom-data-structures",
+    "difficulty": "hard",
+    "estimatedTime": 40
+  },
+  {
+    "id": 479,
+    "title": "Find the Difference",
+    "pattern": "bitwise-manipulation",
+    "difficulty": "easy",
+    "estimatedTime": 15
+  },
+  {
+    "id": 480,
+    "title": "Complement of Base 10 Integer",
+    "pattern": "bitwise-manipulation",
+    "difficulty": "easy",
+    "estimatedTime": 15
+  },
+  {
+    "id": 481,
+    "title": "Flipping an Image",
+    "pattern": "bitwise-manipulation",
+    "difficulty": "easy",
+    "estimatedTime": 15
+  },
+  {
+    "id": 482,
+    "title": "Single Number",
+    "pattern": "bitwise-manipulation",
+    "difficulty": "easy",
+    "estimatedTime": 15
+  },
+  {
+    "id": 483,
+    "title": "Single Number II",
+    "pattern": "bitwise-manipulation",
+    "difficulty": "medium",
+    "estimatedTime": 25
+  },
+  {
+    "id": 484,
+    "title": "Encode and Decode Strings",
+    "pattern": "bitwise-manipulation",
+    "difficulty": "medium",
+    "estimatedTime": 25
+  },
+  {
+    "id": 485,
+    "title": "Reverse Bits",
+    "pattern": "bitwise-manipulation",
+    "difficulty": "easy",
+    "estimatedTime": 15
+  },
+  {
+    "id": 486,
+    "title": "Find the Longest Substring Having Vowels in Even Counts",
+    "pattern": "bitwise-manipulation",
+    "difficulty": "medium",
+    "estimatedTime": 25
+  },
+  {
+    "id": 487,
+    "title": "Longest Subarray With Maximum Bitwise AND",
+    "pattern": "bitwise-manipulation",
+    "difficulty": "medium",
+    "estimatedTime": 25
+  },
+  {
+    "id": 488,
+    "title": "Count Triplets That Can Form Two Arrays of Equal XOR",
+    "pattern": "bitwise-manipulation",
+    "difficulty": "medium",
+    "estimatedTime": 25
+  },
+  {
+    "id": 489,
+    "title": "Sum of All Subset XOR Totals",
+    "pattern": "bitwise-manipulation",
+    "difficulty": "easy",
+    "estimatedTime": 15
+  },
+  {
+    "id": 490,
+    "title": "Find The K-th Lucky Number",
+    "pattern": "bitwise-manipulation",
+    "difficulty": "medium",
+    "estimatedTime": 25
+  },
+  {
+    "id": 491,
+    "title": "Minimum Number of K Consecutive Bit Flips",
+    "pattern": "bitwise-manipulation",
+    "difficulty": "hard",
+    "estimatedTime": 40
+  },
+  {
+    "id": 492,
+    "title": "Minimum One Bit Operations to Make Integers Zero",
+    "pattern": "bitwise-manipulation",
+    "difficulty": "hard",
+    "estimatedTime": 40
+  },
+  {
+    "id": 493,
+    "title": "Triples with Bitwise AND Equal To Zero",
+    "pattern": "bitwise-manipulation",
+    "difficulty": "hard",
+    "estimatedTime": 40
+  },
+  {
+    "id": 494,
+    "title": "Power of Two",
+    "pattern": "bitwise-manipulation",
+    "difficulty": "easy",
+    "estimatedTime": 15
+  },
+  {
+    "id": 495,
+    "title": "Hamming Distance",
+    "pattern": "bitwise-manipulation",
+    "difficulty": "easy",
+    "estimatedTime": 15
+  },
+  {
+    "id": 496,
+    "title": "Minimum Operations to Make the Integer Zero",
+    "pattern": "bitwise-manipulation",
+    "difficulty": "medium",
+    "estimatedTime": 25
+  },
+  {
+    "id": 497,
+    "title": "Minimum Area Rectangle",
+    "pattern": "math-geometry",
+    "difficulty": "medium",
+    "estimatedTime": 25
+  },
+  {
+    "id": 498,
+    "title": "Maximum Area Rectangle With Point Constraints I",
+    "pattern": "math-geometry",
+    "difficulty": "medium",
+    "estimatedTime": 25
+  },
+  {
+    "id": 499,
+    "title": "Reverse Integer",
+    "pattern": "math-geometry",
+    "difficulty": "medium",
+    "estimatedTime": 25
+  },
+  {
+    "id": 500,
+    "title": "Minimum Number of Lines to Cover Points",
+    "pattern": "math-geometry",
+    "difficulty": "medium",
+    "estimatedTime": 25
+  },
+  {
+    "id": 501,
+    "title": "Minimize Manhattan Distances",
+    "pattern": "math-geometry",
+    "difficulty": "hard",
+    "estimatedTime": 40
+  },
+  {
+    "id": 502,
+    "title": "Convex Polygon",
+    "pattern": "math-geometry",
+    "difficulty": "medium",
+    "estimatedTime": 25
+  },
+  {
+    "id": 503,
+    "title": "Check If It Is a Straight Line",
+    "pattern": "math-geometry",
+    "difficulty": "easy",
+    "estimatedTime": 15
+  },
+  {
+    "id": 504,
+    "title": "Minimum Cuts to Divide a Circle",
+    "pattern": "math-geometry",
+    "difficulty": "easy",
+    "estimatedTime": 15
+  },
+  {
+    "id": 505,
+    "title": "Valid Square",
+    "pattern": "math-geometry",
+    "difficulty": "medium",
+    "estimatedTime": 25
+  },
+  {
+    "id": 506,
+    "title": "Rectangle Overlap",
+    "pattern": "math-geometry",
+    "difficulty": "easy",
+    "estimatedTime": 15
+  },
+  {
+    "id": 507,
+    "title": "Minimum Time Visiting All Points",
+    "pattern": "math-geometry",
+    "difficulty": "easy",
+    "estimatedTime": 15
+  },
+  {
+    "id": 508,
+    "title": "Rectangle Area",
+    "pattern": "math-geometry",
+    "difficulty": "medium",
+    "estimatedTime": 25
+  },
+  {
+    "id": 509,
+    "title": "Queries on Number of Points Inside a Circle",
+    "pattern": "math-geometry",
+    "difficulty": "medium",
+    "estimatedTime": 25
+  },
+  {
+    "id": 510,
+    "title": "Max Points on a Line",
+    "pattern": "math-geometry",
+    "difficulty": "hard",
+    "estimatedTime": 40
+  },
+  {
+    "id": 511,
+    "title": "Maximum Number of Visible Points",
+    "pattern": "math-geometry",
+    "difficulty": "hard",
+    "estimatedTime": 40
+  },
+  {
+    "id": 512,
+    "title": "Detonate the Maximum Bombs",
+    "pattern": "math-geometry",
+    "difficulty": "medium",
+    "estimatedTime": 25
+  },
+  {
+    "id": 513,
+    "title": "Self Crossing",
+    "pattern": "math-geometry",
+    "difficulty": "hard",
+    "estimatedTime": 40
+  },
+  {
+    "id": 514,
+    "title": "Erect the Fence",
+    "pattern": "math-geometry",
+    "difficulty": "hard",
+    "estimatedTime": 40
+  },
+  {
+    "id": 515,
+    "title": "Nth Magical Number",
+    "pattern": "math-geometry",
+    "difficulty": "hard",
+    "estimatedTime": 40
+  },
+  {
+    "id": 516,
+    "title": "Add Strings",
+    "pattern": "math-geometry",
+    "difficulty": "easy",
+    "estimatedTime": 15
+  },
+  {
+    "id": 517,
+    "title": "Perfect Squares",
+    "pattern": "math-geometry",
+    "difficulty": "medium",
+    "estimatedTime": 25
+  },
+  {
+    "id": 518,
+    "title": "Palindrome Number",
+    "pattern": "math-geometry",
+    "difficulty": "easy",
+    "estimatedTime": 15
+  },
+  {
+    "id": 519,
+    "title": "Fibonacci Number",
+    "pattern": "math-geometry",
+    "difficulty": "easy",
+    "estimatedTime": 15
+  },
+  {
+    "id": 520,
+    "title": "Integer to English Words",
+    "pattern": "math-geometry",
+    "difficulty": "hard",
+    "estimatedTime": 40
+  },
+  {
+    "id": 521,
+    "title": "Add Two Numbers",
+    "pattern": "math-geometry",
+    "difficulty": "medium",
+    "estimatedTime": 25
+  },
+  {
+    "id": 522,
+    "title": "Plus One",
+    "pattern": "math-geometry",
+    "difficulty": "easy",
+    "estimatedTime": 15
+  },
+  {
+    "id": 523,
+    "title": "Confusing Number",
+    "pattern": "math-geometry",
+    "difficulty": "easy",
+    "estimatedTime": 15
+  },
+  {
+    "id": 524,
+    "title": "Nim Game",
+    "pattern": "math-geometry",
+    "difficulty": "easy",
+    "estimatedTime": 15
+  },
+  {
+    "id": 525,
+    "title": "Bulb Switcher",
+    "pattern": "math-geometry",
+    "difficulty": "medium",
+    "estimatedTime": 25
+  },
+  {
+    "id": 526,
+    "title": "Water and Jug Problem",
+    "pattern": "math-geometry",
+    "difficulty": "medium",
+    "estimatedTime": 25
+  },
+  {
+    "id": 527,
+    "title": "Poor Pigs",
+    "pattern": "math-geometry",
+    "difficulty": "hard",
+    "estimatedTime": 40
+  },
+  {
+    "id": 528,
+    "title": "Add to Array-Form of Integer",
+    "pattern": "math-geometry",
+    "difficulty": "easy",
+    "estimatedTime": 15
+  },
+  {
+    "id": 529,
+    "title": "Greatest Common Divisor of Strings",
+    "pattern": "math-geometry",
+    "difficulty": "easy",
+    "estimatedTime": 15
+  },
+  {
+    "id": 530,
+    "title": "Count Substrings with Only One Distinct Letter",
+    "pattern": "math-geometry",
+    "difficulty": "easy",
+    "estimatedTime": 15
+  },
+  {
+    "id": 531,
+    "title": "Equal Rational Numbers",
+    "pattern": "math-geometry",
+    "difficulty": "hard",
+    "estimatedTime": 40
+  },
+  {
+    "id": 532,
+    "title": "Adding Two Negabinary Numbers",
+    "pattern": "math-geometry",
+    "difficulty": "medium",
+    "estimatedTime": 25
+  },
+  {
+    "id": 533,
+    "title": "Power of Three",
+    "pattern": "math-geometry",
+    "difficulty": "easy",
+    "estimatedTime": 15
+  },
+  {
+    "id": 534,
+    "title": "Base 7",
+    "pattern": "math-geometry",
+    "difficulty": "easy",
+    "estimatedTime": 15
+  },
+  {
+    "id": 535,
+    "title": "Sum of k-Mirror Numbers",
+    "pattern": "math-geometry",
+    "difficulty": "hard",
+    "estimatedTime": 40
+  },
+  {
+    "id": 536,
+    "title": "Sum of Squares of Special Elements",
+    "pattern": "math-geometry",
+    "difficulty": "easy",
+    "estimatedTime": 15
+  },
+  {
+    "id": 537,
+    "title": "Add Digits",
+    "pattern": "math-geometry",
+    "difficulty": "medium",
+    "estimatedTime": 25
+  },
+  {
+    "id": 538,
+    "title": "Count Primes",
+    "pattern": "math-geometry",
+    "difficulty": "medium",
+    "estimatedTime": 25
+  },
+  {
+    "id": 539,
+    "title": "Pow(x, n)",
+    "pattern": "math-geometry",
+    "difficulty": "medium",
+    "estimatedTime": 25
+  }
+]

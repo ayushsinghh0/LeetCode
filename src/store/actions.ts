@@ -84,28 +84,34 @@ export const solveQuestion = (id: number): AppThunk => (dispatch, getState) => {
   const alreadySolvedToday = !!dayLogBefore && dayLogBefore.solvedIds.includes(id);
 
   dispatch(questionSolved({ id, date, xp }));
+
+  // Everything below (base XP, daily-goal bonus/confetti, pattern-100% fireworks) must fire at
+  // most once per question per day — gate the whole block on the same idempotency check the
+  // progress reducer applies to dayLog.xpEarned/solvedIds. Without this, re-dispatching
+  // solveQuestion for an already-solved-today id would leave solvedTodayCount unchanged at
+  // exactly `perDay` (or the pattern still at 100%) and re-fire the bonus/celebration forever.
   if (!alreadySolvedToday) {
     dispatch(xpAdded(xp));
-  }
 
-  const perDay = getState().settings.questionsPerDay;
-  const dayLog = getState().progress.dayLogs[date];
-  const solvedTodayCount = dayLog ? dayLog.solvedIds.length : 0;
+    const perDay = getState().settings.questionsPerDay;
+    const dayLog = getState().progress.dayLogs[date];
+    const solvedTodayCount = dayLog ? dayLog.solvedIds.length : 0;
 
-  let celebration: 'confetti' | 'fireworks' | null = null;
-  if (solvedTodayCount === perDay) {
-    dispatch(xpAdded(DAILY_GOAL_BONUS));
-    celebration = 'confetti';
-  }
+    let celebration: 'confetti' | 'fireworks' | null = null;
+    if (solvedTodayCount === perDay) {
+      dispatch(xpAdded(DAILY_GOAL_BONUS));
+      celebration = 'confetti';
+    }
 
-  const stats = patternStats(questions, getState().progress.byId);
-  const patternStat = stats.find((s) => s.pattern === question.pattern);
-  if (patternStat && patternStat.pct === 100) {
-    celebration = 'fireworks';
-  }
+    const stats = patternStats(questions, getState().progress.byId);
+    const patternStat = stats.find((s) => s.pattern === question.pattern);
+    if (patternStat && patternStat.pct === 100) {
+      celebration = 'fireworks';
+    }
 
-  if (celebration) {
-    dispatch(celebrationShown(celebration));
+    if (celebration) {
+      dispatch(celebrationShown(celebration));
+    }
   }
 
   evaluateAndUnlockAchievements(dispatch, getState, date);

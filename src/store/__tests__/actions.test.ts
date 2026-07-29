@@ -10,6 +10,7 @@ import {
   solveQuestion,
 } from '@/store/actions';
 import { settingsUpdated } from '@/store/slices/settingsSlice';
+import { celebrationShown } from '@/store/slices/uiSlice';
 import { selectCurrentDay, selectSolvedNewCount, selectTodaysNewQuestions, selectHeatmapData } from '@/store/selectors';
 
 const questions = questionsData as Question[];
@@ -33,6 +34,7 @@ test('solveQuestion(1): marks solved, logs today, awards easy XP', () => {
   expect(state.progress.byId[1].status).toBe('solved');
   expect(state.progress.dayLogs[TODAY].solvedIds).toEqual([1]);
   expect(state.gamification.xp).toBe(10); // question 1 is easy
+  expect(state.progress.startDate).toBe(TODAY); // set on first-ever solve
 });
 
 test('solving the same question twice the same day does not double-count XP', () => {
@@ -66,6 +68,26 @@ test('solving 8 questions awards the daily-goal bonus exactly once, with confett
 
   // 9th solve must NOT re-award the daily-goal bonus.
   expect(stateAfter9.gamification.xp).toBe(xpAfter8 + SOLVE_XP[questions[8].difficulty]);
+});
+
+test('re-solving an already-solved-today question does not re-award the daily-goal bonus or re-fire celebration', () => {
+  const store = makeStore();
+  for (let id = 1; id <= 8; id++) {
+    store.dispatch(solveQuestion(id));
+  }
+  const xpAfter8 = store.getState().gamification.xp; // includes DAILY_GOAL_BONUS exactly once
+  expect(store.getState().ui.celebration).toBe('confetti');
+
+  // Clear the celebration so we can tell whether the duplicate solve re-sets it.
+  store.dispatch(celebrationShown(null));
+  expect(store.getState().ui.celebration).toBeNull();
+
+  // Re-dispatch for an id already solved today (still 8 distinct solvedIds -> still === perDay).
+  store.dispatch(solveQuestion(1));
+  const state = store.getState();
+
+  expect(state.gamification.xp).toBe(xpAfter8); // unchanged: no second bonus, no base xp either
+  expect(state.ui.celebration).toBeNull(); // not re-set by the duplicate dispatch
 });
 
 // Flow 3 -----------------------------------------------------------------------------------

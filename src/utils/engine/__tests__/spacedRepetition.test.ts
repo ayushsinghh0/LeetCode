@@ -75,8 +75,28 @@ test('dueIds sorts oldest-first with id tiebreak', () => {
   expect(dueIds({ 7: b, 3: a, 5: c }, '2026-07-20')).toEqual([3, 5, 7]);
 });
 
+test('dueIds uses numeric id tiebreak, not lexicographic', () => {
+  const x = { ...applySolve(initialProgress(), '2026-07-01') };   // due 07-02
+  const y = { ...applySolve(initialProgress(), '2026-07-01') };   // due 07-02 (same as x)
+  // ids 2 and 10 have same nextRevision; numeric order [2, 10], lexicographic would be [10, 2]
+  expect(dueIds({ 10: y, 2: x }, '2026-07-20')).toEqual([2, 10]);
+});
+
 test('applySolve/applyRevision do not mutate their input', () => {
   const p0 = initialProgress();
   applySolve(p0, T);
   expect(p0.status).toBe('unsolved');
+
+  // Test applyRevision immutability
+  const p1 = applySolve(initialProgress(), T);
+  const originalStage = p1.revisionStage;
+  const originalNextRevision = p1.nextRevision;
+  const originalHistory = p1.revisionHistory;
+  const originalHistoryLength = originalHistory.length;
+
+  applyRevision(p1, '2026-07-31', true);
+  expect(p1.revisionStage).toBe(originalStage);
+  expect(p1.nextRevision).toBe(originalNextRevision);
+  expect(p1.revisionHistory).toBe(originalHistory);
+  expect(p1.revisionHistory.length).toBe(originalHistoryLength);
 });

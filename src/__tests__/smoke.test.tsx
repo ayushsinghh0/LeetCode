@@ -1,7 +1,13 @@
+import { Provider } from 'react-redux';
 import { render, screen } from '@testing-library/react';
+import { makeStore } from '@/store/store';
 import App from '@/App';
 
-test('app renders', () => {
-  render(<App />);
-  expect(screen.getByText(/DSA Roadmap/i)).toBeInTheDocument();
+test('app renders', async () => {
+  render(
+    <Provider store={makeStore()}>
+      <App />
+    </Provider>,
+  );
+  expect(await screen.findByText(/DSA Roadmap/i)).toBeInTheDocument();
 });

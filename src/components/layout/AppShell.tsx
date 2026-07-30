@@ -3,6 +3,7 @@ import { Sidebar } from '@/components/layout/Sidebar';
 import { MobileNav } from '@/components/layout/MobileNav';
 import { PageTransition } from '@/components/layout/PageTransition';
 import { QuestionDetailModal } from '@/components/questions/QuestionDetailModal';
+import { SearchDialog } from '@/components/shared/SearchDialog';
 import { AchievementToast } from '@/components/gamification/AchievementToast';
 import { useCelebration } from '@/hooks/useCelebration';
 
@@ -21,6 +22,7 @@ export function AppShell() {
       </main>
       <MobileNav />
       <QuestionDetailModal />
+      <SearchDialog />
       <AchievementToast />
     </div>
   );

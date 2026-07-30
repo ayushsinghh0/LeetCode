@@ -10,12 +10,14 @@ import {
   Trophy,
   Bookmark,
   Settings,
+  Search,
   type LucideIcon,
 } from 'lucide-react';
 import { cn } from '@/utils/cn';
 import { useToday } from '@/hooks/useToday';
-import { useAppSelector } from '@/store/hooks';
+import { useAppDispatch, useAppSelector } from '@/store/hooks';
 import { selectLevelInfo, selectStreaks } from '@/store/selectors';
+import { searchOpenSet } from '@/store/slices/uiSlice';
 import { LevelRing } from '@/components/gamification/LevelRing';
 import { StreakFlame } from '@/components/gamification/StreakFlame';
 
@@ -39,6 +41,7 @@ export const SIDEBAR_NAV_ITEMS: SidebarNavItem[] = [
 ];
 
 export function Sidebar() {
+  const dispatch = useAppDispatch();
   const today = useToday();
   const levelInfo = useAppSelector(selectLevelInfo);
   const streaks = useAppSelector((state) => selectStreaks(state, today));
@@ -46,6 +49,19 @@ export function Sidebar() {
   return (
     <aside className="hidden shrink-0 flex-col gap-4 border-r border-white/10 p-3 md:flex md:w-16 lg:w-60">
       <div className="truncate px-2 py-1 text-lg font-bold text-gradient">DSA Roadmap</div>
+
+      <button
+        type="button"
+        aria-label="Search questions (Ctrl+K)"
+        onClick={() => dispatch(searchOpenSet(true))}
+        className="flex items-center gap-3 rounded-lg border border-white/10 px-3 py-2 text-sm font-medium text-muted-foreground transition-colors hover:bg-white/5 hover:text-foreground"
+      >
+        <Search className="h-4 w-4 shrink-0" />
+        <span className="hidden lg:inline">Search</span>
+        <kbd className="ml-auto hidden rounded border border-white/10 px-1.5 py-0.5 text-[10px] text-muted-foreground lg:inline">
+          Ctrl K
+        </kbd>
+      </button>
 
       <nav aria-label="Sidebar navigation" className="flex flex-1 flex-col gap-1">
         {SIDEBAR_NAV_ITEMS.map(({ to, label, icon: Icon }) => (

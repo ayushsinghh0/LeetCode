@@ -161,4 +161,60 @@ describe('useCelebration', () => {
 
     vi.useRealTimers();
   });
+
+  test('cancels pending fireworks timers on unmount so no bursts fire afterward', () => {
+    vi.useFakeTimers();
+    const confettiMock = vi.fn();
+    __setConfettiForTests(confettiMock);
+
+    const store = makeStore();
+    const { unmount } = renderWithStore(<CelebrationHarness />, store);
+
+    act(() => {
+      store.dispatch(celebrationShown('fireworks'));
+    });
+    // None of the setTimeout-scheduled bursts (delays 0/300/600) have run yet — fake timers
+    // only fire on an explicit advance.
+    expect(confettiMock).not.toHaveBeenCalled();
+
+    unmount();
+
+    act(() => {
+      vi.advanceTimersByTime(600);
+    });
+    // All 3 pending timers were cancelled on unmount, so none fire even after their delays elapse.
+    expect(confettiMock).not.toHaveBeenCalled();
+
+    vi.useRealTimers();
+  });
+
+  test('a second "fireworks" celebration within 600ms replaces pending bursts instead of doubling them', () => {
+    vi.useFakeTimers();
+    const confettiMock = vi.fn();
+    __setConfettiForTests(confettiMock);
+
+    const store = makeStore();
+    renderWithStore(<CelebrationHarness />, store);
+
+    act(() => {
+      store.dispatch(celebrationShown('fireworks'));
+    });
+    act(() => {
+      vi.advanceTimersByTime(100); // only the t=0 burst of the first round has fired
+    });
+    expect(confettiMock).toHaveBeenCalledTimes(1);
+
+    act(() => {
+      store.dispatch(celebrationShown('fireworks')); // cancels the first round's remaining 2 bursts
+    });
+    act(() => {
+      vi.advanceTimersByTime(600); // lets the second round's 3 bursts run to completion
+    });
+
+    // 1 (first round's t=0 burst) + 3 (second round, in full) = 4 — not 1 + 3 + the first
+    // round's stale 300/600ms bursts (which would make 6 if they'd doubled up).
+    expect(confettiMock).toHaveBeenCalledTimes(4);
+
+    vi.useRealTimers();
+  });
 });

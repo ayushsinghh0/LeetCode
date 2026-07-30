@@ -1,7 +1,240 @@
+import { Link, useNavigate } from 'react-router-dom';
+import { motion } from 'framer-motion';
+import { format, parseISO } from 'date-fns';
+import { CalendarClock, CheckCircle2, Dices, Gauge, Lightbulb, ListTodo, Percent, RotateCcw } from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import { Progress } from '@/components/ui/progress';
+import { StatCard } from '@/components/shared/StatCard';
+import { Heatmap } from '@/components/shared/Heatmap';
+import { EmptyState } from '@/components/shared/EmptyState';
+import { LevelRing } from '@/components/gamification/LevelRing';
+import { StreakFlame } from '@/components/gamification/StreakFlame';
+import { XpBadge } from '@/components/gamification/XpBadge';
+import { PatternChip } from '@/components/questions/PatternChip';
+import { DifficultyBadge } from '@/components/questions/DifficultyBadge';
+import { patternById } from '@/data/patterns';
+import { quoteForDate } from '@/data/quotes';
+import { useToday } from '@/hooks/useToday';
+import { useAppDispatch, useAppSelector } from '@/store/hooks';
+import { activeQuestionSet } from '@/store/slices/uiSlice';
+import {
+  selectCurrentDay,
+  selectDueRevisionIds,
+  selectEstimatedFinish,
+  selectHeatmapData,
+  selectLevelInfo,
+  selectPatternStats,
+  selectPerDay,
+  selectProductivityScore,
+  selectQuestionById,
+  selectQuestions,
+  selectRevisionQueueIds,
+  selectSolvedNewCount,
+  selectStreaks,
+  selectTodayLog,
+  selectTodaysNewQuestions,
+  selectTotalDays,
+  selectWeakestPatterns,
+} from '@/store/selectors';
+import { HeuristicRecommender, seededRandomQuestion } from '@/utils/engine/recommendations';
+
+const heroVariants = {
+  hidden: {},
+  show: { transition: { staggerChildren: 0.05 } },
+};
+
+const itemVariants = {
+  hidden: { opacity: 0, y: 12 },
+  show: { opacity: 1, y: 0 },
+};
+
+// Stateless — safe as a module-level singleton instead of re-instantiating every render.
+const recommender = new HeuristicRecommender();
+
 export default function DashboardPage() {
+  const today = useToday();
+  const dispatch = useAppDispatch();
+  const navigate = useNavigate();
+
+  const questions = selectQuestions();
+  const currentDay = useAppSelector(selectCurrentDay);
+  const totalDays = useAppSelector(selectTotalDays);
+  const solvedCount = useAppSelector(selectSolvedNewCount);
+  const perDay = useAppSelector(selectPerDay);
+  const levelInfo = useAppSelector(selectLevelInfo);
+  const xp = useAppSelector((s) => s.gamification.xp);
+  const streaks = useAppSelector((s) => selectStreaks(s, today));
+  const heatmapData = useAppSelector((s) => selectHeatmapData(s, today));
+  const estFinish = useAppSelector((s) => selectEstimatedFinish(s, today));
+  const productivity = useAppSelector((s) => selectProductivityScore(s, today));
+  const weakest = useAppSelector(selectWeakestPatterns);
+  const patternStats = useAppSelector(selectPatternStats);
+  const dueIds = useAppSelector((s) => selectDueRevisionIds(s, today));
+  const revisionQueueIds = useAppSelector((s) => selectRevisionQueueIds(s, today));
+  const todayLog = useAppSelector((s) => selectTodayLog(s, today));
+  const todaysNew = useAppSelector(selectTodaysNewQuestions);
+  const progressById = useAppSelector((s) => s.progress.byId);
+
+  const totalQuestions = questions.length;
+  const remaining = totalQuestions - solvedCount;
+  const completionPct = totalQuestions > 0 ? Math.round((solvedCount / totalQuestions) * 100) : 0;
+  const roadmapComplete = solvedCount >= totalQuestions;
+
+  // First not-yet-solved question in today's slice; falls back to the slice's first entry, or
+  // to nothing at all once the whole roadmap is solved (handled by the roadmapComplete branch).
+  const currentQuestion = roadmapComplete
+    ? null
+    : (todaysNew.find((q) => (progressById[q.id]?.status ?? 'unsolved') !== 'solved') ?? todaysNew[0] ?? null);
+  const currentPattern = currentQuestion ? patternById[currentQuestion.pattern] : null;
+
+  const solvedToday = todayLog ? todayLog.solvedIds.length : 0;
+  const todayProgressPct = perDay > 0 ? Math.min(100, (solvedToday / perDay) * 100) : 0;
+
+  const weakestEntry = weakest[0] ?? null;
+  const weakestStat = weakestEntry ? patternStats.find((s) => s.pattern === weakestEntry.pattern) : undefined;
+
+  const recommendations = recommender.recommend({
+    all: questions,
+    byId: progressById,
+    due: dueIds,
+    todaysNew: todaysNew.map((q) => q.id),
+    weakest,
+  });
+
+  function openQuestion(id: number) {
+    dispatch(activeQuestionSet(id));
+  }
+
+  function handleRandomQuestion() {
+    const question = seededRandomQuestion(questions, today);
+    dispatch(activeQuestionSet(question.id));
+  }
+
   return (
-    <div className="glass p-6">
-      <h1 className="text-2xl font-bold text-gradient">Dashboard</h1>
+    <div className="flex flex-col gap-6">
+      {/* Visually hidden — keeps the page's accessible heading name stable ("Dashboard") while
+          the hero below carries the actual visual heading (day counter). */}
+      <h1 className="sr-only">Dashboard</h1>
+
+      <motion.div className="flex flex-col gap-6" variants={heroVariants} initial="hidden" animate="show">
+        {/* Row 1: hero */}
+        <motion.div
+          variants={itemVariants}
+          className="glass grid grid-cols-1 gap-6 p-6 lg:grid-cols-[1fr_auto] lg:items-center"
+        >
+          <div className="flex flex-col gap-3">
+            <div>
+              <p className="text-3xl font-bold text-gradient">
+                Day {currentDay} of {totalDays}
+              </p>
+              <p className="text-sm text-muted-foreground">{format(parseISO(today), 'EEEE, MMMM d, yyyy')}</p>
+            </div>
+
+            <p className="italic text-muted-foreground">{quoteForDate(today)}</p>
+
+            {roadmapComplete ? (
+              <p className="text-lg font-semibold">Roadmap complete 🎉</p>
+            ) : currentQuestion && currentPattern ? (
+              <div className="flex flex-wrap items-center gap-2">
+                <span className="text-sm text-muted-foreground">You&apos;re in:</span>
+                <PatternChip pattern={currentPattern} />
+                <DifficultyBadge difficulty={currentQuestion.difficulty} />
+              </div>
+            ) : null}
+
+            <div>
+              <Button variant="outline" size="sm" onClick={handleRandomQuestion}>
+                <Dices /> Random question
+              </Button>
+            </div>
+          </div>
+
+          <div className="flex flex-row items-center justify-center gap-4 lg:flex-col lg:items-end">
+            <div className="flex flex-col items-center gap-1">
+              <StreakFlame current={streaks.current} />
+              <span className="text-xs text-muted-foreground">Longest: {streaks.longest}</span>
+            </div>
+            <LevelRing level={levelInfo.level} intoLevel={levelInfo.intoLevel} needed={levelInfo.needed} size={80} />
+            <XpBadge xp={xp} />
+          </div>
+        </motion.div>
+
+        {/* Row 2: stat cards */}
+        <motion.div variants={itemVariants} className="grid grid-cols-2 gap-4 md:grid-cols-3 xl:grid-cols-6">
+          <StatCard label="Solved" value={`${solvedCount} / ${totalQuestions}`} icon={CheckCircle2} />
+          <StatCard label="Remaining" value={remaining} icon={ListTodo} />
+          <StatCard label="Completion" value={`${completionPct}%`} icon={Percent} />
+          <StatCard
+            label="Revisions Due"
+            value={revisionQueueIds.length}
+            icon={RotateCcw}
+            accent={revisionQueueIds.length > 0}
+          />
+          <StatCard label="Est. Finish" value={format(parseISO(estFinish), 'MMM d')} icon={CalendarClock} />
+          <StatCard label="Productivity" value={`${productivity} / 100`} icon={Gauge} />
+        </motion.div>
+
+        {/* Row 3 */}
+        <motion.div variants={itemVariants} className="grid grid-cols-1 gap-4 lg:grid-cols-3">
+          <div className="glass flex flex-col gap-3 p-5">
+            <h2 className="text-sm font-semibold text-muted-foreground">Today&apos;s Progress</h2>
+            <Progress value={todayProgressPct} />
+            <p className="text-sm text-muted-foreground">
+              {solvedToday} / {perDay} solved today
+            </p>
+            <Button asChild size="sm" variant="outline" className="self-start">
+              <Link to="/today">Go to Today</Link>
+            </Button>
+          </div>
+
+          <div className="glass flex flex-col gap-3 p-5">
+            <h2 className="text-sm font-semibold text-muted-foreground">Weakest Pattern</h2>
+            {weakestEntry && weakestStat ? (
+              <>
+                <p className="text-lg font-semibold">{patternById[weakestEntry.pattern].name}</p>
+                <p className="text-sm text-muted-foreground">{weakestStat.pct}% solved</p>
+                <Button asChild size="sm" variant="outline" className="self-start">
+                  <Link to={`/patterns/${weakestEntry.pattern}`}>Practice this</Link>
+                </Button>
+              </>
+            ) : (
+              <EmptyState icon={Gauge} title="Not enough data yet" />
+            )}
+          </div>
+
+          <div className="glass flex flex-col gap-3 p-5">
+            <h2 className="text-sm font-semibold text-muted-foreground">Smart Recommendations</h2>
+            {recommendations.length === 0 ? (
+              <EmptyState icon={Lightbulb} title="No recommendations yet" />
+            ) : (
+              <ul className="flex flex-col gap-3">
+                {recommendations.map((rec) => (
+                  <li key={rec.kind}>
+                    <p className="text-xs text-muted-foreground">{rec.reason}</p>
+                    <div className="mt-1.5 flex flex-wrap gap-1.5">
+                      {rec.questionIds.slice(0, 3).map((id) => {
+                        const question = selectQuestionById(id);
+                        if (!question) return null;
+                        return (
+                          <Button key={id} size="sm" variant="ghost" onClick={() => openQuestion(id)}>
+                            {question.title}
+                          </Button>
+                        );
+                      })}
+                    </div>
+                  </li>
+                ))}
+              </ul>
+            )}
+          </div>
+        </motion.div>
+
+        {/* Row 4: heatmap */}
+        <motion.div variants={itemVariants} className="glass p-5">
+          <h2 className="mb-3 text-sm font-semibold text-muted-foreground">Activity</h2>
+          <Heatmap data={heatmapData} onSelectDate={() => navigate('/calendar')} />
+        </motion.div>
+      </motion.div>
     </div>
   );
 }

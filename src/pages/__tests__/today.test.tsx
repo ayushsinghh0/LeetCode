@@ -101,14 +101,15 @@ describe('TodayPage', () => {
     expect(within(revisionSection).getByText(question1.title)).toBeInTheDocument();
     expect(within(revisionSection).queryByText(/overdue/)).not.toBeInTheDocument();
 
-    // Advance one more day: now 1 day overdue.
+    // Advance one more day: now 1 day overdue (singular — shares RevisionPage's overdueLabel()
+    // helper via src/utils/overdueLabel.ts, so this used to incorrectly read "1 days overdue").
     act(() => {
       vi.setSystemTime(new Date('2026-08-01T12:00:00'));
       vi.advanceTimersByTime(60_000);
     });
 
     revisionSection = screen.getByRole('heading', { name: 'Revision Due' }).closest('section')!;
-    expect(within(revisionSection).getByText('1 days overdue')).toBeInTheDocument();
+    expect(within(revisionSection).getByText('1 day overdue')).toBeInTheDocument();
 
     vi.useRealTimers();
   });

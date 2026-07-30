@@ -21,6 +21,7 @@ import {
 } from '@/store/selectors';
 import { initialProgress } from '@/utils/engine/spacedRepetition';
 import { diffDays } from '@/utils/dates';
+import { overdueLabel } from '@/utils/overdueLabel';
 import type { Question } from '@/types';
 
 const gridVariants = {
@@ -141,7 +142,7 @@ export default function TodayPage() {
                       variant="outline"
                       className="absolute right-3 top-3 z-10 border-amber-500 bg-amber-500/20 text-amber-500"
                     >
-                      {overdueDays} days overdue
+                      {overdueLabel(overdueDays)}
                     </Badge>
                   )}
                   <QuestionCard question={question} progress={progress} context="revision" onOpenDetail={openDetail} />

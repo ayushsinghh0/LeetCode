@@ -21,6 +21,7 @@ import {
 import { overallRevisionPassRate } from '@/utils/engine/stats';
 import { initialProgress, isMastered } from '@/utils/engine/spacedRepetition';
 import { addDays, diffDays } from '@/utils/dates';
+import { overdueLabel } from '@/utils/overdueLabel';
 import type { Question } from '@/types';
 
 const gridVariants = {
@@ -35,10 +36,6 @@ const cardVariants = {
 
 const PASSED_THIS_WEEK_DAYS = 7;
 const UPCOMING_HORIZON_DAYS = 30;
-
-function overdueLabel(days: number): string {
-  return `${days} day${days === 1 ? '' : 's'} overdue`;
-}
 
 export default function RevisionPage() {
   const today = useToday();

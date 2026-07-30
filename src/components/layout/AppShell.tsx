@@ -2,6 +2,7 @@ import { Outlet } from 'react-router-dom';
 import { Sidebar } from '@/components/layout/Sidebar';
 import { MobileNav } from '@/components/layout/MobileNav';
 import { PageTransition } from '@/components/layout/PageTransition';
+import { QuestionDetailModal } from '@/components/questions/QuestionDetailModal';
 
 export function AppShell() {
   return (
@@ -13,6 +14,7 @@ export function AppShell() {
         </PageTransition>
       </main>
       <MobileNav />
+      <QuestionDetailModal />
     </div>
   );
 }

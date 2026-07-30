@@ -12,10 +12,13 @@ import {
   Trophy,
   Bookmark,
   Settings,
+  Search,
   type LucideIcon,
 } from 'lucide-react';
 import { cn } from '@/utils/cn';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { useAppDispatch } from '@/store/hooks';
+import { searchOpenSet } from '@/store/slices/uiSlice';
 
 interface MobileNavItem {
   to: string;
@@ -40,7 +43,16 @@ const MORE_ITEMS: MobileNavItem[] = [
 ];
 
 export function MobileNav() {
+  const dispatch = useAppDispatch();
   const [open, setOpen] = useState(false);
+
+  // No physical keyboard below md, so Ctrl/Cmd+K is unreachable there — this is the only mobile
+  // entry point into SearchDialog. Closes the "More" sheet itself before opening search so the
+  // two overlays never stack.
+  function openSearch() {
+    setOpen(false);
+    dispatch(searchOpenSet(true));
+  }
 
   return (
     <>
@@ -80,6 +92,14 @@ export function MobileNav() {
             <DialogTitle>More</DialogTitle>
           </DialogHeader>
           <div className="grid grid-cols-2 gap-2">
+            <button
+              type="button"
+              onClick={openSearch}
+              className="flex items-center gap-2 rounded-lg px-3 py-2 text-left text-sm font-medium text-muted-foreground hover:text-foreground"
+            >
+              <Search className="h-4 w-4" />
+              Search
+            </button>
             {MORE_ITEMS.map(({ to, label, icon: Icon }) => (
               <NavLink
                 key={to}

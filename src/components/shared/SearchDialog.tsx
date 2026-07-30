@@ -1,41 +1,31 @@
 import { useEffect, useMemo, useState } from 'react';
 import { Search } from 'lucide-react';
 import questionsData from '@/data/questions.json';
-import { PATTERNS, patternById } from '@/data/patterns';
+import { patternById } from '@/data/patterns';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
-import { Button } from '@/components/ui/button';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { DifficultyBadge } from '@/components/questions/DifficultyBadge';
 import { PatternChip } from '@/components/questions/PatternChip';
 import { STATUS_ICON, STATUS_LABEL } from '@/components/questions/QuestionCard';
+import {
+  ALL_STATUS_OPTIONS,
+  QuestionFilterRow,
+  type DifficultyFilterValue,
+  type PatternFilterValue,
+  type StatusFilterValue,
+} from '@/components/shared/QuestionFilterRow';
 import { useAppDispatch, useAppSelector } from '@/store/hooks';
 import { activeQuestionSet, searchOpenSet } from '@/store/slices/uiSlice';
 import { useToday } from '@/hooks/useToday';
 import { initialProgress } from '@/utils/engine/spacedRepetition';
-import { filterQuestions, type QuestionStatusFilter } from '@/utils/filterQuestions';
-import type { Difficulty, PatternId, Question } from '@/types';
+import { filterQuestions } from '@/utils/filterQuestions';
+import type { Question } from '@/types';
 
 const questions = questionsData as Question[];
 
 // Cap rendered rows for a broad/unfiltered query — the dataset is 539 questions and this dialog
 // has no virtualization, so an unbounded render on e.g. a single-letter query would be sluggish.
 const RESULTS_LIMIT = 50;
-
-type DifficultyFilterValue = 'all' | Difficulty;
-type StatusFilterValue = 'all' | QuestionStatusFilter;
-type PatternFilterValue = 'all' | PatternId;
-
-const DIFFICULTY_OPTIONS: Difficulty[] = ['easy', 'medium', 'hard'];
-const DIFFICULTY_CHIP_LABEL: Record<Difficulty, string> = { easy: 'Easy', medium: 'Medium', hard: 'Hard' };
-
-const STATUS_OPTIONS: QuestionStatusFilter[] = ['solved', 'unsolved', 'needs-revision', 'bookmarked'];
-const STATUS_CHIP_LABEL: Record<QuestionStatusFilter, string> = {
-  solved: 'Solved',
-  unsolved: 'Unsolved',
-  'needs-revision': 'Needs Revision',
-  bookmarked: 'Bookmarked',
-};
 
 // Mount once (e.g. in AppShell) — a singleton controlled entirely by ui.searchOpen, mirroring
 // QuestionDetailModal's activeQuestionId pattern. Owns the global Ctrl/Cmd+K hotkey itself so any
@@ -101,14 +91,6 @@ export function SearchDialog() {
     dispatch(searchOpenSet(false));
   }
 
-  function toggleDifficulty(value: Difficulty) {
-    setDifficulty((current) => (current === value ? 'all' : value));
-  }
-
-  function toggleStatus(value: QuestionStatusFilter) {
-    setStatus((current) => (current === value ? 'all' : value));
-  }
-
   return (
     <Dialog open={searchOpen} onOpenChange={handleOpenChange}>
       {searchOpen && (
@@ -129,54 +111,15 @@ export function SearchDialog() {
             />
           </div>
 
-          <div className="flex flex-wrap items-center gap-4">
-            <div className="flex flex-wrap items-center gap-2">
-              <span className="text-sm text-muted-foreground">Difficulty</span>
-              {DIFFICULTY_OPTIONS.map((d) => (
-                <Button
-                  key={d}
-                  type="button"
-                  size="sm"
-                  variant={difficulty === d ? 'default' : 'outline'}
-                  onClick={() => toggleDifficulty(d)}
-                >
-                  {DIFFICULTY_CHIP_LABEL[d]}
-                </Button>
-              ))}
-            </div>
-
-            <div className="flex flex-wrap items-center gap-2">
-              <span className="text-sm text-muted-foreground">Status</span>
-              {STATUS_OPTIONS.map((s) => (
-                <Button
-                  key={s}
-                  type="button"
-                  size="sm"
-                  variant={status === s ? 'default' : 'outline'}
-                  onClick={() => toggleStatus(s)}
-                >
-                  {STATUS_CHIP_LABEL[s]}
-                </Button>
-              ))}
-            </div>
-
-            <div className="flex items-center gap-2">
-              <span className="text-sm text-muted-foreground">Pattern</span>
-              <Select value={pattern} onValueChange={(v) => setPattern(v as PatternFilterValue)}>
-                <SelectTrigger aria-label="Filter by pattern" className="w-48">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">All Patterns</SelectItem>
-                  {PATTERNS.map((p) => (
-                    <SelectItem key={p.id} value={p.id}>
-                      {p.name}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-          </div>
+          <QuestionFilterRow
+            difficulty={difficulty}
+            onDifficultyChange={setDifficulty}
+            status={status}
+            onStatusChange={setStatus}
+            statusOptions={ALL_STATUS_OPTIONS}
+            pattern={pattern}
+            onPatternChange={setPattern}
+          />
 
           {!hasActiveFilter ? (
             <p className="py-8 text-center text-sm text-muted-foreground">

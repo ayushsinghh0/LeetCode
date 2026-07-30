@@ -2,33 +2,24 @@ import { useMemo, useState } from 'react';
 import { Bookmark, SearchX } from 'lucide-react';
 import { EmptyState } from '@/components/shared/EmptyState';
 import { QuestionCard } from '@/components/questions/QuestionCard';
-import { Button } from '@/components/ui/button';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { PATTERNS } from '@/data/patterns';
+import {
+  QuestionFilterRow,
+  type DifficultyFilterValue,
+  type PatternFilterValue,
+  type StatusFilterValue,
+} from '@/components/shared/QuestionFilterRow';
 import { useAppDispatch, useAppSelector } from '@/store/hooks';
 import { activeQuestionSet } from '@/store/slices/uiSlice';
 import { selectBookmarkedIds, selectQuestionById } from '@/store/selectors';
 import { useToday } from '@/hooks/useToday';
 import { initialProgress } from '@/utils/engine/spacedRepetition';
 import { filterQuestions, type QuestionStatusFilter } from '@/utils/filterQuestions';
-import type { Difficulty, PatternId, Question } from '@/types';
+import type { Question } from '@/types';
 
-type DifficultyFilterValue = 'all' | Difficulty;
 // "bookmarked" is excluded here — every question on this page already is, so it would be a
-// no-op filter (see src/utils/filterQuestions.ts for the full status union used by SearchDialog).
-type BookmarksStatusFilter = Exclude<QuestionStatusFilter, 'bookmarked'>;
-type StatusFilterValue = 'all' | BookmarksStatusFilter;
-type PatternFilterValue = 'all' | PatternId;
-
-const DIFFICULTY_OPTIONS: Difficulty[] = ['easy', 'medium', 'hard'];
-const DIFFICULTY_CHIP_LABEL: Record<Difficulty, string> = { easy: 'Easy', medium: 'Medium', hard: 'Hard' };
-
-const STATUS_OPTIONS: BookmarksStatusFilter[] = ['solved', 'unsolved', 'needs-revision'];
-const STATUS_CHIP_LABEL: Record<BookmarksStatusFilter, string> = {
-  solved: 'Solved',
-  unsolved: 'Unsolved',
-  'needs-revision': 'Needs Revision',
-};
+// permanent no-op filter (see src/components/shared/QuestionFilterRow.tsx's ALL_STATUS_OPTIONS,
+// which SearchDialog uses in full).
+const STATUS_OPTIONS: QuestionStatusFilter[] = ['solved', 'unsolved', 'needs-revision'];
 
 export default function BookmarksPage() {
   const dispatch = useAppDispatch();
@@ -68,14 +59,6 @@ export default function BookmarksPage() {
     dispatch(activeQuestionSet(id));
   }
 
-  function toggleDifficulty(value: Difficulty) {
-    setDifficulty((current) => (current === value ? 'all' : value));
-  }
-
-  function toggleStatus(value: BookmarksStatusFilter) {
-    setStatus((current) => (current === value ? 'all' : value));
-  }
-
   return (
     <div className="flex flex-col gap-6">
       <header className="glass p-6">
@@ -93,53 +76,16 @@ export default function BookmarksPage() {
         />
       ) : (
         <>
-          <div className="glass flex flex-wrap items-center gap-4 p-4">
-            <div className="flex flex-wrap items-center gap-2">
-              <span className="text-sm text-muted-foreground">Difficulty</span>
-              {DIFFICULTY_OPTIONS.map((d) => (
-                <Button
-                  key={d}
-                  type="button"
-                  size="sm"
-                  variant={difficulty === d ? 'default' : 'outline'}
-                  onClick={() => toggleDifficulty(d)}
-                >
-                  {DIFFICULTY_CHIP_LABEL[d]}
-                </Button>
-              ))}
-            </div>
-
-            <div className="flex flex-wrap items-center gap-2">
-              <span className="text-sm text-muted-foreground">Status</span>
-              {STATUS_OPTIONS.map((s) => (
-                <Button
-                  key={s}
-                  type="button"
-                  size="sm"
-                  variant={status === s ? 'default' : 'outline'}
-                  onClick={() => toggleStatus(s)}
-                >
-                  {STATUS_CHIP_LABEL[s]}
-                </Button>
-              ))}
-            </div>
-
-            <div className="flex items-center gap-2">
-              <span className="text-sm text-muted-foreground">Pattern</span>
-              <Select value={pattern} onValueChange={(v) => setPattern(v as PatternFilterValue)}>
-                <SelectTrigger aria-label="Filter by pattern" className="w-48">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">All Patterns</SelectItem>
-                  {PATTERNS.map((p) => (
-                    <SelectItem key={p.id} value={p.id}>
-                      {p.name}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
+          <div className="glass p-4">
+            <QuestionFilterRow
+              difficulty={difficulty}
+              onDifficultyChange={setDifficulty}
+              status={status}
+              onStatusChange={setStatus}
+              statusOptions={STATUS_OPTIONS}
+              pattern={pattern}
+              onPatternChange={setPattern}
+            />
           </div>
 
           {filtered.length === 0 ? (

@@ -80,6 +80,31 @@ test('weeklyTopUp: excludes items already reviewed today from the pool, giving t
   expect(result).not.toContain(4);
 });
 
+test('weeklyTopUp: excludes questions solved today from the pool (first revision is due tomorrow by design)', () => {
+  const { all, byId } = buildFixture();
+  const due = [3];
+  // A question solved just now via solveQuestion: completedAt=today, but lastReviewed is still
+  // null (applySolve never touches it — it has no revision history yet) and nextRevision is
+  // tomorrow (not due today either). Same-day top-up revision of a question with zero revision
+  // history was never intended, and — per the re-review regression — admitting it here let
+  // WEEKLY_CLEAR_BONUS re-fire: drain the queue to 0, solve a new question, watch the queue (and
+  // the bonus) come back.
+  const freshlySolvedId = 11;
+  const byIdWithFreshSolve: Record<number, QuestionProgress> = {
+    ...byId,
+    [freshlySolvedId]: applySolve(initialProgress(), TODAY),
+  };
+  const allWithFreshSolve: Question[] = [
+    ...all,
+    { id: freshlySolvedId, title: 'Q11', pattern: 'two-pointers', difficulty: 'easy', estimatedTime: 20 },
+  ];
+
+  const result = weeklyTopUp(allWithFreshSolve, byIdWithFreshSolve, due, TODAY, 7, 7);
+
+  expect(result).toEqual([5, 4, 6, 8, 9, 7]); // unchanged from the baseline ranking — id11 absent
+  expect(result).not.toContain(freshlySolvedId);
+});
+
 test('weeklyTopUp: returns [] when due already meets min, regardless of how far below max', () => {
   const { all, byId } = buildFixture();
 

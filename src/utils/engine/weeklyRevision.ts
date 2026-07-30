@@ -12,13 +12,20 @@ import { isMastered } from '@/utils/engine/spacedRepetition';
  *    how many eligible candidates actually exist in the pool.
  *
  * Pool = questions that are solved AND not mastered AND not already in `due` (excluded by id)
- * AND not already reviewed today (`lastReviewed !== today`). That last exclusion is what gives
- * the queue a terminal state: without it, a top-up item that was just passed or failed (either
- * way `applyRevision` stamps `lastReviewed = today`) would immediately re-qualify for the pool
- * and could be re-selected as an extra the very next time this is recomputed — the weakest item
- * getting re-served pass after pass in the same sitting, never draining the Weekly Revision
- * queue. Excluding today's-reviewed records makes the pool shrink monotonically over the course
- * of a day, so it (and therefore the top-up) eventually reaches zero.
+ * AND not already reviewed today (`lastReviewed !== today`) AND not solved today
+ * (`completedAt !== today`). The `lastReviewed` exclusion alone gives the queue a terminal state
+ * *within* a single pass through today's already-solved roster: without it, a top-up item that
+ * was just passed or failed (either way `applyRevision` stamps `lastReviewed = today`) would
+ * immediately re-qualify for the pool and could be re-selected as an extra the very next time
+ * this is recomputed. But `applySolve` never touches `lastReviewed` — a question solved just now
+ * has `lastReviewed = null`, which trivially satisfies `!== today`, so without the `completedAt`
+ * exclusion a freshly-solved question would immediately re-enter an already-drained pool (its
+ * first revision is due tomorrow by design; same-day top-up revision of a question with zero
+ * revision history was never intended, and let WEEKLY_CLEAR_BONUS re-fire after a solve reopened
+ * a queue that had already hit zero). With both exclusions in place, nothing can add to `due` or
+ * the pool once today's already-solved roster is fixed at the start of the day (new solves are
+ * excluded; already-attempted pool items are excluded), so the pool only shrinks over the course
+ * of a day and the top-up (and therefore the full queue) reaches zero and stays there.
  *
  * Ranking (weakest/most-in-need-of-review first): confidence ascending (null treated as 2.5)
  * -> fail count (revisionHistory entries with passed:false) descending -> lastReviewed
@@ -37,7 +44,14 @@ export function weeklyTopUp(
   const pool = all
     .filter((q) => {
       const p = byId[q.id];
-      return !!p && p.status === 'solved' && !isMastered(p) && !dueSet.has(q.id) && p.lastReviewed !== today;
+      return (
+        !!p &&
+        p.status === 'solved' &&
+        !isMastered(p) &&
+        !dueSet.has(q.id) &&
+        p.lastReviewed !== today &&
+        p.completedAt !== today
+      );
     })
     .map((q) => q.id);
 

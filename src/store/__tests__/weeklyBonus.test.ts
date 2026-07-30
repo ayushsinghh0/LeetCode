@@ -7,9 +7,9 @@
 import questionsData from '@/data/questions.json';
 import type { PersistedStateV1, Question, QuestionProgress } from '@/types';
 import { initialProgress } from '@/utils/engine/spacedRepetition';
-import { revisionXp, WEEKLY_CLEAR_BONUS } from '@/utils/engine/xp';
+import { revisionXp, SOLVE_XP, WEEKLY_CLEAR_BONUS } from '@/utils/engine/xp';
 import { makeStore } from '@/store/store';
-import { importProgress, reviseQuestion } from '@/store/actions';
+import { importProgress, reviseQuestion, solveQuestion } from '@/store/actions';
 import { selectCurrentDay, selectIsWeeklyDay, selectRevisionQueueIds } from '@/store/selectors';
 
 const questions = questionsData as Question[];
@@ -125,6 +125,35 @@ test('weekly day: WEEKLY_CLEAR_BONUS is credited into dayLog.xpEarned too, keepi
 
   expect(state.gamification.xp).toBeGreaterThan(0);
   expect(state.progress.dayLogs[TODAY].xpEarned).toBe(state.gamification.xp);
+});
+
+test('weekly day: solving a new question after the queue drains does not regrow the queue or re-award the bonus (re-review regression)', () => {
+  const store = buildWeeklyDayStore();
+  const queueIds = selectRevisionQueueIds(store.getState(), TODAY);
+  expect(queueIds).toHaveLength(5);
+
+  for (const id of queueIds) {
+    store.dispatch(reviseQuestion(id, true));
+  }
+
+  const drainXp = queueIds.reduce((sum, id) => sum + revisionXp(questionById.get(id)!.difficulty), 0);
+  const xpAfterDrain = store.getState().gamification.xp;
+  expect(xpAfterDrain).toBe(drainXp + WEEKLY_CLEAR_BONUS); // bonus fired exactly once during the drain
+  expect(selectRevisionQueueIds(store.getState(), TODAY)).toEqual([]);
+
+  const NEW_ID = 49; // previously unsolved, not part of the fixture
+  expect(store.getState().progress.byId[NEW_ID]?.status ?? 'unsolved').toBe('unsolved');
+
+  store.dispatch(solveQuestion(NEW_ID));
+
+  // Regression check: a freshly-solved question must not become top-up-eligible today (its
+  // first revision is due tomorrow by design) — the drained queue must stay empty...
+  expect(selectRevisionQueueIds(store.getState(), TODAY)).toEqual([]);
+
+  // ...and therefore the only XP gained since the drain is the new solve's base XP — exactly one
+  // WEEKLY_CLEAR_BONUS in the whole sequence, not two.
+  const newQuestionXp = SOLVE_XP[questionById.get(NEW_ID)!.difficulty];
+  expect(store.getState().gamification.xp).toBe(drainXp + WEEKLY_CLEAR_BONUS + newQuestionXp);
 });
 
 test('non-weekly day: fully draining the due queue never awards WEEKLY_CLEAR_BONUS', () => {

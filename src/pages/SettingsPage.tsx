@@ -40,8 +40,15 @@ export default function SettingsPage() {
   const settings = useAppSelector((state) => state.settings);
   const { theme, toggle: toggleTheme } = useTheme();
 
+  // `values` (not `defaultValues`) keeps the form synced whenever the store's settings change out
+  // from under it — in particular after a successful Import, which replaces the whole settings
+  // slice via stateImported. `defaultValues` alone is only read once at mount, so the form would
+  // otherwise keep showing pre-import values, and a subsequent Save's getValues() would silently
+  // revert the just-imported fields back to that stale baseline. RHF re-baselines (isDirty resets
+  // to false) whenever this object changes, which is also exactly what we want here: the imported
+  // values become the new "unsaved changes" baseline.
   const { control, watch, getValues, reset, formState: { isDirty } } = useForm<SettingsFormValues>({
-    defaultValues: {
+    values: {
       questionsPerDay: settings.questionsPerDay,
       revisionEnabled: settings.revisionEnabled,
       notifications: settings.notifications,

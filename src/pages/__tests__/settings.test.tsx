@@ -6,6 +6,7 @@ import { TooltipProvider } from '@/components/ui/tooltip';
 import { ThemeProvider } from '@/contexts/ThemeContext';
 import SettingsPage from '@/pages/SettingsPage';
 import { solveQuestion } from '@/store/actions';
+import { settingsUpdated } from '@/store/slices/settingsSlice';
 import { exportAsJson } from '@/services/storage/serialize';
 import { totalDays } from '@/utils/engine/roadmap';
 import { todayISO } from '@/utils/dates';
@@ -173,6 +174,33 @@ describe('SettingsPage: Import', () => {
     expect(store.getState().progress.byId[1].status).toBe('solved');
     expect(store.getState().progress.byId[2].status).toBe('solved');
     expect(store.getState().gamification.xp).toBe(expectedXp);
+  });
+
+  test('after importing, the Preferences form re-syncs to the imported settings, and a subsequent Save does not revert them', async () => {
+    const sourceStore = makeStore();
+    sourceStore.dispatch(settingsUpdated({ questionsPerDay: 14, notifications: true }));
+    const backupJson = exportAsJson(sourceStore.getState());
+
+    const { store } = renderWithStore(); // fresh store: perDay 8, notifications false, revisionEnabled true
+    const file = new File([backupJson], 'backup.json', { type: 'application/json' });
+    fireEvent.change(screen.getByLabelText('Import backup file'), { target: { files: [file] } });
+
+    await screen.findByRole('button', { name: 'Import' });
+    fireEvent.click(screen.getByRole('button', { name: 'Import' }));
+
+    // The form controls reflect the freshly-imported settings, not the pre-import baseline.
+    expect(screen.getByText(new RegExp(`${totalDays(TOTAL_QUESTIONS, 14)} days`))).toBeInTheDocument();
+    expect(screen.getByRole('switch', { name: 'Notifications' })).toHaveAttribute('aria-checked', 'true');
+    // Re-synced to the new values, so nothing is unsaved yet.
+    expect(screen.getByRole('button', { name: 'Save' })).toBeDisabled();
+
+    // Editing one untouched-by-import field and saving must not revert the other imported fields.
+    fireEvent.click(screen.getByRole('switch', { name: 'Spaced revision' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Save' }));
+
+    expect(store.getState().settings.questionsPerDay).toBe(14); // not reverted to the pre-import 8
+    expect(store.getState().settings.notifications).toBe(true); // not reverted to the pre-import false
+    expect(store.getState().settings.revisionEnabled).toBe(false); // the actual edit took effect
   });
 
   test('cancelling the import confirm dialog does not dispatch', async () => {

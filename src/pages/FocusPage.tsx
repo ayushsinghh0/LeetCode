@@ -42,13 +42,15 @@ export default function FocusPage() {
       </div>
 
       {question && progress && pattern ? (
-        <div className="glass flex flex-col items-center gap-5 p-10 text-center">
+        <div className="glass flex flex-1 flex-col items-center justify-center gap-6 p-8 text-center md:p-12">
           <div className="flex flex-wrap items-center justify-center gap-2">
             <DifficultyBadge difficulty={question.difficulty} />
             <PatternChip pattern={pattern} />
           </div>
 
-          <h1 className="text-3xl font-bold text-gradient">{question.title}</h1>
+          <h1 className="max-w-2xl font-serif text-4xl font-semibold leading-tight tracking-tight md:text-5xl">
+            {question.title}
+          </h1>
 
           <div className="flex flex-wrap justify-center gap-2">
             {isFromRevisionQueue ? (
@@ -87,9 +89,9 @@ export default function FocusPage() {
           </div>
         </div>
       ) : (
-        <div className="glass flex flex-col items-center gap-2 p-10 text-center text-muted-foreground">
-          <CheckCircle2 className="h-8 w-8" aria-hidden="true" />
-          <p>All caught up — nothing queued for focus right now.</p>
+        <div className="glass flex flex-1 flex-col items-center justify-center gap-3 p-10 text-center text-muted-foreground">
+          <CheckCircle2 className="h-7 w-7 text-muted-foreground/50" aria-hidden="true" />
+          <p className="font-serif text-base text-foreground">All caught up — nothing queued for focus right now.</p>
         </div>
       )}
 

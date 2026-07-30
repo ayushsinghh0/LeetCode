@@ -17,7 +17,7 @@ function formatRow(entry: TooltipEntry) {
  * (passed vs. failed). Pass/fail is a genuinely good/critical semantic, so — per the skill's
  * status-color collision rule ("when a series means good/bad it wears status tokens, never
  * categorical") — this uses the app's fixed green/red status hexes (the same ones already used
- * for revisionsPassed/revisionsFailed in CalendarPage's day-detail dialog), not the violet/cyan
+ * for revisionsPassed/revisionsFailed in CalendarPage's day-detail dialog), not the ink/ochre
  * categorical pair used elsewhere in this dashboard.
  */
 export function RevisionRateChart({ passed, failed }: RevisionRateChartProps) {

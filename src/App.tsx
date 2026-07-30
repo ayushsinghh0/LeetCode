@@ -1,5 +1,6 @@
 import { lazy, Suspense } from 'react';
 import { BrowserRouter, Routes, Route } from 'react-router-dom';
+import { MotionConfig } from 'framer-motion';
 import { ThemeProvider } from '@/contexts/ThemeContext';
 import { TooltipProvider } from '@/components/ui/tooltip';
 import { AppShell } from '@/components/layout/AppShell';
@@ -63,11 +64,15 @@ export function AppRoutes() {
 export default function App() {
   return (
     <ThemeProvider>
-      <TooltipProvider>
-        <BrowserRouter future={routerFutureFlags}>
-          <AppRoutes />
-        </BrowserRouter>
-      </TooltipProvider>
+      {/* framer-motion animates via JS, so the CSS prefers-reduced-motion override alone can't
+          reach it — this honors the user's motion preference for every motion.* component. */}
+      <MotionConfig reducedMotion="user">
+        <TooltipProvider>
+          <BrowserRouter future={routerFutureFlags}>
+            <AppRoutes />
+          </BrowserRouter>
+        </TooltipProvider>
+      </MotionConfig>
     </ThemeProvider>
   );
 }

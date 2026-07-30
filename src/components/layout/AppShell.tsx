@@ -16,10 +16,12 @@ export function AppShell() {
   return (
     <div className="flex min-h-screen">
       <Sidebar />
-      <main className="min-w-0 flex-1 px-4 py-6 pb-24 md:pb-6 lg:px-8">
-        <PageTransition>
-          <Outlet />
-        </PageTransition>
+      <main className="min-w-0 flex-1">
+        <div className="mx-auto w-full max-w-6xl px-4 py-6 pb-28 md:px-8 md:py-10 md:pb-10">
+          <PageTransition>
+            <Outlet />
+          </PageTransition>
+        </div>
       </main>
       <MobileNav />
       <QuestionDetailModal />

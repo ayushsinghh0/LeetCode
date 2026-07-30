@@ -1,11 +1,10 @@
 import { Link, useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { format, parseISO } from 'date-fns';
-import { CalendarClock, CheckCircle2, Dices, Gauge, Lightbulb, ListTodo, RotateCcw } from 'lucide-react';
+import { BookOpen, CalendarClock, CheckCircle2, Dices, Gauge, Lightbulb, ListTodo, RotateCcw } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Progress } from '@/components/ui/progress';
 import { StatCard } from '@/components/shared/StatCard';
-import { ProgressRing } from '@/components/shared/ProgressRing';
 import { Heatmap } from '@/components/shared/Heatmap';
 import { EmptyState } from '@/components/shared/EmptyState';
 import { LevelRing } from '@/components/gamification/LevelRing';
@@ -125,13 +124,16 @@ export default function DashboardPage() {
         >
           <div className="flex flex-col gap-3">
             <div>
-              <p className="text-3xl font-bold text-gradient">
-                Day {currentDay} of {totalDays}
+              <p className="font-serif text-4xl font-semibold tracking-tight md:text-5xl">
+                Day {currentDay}{' '}
+                <span className="text-[0.55em] font-normal italic text-muted-foreground">of {totalDays}</span>
               </p>
-              <p className="text-sm text-muted-foreground">{format(parseISO(today), 'EEEE, MMMM d, yyyy')}</p>
+              <p className="mt-1 text-sm text-muted-foreground">{format(parseISO(today), 'EEEE, MMMM d, yyyy')}</p>
             </div>
 
-            <p className="italic text-muted-foreground">{quoteForDate(today)}</p>
+            <p className="max-w-prose border-l border-border pl-3 font-serif italic text-muted-foreground">
+              {quoteForDate(today)}
+            </p>
 
             {roadmapComplete ? (
               <p className="text-lg font-semibold">Roadmap complete 🎉</p>
@@ -143,7 +145,18 @@ export default function DashboardPage() {
               </div>
             ) : null}
 
-            <div>
+            {/* The semester arc as a quiet ruled bar — the contract's first-viewport progress. */}
+            <div className="flex flex-col gap-1.5">
+              <Progress value={completionPct} aria-label="Roadmap completion" />
+              <p className="figures text-xs text-muted-foreground">
+                {solvedCount} of {totalQuestions} solved
+              </p>
+            </div>
+
+            <div className="flex flex-wrap items-center gap-2">
+              <Button asChild size="sm">
+                <Link to="/today">Go to Today</Link>
+              </Button>
               <Button variant="outline" size="sm" onClick={handleRandomQuestion}>
                 <Dices /> Random question
               </Button>
@@ -164,12 +177,7 @@ export default function DashboardPage() {
         <motion.div variants={itemVariants} className="grid grid-cols-2 gap-4 md:grid-cols-3 xl:grid-cols-6">
           <StatCard label="Solved" value={`${solvedCount} / ${totalQuestions}`} icon={CheckCircle2} />
           <StatCard label="Remaining" value={remaining} icon={ListTodo} />
-          <div className="glass flex flex-col items-center justify-center gap-3 p-4">
-            <ProgressRing value={solvedCount} max={totalQuestions} size={72} strokeWidth={7}>
-              <span className="text-sm font-bold">{completionPct}%</span>
-            </ProgressRing>
-            <p className="text-xs text-muted-foreground">Completion</p>
-          </div>
+          <StatCard label="Completion" value={`${completionPct}%`} icon={BookOpen} />
           <StatCard
             label="Revisions Due"
             value={revisionQueueIds.length}
@@ -183,18 +191,15 @@ export default function DashboardPage() {
         {/* Row 3 */}
         <motion.div variants={itemVariants} className="grid grid-cols-1 gap-4 lg:grid-cols-3">
           <div className="glass flex flex-col gap-3 p-5">
-            <h2 className="text-sm font-semibold text-muted-foreground">Today&apos;s Progress</h2>
+            <h2 className="border-b border-border/70 pb-2 text-base font-medium">Today&apos;s Progress</h2>
             <Progress value={todayProgressPct} />
-            <p className="text-sm text-muted-foreground">
+            <p className="figures text-sm text-muted-foreground">
               {solvedToday} / {perDay} solved today
             </p>
-            <Button asChild size="sm" variant="outline" className="self-start">
-              <Link to="/today">Go to Today</Link>
-            </Button>
           </div>
 
           <div className="glass flex flex-col gap-3 p-5">
-            <h2 className="text-sm font-semibold text-muted-foreground">Weakest Pattern</h2>
+            <h2 className="border-b border-border/70 pb-2 text-base font-medium">Weakest Pattern</h2>
             {weakestEntry && weakestStat ? (
               <>
                 <p className="text-lg font-semibold">{patternById[weakestEntry.pattern].name}</p>
@@ -209,7 +214,7 @@ export default function DashboardPage() {
           </div>
 
           <div className="glass flex flex-col gap-3 p-5">
-            <h2 className="text-sm font-semibold text-muted-foreground">Smart Recommendations</h2>
+            <h2 className="border-b border-border/70 pb-2 text-base font-medium">Smart Recommendations</h2>
             {recommendations.length === 0 ? (
               <EmptyState icon={Lightbulb} title="No recommendations yet" />
             ) : (
@@ -237,7 +242,7 @@ export default function DashboardPage() {
 
         {/* Row 4: heatmap */}
         <motion.div variants={itemVariants} className="glass p-5">
-          <h2 className="mb-3 text-sm font-semibold text-muted-foreground">Activity</h2>
+          <h2 className="mb-3 border-b border-border/70 pb-2 text-base font-medium">Activity</h2>
           <Heatmap data={heatmapData} onSelectDate={() => navigate('/calendar')} />
         </motion.div>
       </motion.div>

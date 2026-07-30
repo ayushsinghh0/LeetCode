@@ -43,7 +43,7 @@ describe('Heatmap', () => {
 
     const target = data[200];
     const cell = screen.getByRole('button', { name: `${target.count} activities on ${target.date}` });
-    expect(cell.className).toContain('bg-violet-400');
+    expect(cell.className).toContain('bg-primary');
   });
 
   test('applies the level-0 class to a zero-activity cell', () => {

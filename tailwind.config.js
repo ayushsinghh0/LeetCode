@@ -1,6 +1,7 @@
 /** @type {import('tailwindcss').Config} */
 export default {
   darkMode: 'class',
+  future: { hoverOnlyWhenSupported: true },
   content: ['./index.html', './src/**/*.{ts,tsx}'],
   theme: {
     extend: {
@@ -17,12 +18,21 @@ export default {
         destructive: { DEFAULT: 'hsl(var(--destructive))', foreground: 'hsl(var(--destructive-foreground))' },
         card: { DEFAULT: 'hsl(var(--card))', foreground: 'hsl(var(--card-foreground))' },
         popover: { DEFAULT: 'hsl(var(--popover))', foreground: 'hsl(var(--popover-foreground))' },
-        easy: '#22c55e',
-        medium: '#f59e0b',
-        hard: '#ef4444'
+        /* Editorial difficulty inks: sage, ochre, clay — per-theme variables in index.css. */
+        easy: 'hsl(var(--easy))',
+        medium: 'hsl(var(--medium))',
+        hard: 'hsl(var(--hard))'
       },
-      borderRadius: { xl: '1rem', '2xl': '1.25rem' },
-      fontFamily: { sans: ['Inter', 'system-ui', 'sans-serif'] }
+      borderRadius: { xl: '0.625rem', '2xl': '0.75rem' },
+      fontFamily: {
+        sans: ['"Source Sans 3 Variable"', 'system-ui', 'sans-serif'],
+        serif: ['"Besley Variable"', 'Georgia', 'serif'],
+        mono: ['"Spline Sans Mono Variable"', 'ui-monospace', 'monospace']
+      },
+      transitionTimingFunction: {
+        swift: 'cubic-bezier(0.23, 1, 0.32, 1)',
+        travel: 'cubic-bezier(0.77, 0, 0.175, 1)'
+      }
     }
   },
   plugins: [require('tailwindcss-animate')]

@@ -136,7 +136,7 @@ export function SearchDialog() {
                   <button
                     key={q.id}
                     type="button"
-                    className="glass flex w-full items-center gap-3 rounded-lg p-3 text-left transition-colors hover:bg-white/5"
+                    className="glass flex w-full items-center gap-3 rounded-md p-3 text-left transition-colors duration-150 ease-swift hover:border-primary/40"
                     onClick={() => openResult(q.id)}
                   >
                     <StatusIcon className="h-4 w-4 shrink-0 text-muted-foreground" aria-hidden="true" />

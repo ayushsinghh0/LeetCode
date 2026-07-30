@@ -15,10 +15,10 @@ export interface HeatmapProps {
 
 const LEVEL_CLASS: Record<0 | 1 | 2 | 3 | 4, string> = {
   0: 'bg-muted/40',
-  1: 'bg-violet-900/40',
-  2: 'bg-violet-700/50',
-  3: 'bg-violet-500/70',
-  4: 'bg-violet-400',
+  1: 'bg-primary/25',
+  2: 'bg-primary/45',
+  3: 'bg-primary/70',
+  4: 'bg-primary',
 };
 
 // GitHub-style layout: weeks as columns of 7 (Sunday-aligned). `data` arrives oldest-first

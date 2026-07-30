@@ -7,14 +7,14 @@ export interface StreakFlameProps {
 }
 
 // Flame + streak count. Pulses (framer-motion scale loop) once the streak is "hot" (>= 3 days);
-// gray at 0, orange otherwise.
+// gray at 0, ember-ochre otherwise (the theme's per-ground `medium` ink, not a raw palette hue).
 export function StreakFlame({ current }: StreakFlameProps) {
   const pulse = current >= 3;
   return (
     <span
       className={cn(
         'inline-flex items-center gap-1 font-semibold',
-        current === 0 ? 'text-muted-foreground' : 'text-orange-500',
+        current === 0 ? 'text-muted-foreground' : 'text-medium',
       )}
     >
       <motion.span

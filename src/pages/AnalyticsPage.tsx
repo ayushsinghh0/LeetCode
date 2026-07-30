@@ -69,7 +69,7 @@ export default function AnalyticsPage() {
   );
 
   // Not derived from a selector: selectors.ts only exposes overallRevisionPassRate (a ratio, see
-  // src/utils/engine/stats.ts) — no existing selector/engine function returns raw pass/fail
+  // src/utils/engine/stats.ts) â€” no existing selector/engine function returns raw pass/fail
   // *counts*. This mirrors the same local-reduction-over-byId pattern RevisionPage.tsx already
   // uses for its own page-only aggregates (passedThisWeek, upcomingByDate).
   const revisionCounts = useMemo(() => {
@@ -84,7 +84,7 @@ export default function AnalyticsPage() {
     return { passed, failed };
   }, [progressById]);
 
-  // weakest is ascending by score (lowest/weakest first — see weakestPatterns doc comment).
+  // weakest is ascending by score (lowest/weakest first â€” see weakestPatterns doc comment).
   // Strong = the highest-scoring tail, reversed so the strongest pattern leads.
   const weakPatterns = weakest.slice(0, 3);
   const strongPatterns = weakest.slice(-3).reverse();
@@ -158,7 +158,7 @@ export default function AnalyticsPage() {
                   {strongPatterns.map((w) => (
                     <li
                       key={w.pattern}
-                      className="flex items-center justify-between gap-2 rounded-md bg-white/[0.03] px-3 py-2 text-sm"
+                      className="flex items-center justify-between gap-2 rounded-md bg-muted/50 px-3 py-2 text-sm"
                     >
                       <span className="flex items-center gap-2">
                         <span
@@ -181,7 +181,7 @@ export default function AnalyticsPage() {
                   {weakPatterns.map((w) => (
                     <li
                       key={w.pattern}
-                      className="flex items-center justify-between gap-2 rounded-md bg-white/[0.03] px-3 py-2 text-sm"
+                      className="flex items-center justify-between gap-2 rounded-md bg-muted/50 px-3 py-2 text-sm"
                     >
                       <span className="flex items-center gap-2">
                         <span

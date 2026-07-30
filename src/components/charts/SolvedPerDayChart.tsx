@@ -19,7 +19,7 @@ export interface SolvedPerDayChartProps {
 }
 
 /**
- * Stacked bar chart: solved (violet, bottom) + revisions (cyan, top) per day. Form: "compare
+ * Stacked bar chart: solved (ink, bottom) + revisions (ochre, top) per day. Form: "compare
  * magnitude over time, two series" -> stacked bar, categorical color (dataviz skill,
  * choosing-a-form.md). The top segment alone carries the 4px rounded data-end; the bottom
  * segment is square (baseline). A 2px surface-color stroke stands in for the "surface gap"

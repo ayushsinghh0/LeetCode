@@ -47,18 +47,18 @@ export function Sidebar() {
   const streaks = useAppSelector((state) => selectStreaks(state, today));
 
   return (
-    <aside className="hidden shrink-0 flex-col gap-4 border-r border-white/10 p-3 md:flex md:w-16 lg:w-60">
-      <div className="truncate px-2 py-1 text-lg font-bold text-gradient">DSA Roadmap</div>
+    <aside className="hidden shrink-0 flex-col gap-4 border-r border-border p-3 md:flex md:w-16 lg:w-60">
+      <div className="truncate px-2 py-1 font-serif text-lg font-semibold tracking-tight">DSA Roadmap</div>
 
       <button
         type="button"
         aria-label="Search questions (Ctrl+K)"
         onClick={() => dispatch(searchOpenSet(true))}
-        className="flex items-center gap-3 rounded-lg border border-white/10 px-3 py-2 text-sm font-medium text-muted-foreground transition-colors hover:bg-white/5 hover:text-foreground"
+        className="flex min-h-10 items-center gap-3 rounded-md border border-border px-3 py-2 text-sm font-medium text-muted-foreground transition-colors duration-150 ease-swift hover:bg-muted hover:text-foreground"
       >
         <Search className="h-4 w-4 shrink-0" />
         <span className="hidden lg:inline">Search</span>
-        <kbd className="ml-auto hidden rounded border border-white/10 px-1.5 py-0.5 text-[10px] text-muted-foreground lg:inline">
+        <kbd className="ml-auto hidden rounded border border-border px-1.5 py-0.5 font-mono text-[10px] text-muted-foreground lg:inline">
           Ctrl K
         </kbd>
       </button>
@@ -71,10 +71,10 @@ export function Sidebar() {
             end={to === '/'}
             className={({ isActive }) =>
               cn(
-                'flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition-colors',
+                'flex min-h-10 items-center gap-3 rounded-md px-3 py-2 text-sm font-medium transition-colors duration-150 ease-swift',
                 isActive
-                  ? 'bg-accent-gradient text-white'
-                  : 'text-muted-foreground hover:bg-white/5 hover:text-foreground',
+                  ? 'bg-primary text-primary-foreground'
+                  : 'text-muted-foreground hover:bg-muted hover:text-foreground',
               )
             }
           >

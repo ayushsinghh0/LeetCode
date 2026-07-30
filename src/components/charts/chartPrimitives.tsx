@@ -2,8 +2,8 @@ import type { ReactNode } from 'react';
 import { format, parseISO } from 'date-fns';
 
 // Shared styling + a couple of Recharts customizations that keep every chart in this app
-// compliant with the `dataviz` skill, applied within the app's own dark-glassmorphism theme
-// (violet -> cyan accent family) rather than the skill's generic default palette:
+// compliant with the `dataviz` skill, applied within the app's warm-editorial theme
+// (fountain-ink + ochre series family) rather than the skill's generic default palette:
 //  - Text (tooltip rows, legend labels) always stays in text tokens, never the series color.
 //    Recharts' *built-in* Tooltip/Legend inline the series color directly onto the label text —
 //    the "text wears the data color" anti-pattern — so both are overridden below: a colored dot
@@ -13,11 +13,10 @@ import { format, parseISO } from 'date-fns';
 
 /**
  * The two data-series colors shared by the multi-series charts (solved vs. revisions), sourced
- * from :root/.light --chart-1/--chart-2 in index.css — the app's own violet/cyan accent hues,
- * not the dataviz skill's default blue/orange/aqua palette. --chart-2 is a dark-mode-tuned step
- * of the --accent cyan hue (see index.css comment); both pass validate_palette.js's lightness
- * band, chroma floor, CVD separation (worst pair ~ΔE 13.6 dark / 20.3 light, well above the ≥8
- * target), normal-vision floor (≥15), and contrast checks in both themes.
+ * from :root/.light --chart-1/--chart-2 in index.css — the app's own ink-blue accent and its
+ * ochre counterpoint, not the dataviz skill's default blue/orange/aqua palette. Both sit inside
+ * the skill's per-theme categorical lightness bands (see the index.css comments) with hue
+ * separation far above the CVD floor.
  */
 export const CHART_COLORS = {
   solved: 'hsl(var(--chart-1))',
@@ -29,12 +28,12 @@ export const CHART_COLORS = {
 
 // Status colors for the one genuinely pass/fail (good/critical) encoding in this dashboard
 // (RevisionRateChart). Per the dataviz skill's collision rule, a series that *means* good/bad
-// wears status tokens, never the categorical violet/cyan pair — these reuse the exact hexes this
-// app already uses for the same semantic elsewhere (DifficultyBadge's easy/hard, and the
-// pass/fail icons in CalendarPage's day-detail dialog), rather than inventing new ones.
+// wears status tokens, never the categorical ink/ochre pair — these reference the same
+// per-theme easy/hard difficulty inks the rest of the app uses for that semantic
+// (DifficultyBadge, the pass/fail icons in CalendarPage's day-detail dialog).
 export const STATUS_COLORS = {
-  good: '#22c55e',
-  critical: '#ef4444',
+  good: 'hsl(var(--easy))',
+  critical: 'hsl(var(--hard))',
 } as const;
 
 // Show a date tick only every 7th category (~weekly) so 30/90 daily categories never collide.

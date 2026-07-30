@@ -61,9 +61,9 @@ export function QuestionCard({ question, progress, context = 'browse', onOpenDet
   }
 
   return (
-    <motion.div layout whileHover={{ y: -4 }} transition={{ duration: 0.15 }}>
+    <motion.div layout whileHover={{ y: -2 }} transition={{ duration: 0.15, ease: [0.23, 1, 0.32, 1] }}>
       <Card
-        className="glass cursor-pointer p-4"
+        className="glass cursor-pointer p-4 transition-colors duration-150 ease-swift hover:border-primary/40"
         role="button"
         tabIndex={0}
         onClick={() => onOpenDetail(question.id)}
@@ -80,7 +80,7 @@ export function QuestionCard({ question, progress, context = 'browse', onOpenDet
         </div>
 
         <div className="mt-2 flex flex-wrap items-center gap-3 text-xs text-muted-foreground">
-          <span className="inline-flex items-center gap-1">
+          <span className="figures inline-flex items-center gap-1">
             <Clock className="h-3.5 w-3.5" aria-hidden="true" />
             {question.estimatedTime} min
           </span>
@@ -96,15 +96,14 @@ export function QuestionCard({ question, progress, context = 'browse', onOpenDet
         {context === 'today' && (
           <div className="mt-3 flex flex-wrap gap-2">
             {progress.status === 'unsolved' && (
-              <Button size="sm" variant="outline" onClick={act(() => dispatch(startQuestion(question.id)))}>
+              <Button variant="outline" onClick={act(() => dispatch(startQuestion(question.id)))}>
                 <PlayCircle /> Start
               </Button>
             )}
-            <Button size="sm" onClick={act(() => dispatch(solveQuestion(question.id)))}>
+            <Button onClick={act(() => dispatch(solveQuestion(question.id)))}>
               <CheckCircle2 /> Solved
             </Button>
             <Button
-              size="sm"
               variant="outline"
               onClick={act(() => {
                 dispatch(solveQuestion(question.id));
@@ -113,11 +112,11 @@ export function QuestionCard({ question, progress, context = 'browse', onOpenDet
             >
               <RotateCcw /> Need Revision
             </Button>
-            <Button size="sm" variant="ghost" onClick={act(() => dispatch(skipQuestion(question.id)))}>
+            <Button variant="ghost" onClick={act(() => dispatch(skipQuestion(question.id)))}>
               <SkipForward /> Skip
             </Button>
             <Button
-              size="sm"
+              size="icon"
               variant="ghost"
               aria-label={progress.bookmarked ? 'Remove bookmark' : 'Bookmark'}
               onClick={act(() => dispatch(toggleBookmark(question.id)))}
@@ -129,14 +128,14 @@ export function QuestionCard({ question, progress, context = 'browse', onOpenDet
 
         {context === 'revision' && (
           <div className="mt-3 flex flex-wrap gap-2">
-            <Button size="sm" onClick={act(() => dispatch(reviseQuestion(question.id, true)))}>
+            <Button onClick={act(() => dispatch(reviseQuestion(question.id, true)))}>
               <CheckCircle2 /> Pass
             </Button>
-            <Button size="sm" variant="outline" onClick={act(() => dispatch(reviseQuestion(question.id, false)))}>
+            <Button variant="outline" onClick={act(() => dispatch(reviseQuestion(question.id, false)))}>
               <XCircle /> Fail
             </Button>
             <Button
-              size="sm"
+              size="icon"
               variant="ghost"
               aria-label={progress.bookmarked ? 'Remove bookmark' : 'Bookmark'}
               onClick={act(() => dispatch(toggleBookmark(question.id)))}

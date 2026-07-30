@@ -92,14 +92,14 @@ function RoadmapRow({ day, slice, isCurrentDay, isExpanded, progressById, onTogg
     <div ref={rowRef} className="relative flex gap-4">
       <div className="flex flex-col items-center">
         <StatusNode day={day} isComplete={isComplete} isCurrentDay={isCurrentDay} />
-        <div className="w-px flex-1 bg-gradient-to-b from-primary/40 to-transparent" aria-hidden="true" />
+        <div className="w-px flex-1 bg-border" aria-hidden="true" />
       </div>
 
       <div className="flex-1 pb-6">
         <button
           type="button"
           onClick={() => onToggle(day)}
-          className="glass flex w-full flex-col gap-2 p-4 text-left transition-colors hover:bg-white/[0.06]"
+          className="glass flex w-full flex-col gap-2 p-4 text-left transition-colors duration-150 ease-swift hover:border-primary/40"
         >
           <div className="flex items-center gap-2">
             <span className="font-semibold">Day {day}</span>
@@ -123,7 +123,7 @@ function RoadmapRow({ day, slice, isCurrentDay, isExpanded, progressById, onTogg
               transition={{ duration: 0.2 }}
               className="overflow-hidden"
             >
-              <ul className="mt-2 flex flex-col gap-1 rounded-xl border border-white/10 bg-white/[0.02] p-2">
+              <ul className="mt-2 flex flex-col gap-1 rounded-xl border border-border bg-muted/30 p-2">
                 {slice.map((question) => {
                   const solved = (progressById[question.id]?.status ?? 'unsolved') === 'solved';
                   return (
@@ -138,7 +138,7 @@ function RoadmapRow({ day, slice, isCurrentDay, isExpanded, progressById, onTogg
                             onOpenQuestion(question.id);
                           }
                         }}
-                        className="flex cursor-pointer items-center justify-between gap-2 rounded-lg px-2 py-1.5 hover:bg-white/[0.06]"
+                        className="flex cursor-pointer items-center justify-between gap-2 rounded-md px-2 py-1.5 hover:bg-muted/60"
                       >
                         <span className="flex items-center gap-2 text-sm">
                           {solved ? (

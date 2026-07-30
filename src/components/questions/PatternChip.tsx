@@ -14,16 +14,17 @@ export interface PatternChipProps {
 export function PatternChip({ pattern }: PatternChipProps) {
   const Icon = Icons[pattern.icon] ?? LucideIcons.Shapes;
 
+  // The pattern ink stays on the icon, border, and tint; the label wears the text token so it
+  // meets body-text contrast on both grounds (the ink midtones can't).
   return (
     <span
-      className="inline-flex items-center gap-1.5 rounded-full border px-2.5 py-0.5 text-xs font-medium"
+      className="inline-flex items-center gap-1.5 rounded border px-2 py-0.5 text-xs font-medium text-foreground"
       style={{
-        color: pattern.color,
-        borderColor: `${pattern.color}40`,
-        backgroundColor: `${pattern.color}1a`,
+        borderColor: `${pattern.color}59`,
+        backgroundColor: `${pattern.color}1f`,
       }}
     >
-      <Icon className="h-3.5 w-3.5" aria-hidden="true" />
+      <Icon className="h-3.5 w-3.5" style={{ color: pattern.color }} aria-hidden="true" />
       {pattern.name}
     </span>
   );

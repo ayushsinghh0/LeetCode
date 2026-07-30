@@ -67,7 +67,7 @@ function PatternCard({ stat }: PatternCardProps) {
     <motion.div variants={cardVariants} whileHover={{ y: -4 }} transition={{ duration: 0.15 }}>
       <Link
         to={`/patterns/${meta.id}`}
-        className="glass flex flex-col gap-3 p-4 transition-colors hover:bg-white/[0.06]"
+        className="glass flex flex-col gap-3 p-4 transition-colors duration-150 ease-swift hover:border-primary/40"
       >
         <div className="flex items-center gap-3">
           <span

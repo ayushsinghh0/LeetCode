@@ -15,14 +15,14 @@ export function RevisionStagePips({ stage }: RevisionStagePipsProps) {
       role="img"
       aria-label={`Revision stage ${stage} of 5`}
     >
-      {mastered && <Award className="h-3.5 w-3.5 text-amber-400" aria-hidden="true" />}
+      {mastered && <Award className="h-3.5 w-3.5 text-medium" aria-hidden="true" />}
       {Array.from({ length: 5 }, (_, i) => (
         <span
           key={i}
           aria-hidden="true"
           className={cn(
             'h-1.5 w-1.5 rounded-full',
-            mastered ? 'bg-amber-400' : i < stage ? 'bg-primary' : 'bg-muted',
+            mastered ? 'bg-medium' : i < stage ? 'bg-primary' : 'bg-muted',
           )}
         />
       ))}

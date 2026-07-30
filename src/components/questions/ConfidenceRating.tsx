@@ -34,11 +34,17 @@ export function ConfidenceRating({ value, onChange }: ConfidenceRatingProps) {
               e.stopPropagation();
               onChange(n);
             }}
-            className={cn(
-              'h-2.5 w-2.5 rounded-full transition-colors',
-              filled ? 'bg-primary' : 'bg-muted hover:bg-primary/50',
-            )}
-          />
+            // The visible mark stays a small dot; the button around it provides a ≥40px hit area.
+            className="group flex h-10 w-7 items-center justify-center"
+          >
+            <span
+              aria-hidden="true"
+              className={cn(
+                'h-2.5 w-2.5 rounded-full transition-colors',
+                filled ? 'bg-primary' : 'bg-muted group-hover:bg-primary/50',
+              )}
+            />
+          </button>
         );
       })}
     </div>

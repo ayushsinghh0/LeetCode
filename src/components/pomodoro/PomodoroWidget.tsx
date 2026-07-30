@@ -32,9 +32,9 @@ export function PomodoroWidget({ variant = 'floating' }: PomodoroWidgetProps) {
   const totalSec = (phase === 'break' ? breakLenMin : focusLenMin) * 60;
   const pct = totalSec > 0 ? remainingSec / totalSec : 0;
   const dashOffset = CIRCUMFERENCE * (1 - pct);
-  // Violet for focus (matches --primary), cyan for break (matches --accent) — the theme's own
-  // "focus/break" hue pairing (see .text-gradient / .bg-accent-gradient in src/index.css).
-  const ringColorClass = phase === 'break' ? 'text-accent' : 'text-primary';
+  // Ink for focus (the working accent), sage for break (the "rest" ink — same family as `easy`)
+  // so the two phases stay distinguishable at a glance in both themes.
+  const ringColorClass = phase === 'break' ? 'text-easy' : 'text-primary';
 
   const isInline = variant === 'inline';
 

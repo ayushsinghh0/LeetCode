@@ -58,7 +58,7 @@ export function MobileNav() {
     <>
       <nav
         aria-label="Mobile navigation"
-        className="glass fixed inset-x-2 bottom-2 z-40 flex items-center justify-between px-1 py-2 md:hidden"
+        className="glass fixed inset-x-2 bottom-2 z-40 flex items-center justify-between px-1 py-1.5 pb-[max(0.375rem,env(safe-area-inset-bottom))] md:hidden"
       >
         {PRIMARY_ITEMS.map(({ to, label, icon: Icon }) => (
           <NavLink
@@ -67,21 +67,21 @@ export function MobileNav() {
             end={to === '/'}
             className={({ isActive }) =>
               cn(
-                'flex flex-1 flex-col items-center gap-1 rounded-xl px-1 py-1.5 text-[10px] font-medium',
-                isActive ? 'bg-accent-gradient text-white' : 'text-muted-foreground',
+                'flex min-h-11 flex-1 flex-col items-center justify-center gap-0.5 rounded-md px-1 py-1.5 text-[11px] font-medium transition-colors duration-150 ease-swift active:scale-[0.97]',
+                isActive ? 'bg-primary text-primary-foreground' : 'text-muted-foreground',
               )
             }
           >
-            <Icon className="h-4 w-4" />
+            <Icon className="h-5 w-5" />
             {label}
           </NavLink>
         ))}
         <button
           type="button"
           onClick={() => setOpen(true)}
-          className="flex flex-1 flex-col items-center gap-1 rounded-xl px-1 py-1.5 text-[10px] font-medium text-muted-foreground"
+          className="flex min-h-11 flex-1 flex-col items-center justify-center gap-0.5 rounded-md px-1 py-1.5 text-[11px] font-medium text-muted-foreground transition-colors duration-150 ease-swift active:scale-[0.97]"
         >
-          <MoreHorizontal className="h-4 w-4" />
+          <MoreHorizontal className="h-5 w-5" />
           More
         </button>
       </nav>
@@ -95,7 +95,7 @@ export function MobileNav() {
             <button
               type="button"
               onClick={openSearch}
-              className="flex items-center gap-2 rounded-lg px-3 py-2 text-left text-sm font-medium text-muted-foreground hover:text-foreground"
+              className="flex min-h-11 items-center gap-2 rounded-md px-3 py-2 text-left text-sm font-medium text-muted-foreground hover:bg-muted hover:text-foreground"
             >
               <Search className="h-4 w-4" />
               Search
@@ -107,8 +107,10 @@ export function MobileNav() {
                 onClick={() => setOpen(false)}
                 className={({ isActive }) =>
                   cn(
-                    'flex items-center gap-2 rounded-lg px-3 py-2 text-sm font-medium',
-                    isActive ? 'bg-accent-gradient text-white' : 'text-muted-foreground hover:text-foreground',
+                    'flex min-h-11 items-center gap-2 rounded-md px-3 py-2 text-sm font-medium',
+                    isActive
+                      ? 'bg-primary text-primary-foreground'
+                      : 'text-muted-foreground hover:bg-muted hover:text-foreground',
                   )
                 }
               >

@@ -27,10 +27,10 @@ const WEEKDAY_LABELS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
 // convention since Heatmap doesn't export its LEVEL_CLASS/level-bucketing helpers.
 const LEVEL_CLASS: Record<0 | 1 | 2 | 3 | 4, string> = {
   0: 'bg-muted/40',
-  1: 'bg-violet-900/40',
-  2: 'bg-violet-700/50',
-  3: 'bg-violet-500/70',
-  4: 'bg-violet-400',
+  1: 'bg-primary/25',
+  2: 'bg-primary/45',
+  3: 'bg-primary/70',
+  4: 'bg-primary',
 };
 
 function activityLevel(count: number): 0 | 1 | 2 | 3 | 4 {
@@ -138,9 +138,9 @@ export default function CalendarPage() {
                 onClick={() => setSelectedDate(iso)}
                 className={cn(
                   'relative flex h-16 flex-col items-center justify-center gap-1 rounded-md border border-transparent text-sm transition-colors',
-                  future ? 'cursor-not-allowed opacity-40' : 'hover:bg-accent',
+                  future ? 'cursor-not-allowed opacity-40' : 'hover:bg-muted',
                   isToday && 'border-primary',
-                  perfect && 'ring-2 ring-violet-400',
+                  perfect && 'ring-2 ring-primary',
                 )}
               >
                 <span>{format(day, 'd')}</span>

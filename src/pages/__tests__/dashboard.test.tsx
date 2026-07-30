@@ -45,7 +45,10 @@ describe('DashboardPage', () => {
   test('fresh store: shows "Day 1 of 68", "0 / 539", and today\'s quote; hero renders', () => {
     renderWithStore(<DashboardPage />);
 
-    expect(screen.getByText('Day 1 of 68')).toBeInTheDocument();
+    // The hero heading styles "of 68" in a nested span, so match on the element's full text.
+    expect(
+      screen.getByText((_, el) => el?.tagName === 'P' && el.textContent?.replace(/\s+/g, ' ').trim() === 'Day 1 of 68'),
+    ).toBeInTheDocument();
     expect(screen.getByText('0 / 539')).toBeInTheDocument();
     expect(screen.getByText(quoteForDate(TODAY))).toBeInTheDocument();
     // hero current-position line for day 1's first (unsolved) question, "Valid Palindrome" (two-pointers/easy)
@@ -60,7 +63,9 @@ describe('DashboardPage', () => {
     }
     renderWithStore(<DashboardPage />, store);
 
-    expect(screen.getByText('Day 2 of 68')).toBeInTheDocument();
+    expect(
+      screen.getByText((_, el) => el?.tagName === 'P' && el.textContent?.replace(/\s+/g, ' ').trim() === 'Day 2 of 68'),
+    ).toBeInTheDocument();
     expect(screen.getByText('8 / 539')).toBeInTheDocument();
   });
 

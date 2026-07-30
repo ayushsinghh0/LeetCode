@@ -62,6 +62,24 @@ test('weeklyTopUp: ranks by confidence asc -> fail desc -> lastReviewed asc (nul
   expect(result).not.toContain(10); // in_progress, not solved
 });
 
+test('weeklyTopUp: excludes items already reviewed today from the pool, giving the queue a terminal state', () => {
+  const { all, byId } = buildFixture();
+  const due = [3];
+  // id4 was ranked into the pool by the earlier test; mark it reviewed moments ago today (as
+  // happens right after a top-up pass/fail) and confirm it does not rejoin the extras pool —
+  // otherwise the same weakest item would be re-served every time the queue is recomputed,
+  // and the Weekly Revision queue would never drain.
+  const byIdReviewedToday: Record<number, QuestionProgress> = {
+    ...byId,
+    4: { ...byId[4], lastReviewed: TODAY },
+  };
+
+  const result = weeklyTopUp(all, byIdReviewedToday, due, TODAY, 7, 7);
+
+  expect(result).toEqual([5, 6, 8, 9, 7]); // same ranked order, id4 dropped entirely
+  expect(result).not.toContain(4);
+});
+
 test('weeklyTopUp: returns [] when due already meets min, regardless of how far below max', () => {
   const { all, byId } = buildFixture();
 

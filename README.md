@@ -108,6 +108,8 @@ Every question that gets marked solved starts a spaced-repetition ladder. Passin
 
 Failing a revision — at any stage — resets `revisionStage` to `0` and reschedules `nextRevision` to the very next day, exactly like a fresh solve's first revision. There's no partial credit for how far up the ladder a question had climbed before the fail.
 
+**Design note:** an early design pass called for Weekly Revision Day top-up passes to refresh `lastReviewed` only, without advancing `revisionStage` — to keep top-up extras from climbing the ladder faster than a due-only schedule would allow. The shipped implementation does not make that distinction: a pass is a pass, whether the question came from the due queue or from a weekly top-up, and it advances the ladder exactly as described above. This is a deliberate, accepted deviation from that original note — the plan, the implementation, and the test suite have consistently used "any pass advances" semantics throughout, and that's the behavior this app ships with.
+
 ## Roadmap (v2)
 
 - **Supabase adapter** — implement the existing `StorageAdapter` interface (`load` / `save`) against Supabase instead of `localStorage`, enabling account-based multi-device sync without changing the Redux store, selectors, or any UI code — the seam this app is already built around.

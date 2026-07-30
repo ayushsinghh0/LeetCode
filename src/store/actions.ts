@@ -6,11 +6,11 @@ import type { Confidence, PersistedStateV1, Question } from '@/types';
 import type { AppThunk, RootState } from '@/store/store';
 import { todayISO } from '@/utils/dates';
 import { DAILY_GOAL_BONUS, SOLVE_XP, WEEKLY_CLEAR_BONUS, revisionXp } from '@/utils/engine/xp';
-import { dueIds } from '@/utils/engine/spacedRepetition';
 import { currentDay, isWeeklyRevisionDay } from '@/utils/engine/roadmap';
 import { patternStats } from '@/utils/engine/stats';
 import { buildAchievementCtx, evaluateAchievements } from '@/utils/engine/achievements';
 import {
+  bonusXpLogged,
   bookmarkToggled,
   confidenceSet,
   focusMinutesAdded,
@@ -23,7 +23,7 @@ import {
 import { achievementsUnlocked, xpAdded } from '@/store/slices/gamificationSlice';
 import { celebrationShown, toastPushed } from '@/store/slices/uiSlice';
 import { progressReset, stateImported } from '@/store/sharedActions';
-import { selectSolvedNewCount } from '@/store/selectors';
+import { selectRevisionQueueIds, selectSolvedNewCount } from '@/store/selectors';
 
 const questions = questionsData as Question[];
 const questionById = new Map(questions.map((q) => [q.id, q]));
@@ -75,6 +75,15 @@ export const solveQuestion = (id: number): AppThunk => (dispatch, getState) => {
   const question = questionById.get(id);
   if (!question) return;
 
+  // Idempotency choke point: once a question is solved (any day, not just today), re-solving it
+  // is a no-op — no XP, no dayLog/solvedIds mutation, no achievements re-evaluation, and (via
+  // skipping questionSolved entirely) no unconditional applySolve to silently reset
+  // revisionStage/nextRevision and wipe climbed spaced-repetition-ladder progress. The "Need
+  // Revision" UI action (solveQuestion + setConfidence(id, 2)) on an already-solved card
+  // therefore degrades to confidence-only: this no-ops, and the setConfidence dispatch that
+  // follows it still applies, flagging the question low-confidence without restarting the ladder.
+  if (getState().progress.byId[id]?.status === 'solved') return;
+
   const date = todayISO();
   const xp = SOLVE_XP[question.difficulty];
 
@@ -100,6 +109,7 @@ export const solveQuestion = (id: number): AppThunk => (dispatch, getState) => {
     let celebration: 'confetti' | 'fireworks' | null = null;
     if (solvedTodayCount === perDay) {
       dispatch(xpAdded(DAILY_GOAL_BONUS));
+      dispatch(bonusXpLogged({ date, xp: DAILY_GOAL_BONUS })); // keep dayLog.xpEarned in sync with gamification.xp
       celebration = 'confetti';
     }
 
@@ -119,8 +129,13 @@ export const solveQuestion = (id: number): AppThunk => (dispatch, getState) => {
 
 // Logs a revision attempt, awarding revisionXp(difficulty) regardless of pass/fail. On a
 // weekly-revision day, awards WEEKLY_CLEAR_BONUS exactly once, at the deterministic moment this
-// dispatch causes today's due-revision count to transition from >0 to 0 (i.e. this attempt
-// cleared the last due item for today).
+// dispatch causes the FULL revision queue (due + weekly top-up, i.e. selectRevisionQueueIds — the
+// same set the UI renders and the "N revisions queued" banner counts) to transition from >0 to 0.
+// Gating on due alone (the previous behavior) fired the bonus as soon as due-only hit zero, even
+// with top-up extras still outstanding; queue-drained semantics require every queued item —
+// due and top-up alike — to have been attempted. A failed attempt reschedules to tomorrow (and,
+// like a pass, stamps lastReviewed = today, excluding it from weeklyTopUp's pool), so pass or
+// fail both count as "attempted" and drain today's queue.
 export const reviseQuestion = (id: number, passed: boolean): AppThunk => (dispatch, getState) => {
   const question = questionById.get(id);
   if (!question) return;
@@ -131,14 +146,15 @@ export const reviseQuestion = (id: number, passed: boolean): AppThunk => (dispat
   const stateBefore = getState();
   const perDay = stateBefore.settings.questionsPerDay;
   const day = currentDay(selectSolvedNewCount(stateBefore), perDay, questions.length);
-  const dueBefore = dueIds(stateBefore.progress.byId, date).length;
+  const queueBefore = selectRevisionQueueIds(stateBefore, date).length;
 
   dispatch(revisionLogged({ id, date, passed, xp }));
   dispatch(xpAdded(xp)); // every revision attempt earns xp, pass or fail
 
-  const dueAfter = dueIds(getState().progress.byId, date).length;
-  if (isWeeklyRevisionDay(day) && dueBefore > 0 && dueAfter === 0) {
+  const queueAfter = selectRevisionQueueIds(getState(), date).length;
+  if (isWeeklyRevisionDay(day) && queueBefore > 0 && queueAfter === 0) {
     dispatch(xpAdded(WEEKLY_CLEAR_BONUS));
+    dispatch(bonusXpLogged({ date, xp: WEEKLY_CLEAR_BONUS })); // keep dayLog.xpEarned in sync with gamification.xp
   }
 
   evaluateAndUnlockAchievements(dispatch, getState, date);

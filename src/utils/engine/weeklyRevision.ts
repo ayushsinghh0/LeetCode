@@ -11,10 +11,14 @@ import { isMastered } from '@/utils/engine/spacedRepetition';
  *  - otherwise -> `extras = min(min - due.length, max - due.length)`, additionally capped by
  *    how many eligible candidates actually exist in the pool.
  *
- * Pool = questions that are solved AND not mastered AND not already in `due` (excluded by id).
- * The `today` parameter (named `_today` to satisfy noUnusedParameters) is accepted for API
- * symmetry with the rest of the engine but is not otherwise used: `due` is supplied
- * pre-computed by the caller, so no additional date-based filtering happens here.
+ * Pool = questions that are solved AND not mastered AND not already in `due` (excluded by id)
+ * AND not already reviewed today (`lastReviewed !== today`). That last exclusion is what gives
+ * the queue a terminal state: without it, a top-up item that was just passed or failed (either
+ * way `applyRevision` stamps `lastReviewed = today`) would immediately re-qualify for the pool
+ * and could be re-selected as an extra the very next time this is recomputed — the weakest item
+ * getting re-served pass after pass in the same sitting, never draining the Weekly Revision
+ * queue. Excluding today's-reviewed records makes the pool shrink monotonically over the course
+ * of a day, so it (and therefore the top-up) eventually reaches zero.
  *
  * Ranking (weakest/most-in-need-of-review first): confidence ascending (null treated as 2.5)
  * -> fail count (revisionHistory entries with passed:false) descending -> lastReviewed
@@ -24,7 +28,7 @@ export function weeklyTopUp(
   all: Question[],
   byId: Record<number, QuestionProgress>,
   due: number[],
-  _today: string,
+  today: string,
   min = 15,
   max = 20,
 ): number[] {
@@ -33,7 +37,7 @@ export function weeklyTopUp(
   const pool = all
     .filter((q) => {
       const p = byId[q.id];
-      return !!p && p.status === 'solved' && !isMastered(p) && !dueSet.has(q.id);
+      return !!p && p.status === 'solved' && !isMastered(p) && !dueSet.has(q.id) && p.lastReviewed !== today;
     })
     .map((q) => q.id);
 

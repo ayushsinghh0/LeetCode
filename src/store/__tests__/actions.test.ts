@@ -7,6 +7,7 @@ import {
   importProgress,
   reviseQuestion,
   resetProgress,
+  setConfidence,
   solveQuestion,
 } from '@/store/actions';
 import { settingsUpdated } from '@/store/slices/settingsSlice';
@@ -70,6 +71,17 @@ test('solving 8 questions awards the daily-goal bonus exactly once, with confett
   expect(stateAfter9.gamification.xp).toBe(xpAfter8 + SOLVE_XP[questions[8].difficulty]);
 });
 
+test('daily-goal bonus is credited into dayLog.xpEarned too, keeping the per-day sum in sync with gamification.xp', () => {
+  const store = makeStore();
+  for (let id = 1; id <= 8; id++) {
+    store.dispatch(solveQuestion(id));
+  }
+  const state = store.getState();
+
+  expect(state.gamification.xp).toBeGreaterThan(0); // sanity: DAILY_GOAL_BONUS was actually awarded
+  expect(state.progress.dayLogs[TODAY].xpEarned).toBe(state.gamification.xp);
+});
+
 test('re-solving an already-solved-today question does not re-award the daily-goal bonus or re-fire celebration', () => {
   const store = makeStore();
   for (let id = 1; id <= 8; id++) {
@@ -88,6 +100,43 @@ test('re-solving an already-solved-today question does not re-award the daily-go
 
   expect(state.gamification.xp).toBe(xpAfter8); // unchanged: no second bonus, no base xp either
   expect(state.ui.celebration).toBeNull(); // not re-set by the duplicate dispatch
+});
+
+// Flow 2b (cross-day re-solve guard) --------------------------------------------------------
+test('re-solving a question on a later day is a no-op: no XP, no new day-log entry, ladder untouched', () => {
+  const store = makeStore();
+  store.dispatch(solveQuestion(1)); // day 1: xp 10, nextRevision = 2026-07-31
+  store.dispatch(reviseQuestion(1, true)); // climb the ladder: revisionStage 0 -> 1, xp += revisionXp('easy')
+
+  const xpBefore = store.getState().gamification.xp;
+  const progressBefore = store.getState().progress.byId[1];
+
+  vi.setSystemTime(new Date('2026-07-31T12:00:00')); // move the clock a day forward
+  const NEXT_DAY = '2026-07-31';
+
+  store.dispatch(solveQuestion(1)); // re-solve on a later day
+  const state = store.getState();
+
+  expect(state.gamification.xp).toBe(xpBefore); // no XP re-award
+  expect(state.progress.dayLogs[NEXT_DAY]).toBeUndefined(); // no dayLog created for the new day
+  expect(state.progress.byId[1]).toEqual(progressBefore); // ladder/progress completely untouched
+});
+
+test('Need Revision on an already-solved question sets confidence only — no XP, no ladder reset', () => {
+  const store = makeStore();
+  store.dispatch(solveQuestion(1));
+  store.dispatch(reviseQuestion(1, true)); // revisionStage -> 1
+
+  const xpBefore = store.getState().gamification.xp;
+  const progressBefore = store.getState().progress.byId[1];
+
+  // Mirrors the "Need Revision" UI action on an already-solved card: solveQuestion + setConfidence(id, 2).
+  store.dispatch(solveQuestion(1));
+  store.dispatch(setConfidence(1, 2));
+  const state = store.getState();
+
+  expect(state.gamification.xp).toBe(xpBefore); // solveQuestion no-ops: no XP
+  expect(state.progress.byId[1]).toEqual({ ...progressBefore, confidence: 2 }); // only confidence changed
 });
 
 // Flow 3 -----------------------------------------------------------------------------------

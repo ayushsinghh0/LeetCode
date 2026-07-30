@@ -106,6 +106,15 @@ const progressSlice = createSlice({
       log.focusMinutes += minutes;
     },
 
+    // Credits a gamification-only bonus (DAILY_GOAL_BONUS, WEEKLY_CLEAR_BONUS) into that day's
+    // log too, so Σ dayLogs[*].xpEarned stays in sync with gamification.xp — dispatched by
+    // actions.ts right next to the xpAdded(bonus) call that awards it.
+    bonusXpLogged(state, action: PayloadAction<{ date: string; xp: number }>) {
+      const { date, xp } = action.payload;
+      const log = ensureDayLog(state, date);
+      log.xpEarned += xp;
+    },
+
     timeSpentAdded(state, action: PayloadAction<{ id: number; minutes: number }>) {
       const { id, minutes } = action.payload;
       const prev = state.byId[id] ?? initialProgress();
@@ -136,6 +145,7 @@ export const {
   revisionLogged,
   focusMinutesAdded,
   timeSpentAdded,
+  bonusXpLogged,
 } = progressSlice.actions;
 
 export default progressSlice.reducer;

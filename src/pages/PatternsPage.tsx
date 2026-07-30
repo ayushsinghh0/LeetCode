@@ -29,7 +29,10 @@ const SORT_LABEL: Record<SortMode, string> = {
 // array. "weakest" places weakestPatterns()'s ascending-score order first, then appends any
 // pattern that function excluded as ineligible (< 3 solved and no revision attempts yet) —
 // those keep the stats array's original course order relative to each other.
-function sortStats(stats: PatternStat[], mode: SortMode): PatternStat[] {
+// Exported (rather than kept module-private) so it's directly unit-testable: it's a pure,
+// dependency-free function, and nothing about verifying it is blocked by jsdom's lack of
+// pointer-capture support (unlike driving the sort-mode Select open via the DOM).
+export function sortStats(stats: PatternStat[], mode: SortMode): PatternStat[] {
   if (mode === 'course') return stats;
   if (mode === 'completion') return [...stats].sort((a, b) => b.pct - a.pct);
 

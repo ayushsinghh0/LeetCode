@@ -5,6 +5,7 @@ import { PageTransition } from '@/components/layout/PageTransition';
 import { QuestionDetailModal } from '@/components/questions/QuestionDetailModal';
 import { SearchDialog } from '@/components/shared/SearchDialog';
 import { AchievementToast } from '@/components/gamification/AchievementToast';
+import { PomodoroWidget } from '@/components/pomodoro/PomodoroWidget';
 import { useCelebration } from '@/hooks/useCelebration';
 
 export function AppShell() {
@@ -24,6 +25,10 @@ export function AppShell() {
       <QuestionDetailModal />
       <SearchDialog />
       <AchievementToast />
+      {/* /focus itself never renders AppShell (see src/App.tsx — it's routed outside the AppShell
+          layout route), so this floating copy and FocusPage's inline <PomodoroWidget variant="inline" />
+          are never mounted at the same time. */}
+      <PomodoroWidget />
     </div>
   );
 }

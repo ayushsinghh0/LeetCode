@@ -65,7 +65,10 @@ describe('AppShell routing', () => {
   test('/focus renders the Focus page without sidebar chrome', async () => {
     renderApp(['/focus']);
 
-    await screen.findByRole('heading', { name: 'Focus' });
+    // FocusPage (Task 24) shows the current question's title as its heading, not a static
+    // "Focus" label — assert on its Exit link instead, which is stable regardless of which
+    // question is queued up.
+    await screen.findByRole('link', { name: /exit/i });
     expect(screen.queryByText('DSA Roadmap')).not.toBeInTheDocument();
     expect(screen.queryByRole('navigation', { name: /sidebar navigation/i })).not.toBeInTheDocument();
   });

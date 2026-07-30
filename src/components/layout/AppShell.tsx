@@ -3,8 +3,13 @@ import { Sidebar } from '@/components/layout/Sidebar';
 import { MobileNav } from '@/components/layout/MobileNav';
 import { PageTransition } from '@/components/layout/PageTransition';
 import { QuestionDetailModal } from '@/components/questions/QuestionDetailModal';
+import { useCelebration } from '@/hooks/useCelebration';
 
 export function AppShell() {
+  // Mounted once here so every page shares a single celebration subscription instead of each
+  // page wiring its own.
+  useCelebration();
+
   return (
     <div className="flex min-h-screen">
       <Sidebar />

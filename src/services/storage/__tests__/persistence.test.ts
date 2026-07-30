@@ -147,6 +147,115 @@ describe('validatePersisted', () => {
     const bad = { ...validFixture, gamification: { ...validFixture.gamification, xp: 'lots' } };
     expect(validatePersisted(bad)).toBeNull();
   });
+
+  test('rejects gamification.unlocked with a non-string value', () => {
+    const bad = {
+      ...validFixture,
+      gamification: { ...validFixture.gamification, unlocked: { 'first-solve': 12345 } },
+    };
+    expect(validatePersisted(bad)).toBeNull();
+  });
+
+  // --- Deep per-entry validation (progress.byId / progress.dayLogs) --------------------------
+  // Carried forward from Task 10: validatePersisted used to stop at "is progress.byId an
+  // object" — a malformed-but-version-1 file with wrong-typed fields inside an entry passed
+  // straight through. These cases matter now that untrusted JSON reaches stateImported via the
+  // Settings page's import-from-file flow.
+
+  test('rejects a progress.byId entry with a wrong-typed status', () => {
+    const bad = {
+      ...validFixture,
+      progress: {
+        ...validFixture.progress,
+        byId: { 1: { ...validFixture.progress.byId[1], status: 'done' } },
+      },
+    };
+    expect(validatePersisted(bad)).toBeNull();
+  });
+
+  test('rejects a progress.byId entry with a non-array revisionHistory', () => {
+    const bad = {
+      ...validFixture,
+      progress: {
+        ...validFixture.progress,
+        byId: { 1: { ...validFixture.progress.byId[1], revisionHistory: 'nope' } },
+      },
+    };
+    expect(validatePersisted(bad)).toBeNull();
+  });
+
+  test('rejects a progress.byId entry whose revisionHistory contains a malformed event', () => {
+    const bad = {
+      ...validFixture,
+      progress: {
+        ...validFixture.progress,
+        byId: { 1: { ...validFixture.progress.byId[1], revisionHistory: [{ date: '2026-07-30', passed: 'yes' }] } },
+      },
+    };
+    expect(validatePersisted(bad)).toBeNull();
+  });
+
+  test('rejects a progress.byId entry with an out-of-range confidence', () => {
+    const bad = {
+      ...validFixture,
+      progress: {
+        ...validFixture.progress,
+        byId: { 1: { ...validFixture.progress.byId[1], confidence: 9 } },
+      },
+    };
+    expect(validatePersisted(bad)).toBeNull();
+  });
+
+  test('rejects a progress.byId entry missing a required field (timeSpentMin)', () => {
+    const { timeSpentMin: _timeSpentMin, ...entryWithoutTimeSpent } = validFixture.progress.byId[1];
+    const bad = {
+      ...validFixture,
+      progress: { ...validFixture.progress, byId: { 1: entryWithoutTimeSpent } },
+    };
+    expect(validatePersisted(bad)).toBeNull();
+  });
+
+  test('accepts a progress.byId entry with confidence: null and nextRevision: null', () => {
+    const ok = {
+      ...validFixture,
+      progress: {
+        ...validFixture.progress,
+        byId: { 1: { ...validFixture.progress.byId[1], confidence: null, nextRevision: null } },
+      },
+    };
+    expect(validatePersisted(ok)).toEqual(ok);
+  });
+
+  test('rejects a dayLogs entry missing the solvedIds array', () => {
+    const { solvedIds: _solvedIds, ...logWithoutSolvedIds } = validFixture.progress.dayLogs['2026-07-30'];
+    const bad = {
+      ...validFixture,
+      progress: { ...validFixture.progress, dayLogs: { '2026-07-30': logWithoutSolvedIds } },
+    };
+    expect(validatePersisted(bad)).toBeNull();
+  });
+
+  test('rejects a dayLogs entry whose solvedIds contains a non-number', () => {
+    const bad = {
+      ...validFixture,
+      progress: {
+        ...validFixture.progress,
+        dayLogs: { '2026-07-30': { ...validFixture.progress.dayLogs['2026-07-30'], solvedIds: [1, '2'] } },
+      },
+    };
+    expect(validatePersisted(bad)).toBeNull();
+  });
+
+  test('rejects a dayLogs entry with a wrong-typed xpEarned', () => {
+    const bad = {
+      ...validFixture,
+      progress: {
+        ...validFixture.progress,
+        dayLogs: { '2026-07-30': { ...validFixture.progress.dayLogs['2026-07-30'], xpEarned: '10' } },
+      },
+    };
+    expect(validatePersisted(bad)).toBeNull();
+  });
 });
 
 // --- serialize.ts: exportAsJson ---------------------------------------------------------------

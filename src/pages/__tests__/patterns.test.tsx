@@ -48,6 +48,20 @@ function renderDetail(patternId: string, store: AppStore = makeStore()) {
   );
 }
 
+// Pins the clock to TODAY, same idiom as every other date-sensitive page suite (e.g.
+// dashboard.test.tsx, calendar.test.tsx). Was missing here even though this file already defines
+// TODAY and dispatches solveQuestion (which reads the real clock via todayISO()) — harmless while
+// the real date happened to still be 2026-07-30, but a latent bug that broke the "needs-revision"
+// test the moment the real date moved on, unrelated to this file's actual subject matter.
+beforeEach(() => {
+  vi.useFakeTimers();
+  vi.setSystemTime(new Date(`${TODAY}T12:00:00`));
+});
+
+afterEach(() => {
+  vi.useRealTimers();
+});
+
 describe('PatternsPage', () => {
   test('renders 28 pattern cards, and the two-pointers card shows "34 Questions"', () => {
     renderWithStore(<PatternsPage />);

@@ -23,6 +23,13 @@
     --border: 224 30% 18%;
     --input: 224 30% 18%;
     --ring: 258 90% 66%;
+    /* Chart series colors (dataviz skill, see src/components/charts/chartPrimitives.tsx).
+       --chart-1 mirrors --primary (violet). --chart-2 is a dark-mode-tuned step of the
+       --accent cyan hue (OKLCH L ~0.56, inside the skill's 0.48-0.67 dark categorical band) —
+       raw --accent (~190 95% 50%, OKLCH L ~0.79) is tuned for bright UI glows and fails the
+       palette validator's lightness-band check when used as a filled data mark. */
+    --chart-1: 258 90% 66%;
+    --chart-2: 190 90% 40%;
   }
   .light {
     --background: 226 60% 97%;
@@ -44,6 +51,10 @@
     --border: 226 30% 85%;
     --input: 226 30% 85%;
     --ring: 258 85% 58%;
+    /* Same hue family as --primary/--accent — passes validate_palette.js in light mode too
+       (see src/components/charts/chartPrimitives.tsx). */
+    --chart-1: 258 85% 58%;
+    --chart-2: 190 90% 42%;
   }
   body {
     @apply bg-background text-foreground antialiased;

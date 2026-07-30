@@ -85,19 +85,23 @@ export function PomodoroWidget({ variant = 'floating' }: PomodoroWidgetProps) {
             </span>
           )}
           <div className="flex items-center gap-1">
+            {/* Labels are prefixed with "Pomodoro" (rather than plain "Start"/"Skip"/etc.) so they
+                never collide, for screen-reader users or role-based queries alike, with
+                FocusPage's own question-action buttons (e.g. its "Skip" = skipQuestion) when this
+                widget is embedded inline right alongside them. */}
             {isRunning ? (
-              <Button size="icon" variant="ghost" aria-label="Pause" onClick={pause}>
+              <Button size="icon" variant="ghost" aria-label="Pause pomodoro" onClick={pause}>
                 <Pause />
               </Button>
             ) : (
-              <Button size="icon" variant="ghost" aria-label="Start" onClick={start}>
+              <Button size="icon" variant="ghost" aria-label="Start pomodoro" onClick={start}>
                 <Play />
               </Button>
             )}
-            <Button size="icon" variant="ghost" aria-label="Skip" disabled={phase === 'idle'} onClick={skip}>
+            <Button size="icon" variant="ghost" aria-label="Skip pomodoro phase" disabled={phase === 'idle'} onClick={skip}>
               <SkipForward />
             </Button>
-            <Button size="icon" variant="ghost" aria-label="Reset" disabled={phase === 'idle'} onClick={reset}>
+            <Button size="icon" variant="ghost" aria-label="Reset pomodoro" disabled={phase === 'idle'} onClick={reset}>
               <RotateCcw />
             </Button>
           </div>

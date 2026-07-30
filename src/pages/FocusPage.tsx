@@ -1,5 +1,5 @@
 import { Link } from 'react-router-dom';
-import { CheckCircle2, RotateCcw, SkipForward, X } from 'lucide-react';
+import { CheckCircle2, RotateCcw, SkipForward, X, XCircle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { DifficultyBadge } from '@/components/questions/DifficultyBadge';
 import { PatternChip } from '@/components/questions/PatternChip';
@@ -8,7 +8,7 @@ import { PomodoroWidget } from '@/components/pomodoro/PomodoroWidget';
 import { patternById } from '@/data/patterns';
 import { useToday } from '@/hooks/useToday';
 import { useAppDispatch, useAppSelector } from '@/store/hooks';
-import { setConfidence, skipQuestion, solveQuestion } from '@/store/actions';
+import { reviseQuestion, setConfidence, skipQuestion, solveQuestion } from '@/store/actions';
 import { selectQuestionById, selectRevisionQueueIds, selectTodaysNewQuestions } from '@/store/selectors';
 import { initialProgress } from '@/utils/engine/spacedRepetition';
 
@@ -27,6 +27,7 @@ export default function FocusPage() {
   const currentNew = todaysQuestions.find((q) => (progressById[q.id]?.status ?? 'unsolved') !== 'solved');
   const fallbackRevision = !currentNew && revisionIds.length > 0 ? selectQuestionById(revisionIds[0]) : undefined;
   const question = currentNew ?? fallbackRevision;
+  const isFromRevisionQueue = !currentNew && fallbackRevision !== undefined;
   const progress = question ? (progressById[question.id] ?? initialProgress()) : null;
   const pattern = question ? patternById[question.pattern] : null;
 
@@ -50,21 +51,34 @@ export default function FocusPage() {
           <h1 className="text-3xl font-bold text-gradient">{question.title}</h1>
 
           <div className="flex flex-wrap justify-center gap-2">
-            <Button onClick={() => dispatch(solveQuestion(question.id))}>
-              <CheckCircle2 /> Solved
-            </Button>
-            <Button
-              variant="outline"
-              onClick={() => {
-                dispatch(solveQuestion(question.id));
-                dispatch(setConfidence(question.id, 2));
-              }}
-            >
-              <RotateCcw /> Need Revision
-            </Button>
-            <Button variant="ghost" onClick={() => dispatch(skipQuestion(question.id))}>
-              <SkipForward /> Skip
-            </Button>
+            {isFromRevisionQueue ? (
+              <>
+                <Button onClick={() => dispatch(reviseQuestion(question.id, true))}>
+                  <CheckCircle2 /> Pass
+                </Button>
+                <Button variant="outline" onClick={() => dispatch(reviseQuestion(question.id, false))}>
+                  <XCircle /> Fail
+                </Button>
+              </>
+            ) : (
+              <>
+                <Button onClick={() => dispatch(solveQuestion(question.id))}>
+                  <CheckCircle2 /> Solved
+                </Button>
+                <Button
+                  variant="outline"
+                  onClick={() => {
+                    dispatch(solveQuestion(question.id));
+                    dispatch(setConfidence(question.id, 2));
+                  }}
+                >
+                  <RotateCcw /> Need Revision
+                </Button>
+                <Button variant="ghost" onClick={() => dispatch(skipQuestion(question.id))}>
+                  <SkipForward /> Skip
+                </Button>
+              </>
+            )}
           </div>
 
           <div className="w-full text-left">

@@ -87,5 +87,8 @@ describe('DashboardPage', () => {
 
     expect(screen.getByText(/roadmap complete/i)).toBeInTheDocument();
     expect(screen.getByText(`${questions.length} / ${questions.length}`)).toBeInTheDocument();
+    // Regression guard: the stale "You're in: <pattern>" current-position line must not linger
+    // once every question is solved — it should be fully replaced by the completion message.
+    expect(screen.queryByText(/You're in:/)).not.toBeInTheDocument();
   });
 });

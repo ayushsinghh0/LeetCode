@@ -1,10 +1,11 @@
 import { Link, useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { format, parseISO } from 'date-fns';
-import { CalendarClock, CheckCircle2, Dices, Gauge, Lightbulb, ListTodo, Percent, RotateCcw } from 'lucide-react';
+import { CalendarClock, CheckCircle2, Dices, Gauge, Lightbulb, ListTodo, RotateCcw } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Progress } from '@/components/ui/progress';
 import { StatCard } from '@/components/shared/StatCard';
+import { ProgressRing } from '@/components/shared/ProgressRing';
 import { Heatmap } from '@/components/shared/Heatmap';
 import { EmptyState } from '@/components/shared/EmptyState';
 import { LevelRing } from '@/components/gamification/LevelRing';
@@ -163,7 +164,12 @@ export default function DashboardPage() {
         <motion.div variants={itemVariants} className="grid grid-cols-2 gap-4 md:grid-cols-3 xl:grid-cols-6">
           <StatCard label="Solved" value={`${solvedCount} / ${totalQuestions}`} icon={CheckCircle2} />
           <StatCard label="Remaining" value={remaining} icon={ListTodo} />
-          <StatCard label="Completion" value={`${completionPct}%`} icon={Percent} />
+          <div className="glass flex flex-col items-center justify-center gap-3 p-4">
+            <ProgressRing value={solvedCount} max={totalQuestions} size={72} strokeWidth={7}>
+              <span className="text-sm font-bold">{completionPct}%</span>
+            </ProgressRing>
+            <p className="text-xs text-muted-foreground">Completion</p>
+          </div>
           <StatCard
             label="Revisions Due"
             value={revisionQueueIds.length}

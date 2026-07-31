@@ -1,8 +1,9 @@
 import type { ReactNode } from 'react';
 import { Provider } from 'react-redux';
 import { render, screen, fireEvent, within } from '@testing-library/react';
-import { MemoryRouter } from 'react-router-dom';
+import { MemoryRouter, useLocation } from 'react-router-dom';
 import { makeStore, type AppStore } from '@/store/store';
+import { ThemeProvider } from '@/contexts/ThemeContext';
 import { TooltipProvider } from '@/components/ui/tooltip';
 import { SearchDialog } from '@/components/shared/SearchDialog';
 import { QuestionDetailModal } from '@/components/questions/QuestionDetailModal';
@@ -19,14 +20,23 @@ const threeSum = questions.find((q) => q.title === '3Sum')!;
 
 const routerFutureFlags = { v7_startTransition: true, v7_relativeSplatPath: true } as const;
 
+// The palette navigates (pages, weeks, focus mode) — this probe makes the resulting
+// location assertable without mounting real routes.
+function LocationProbe() {
+  const { pathname } = useLocation();
+  return <div data-testid="location">{pathname}</div>;
+}
+
 function renderWithStore(ui: ReactNode, store: AppStore = makeStore()) {
   return {
     store,
     ...render(
       <Provider store={store}>
-        <TooltipProvider>
-          <MemoryRouter future={routerFutureFlags}>{ui}</MemoryRouter>
-        </TooltipProvider>
+        <ThemeProvider>
+          <TooltipProvider>
+            <MemoryRouter future={routerFutureFlags}>{ui}</MemoryRouter>
+          </TooltipProvider>
+        </ThemeProvider>
       </Provider>,
     ),
   };
@@ -60,13 +70,15 @@ describe('SearchDialog', () => {
     expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
   });
 
-  test('with no query and no filters, shows a hint instead of dumping the whole dataset', () => {
+  test('with no query and no filters, shows page commands and actions instead of the dataset', () => {
     const store = makeStore();
     store.dispatch(searchOpenSet(true));
     renderWithStore(<SearchDialog />, store);
 
     expect(screen.queryByText('3Sum')).not.toBeInTheDocument();
-    expect(screen.getByText(/type to search/i)).toBeInTheDocument();
+    expect(screen.getByRole('option', { name: 'Dashboard' })).toBeInTheDocument();
+    expect(screen.getByRole('option', { name: 'Start focus mode' })).toBeInTheDocument();
+    expect(screen.getByRole('option', { name: 'Switch to light theme' })).toBeInTheDocument();
   });
 
   test('typing "3Sum" shows exactly one result, with its difficulty badge and pattern chip', () => {
@@ -76,11 +88,11 @@ describe('SearchDialog', () => {
 
     fireEvent.change(screen.getByPlaceholderText(/search/i), { target: { value: '3Sum' } });
 
-    const row = screen.getByRole('button', { name: /3Sum/i });
+    const row = screen.getByRole('option', { name: /3Sum/i });
     expect(within(row).getByText('Medium')).toBeInTheDocument();
     expect(within(row).getByText('Two Pointers')).toBeInTheDocument();
     // No other row rendered alongside it.
-    expect(screen.getAllByRole('button', { name: /Sum/i })).toHaveLength(1);
+    expect(screen.getAllByRole('option', { name: /Sum/i })).toHaveLength(1);
   });
 
   test('difficulty chip narrows the live query results further (AND, not OR)', () => {
@@ -110,8 +122,8 @@ describe('SearchDialog', () => {
 
     fireEvent.click(screen.getByRole('button', { name: 'Bookmarked' }));
 
-    expect(screen.getByRole('button', { name: /3Sum/i })).toBeInTheDocument();
-    expect(screen.getAllByRole('button', { name: /Sum/i })).toHaveLength(1);
+    expect(screen.getByRole('option', { name: /3Sum/i })).toBeInTheDocument();
+    expect(screen.getAllByRole('option', { name: /Sum/i })).toHaveLength(1);
   });
 
   test('clicking a result row closes the search dialog and opens that question in the detail modal', () => {
@@ -126,11 +138,93 @@ describe('SearchDialog', () => {
     );
 
     fireEvent.change(screen.getByPlaceholderText(/search/i), { target: { value: '3Sum' } });
-    fireEvent.click(screen.getByRole('button', { name: /3Sum/i }));
+    fireEvent.click(screen.getByRole('option', { name: /3Sum/i }));
 
     expect(store.getState().ui.searchOpen).toBe(false);
     expect(store.getState().ui.activeQuestionId).toBe(threeSum.id);
     expect(screen.getByRole('heading', { name: '3Sum' })).toBeInTheDocument();
+  });
+
+  test('ArrowDown/ArrowUp move aria-activedescendant through the palette', () => {
+    const store = makeStore();
+    store.dispatch(searchOpenSet(true));
+    renderWithStore(<SearchDialog />, store);
+
+    const input = screen.getByPlaceholderText(/search/i);
+    expect(input).toHaveAttribute('aria-activedescendant', 'palette-option-0');
+
+    fireEvent.keyDown(input, { key: 'ArrowDown' });
+    expect(input).toHaveAttribute('aria-activedescendant', 'palette-option-1');
+
+    fireEvent.keyDown(input, { key: 'ArrowUp' });
+    expect(input).toHaveAttribute('aria-activedescendant', 'palette-option-0');
+  });
+
+  test('Enter selects the highlighted question result without a click', () => {
+    const store = makeStore();
+    store.dispatch(searchOpenSet(true));
+    renderWithStore(<SearchDialog />, store);
+
+    const input = screen.getByPlaceholderText(/search/i);
+    fireEvent.change(input, { target: { value: '3Sum' } });
+    fireEvent.keyDown(input, { key: 'Enter' });
+
+    expect(store.getState().ui.activeQuestionId).toBe(threeSum.id);
+    expect(store.getState().ui.searchOpen).toBe(false);
+  });
+
+  test('typing a page name and pressing Enter navigates there and closes the palette', () => {
+    const store = makeStore();
+    store.dispatch(searchOpenSet(true));
+    renderWithStore(
+      <>
+        <SearchDialog />
+        <LocationProbe />
+      </>,
+      store,
+    );
+
+    const input = screen.getByPlaceholderText(/search/i);
+    fireEvent.change(input, { target: { value: 'settings' } });
+    fireEvent.keyDown(input, { key: 'Enter' });
+
+    expect(screen.getByTestId('location')).toHaveTextContent('/settings');
+    expect(store.getState().ui.searchOpen).toBe(false);
+  });
+
+  test('the theme action flips the theme setting', () => {
+    const store = makeStore();
+    store.dispatch(searchOpenSet(true));
+    renderWithStore(<SearchDialog />, store);
+
+    expect(store.getState().settings.theme).toBe('dark');
+
+    const input = screen.getByPlaceholderText(/search/i);
+    fireEvent.change(input, { target: { value: 'switch to light' } });
+    fireEvent.keyDown(input, { key: 'Enter' });
+
+    expect(store.getState().settings.theme).toBe('light');
+  });
+
+  test('course weeks match by title and clicking one goes to the course page', () => {
+    const store = makeStore();
+    store.dispatch(searchOpenSet(true));
+    renderWithStore(
+      <>
+        <SearchDialog />
+        <LocationProbe />
+      </>,
+      store,
+    );
+
+    fireEvent.change(screen.getByPlaceholderText(/search/i), { target: { value: 'transformers' } });
+
+    const weekOptions = screen.getAllByRole('option', { name: /transformers/i });
+    expect(weekOptions.length).toBeGreaterThan(0);
+    fireEvent.click(weekOptions[0]);
+
+    expect(screen.getByTestId('location')).toHaveTextContent('/aiml');
+    expect(store.getState().ui.searchOpen).toBe(false);
   });
 });
 

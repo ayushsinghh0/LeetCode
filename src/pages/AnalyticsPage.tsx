@@ -1,6 +1,17 @@
 import { useMemo, useState } from 'react';
 import { motion } from 'framer-motion';
-import { Flame, Trophy, CalendarCheck, Gauge, TrendingUp, TrendingDown } from 'lucide-react';
+import {
+  Flame,
+  Trophy,
+  CalendarCheck,
+  CalendarClock,
+  Gauge,
+  GraduationCap,
+  ListChecks,
+  ShieldCheck,
+  TrendingUp,
+  TrendingDown,
+} from 'lucide-react';
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { StatCard } from '@/components/shared/StatCard';
 import { EmptyState } from '@/components/shared/EmptyState';
@@ -13,6 +24,9 @@ import { patternById } from '@/data/patterns';
 import { useToday } from '@/hooks/useToday';
 import { useAppSelector } from '@/store/hooks';
 import {
+  selectCourseActiveDates,
+  selectCourseProjectedFinish,
+  selectCourseStats,
   selectDifficultyStats,
   selectForecast,
   selectPatternStats,
@@ -20,7 +34,8 @@ import {
   selectStreaks,
   selectWeakestPatterns,
 } from '@/store/selectors';
-import { consistency, solvedPerDaySeries } from '@/utils/engine/stats';
+import { consistency, overallRevisionPassRate, solvedPerDaySeries } from '@/utils/engine/stats';
+import { format, parseISO } from 'date-fns';
 
 const ACTIVE_WINDOW_DAYS = 14;
 type SolvedRange = 30 | 90;
@@ -47,10 +62,16 @@ export default function AnalyticsPage() {
   const forecast = useAppSelector((s) => selectForecast(s, today));
   const dayLogs = useAppSelector((s) => s.progress.dayLogs);
   const progressById = useAppSelector((s) => s.progress.byId);
+  const courseByWeekId = useAppSelector((s) => s.course.byWeekId);
+  const courseActiveDates = useAppSelector(selectCourseActiveDates);
+  const courseStats = useAppSelector(selectCourseStats);
+  const courseFinish = useAppSelector((s) => selectCourseProjectedFinish(s, today));
 
+  // Unified activity definition, matching the streak cards beside it: a course-only day is
+  // an active day.
   const activeDays = useMemo(
-    () => Math.round(consistency(dayLogs, today, ACTIVE_WINDOW_DAYS) * ACTIVE_WINDOW_DAYS),
-    [dayLogs, today],
+    () => Math.round(consistency(dayLogs, today, ACTIVE_WINDOW_DAYS, courseActiveDates) * ACTIVE_WINDOW_DAYS),
+    [dayLogs, today, courseActiveDates],
   );
 
   const solvedPerDay = useMemo(() => solvedPerDaySeries(dayLogs, today, range), [dayLogs, today, range]);
@@ -75,14 +96,21 @@ export default function AnalyticsPage() {
   const revisionCounts = useMemo(() => {
     let passed = 0;
     let failed = 0;
-    for (const p of Object.values(progressById)) {
+    // Both tracks share the revisionHistory shape — question revisions and course week
+    // reviews blend into one success rate.
+    for (const p of [...Object.values(progressById), ...Object.values(courseByWeekId)]) {
       for (const ev of p.revisionHistory) {
         if (ev.passed) passed += 1;
         else failed += 1;
       }
     }
     return { passed, failed };
-  }, [progressById]);
+  }, [progressById, courseByWeekId]);
+
+  const coursePassRate = useMemo(
+    () => overallRevisionPassRate(Object.values(courseByWeekId)),
+    [courseByWeekId],
+  );
 
   // weakest is ascending by score (lowest/weakest first â€” see weakestPatterns doc comment).
   // Strong = the highest-scoring tail, reversed so the strongest pattern leads.
@@ -104,6 +132,31 @@ export default function AnalyticsPage() {
           <StatCard label="Active days (14d)" value={activeDays} icon={CalendarCheck} />
           <StatCard label="Productivity score" value={`${productivity} / 100`} icon={Gauge} />
         </motion.div>
+
+        {/* Row: AI/ML course track */}
+        <motion.section variants={cardVariants} aria-label="Course analytics" className="flex flex-col gap-3">
+          <h2 className="flex items-center gap-1.5 text-sm font-semibold text-muted-foreground">
+            <GraduationCap className="h-4 w-4" aria-hidden="true" /> AI/ML Course
+          </h2>
+          <div className="grid grid-cols-2 gap-4 md:grid-cols-4">
+            <StatCard
+              label="Course sessions"
+              value={`${courseStats.sessionsDone} / ${courseStats.sessionsTotal}`}
+              icon={ListChecks}
+            />
+            <StatCard label="Weeks cleared" value={`${courseStats.weeksDone} / ${courseStats.weeksTotal}`} icon={Trophy} />
+            <StatCard
+              label="Review pass rate"
+              value={coursePassRate === null ? '—' : `${Math.round(coursePassRate * 100)}%`}
+              icon={ShieldCheck}
+            />
+            <StatCard
+              label="Projected finish"
+              value={courseFinish ? format(parseISO(courseFinish), 'MMM d') : 'Done'}
+              icon={CalendarClock}
+            />
+          </div>
+        </motion.section>
 
         {/* Solved per day */}
         <motion.div variants={cardVariants} className="glass flex flex-col gap-4 p-5">

@@ -109,14 +109,21 @@ export function overallRevisionPassRate(
   return attempts === 0 ? null : passes / attempts;
 }
 
+// `extraActiveDates` mirrors computeStreaks: activity outside dayLogs (course sessions and
+// reviews) counts toward a day being active. productivityScore deliberately omits it — that
+// formula is locked DSA spec.
 export function consistency(
-  dayLogs: Record<string, DayLog>, today: string, windowDays = DEFAULT_WINDOW_DAYS
+  dayLogs: Record<string, DayLog>, today: string, windowDays = DEFAULT_WINDOW_DAYS,
+  extraActiveDates?: ReadonlySet<string>,
 ): number {
-  let activeDays = 0;
+  const activeDates = new Set<string>();
   for (const log of Object.values(dayLogs)) {
-    if (inWindow(log.date, today, windowDays) && hasActivity(log)) activeDays += 1;
+    if (inWindow(log.date, today, windowDays) && hasActivity(log)) activeDates.add(log.date);
   }
-  return activeDays / windowDays;
+  for (const date of extraActiveDates ?? []) {
+    if (inWindow(date, today, windowDays)) activeDates.add(date);
+  }
+  return activeDates.size / windowDays;
 }
 
 export function goalRate(

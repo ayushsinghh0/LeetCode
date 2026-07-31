@@ -53,7 +53,7 @@ export const selectCourseActivityByDate = createSelector([selectCourseByWeekId],
   courseActivityByDate(byWeekId),
 );
 
-const selectCourseActiveDates = createSelector(
+export const selectCourseActiveDates = createSelector(
   [selectCourseActivityByDate],
   (activity): ReadonlySet<string> => new Set(activity.keys()),
 );

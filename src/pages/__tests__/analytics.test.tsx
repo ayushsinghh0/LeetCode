@@ -6,7 +6,7 @@ import { MemoryRouter } from 'react-router-dom';
 import { makeStore, type AppStore } from '@/store/store';
 import { TooltipProvider } from '@/components/ui/tooltip';
 import AnalyticsPage from '@/pages/AnalyticsPage';
-import { solveQuestion } from '@/store/actions';
+import { completeCourseSession, reviseCourseWeek, solveQuestion } from '@/store/actions';
 import { selectStreaks, selectProductivityScore, selectWeakestPatterns } from '@/store/selectors';
 import { consistency } from '@/utils/engine/stats';
 import { PATTERNS, patternById } from '@/data/patterns';
@@ -106,6 +106,41 @@ describe('AnalyticsPage', () => {
 
     const productivityCard = screen.getByText('Productivity score').closest('div')!;
     expect(within(productivityCard).getByText(`${productivity} / 100`)).toBeInTheDocument();
+  });
+
+  test('course row shows sessions, cleared weeks, and pass rate; course reviews blend into the success rate', () => {
+    const store = makeStore();
+    store.dispatch(completeCourseSession('w00', 1));
+    store.dispatch(completeCourseSession('w00', 2)); // cleared — review due tomorrow
+    vi.setSystemTime(new Date('2026-07-31T12:00:00'));
+    store.dispatch(reviseCourseWeek('w00', true));
+    renderWithStore(<AnalyticsPage />, store);
+
+    expect(screen.getByRole('heading', { name: /ai\/ml course/i })).toBeInTheDocument();
+
+    const sessionsCard = screen.getByText('Course sessions').closest('div')!;
+    expect(within(sessionsCard).getByText('2 / 52')).toBeInTheDocument();
+
+    const weeksCard = screen.getByText('Weeks cleared').closest('div')!;
+    expect(within(weeksCard).getByText('1 / 26')).toBeInTheDocument();
+
+    const passCard = screen.getByText('Review pass rate').closest('div')!;
+    expect(within(passCard).getByText('100%')).toBeInTheDocument();
+
+    // The blended success-rate chart counts the course review as a pass.
+    expect(screen.getByText('Overall pass rate (1 passed / 0 failed)')).toBeInTheDocument();
+  });
+
+  test('a course-only day counts toward Active days (14d), matching the unified streak', () => {
+    const store = makeStore();
+    store.dispatch(completeCourseSession('w00', 1)); // course-only activity today
+    renderWithStore(<AnalyticsPage />, store);
+
+    const activeCard = screen.getByText('Active days (14d)').closest('div')!;
+    expect(within(activeCard).getByText('1')).toBeInTheDocument();
+
+    const streakCard = screen.getByText('Current streak').closest('div')!;
+    expect(within(streakCard).getByText('1')).toBeInTheDocument();
   });
 
   test('solved-per-day chart defaults to a full 30-day zero-filled series', () => {

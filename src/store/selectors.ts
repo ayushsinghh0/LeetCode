@@ -173,8 +173,6 @@ export const selectAchievementCtx = createSelector(
     buildAchievementCtx(questions, byId, dayLogs, today, courseByWeekId),
 );
 
-export const selectCourseProgressById = selectCourseByWeekId;
-
 export const selectCourseStats = createSelector([selectCourseByWeekId], (byWeekId) =>
   courseStats(COURSE_WEEKS, byWeekId),
 );

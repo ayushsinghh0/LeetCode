@@ -4,6 +4,7 @@ import { format, parseISO } from 'date-fns';
 import { BookOpen, CalendarClock, CheckCircle2, Dices, Gauge, Lightbulb, ListTodo, RotateCcw } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Progress } from '@/components/ui/progress';
+import { DailyGoalProgress } from '@/components/shared/DailyGoalProgress';
 import { StatCard } from '@/components/shared/StatCard';
 import { Heatmap } from '@/components/shared/Heatmap';
 import { EmptyState } from '@/components/shared/EmptyState';
@@ -97,7 +98,6 @@ export default function DashboardPage() {
   const currentPattern = currentQuestion ? patternById[currentQuestion.pattern] : null;
 
   const solvedToday = todayLog ? todayLog.solvedIds.length : 0;
-  const todayProgressPct = perDay > 0 ? Math.min(100, (solvedToday / perDay) * 100) : 0;
 
   const weakestEntry = weakest[0] ?? null;
   const weakestStat = weakestEntry ? patternStats.find((s) => s.pattern === weakestEntry.pattern) : undefined;
@@ -222,10 +222,7 @@ export default function DashboardPage() {
         <motion.div variants={itemVariants} className="grid grid-cols-1 gap-4 lg:grid-cols-3">
           <div className="glass flex flex-col gap-3 p-5">
             <h2 className="border-b border-border/70 pb-2 text-base font-medium">Today&apos;s Progress</h2>
-            <Progress value={todayProgressPct} />
-            <p className="figures text-sm text-muted-foreground">
-              {solvedToday} / {perDay} solved today
-            </p>
+            <DailyGoalProgress solvedToday={solvedToday} perDay={perDay} />
           </div>
 
           <div className="glass flex flex-col gap-3 p-5">

@@ -4,7 +4,7 @@ import { format, parseISO } from 'date-fns';
 import { CheckCircle2, Sparkles } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { Progress } from '@/components/ui/progress';
+import { DailyGoalProgress } from '@/components/shared/DailyGoalProgress';
 import { QuestionCard } from '@/components/questions/QuestionCard';
 import { CourseTodayCard } from '@/components/course/CourseTodayCard';
 import { useToday } from '@/hooks/useToday';
@@ -51,8 +51,6 @@ export default function TodayPage() {
   const progressById = useAppSelector((state) => state.progress.byId);
 
   const solvedToday = todayLog ? todayLog.solvedIds.length : 0;
-  const goalCrushed = perDay > 0 && solvedToday >= perDay;
-  const progressPct = perDay > 0 ? Math.min(100, (solvedToday / perDay) * 100) : 0;
 
   const openDetail = (id: number) => dispatch(activeQuestionSet(id));
 
@@ -85,13 +83,7 @@ export default function TodayPage() {
       )}
 
       <div className="glass p-6">
-        <Progress value={progressPct} />
-        <p className="mt-2 text-sm text-muted-foreground">
-          {solvedToday} / {perDay} solved today
-        </p>
-        {goalCrushed && (
-          <p className="mt-1 text-sm font-medium text-primary">Daily goal crushed — come back tomorrow 🎉</p>
-        )}
+        <DailyGoalProgress solvedToday={solvedToday} perDay={perDay} />
       </div>
 
       <CourseTodayCard />

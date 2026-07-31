@@ -8,7 +8,7 @@ import { todayISO } from '@/utils/dates';
 import { DAILY_GOAL_BONUS, SOLVE_XP, WEEKLY_CLEAR_BONUS, revisionXp } from '@/utils/engine/xp';
 import { currentDay, isWeeklyRevisionDay } from '@/utils/engine/roadmap';
 import { patternStats } from '@/utils/engine/stats';
-import { buildAchievementCtx, evaluateAchievements } from '@/utils/engine/achievements';
+import { evaluateAchievements } from '@/utils/engine/achievements';
 import {
   bonusXpLogged,
   bookmarkToggled,
@@ -41,7 +41,7 @@ import {
 import { achievementsUnlocked, xpAdded } from '@/store/slices/gamificationSlice';
 import { celebrationShown, toastPushed } from '@/store/slices/uiSlice';
 import { progressReset, stateImported } from '@/store/sharedActions';
-import { selectRevisionQueueIds, selectSolvedNewCount } from '@/store/selectors';
+import { selectAchievementCtx, selectRevisionQueueIds, selectSolvedNewCount } from '@/store/selectors';
 
 const questions = questionsData as Question[];
 const questionById = new Map(questions.map((q) => [q.id, q]));
@@ -52,13 +52,7 @@ function evaluateAndUnlockAchievements(
   today: string,
 ): void {
   const state = getState();
-  const ctx = buildAchievementCtx(
-    questions,
-    state.progress.byId,
-    state.progress.dayLogs,
-    today,
-    state.course.byWeekId,
-  );
+  const ctx = selectAchievementCtx(state, today);
   const newIds = evaluateAchievements(ctx, state.gamification.unlocked);
   if (newIds.length > 0) {
     dispatch(achievementsUnlocked({ ids: newIds, date: today }));
@@ -187,8 +181,10 @@ export const reviseQuestion = (id: number, passed: boolean): AppThunk => (dispat
 // Marks one AI/ML course session done (one-way, like solveQuestion — no undo anywhere in the
 // app). Awards COURSE_SESSION_XP through both registers (gamification.xp and the day's ledger,
 // via bonusXpLogged) so Σ dayLogs[*].xpEarned stays in sync with gamification.xp. Course work
-// deliberately never touches solvedIds/revision arrays, so it can't fake DSA streak/heatmap
-// activity. Completing a core week's second session adds COURSE_WEEK_CLEAR_BONUS + confetti.
+// never writes into solvedIds/revision arrays — those stay DSA ledgers; streaks and the
+// heatmap instead count course days via courseActivityByDate, derived from the byWeekId
+// stamps this thunk writes. Completing a core week's second session adds
+// COURSE_WEEK_CLEAR_BONUS + confetti.
 export const completeCourseSession = (weekId: string, day: CourseDay): AppThunk => (
   dispatch,
   getState,
@@ -234,6 +230,10 @@ export const reviseCourseWeek = (weekId: string, passed: boolean): AppThunk => (
   dispatch(courseRevisionLogged({ weekId, date, passed }));
   dispatch(xpAdded(COURSE_REVIEW_XP));
   dispatch(bonusXpLogged({ date, xp: COURSE_REVIEW_XP }));
+
+  // Like every other mutation thunk: a review can extend the unified streak, so streak-shaped
+  // achievements may unlock on this dispatch.
+  evaluateAndUnlockAchievements(dispatch, getState, date);
 };
 
 export const saveCourseNotes = (weekId: string, notes: string): AppThunk => (dispatch) => {

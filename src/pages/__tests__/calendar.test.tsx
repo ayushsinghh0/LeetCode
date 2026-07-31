@@ -5,7 +5,7 @@ import { MemoryRouter } from 'react-router-dom';
 import { makeStore, type AppStore } from '@/store/store';
 import { TooltipProvider } from '@/components/ui/tooltip';
 import CalendarPage from '@/pages/CalendarPage';
-import { solveQuestion } from '@/store/actions';
+import { completeCourseSession, solveQuestion } from '@/store/actions';
 import { SOLVE_XP } from '@/utils/engine/xp';
 import questionsData from '@/data/questions.json';
 import type { Question } from '@/types';
@@ -57,6 +57,23 @@ describe('CalendarPage', () => {
     expect(dayButtons).toHaveLength(31); // July has 31 days
   });
 
+  test('a course-only day lights its cell and the dialog lists the session under Course', () => {
+    const store = makeStore();
+    store.dispatch(completeCourseSession('w00', 1)); // stamped 2026-07-30, 20 XP
+
+    renderWithStore(<CalendarPage />, store);
+
+    const cell = screen.getByRole('button', { name: 'July 30, 2026 — 1 activities' });
+    expect(cell.dataset.level).not.toBe('0');
+
+    fireEvent.click(cell);
+
+    const dialog = screen.getByRole('dialog');
+    expect(within(dialog).getByText('0 solved · 0 revisions · 1 course · 20 XP · 0 focus min')).toBeInTheDocument();
+    expect(within(dialog).getByText('Course')).toBeInTheDocument();
+    expect(within(dialog).getByText('· Lecture')).toBeInTheDocument();
+  });
+
   test('a fixture day (2 solves on 2026-07-30) shows an activity level and its dialog lists both titles, correct XP, and zero revisions', () => {
     const store = makeStore();
     store.dispatch(solveQuestion(1));
@@ -72,7 +89,7 @@ describe('CalendarPage', () => {
 
     const dialog = screen.getByRole('dialog');
     expect(within(dialog).getByText('Thursday, July 30, 2026')).toBeInTheDocument();
-    expect(within(dialog).getByText(`2 solved · 0 revisions · ${SOLVE_TOTAL_XP} XP · 0 focus min`)).toBeInTheDocument();
+    expect(within(dialog).getByText(`2 solved · 0 revisions · 0 course · ${SOLVE_TOTAL_XP} XP · 0 focus min`)).toBeInTheDocument();
     expect(within(dialog).getByText(question1.title)).toBeInTheDocument();
     expect(within(dialog).getByText(question2.title)).toBeInTheDocument();
     expect(within(dialog).getByText(`${SOLVE_TOTAL_XP} XP`)).toBeInTheDocument();

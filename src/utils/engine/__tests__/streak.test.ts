@@ -27,3 +27,17 @@ test('empty logs → zero streaks; perfect day threshold', () => {
   expect(isPerfectDay(mk('2026-07-30', 7), 8)).toBe(false);
   expect(hasActivity(undefined)).toBe(false);
 });
+
+test('extra activity dates count like log activity and bridge gaps between logged days', () => {
+  const logs = { '2026-07-27': mk('2026-07-27', 8), '2026-07-30': mk('2026-07-30', 3) };
+  // Without extras the 28th–29th gap breaks the run…
+  expect(computeStreaks(logs, '2026-07-30')).toEqual({ current: 1, longest: 1 });
+  // …course-work days fill it: one unbroken 4-day streak.
+  const extras = new Set(['2026-07-28', '2026-07-29']);
+  expect(computeStreaks(logs, '2026-07-30', extras)).toEqual({ current: 4, longest: 4 });
+});
+
+test('extra-only activity sustains a streak with no day logs at all', () => {
+  const extras = new Set(['2026-07-29', '2026-07-30']);
+  expect(computeStreaks({}, '2026-07-30', extras)).toEqual({ current: 2, longest: 2 });
+});

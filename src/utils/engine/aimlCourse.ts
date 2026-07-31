@@ -9,7 +9,12 @@
 import type { CourseWeekProgress } from '@/types';
 import type { CourseWeek } from '@/data/aimlCourse';
 import { addDays } from '@/utils/dates';
-import { MASTERED_STAGE, REVISION_INTERVALS } from '@/utils/engine/spacedRepetition';
+import {
+  MASTERED_STAGE,
+  isLadderDue,
+  ladderAfterReview,
+  ladderEntry,
+} from '@/utils/engine/spacedRepetition';
 
 // Course XP register (deliberately NOT in xp.ts, which is the locked DSA spec):
 // a session is a solid evening of work → medium-solve XP; clearing a week matches
@@ -41,8 +46,21 @@ export function initialCourseProgress(): CourseWeekProgress {
 // Fills fields missing from pre-ladder persisted entries (first course release stored only
 // day stamps + notes). The boundary layers (loadInitialState, stateImported) run every entry
 // through this so in-memory state always carries the full shape.
+//
+// Backfill: a week cleared before the ladder shipped is done but carries no schedule
+// (stage 0, nextRevision null) — a shape no post-ladder transition can produce for an
+// unretained week, since both clear and review always write a date. Without a nextRevision
+// the due-scan would exclude the week forever, so seed the ladder entry the clear would
+// have written. A seeded date in the past is correct: the review is overdue.
 export function normalizeCourseWeekProgress(raw: Partial<CourseWeekProgress>): CourseWeekProgress {
-  return { ...initialCourseProgress(), ...raw };
+  const p = { ...initialCourseProgress(), ...raw };
+  if (
+    p.day1DoneOn !== null && p.day2DoneOn !== null &&
+    p.revisionStage < MASTERED_STAGE && p.nextRevision === null
+  ) {
+    return { ...p, ...ladderEntry(p.day2DoneOn) };
+  }
+  return p;
 }
 
 export function sessionCount(week: CourseWeek): 1 | 2 {
@@ -69,7 +87,7 @@ const progressFor = (
 // review means re-deriving the week from its slides and notes, then grading yourself.
 
 export function applyCourseWeekClear(p: CourseWeekProgress, date: string): CourseWeekProgress {
-  return { ...p, revisionStage: 0, nextRevision: addDays(date, REVISION_INTERVALS[0]) };
+  return { ...p, ...ladderEntry(date) };
 }
 
 export function applyCourseReview(
@@ -77,17 +95,11 @@ export function applyCourseReview(
   date: string,
   passed: boolean,
 ): CourseWeekProgress {
-  const history = [...p.revisionHistory, { date, passed }];
-  if (!passed) {
-    return { ...p, revisionStage: 0, nextRevision: addDays(date, 1), lastReviewed: date, revisionHistory: history };
-  }
-  const stage = p.revisionStage + 1;
   return {
     ...p,
-    revisionStage: stage,
     lastReviewed: date,
-    revisionHistory: history,
-    nextRevision: stage >= MASTERED_STAGE ? null : addDays(date, REVISION_INTERVALS[stage]),
+    revisionHistory: [...p.revisionHistory, { date, passed }],
+    ...ladderAfterReview(p.revisionStage, date, passed),
   };
 }
 
@@ -104,17 +116,32 @@ export function dueCourseReviewWeekIds(
     .map((week, order) => ({ week, order, progress: progressFor(byWeekId, week.id) }))
     .filter(
       ({ week, progress }) =>
-        !week.optional &&
-        isWeekDone(week, progress) &&
-        !isWeekRetained(progress) &&
-        progress.nextRevision !== null &&
-        progress.nextRevision <= today,
+        !week.optional && isWeekDone(week, progress) && isLadderDue(progress, today),
     )
     .sort((a, b) =>
       a.progress.nextRevision! < b.progress.nextRevision! ? -1 :
       a.progress.nextRevision! > b.progress.nextRevision! ? 1 : a.order - b.order,
     )
     .map(({ week }) => week.id);
+}
+
+// Course activity per calendar date, derived rather than logged: each completed session
+// stamp and each graded review contributes one unit to its date. Deriving from byWeekId
+// keeps DayLog's persisted shape untouched and retroactively credits course days that
+// predate activity unification.
+export function courseActivityByDate(
+  byWeekId: Record<string, CourseWeekProgress>,
+): Map<string, number> {
+  const counts = new Map<string, number>();
+  const bump = (date: string | null) => {
+    if (date !== null) counts.set(date, (counts.get(date) ?? 0) + 1);
+  };
+  for (const p of Object.values(byWeekId)) {
+    bump(p.day1DoneOn);
+    bump(p.day2DoneOn);
+    for (const review of p.revisionHistory) bump(review.date);
+  }
+  return counts;
 }
 
 // All 52 core sessions in course order: w00·d1, w00·d2, w01·d1, … Extras excluded.

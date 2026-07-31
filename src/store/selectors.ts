@@ -18,6 +18,7 @@ import { revisionLoadForecast } from '@/utils/engine/predictor';
 import { weeklyTopUp } from '@/utils/engine/weeklyRevision';
 import { COURSE_WEEKS } from '@/data/aimlCourse';
 import {
+  courseActivityByDate,
   courseSchedule,
   courseStats,
   dueCourseReviewWeekIds,
@@ -42,6 +43,20 @@ const selectDayLogs = (state: RootState): Record<string, DayLog> => state.progre
 const selectRevisionEnabled = (state: RootState): boolean => state.settings.revisionEnabled;
 const selectXp = (state: RootState): number => state.gamification.xp;
 const selectTodayArg = (_state: RootState, today: string): string => today;
+const selectCourseByWeekId = (state: RootState): Record<string, CourseWeekProgress> =>
+  state.course.byWeekId;
+
+// Course work per date (sessions + graded reviews), derived from byWeekId. Every activity
+// surface (streaks, heatmap, calendar) merges this in so a course-only day counts like a
+// solving day.
+export const selectCourseActivityByDate = createSelector([selectCourseByWeekId], (byWeekId) =>
+  courseActivityByDate(byWeekId),
+);
+
+const selectCourseActiveDates = createSelector(
+  [selectCourseActivityByDate],
+  (activity): ReadonlySet<string> => new Set(activity.keys()),
+);
 
 export const selectPerDay = (state: RootState): number => state.settings.questionsPerDay;
 
@@ -103,8 +118,9 @@ export const selectDifficultyStats = createSelector([selectProgressById], (byId)
   difficultyStats(questions, byId),
 );
 
-export const selectStreaks = createSelector([selectDayLogs, selectTodayArg], (dayLogs, today) =>
-  computeStreaks(dayLogs, today),
+export const selectStreaks = createSelector(
+  [selectDayLogs, selectTodayArg, selectCourseActiveDates],
+  (dayLogs, today, courseActiveDates) => computeStreaks(dayLogs, today, courseActiveDates),
 );
 
 export const selectLevelInfo = createSelector([selectXp], (xp) => levelProgress(xp));
@@ -119,13 +135,14 @@ function heatmapLevel(count: number): 0 | 1 | 2 | 3 | 4 {
 
 // Last 365 days ending today (oldest first).
 export const selectHeatmapData = createSelector(
-  [selectDayLogs, selectTodayArg],
-  (dayLogs, today): { date: string; count: number; level: 0 | 1 | 2 | 3 | 4 }[] => {
+  [selectDayLogs, selectTodayArg, selectCourseActivityByDate],
+  (dayLogs, today, courseActivity): { date: string; count: number; level: 0 | 1 | 2 | 3 | 4 }[] => {
     const days: { date: string; count: number; level: 0 | 1 | 2 | 3 | 4 }[] = [];
     for (let i = 364; i >= 0; i--) {
       const date = addDays(today, -i);
       const log = dayLogs[date];
-      const count = log ? log.solvedIds.length + log.revisionsPassed.length + log.revisionsFailed.length : 0;
+      const dsaCount = log ? log.solvedIds.length + log.revisionsPassed.length + log.revisionsFailed.length : 0;
+      const count = dsaCount + (courseActivity.get(date) ?? 0);
       days.push({ date, count, level: heatmapLevel(count) });
     }
     return days;
@@ -164,9 +181,6 @@ export const selectTodayLog = createSelector(
 );
 
 // --- AI/ML course track -------------------------------------------------------------------
-
-const selectCourseByWeekId = (state: RootState): Record<string, CourseWeekProgress> =>
-  state.course.byWeekId;
 
 export const selectAchievementCtx = createSelector(
   [selectProgressById, selectDayLogs, selectTodayArg, selectCourseByWeekId],

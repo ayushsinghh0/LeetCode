@@ -9,18 +9,24 @@ export function isPerfectDay(log: DayLog | undefined, perDay: number): boolean {
   return !!log && log.solvedIds.length >= perDay;
 }
 
+// `extraActiveDates` lets callers count activity that lives outside dayLogs — today that is
+// AI/ML course sessions and reviews, derived per-date by courseActivityByDate. A day counts
+// toward the streak when either track saw work.
 export function computeStreaks(
-  dayLogs: Record<string, DayLog>, today: string
+  dayLogs: Record<string, DayLog>, today: string, extraActiveDates?: ReadonlySet<string>
 ): { current: number; longest: number } {
+  const activeOn = (date: string): boolean =>
+    hasActivity(dayLogs[date]) || (extraActiveDates?.has(date) ?? false);
+
   let current = 0;
-  let cursor = hasActivity(dayLogs[today]) ? today : addDays(today, -1);
-  while (hasActivity(dayLogs[cursor])) {
+  let cursor = activeOn(today) ? today : addDays(today, -1);
+  while (activeOn(cursor)) {
     current++;
     cursor = addDays(cursor, -1);
   }
 
-  const activeDates = Object.keys(dayLogs)
-    .filter((date) => hasActivity(dayLogs[date]))
+  const activeDates = [...new Set([...Object.keys(dayLogs), ...(extraActiveDates ?? [])])]
+    .filter(activeOn)
     .sort();
 
   let longest = 0;

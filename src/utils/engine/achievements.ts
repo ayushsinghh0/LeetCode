@@ -5,7 +5,12 @@ import { addDays, diffDays } from '@/utils/dates';
 import { isMastered } from '@/utils/engine/spacedRepetition';
 import { difficultyStats, patternStats, type DifficultyStat, type PatternStat } from '@/utils/engine/stats';
 import { computeStreaks, hasActivity } from '@/utils/engine/streak';
-import { courseStats, initialCourseProgress, isWeekDone } from '@/utils/engine/aimlCourse';
+import {
+  courseActivityByDate,
+  courseStats,
+  initialCourseProgress,
+  isWeekDone,
+} from '@/utils/engine/aimlCourse';
 
 const PERFECT_REVISION_WINDOW_DAYS = 7;
 const COMEBACK_GAP_DAYS = 4;
@@ -212,9 +217,14 @@ function computePerfectRevisionWeek(dayLogs: Record<string, DayLog>, today: stri
   return !anyFailed;
 }
 
-function computeHadComeback(dayLogs: Record<string, DayLog>): boolean {
-  const activeDates = Object.keys(dayLogs)
-    .filter((date) => hasActivity(dayLogs[date]))
+// A "break" means no activity on either track — course sessions during the gap keep the
+// ritual alive, so they must fill it here exactly as they extend the streak.
+function computeHadComeback(
+  dayLogs: Record<string, DayLog>,
+  extraActiveDates: ReadonlySet<string>,
+): boolean {
+  const activeDates = [...new Set([...Object.keys(dayLogs), ...extraActiveDates])]
+    .filter((date) => hasActivity(dayLogs[date]) || extraActiveDates.has(date))
     .sort();
 
   for (let i = 1; i < activeDates.length; i++) {
@@ -251,14 +261,18 @@ export function buildAchievementCtx(
     if (isMastered(p)) masteredCount += 1;
   }
 
+  // Streak-shaped checks share the unified activity definition with selectStreaks: a day of
+  // course work counts exactly like a day of solving.
+  const courseActiveDates = new Set(courseActivityByDate(courseByWeekId).keys());
+
   return {
     solvedCount,
     masteredCount,
-    streak: computeStreaks(dayLogs, today),
+    streak: computeStreaks(dayLogs, today, courseActiveDates),
     patternStats: patternStats(all, byId),
     difficultyStats: difficultyStats(all, byId),
     perfectRevisionWeek: computePerfectRevisionWeek(dayLogs, today),
-    hadComeback: computeHadComeback(dayLogs),
+    hadComeback: computeHadComeback(dayLogs, courseActiveDates),
     course: buildCourseCtx(courseByWeekId),
   };
 }

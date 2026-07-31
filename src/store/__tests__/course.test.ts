@@ -42,9 +42,10 @@ describe('completeCourseSession', () => {
     expect(state.gamification.xp).toBe(20);
     // Ledger invariant: Σ dayLogs[*].xpEarned tracks gamification.xp.
     expect(state.progress.dayLogs['2026-07-30'].xpEarned).toBe(20);
-    // …but with no solve/revision arrays touched, so course work never fakes a streak day.
+    // Course work never writes into the DSA ledger arrays…
     expect(state.progress.dayLogs['2026-07-30'].solvedIds).toEqual([]);
-    expect(selectStreaks(state, '2026-07-30').current).toBe(0);
+    // …yet the day still counts as unified activity: the streak starts.
+    expect(selectStreaks(state, '2026-07-30').current).toBe(1);
   });
 
   test('is idempotent per session', () => {
@@ -123,8 +124,20 @@ describe('reviseCourseWeek', () => {
     expect(p.revisionHistory).toEqual([{ date: '2026-07-30', passed: true }]);
     expect(store.getState().gamification.xp).toBe(xpAfterClear + 10);
     expect(store.getState().progress.dayLogs['2026-07-30'].xpEarned).toBe(xpAfterClear + 10);
-    // Reviews never fake DSA streak activity.
+    // Reviews live in course revisionHistory, never in the DSA ledger arrays.
     expect(store.getState().progress.dayLogs['2026-07-30'].revisionsPassed).toEqual([]);
+  });
+
+  test('course activity alone extends the streak; a review can unlock streak achievements', () => {
+    const store = makeStore();
+    store.dispatch(completeCourseSession('w00', 1)); // 2026-07-30
+    vi.setSystemTime(new Date('2026-07-31T12:00:00'));
+    store.dispatch(completeCourseSession('w00', 2)); // clears the week, review due tomorrow
+    vi.setSystemTime(new Date('2026-08-01T12:00:00'));
+    store.dispatch(reviseCourseWeek('w00', true));
+
+    expect(selectStreaks(store.getState(), '2026-08-01')).toEqual({ current: 3, longest: 3 });
+    expect(store.getState().gamification.unlocked['streak-3']).toBe('2026-08-01');
   });
 
   test('a fail restarts the ladder, due tomorrow', () => {
@@ -183,15 +196,20 @@ describe('course import/reset lifecycle', () => {
     // Pre-ladder backup entry: day stamps + notes only — the import path must fill the
     // revision fields in.
     const legacyEntry = { day1DoneOn: '2026-07-01', day2DoneOn: null, notes: 'hi' };
+    // Pre-ladder CLEARED week: both days stamped but no review schedule — normalization must
+    // seed the ladder (due day-2 + 1) or the week could never become reviewable.
+    const legacyCleared = { day1DoneOn: '2026-07-01', day2DoneOn: '2026-07-02', notes: '' };
     store.dispatch(
       importProgress({
         ...basePersisted(),
-        course: { byWeekId: { w05: legacyEntry as never } },
+        course: { byWeekId: { w05: legacyEntry as never, w06: legacyCleared as never } },
       }),
     );
     expect(store.getState().course.byWeekId.w05.notes).toBe('hi');
     expect(store.getState().course.byWeekId.w05.revisionStage).toBe(0);
     expect(store.getState().course.byWeekId.w05.revisionHistory).toEqual([]);
+    expect(store.getState().course.byWeekId.w05.nextRevision).toBeNull(); // half-done: no backfill
+    expect(store.getState().course.byWeekId.w06.nextRevision).toBe('2026-07-03');
 
     store.dispatch(importProgress(basePersisted())); // old backup, no course key
     expect(store.getState().course.byWeekId).toEqual({});

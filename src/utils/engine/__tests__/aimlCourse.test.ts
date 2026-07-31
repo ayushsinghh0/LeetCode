@@ -6,6 +6,7 @@ import {
   COURSE_WEEK_CLEAR_BONUS,
   applyCourseReview,
   applyCourseWeekClear,
+  courseActivityByDate,
   courseSchedule,
   courseSessions,
   courseStats,
@@ -179,6 +180,42 @@ test('normalizeCourseWeekProgress fills revision fields missing from pre-ladder 
     day1DoneOn: '2026-07-30',
     notes: 'hi',
   });
+});
+
+test('normalizeCourseWeekProgress seeds the ladder for pre-ladder cleared weeks', () => {
+  // Cleared before the ladder shipped: done, but no review schedule. Seed entry at day2 + 1
+  // so the week becomes (over)due instead of being silently unreviewable forever.
+  const cleared = { day1DoneOn: '2026-07-01', day2DoneOn: '2026-07-02', notes: '' };
+  expect(normalizeCourseWeekProgress(cleared).nextRevision).toBe('2026-07-03');
+  expect(normalizeCourseWeekProgress(cleared).revisionStage).toBe(0);
+
+  // Retained weeks legitimately carry nextRevision null — never re-seeded.
+  const retained = { ...done('2026-07-01', '2026-07-02'), revisionStage: 5 };
+  expect(normalizeCourseWeekProgress(retained).nextRevision).toBeNull();
+
+  // Post-ladder shapes pass through untouched.
+  const scheduled = { ...done('2026-07-01', '2026-07-02'), nextRevision: '2026-08-15', revisionStage: 2 };
+  expect(normalizeCourseWeekProgress(scheduled)).toEqual({ ...initialCourseProgress(), ...scheduled });
+});
+
+test('courseActivityByDate counts session stamps and review grades per date', () => {
+  const byWeekId: Record<string, CourseWeekProgress> = {
+    w00: {
+      ...done('2026-07-01', '2026-07-02'),
+      revisionHistory: [
+        { date: '2026-07-03', passed: true },
+        { date: '2026-07-06', passed: false },
+      ],
+    },
+    w01: done('2026-07-02', null),
+  };
+  const activity = courseActivityByDate(byWeekId);
+  expect(activity.get('2026-07-01')).toBe(1);
+  expect(activity.get('2026-07-02')).toBe(2); // w00 day 2 + w01 day 1
+  expect(activity.get('2026-07-03')).toBe(1);
+  expect(activity.get('2026-07-06')).toBe(1); // failed reviews are still activity
+  expect(activity.get('2026-07-04')).toBeUndefined();
+  expect(courseActivityByDate({}).size).toBe(0);
 });
 
 test('courseStats counts core sessions/weeks and extras separately', () => {

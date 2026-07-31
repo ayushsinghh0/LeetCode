@@ -4,6 +4,32 @@ import { addDays } from '@/utils/dates';
 export const REVISION_INTERVALS = [1, 3, 7, 15, 30] as const;
 export const MASTERED_STAGE = 5;
 
+// The one spaced-repetition ladder in the app. Questions and course weeks carry these two
+// fields (plus their own bookkeeping) and share the exact transition table: entry schedules
+// the first review at interval[0]; a pass climbs 1/3/7/15/30 until stage 5 retires the item
+// (nextRevision null); any fail restarts at stage 0, due tomorrow.
+export interface LadderState {
+  revisionStage: number;
+  nextRevision: string | null;
+}
+
+export function ladderEntry(date: string): LadderState {
+  return { revisionStage: 0, nextRevision: addDays(date, REVISION_INTERVALS[0]) };
+}
+
+export function ladderAfterReview(stage: number, date: string, passed: boolean): LadderState {
+  if (!passed) return { revisionStage: 0, nextRevision: addDays(date, 1) };
+  const next = stage + 1;
+  return {
+    revisionStage: next,
+    nextRevision: next >= MASTERED_STAGE ? null : addDays(date, REVISION_INTERVALS[next]),
+  };
+}
+
+export function isLadderDue(p: LadderState, today: string): boolean {
+  return p.revisionStage < MASTERED_STAGE && p.nextRevision !== null && p.nextRevision <= today;
+}
+
 export function initialProgress(): QuestionProgress {
   return {
     status: 'unsolved', revisionStage: 0, nextRevision: null, lastReviewed: null,
@@ -13,28 +39,22 @@ export function initialProgress(): QuestionProgress {
 }
 
 export function applySolve(p: QuestionProgress, date: string): QuestionProgress {
-  return {
-    ...p, status: 'solved', completedAt: date, revisionStage: 0,
-    nextRevision: addDays(date, REVISION_INTERVALS[0]),
-  };
+  return { ...p, status: 'solved', completedAt: date, ...ladderEntry(date) };
 }
 
 export function applyRevision(p: QuestionProgress, date: string, passed: boolean): QuestionProgress {
-  const history = [...p.revisionHistory, { date, passed }];
-  if (!passed) {
-    return { ...p, revisionStage: 0, nextRevision: addDays(date, 1), lastReviewed: date, revisionHistory: history };
-  }
-  const stage = p.revisionStage + 1;
   return {
-    ...p, revisionStage: stage, lastReviewed: date, revisionHistory: history,
-    nextRevision: stage >= MASTERED_STAGE ? null : addDays(date, REVISION_INTERVALS[stage]),
+    ...p,
+    lastReviewed: date,
+    revisionHistory: [...p.revisionHistory, { date, passed }],
+    ...ladderAfterReview(p.revisionStage, date, passed),
   };
 }
 
 export const isMastered = (p: QuestionProgress) => p.revisionStage >= MASTERED_STAGE;
 
 export function isDue(p: QuestionProgress, today: string): boolean {
-  return p.status === 'solved' && !isMastered(p) && p.nextRevision !== null && p.nextRevision <= today;
+  return p.status === 'solved' && isLadderDue(p, today);
 }
 
 export function dueIds(byId: Record<number, QuestionProgress>, today: string): number[] {

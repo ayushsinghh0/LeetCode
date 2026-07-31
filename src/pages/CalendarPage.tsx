@@ -9,17 +9,18 @@ import {
   parseISO,
   isAfter,
 } from 'date-fns';
-import { ChevronLeft, ChevronRight, CheckCircle2, XCircle, Zap, Timer, CalendarX } from 'lucide-react';
+import { ChevronLeft, ChevronRight, CheckCircle2, XCircle, Zap, Timer, CalendarX, GraduationCap } from 'lucide-react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { EmptyState } from '@/components/shared/EmptyState';
 import { useAppDispatch, useAppSelector } from '@/store/hooks';
 import { activeQuestionSet } from '@/store/slices/uiSlice';
-import { selectPerDay, selectQuestionById } from '@/store/selectors';
+import { selectCourseActivityByDate, selectPerDay, selectQuestionById } from '@/store/selectors';
 import { hasActivity, isPerfectDay } from '@/utils/engine/streak';
 import { toISODate, todayISO } from '@/utils/dates';
 import { cn } from '@/utils/cn';
-import type { DayLog } from '@/types';
+import { courseWeekById } from '@/data/aimlCourse';
+import type { CourseWeekProgress, DayLog } from '@/types';
 
 const WEEKDAY_LABELS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
 
@@ -49,9 +50,42 @@ function titleFor(id: number): string {
   return selectQuestionById(id)?.title ?? `#${id}`;
 }
 
+interface CourseDayEvent {
+  key: string;
+  title: string;
+  kind: 'Lecture' | 'Practice' | 'Session' | 'Review';
+  passed?: boolean; // reviews only
+}
+
+// Course work stamped on `date`, resolved to week titles for the day dialog.
+function courseEventsOn(
+  byWeekId: Record<string, CourseWeekProgress>,
+  date: string,
+): CourseDayEvent[] {
+  const events: CourseDayEvent[] = [];
+  for (const [weekId, p] of Object.entries(byWeekId)) {
+    const week = courseWeekById.get(weekId);
+    if (!week) continue;
+    if (p.day1DoneOn === date) {
+      events.push({ key: `${weekId}-d1`, title: week.title, kind: week.optional ? 'Session' : 'Lecture' });
+    }
+    if (p.day2DoneOn === date) {
+      events.push({ key: `${weekId}-d2`, title: week.title, kind: 'Practice' });
+    }
+    p.revisionHistory.forEach((review, i) => {
+      if (review.date === date) {
+        events.push({ key: `${weekId}-r${i}`, title: week.title, kind: 'Review', passed: review.passed });
+      }
+    });
+  }
+  return events;
+}
+
 export default function CalendarPage() {
   const dispatch = useAppDispatch();
   const dayLogs = useAppSelector((s) => s.progress.dayLogs);
+  const courseByWeekId = useAppSelector((s) => s.course.byWeekId);
+  const courseActivity = useAppSelector(selectCourseActivityByDate);
   const perDay = useAppSelector(selectPerDay);
   const today = todayISO();
   const [viewMonth, setViewMonth] = useState<Date>(() => parseISO(today));
@@ -63,14 +97,19 @@ export default function CalendarPage() {
   const leadingOffset = getDay(monthStart);
 
   const selectedLog = selectedDate ? dayLogs[selectedDate] : undefined;
+  const selectedCourseEvents = selectedDate ? courseEventsOn(courseByWeekId, selectedDate) : [];
 
   let activeDays = 0;
   let totalSolves = 0;
   let totalRevisions = 0;
+  let totalCourse = 0;
   let totalXp = 0;
   for (const day of days) {
-    const log = dayLogs[toISODate(day)];
-    if (hasActivity(log)) activeDays++;
+    const iso = toISODate(day);
+    const log = dayLogs[iso];
+    const courseCount = courseActivity.get(iso) ?? 0;
+    if (hasActivity(log) || courseCount > 0) activeDays++;
+    totalCourse += courseCount;
     if (log) {
       totalSolves += log.solvedIds.length;
       totalRevisions += log.revisionsPassed.length + log.revisionsFailed.length;
@@ -122,7 +161,7 @@ export default function CalendarPage() {
           {days.map((day) => {
             const iso = toISODate(day);
             const log = dayLogs[iso];
-            const count = dayLogCount(log);
+            const count = dayLogCount(log) + (courseActivity.get(iso) ?? 0);
             const level = activityLevel(count);
             const future = isAfter(day, parseISO(today));
             const isToday = iso === today;
@@ -165,6 +204,10 @@ export default function CalendarPage() {
           <span className="text-muted-foreground">revisions</span>
         </div>
         <div>
+          <span className="font-semibold text-foreground">{totalCourse}</span>{' '}
+          <span className="text-muted-foreground">course sessions</span>
+        </div>
+        <div>
           <span className="font-semibold text-foreground">{totalXp}</span>{' '}
           <span className="text-muted-foreground">XP</span>
         </div>
@@ -176,19 +219,22 @@ export default function CalendarPage() {
             <DialogHeader>
               <DialogTitle>{format(parseISO(selectedDate), 'EEEE, MMMM d, yyyy')}</DialogTitle>
               <DialogDescription>
-                {selectedLog
-                  ? `${selectedLog.solvedIds.length} solved · ${
-                      selectedLog.revisionsPassed.length + selectedLog.revisionsFailed.length
-                    } revisions · ${selectedLog.xpEarned} XP · ${selectedLog.focusMinutes} focus min`
+                {selectedLog || selectedCourseEvents.length > 0
+                  ? `${selectedLog?.solvedIds.length ?? 0} solved · ${
+                      (selectedLog?.revisionsPassed.length ?? 0) +
+                      (selectedLog?.revisionsFailed.length ?? 0)
+                    } revisions · ${selectedCourseEvents.length} course · ${
+                      selectedLog?.xpEarned ?? 0
+                    } XP · ${selectedLog?.focusMinutes ?? 0} focus min`
                   : 'No activity on this day'}
               </DialogDescription>
             </DialogHeader>
 
-            {!selectedLog ? (
+            {!selectedLog && selectedCourseEvents.length === 0 ? (
               <EmptyState icon={CalendarX} title="No activity on this day" />
             ) : (
               <div className="space-y-4">
-                {selectedLog.solvedIds.length > 0 && (
+                {selectedLog && selectedLog.solvedIds.length > 0 && (
                   <div>
                     <p className="mb-2 text-sm font-medium">Solved</p>
                     <ul className="space-y-1">
@@ -207,7 +253,7 @@ export default function CalendarPage() {
                   </div>
                 )}
 
-                {(selectedLog.revisionsPassed.length > 0 || selectedLog.revisionsFailed.length > 0) && (
+                {selectedLog && (selectedLog.revisionsPassed.length > 0 || selectedLog.revisionsFailed.length > 0) && (
                   <div>
                     <p className="mb-2 text-sm font-medium">Revisions</p>
                     <ul className="space-y-1">
@@ -227,16 +273,41 @@ export default function CalendarPage() {
                   </div>
                 )}
 
-                <div className="flex items-center gap-4 text-sm text-muted-foreground">
-                  <span className="flex items-center gap-1">
-                    <Zap className="h-4 w-4" aria-hidden="true" />
-                    {selectedLog.xpEarned} XP
-                  </span>
-                  <span className="flex items-center gap-1">
-                    <Timer className="h-4 w-4" aria-hidden="true" />
-                    {selectedLog.focusMinutes} focus min
-                  </span>
-                </div>
+                {selectedCourseEvents.length > 0 && (
+                  <div>
+                    <p className="mb-2 text-sm font-medium">Course</p>
+                    <ul className="space-y-1">
+                      {selectedCourseEvents.map((event) => (
+                        <li key={event.key} className="flex items-center gap-2 text-sm">
+                          {event.kind === 'Review' ? (
+                            event.passed ? (
+                              <CheckCircle2 className="h-4 w-4 text-easy" aria-hidden="true" />
+                            ) : (
+                              <XCircle className="h-4 w-4 text-hard" aria-hidden="true" />
+                            )
+                          ) : (
+                            <GraduationCap className="h-4 w-4 text-muted-foreground" aria-hidden="true" />
+                          )}
+                          <span>{event.title}</span>
+                          <span className="text-muted-foreground">· {event.kind}</span>
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                )}
+
+                {selectedLog && (
+                  <div className="flex items-center gap-4 text-sm text-muted-foreground">
+                    <span className="flex items-center gap-1">
+                      <Zap className="h-4 w-4" aria-hidden="true" />
+                      {selectedLog.xpEarned} XP
+                    </span>
+                    <span className="flex items-center gap-1">
+                      <Timer className="h-4 w-4" aria-hidden="true" />
+                      {selectedLog.focusMinutes} focus min
+                    </span>
+                  </div>
+                )}
               </div>
             )}
           </DialogContent>

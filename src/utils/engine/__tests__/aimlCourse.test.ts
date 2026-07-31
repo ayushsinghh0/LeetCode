@@ -1,24 +1,30 @@
 import type { CourseWeekProgress } from '@/types';
 import { COURSE_WEEKS, courseWeekById } from '@/data/aimlCourse';
 import {
+  COURSE_REVIEW_XP,
   COURSE_SESSION_XP,
   COURSE_WEEK_CLEAR_BONUS,
+  applyCourseReview,
+  applyCourseWeekClear,
   courseSchedule,
   courseSessions,
   courseStats,
+  dueCourseReviewWeekIds,
   initialCourseProgress,
   isSessionDone,
   isWeekDone,
+  isWeekRetained,
   nextSession,
+  normalizeCourseWeekProgress,
   projectedFinish,
   remainingSessions,
   sessionCount,
 } from '@/utils/engine/aimlCourse';
 
 const done = (day1: string | null, day2: string | null): CourseWeekProgress => ({
+  ...initialCourseProgress(),
   day1DoneOn: day1,
   day2DoneOn: day2,
-  notes: '',
 });
 
 // Marks every core session done; extras untouched.
@@ -30,13 +36,22 @@ const allCoreDone = (): Record<string, CourseWeekProgress> => {
   return byWeekId;
 };
 
-test('XP register: 20 per session, 50 per cleared week', () => {
+test('XP register: 20 per session, 50 per cleared week, 10 per review', () => {
   expect(COURSE_SESSION_XP).toBe(20);
   expect(COURSE_WEEK_CLEAR_BONUS).toBe(50);
+  expect(COURSE_REVIEW_XP).toBe(10);
 });
 
-test('initialCourseProgress starts both sessions unfinished with empty notes', () => {
-  expect(initialCourseProgress()).toEqual({ day1DoneOn: null, day2DoneOn: null, notes: '' });
+test('initialCourseProgress starts unfinished, unreviewed, with empty notes', () => {
+  expect(initialCourseProgress()).toEqual({
+    day1DoneOn: null,
+    day2DoneOn: null,
+    notes: '',
+    revisionStage: 0,
+    nextRevision: null,
+    lastReviewed: null,
+    revisionHistory: [],
+  });
 });
 
 test('courseSessions: 52 core sessions in week order, day 1 before day 2, extras excluded', () => {
@@ -99,6 +114,71 @@ test('projectedFinish is the planned date of the last remaining session, null wh
   const oneLeft = allCoreDone();
   oneLeft.w26 = done('2026-07-01', null);
   expect(projectedFinish(COURSE_WEEKS, oneLeft, '2026-07-31')).toBe('2026-07-31');
+});
+
+test('applyCourseWeekClear schedules the first review one day out, same ladder as questions', () => {
+  const cleared = applyCourseWeekClear(done('2026-07-29', '2026-07-30'), '2026-07-30');
+  expect(cleared.revisionStage).toBe(0);
+  expect(cleared.nextRevision).toBe('2026-07-31');
+});
+
+test('applyCourseReview walks the 1/3/7/15/30 ladder to retained, and a fail restarts it', () => {
+  let p = applyCourseWeekClear(done('2026-07-29', '2026-07-30'), '2026-07-30');
+
+  p = applyCourseReview(p, '2026-07-31', true); // stage 1 → +3d
+  expect(p.revisionStage).toBe(1);
+  expect(p.nextRevision).toBe('2026-08-03');
+  expect(p.lastReviewed).toBe('2026-07-31');
+  expect(p.revisionHistory).toEqual([{ date: '2026-07-31', passed: true }]);
+
+  p = applyCourseReview(p, '2026-08-03', true); // stage 2 → +7d
+  expect(p.nextRevision).toBe('2026-08-10');
+  p = applyCourseReview(p, '2026-08-10', true); // stage 3 → +15d
+  expect(p.nextRevision).toBe('2026-08-25');
+  p = applyCourseReview(p, '2026-08-25', true); // stage 4 → +30d
+  expect(p.nextRevision).toBe('2026-09-24');
+
+  p = applyCourseReview(p, '2026-09-24', true); // stage 5 → retained
+  expect(isWeekRetained(p)).toBe(true);
+  expect(p.nextRevision).toBeNull();
+
+  const failed = applyCourseReview(
+    { ...done('2026-07-29', '2026-07-30'), revisionStage: 3, nextRevision: '2026-08-25' },
+    '2026-08-25',
+    false,
+  );
+  expect(failed.revisionStage).toBe(0);
+  expect(failed.nextRevision).toBe('2026-08-26'); // due tomorrow
+});
+
+test('dueCourseReviewWeekIds: only cleared, unretained core weeks whose review date has arrived', () => {
+  const clearedDue = applyCourseWeekClear(done('2026-07-28', '2026-07-29'), '2026-07-29'); // due 07-30
+  const clearedLater = applyCourseWeekClear(done('2026-07-29', '2026-07-30'), '2026-07-30'); // due 07-31
+  const retained = { ...done('2026-07-01', '2026-07-02'), revisionStage: 5, nextRevision: null };
+  const halfDone = done('2026-07-30', null);
+
+  const byWeekId: Record<string, CourseWeekProgress> = {
+    w05: clearedDue,
+    w00: clearedLater,
+    w02: retained,
+    w03: halfDone,
+    // extras never enter the ladder, even with hand-edited fields
+    'x-memory-1': { ...done('2026-07-01', null), nextRevision: '2026-07-01' },
+  };
+
+  expect(dueCourseReviewWeekIds(COURSE_WEEKS, byWeekId, '2026-07-30')).toEqual(['w05']);
+  // Next day both are due — ordered by review date, then course order.
+  expect(dueCourseReviewWeekIds(COURSE_WEEKS, byWeekId, '2026-07-31')).toEqual(['w05', 'w00']);
+  expect(dueCourseReviewWeekIds(COURSE_WEEKS, {}, '2026-07-31')).toEqual([]);
+});
+
+test('normalizeCourseWeekProgress fills revision fields missing from pre-ladder entries', () => {
+  const legacy = { day1DoneOn: '2026-07-30', day2DoneOn: null, notes: 'hi' };
+  expect(normalizeCourseWeekProgress(legacy)).toEqual({
+    ...initialCourseProgress(),
+    day1DoneOn: '2026-07-30',
+    notes: 'hi',
+  });
 });
 
 test('courseStats counts core sessions/weeks and extras separately', () => {

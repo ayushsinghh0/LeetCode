@@ -9,12 +9,15 @@
 import type { CourseWeekProgress } from '@/types';
 import type { CourseWeek } from '@/data/aimlCourse';
 import { addDays } from '@/utils/dates';
+import { MASTERED_STAGE, REVISION_INTERVALS } from '@/utils/engine/spacedRepetition';
 
 // Course XP register (deliberately NOT in xp.ts, which is the locked DSA spec):
 // a session is a solid evening of work → medium-solve XP; clearing a week matches
-// the existing weekly-clear bonus register.
+// the existing weekly-clear bonus register; a review is half a session, mirroring
+// the revisionXp = solve/2 rule.
 export const COURSE_SESSION_XP = 20;
 export const COURSE_WEEK_CLEAR_BONUS = 50;
+export const COURSE_REVIEW_XP = 10;
 
 export type CourseDay = 1 | 2;
 
@@ -24,7 +27,22 @@ export interface CourseSession {
 }
 
 export function initialCourseProgress(): CourseWeekProgress {
-  return { day1DoneOn: null, day2DoneOn: null, notes: '' };
+  return {
+    day1DoneOn: null,
+    day2DoneOn: null,
+    notes: '',
+    revisionStage: 0,
+    nextRevision: null,
+    lastReviewed: null,
+    revisionHistory: [],
+  };
+}
+
+// Fills fields missing from pre-ladder persisted entries (first course release stored only
+// day stamps + notes). The boundary layers (loadInitialState, stateImported) run every entry
+// through this so in-memory state always carries the full shape.
+export function normalizeCourseWeekProgress(raw: Partial<CourseWeekProgress>): CourseWeekProgress {
+  return { ...initialCourseProgress(), ...raw };
 }
 
 export function sessionCount(week: CourseWeek): 1 | 2 {
@@ -45,6 +63,59 @@ const progressFor = (
   byWeekId: Record<string, CourseWeekProgress>,
   weekId: string,
 ): CourseWeekProgress => byWeekId[weekId] ?? initialCourseProgress();
+
+// --- Review ladder (cleared core weeks only) -------------------------------------------------
+// Same intervals and stage arithmetic as questions/spacedRepetition, applied to a week: a
+// review means re-deriving the week from its slides and notes, then grading yourself.
+
+export function applyCourseWeekClear(p: CourseWeekProgress, date: string): CourseWeekProgress {
+  return { ...p, revisionStage: 0, nextRevision: addDays(date, REVISION_INTERVALS[0]) };
+}
+
+export function applyCourseReview(
+  p: CourseWeekProgress,
+  date: string,
+  passed: boolean,
+): CourseWeekProgress {
+  const history = [...p.revisionHistory, { date, passed }];
+  if (!passed) {
+    return { ...p, revisionStage: 0, nextRevision: addDays(date, 1), lastReviewed: date, revisionHistory: history };
+  }
+  const stage = p.revisionStage + 1;
+  return {
+    ...p,
+    revisionStage: stage,
+    lastReviewed: date,
+    revisionHistory: history,
+    nextRevision: stage >= MASTERED_STAGE ? null : addDays(date, REVISION_INTERVALS[stage]),
+  };
+}
+
+export const isWeekRetained = (p: CourseWeekProgress): boolean => p.revisionStage >= MASTERED_STAGE;
+
+// Cleared, unretained core weeks whose review date has arrived — ordered by review date,
+// then course order. Extras never enter the ladder.
+export function dueCourseReviewWeekIds(
+  weeks: CourseWeek[],
+  byWeekId: Record<string, CourseWeekProgress>,
+  today: string,
+): string[] {
+  return weeks
+    .map((week, order) => ({ week, order, progress: progressFor(byWeekId, week.id) }))
+    .filter(
+      ({ week, progress }) =>
+        !week.optional &&
+        isWeekDone(week, progress) &&
+        !isWeekRetained(progress) &&
+        progress.nextRevision !== null &&
+        progress.nextRevision <= today,
+    )
+    .sort((a, b) =>
+      a.progress.nextRevision! < b.progress.nextRevision! ? -1 :
+      a.progress.nextRevision! > b.progress.nextRevision! ? 1 : a.order - b.order,
+    )
+    .map(({ week }) => week.id);
+}
 
 // All 52 core sessions in course order: w00·d1, w00·d2, w01·d1, … Extras excluded.
 export function courseSessions(weeks: CourseWeek[]): CourseSession[] {

@@ -1,6 +1,12 @@
 import { createSlice, type PayloadAction } from '@reduxjs/toolkit';
 import type { CourseState, PersistedStateV1 } from '@/types';
-import { initialCourseProgress, type CourseDay } from '@/utils/engine/aimlCourse';
+import {
+  applyCourseReview,
+  applyCourseWeekClear,
+  initialCourseProgress,
+  normalizeCourseWeekProgress,
+  type CourseDay,
+} from '@/utils/engine/aimlCourse';
 import { progressReset, stateImported } from '@/store/sharedActions';
 
 // AI/ML course track. byWeekId is sparse (same rule as progress.byId): only touched weeks
@@ -34,11 +40,34 @@ const courseSlice = createSlice({
       const prev = state.byWeekId[weekId] ?? initialCourseProgress();
       state.byWeekId[weekId] = { ...prev, notes };
     },
+
+    // Enters a just-cleared core week into the review ladder (first review tomorrow). The
+    // thunk decides WHEN this fires (core week fully done); the reducer just applies the math.
+    courseRevisionInitialized(state, action: PayloadAction<{ weekId: string; date: string }>) {
+      const { weekId, date } = action.payload;
+      const prev = state.byWeekId[weekId] ?? initialCourseProgress();
+      state.byWeekId[weekId] = applyCourseWeekClear(prev, date);
+    },
+
+    courseRevisionLogged(
+      state,
+      action: PayloadAction<{ weekId: string; date: string; passed: boolean }>,
+    ) {
+      const { weekId, date, passed } = action.payload;
+      const prev = state.byWeekId[weekId] ?? initialCourseProgress();
+      state.byWeekId[weekId] = applyCourseReview(prev, date, passed);
+    },
   },
   extraReducers: (builder) => {
     builder.addCase(stateImported, (state, action: PayloadAction<PersistedStateV1>) => {
-      // Backups made before the course track existed simply have no `course` key.
-      state.byWeekId = action.payload.course?.byWeekId ?? {};
+      // Backups made before the course track existed simply have no `course` key; entries
+      // from the pre-ladder release are normalized up to the full shape.
+      state.byWeekId = Object.fromEntries(
+        Object.entries(action.payload.course?.byWeekId ?? {}).map(([weekId, progress]) => [
+          weekId,
+          normalizeCourseWeekProgress(progress),
+        ]),
+      );
     });
     builder.addCase(progressReset, (state) => {
       state.byWeekId = {};
@@ -46,6 +75,11 @@ const courseSlice = createSlice({
   },
 });
 
-export const { courseSessionCompleted, courseNotesSet } = courseSlice.actions;
+export const {
+  courseSessionCompleted,
+  courseNotesSet,
+  courseRevisionInitialized,
+  courseRevisionLogged,
+} = courseSlice.actions;
 
 export default courseSlice.reducer;

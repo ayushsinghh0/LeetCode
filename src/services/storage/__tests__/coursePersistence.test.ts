@@ -12,11 +12,25 @@ const preCourseFixture = (): PersistedStateV1 => ({
   gamification: { xp: 0, unlocked: {} },
 });
 
+// Pre-ladder shape: day fields + notes only — written by the first course release. Must keep
+// validating and load with revision fields normalized in.
+const legacyCourseFixture = (): PersistedStateV1 => ({
+  ...preCourseFixture(),
+  course: {
+    byWeekId: {
+      w00: { day1DoneOn: '2026-07-30', day2DoneOn: null, notes: 'tokenizers!' } as never,
+    },
+  },
+});
+
 const courseFixture = (): PersistedStateV1 => ({
   ...preCourseFixture(),
   course: {
     byWeekId: {
-      w00: { day1DoneOn: '2026-07-30', day2DoneOn: null, notes: 'tokenizers!' },
+      w00: {
+        day1DoneOn: '2026-07-30', day2DoneOn: null, notes: 'tokenizers!',
+        revisionStage: 0, nextRevision: null, lastReviewed: null, revisionHistory: [],
+      },
     },
   },
 });
@@ -35,6 +49,20 @@ describe('validatePersisted with the optional course section', () => {
   test('accepts payloads with a well-formed course and payloads without one', () => {
     expect(validatePersisted(courseFixture())).toEqual(courseFixture());
     expect(validatePersisted(preCourseFixture())).toEqual(preCourseFixture());
+  });
+
+  test('accepts pre-ladder course entries (no revision fields) and rejects malformed ones', () => {
+    expect(validatePersisted(legacyCourseFixture())).toEqual(legacyCourseFixture());
+
+    const bad = {
+      ...preCourseFixture(),
+      course: {
+        byWeekId: {
+          w00: { day1DoneOn: null, day2DoneOn: null, notes: '', revisionStage: 'high' },
+        },
+      },
+    };
+    expect(validatePersisted(bad)).toBeNull();
   });
 
   test('rejects a course entry with a wrong-typed day stamp', () => {
@@ -89,6 +117,19 @@ describe('loadInitialState course mapping', () => {
       course: { byWeekId: { w00: { day1DoneOn: '2026-07-30' } } },
     });
     expect(loadInitialState(new WithoutCourse())).not.toHaveProperty('course');
+  });
+
+  test('normalizes pre-ladder entries so loaded state always carries revision fields', () => {
+    class LegacyAdapter {
+      load(): PersistedStateV1 | null { return legacyCourseFixture(); }
+      save(): void {}
+    }
+
+    const preloaded = loadInitialState(new LegacyAdapter());
+    expect(preloaded?.course?.byWeekId.w00).toEqual({
+      day1DoneOn: '2026-07-30', day2DoneOn: null, notes: 'tokenizers!',
+      revisionStage: 0, nextRevision: null, lastReviewed: null, revisionHistory: [],
+    });
   });
 });
 

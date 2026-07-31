@@ -20,14 +20,21 @@ import {
   questionStarted,
   revisionLogged,
 } from '@/store/slices/progressSlice';
-import { courseNotesSet, courseSessionCompleted } from '@/store/slices/courseSlice';
+import {
+  courseNotesSet,
+  courseRevisionInitialized,
+  courseRevisionLogged,
+  courseSessionCompleted,
+} from '@/store/slices/courseSlice';
 import { courseWeekById } from '@/data/aimlCourse';
 import {
+  COURSE_REVIEW_XP,
   COURSE_SESSION_XP,
   COURSE_WEEK_CLEAR_BONUS,
   initialCourseProgress,
   isSessionDone,
   isWeekDone,
+  isWeekRetained,
   sessionCount,
   type CourseDay,
 } from '@/utils/engine/aimlCourse';
@@ -200,12 +207,33 @@ export const completeCourseSession = (weekId: string, day: CourseDay): AppThunk 
 
   const after = getState().course.byWeekId[weekId] ?? initialCourseProgress();
   if (!week.optional && isWeekDone(week, after)) {
+    dispatch(courseRevisionInitialized({ weekId, date })); // first review lands tomorrow
     dispatch(xpAdded(COURSE_WEEK_CLEAR_BONUS));
     dispatch(bonusXpLogged({ date, xp: COURSE_WEEK_CLEAR_BONUS }));
     dispatch(celebrationShown('confetti'));
   }
 
   evaluateAndUnlockAchievements(dispatch, getState, date);
+};
+
+// Grades a week review, pass or fail — same ladder semantics as reviseQuestion (fail → stage 0,
+// due tomorrow), same half-rate XP rule, same double-entry bookkeeping. Only cleared, unretained
+// core weeks are reviewable; like reviseQuestion, dueness is not a precondition (reviewing early
+// is allowed).
+export const reviseCourseWeek = (weekId: string, passed: boolean): AppThunk => (
+  dispatch,
+  getState,
+) => {
+  const week = courseWeekById.get(weekId);
+  if (!week || week.optional) return;
+
+  const before = getState().course.byWeekId[weekId] ?? initialCourseProgress();
+  if (!isWeekDone(week, before) || isWeekRetained(before)) return;
+
+  const date = todayISO();
+  dispatch(courseRevisionLogged({ weekId, date, passed }));
+  dispatch(xpAdded(COURSE_REVIEW_XP));
+  dispatch(bonusXpLogged({ date, xp: COURSE_REVIEW_XP }));
 };
 
 export const saveCourseNotes = (weekId: string, notes: string): AppThunk => (dispatch) => {

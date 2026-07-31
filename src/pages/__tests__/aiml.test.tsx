@@ -101,6 +101,35 @@ describe('AimlCoursePage', () => {
     expect(within(extras).getAllByRole('button', { name: /^Mark .* done$/ })).toHaveLength(5);
   });
 
+  test('a due week review surfaces in the Review due plate; passing climbs the ladder', () => {
+    // Clear Week 0 on the 29th so its first review lands on the pinned "today" (the 30th).
+    vi.setSystemTime(new Date('2026-07-29T12:00:00'));
+    const store = makeStore();
+    store.dispatch(completeCourseSession('w00', 1));
+    store.dispatch(completeCourseSession('w00', 2));
+    vi.setSystemTime(new Date('2026-07-30T12:00:00'));
+
+    renderWithStore(<AimlCoursePage />, store);
+
+    const plate = screen.getByRole('heading', { name: 'Review due' }).closest('section')!;
+    expect(within(plate).getByText('Week 0 — Orientation')).toBeInTheDocument();
+    expect(within(plate).getByRole('button', { name: 'Fail Week 0 review' })).toBeInTheDocument();
+
+    // The syllabus row carries the retention meta too.
+    const syllabus = screen.getByRole('heading', { name: 'Syllabus' }).closest('section')!;
+    expect(
+      within(syllabus).getByText('taught Jan 9 · cleared Jul 29 · review Jul 30'),
+    ).toBeInTheDocument();
+
+    const xpBefore = store.getState().gamification.xp;
+    fireEvent.click(within(plate).getByRole('button', { name: 'Pass Week 0 review' }));
+
+    expect(store.getState().gamification.xp).toBe(xpBefore + 10);
+    expect(store.getState().course.byWeekId.w00.revisionStage).toBe(1);
+    // Nothing else is due, so the plate disappears entirely.
+    expect(screen.queryByRole('heading', { name: 'Review due' })).not.toBeInTheDocument();
+  });
+
   test('week notes open in a dialog and autosave on blur', () => {
     const { store } = renderWithStore(<AimlCoursePage />);
 

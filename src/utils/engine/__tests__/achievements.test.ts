@@ -9,6 +9,7 @@ import {
   ACHIEVEMENTS, buildAchievementCtx, evaluateAchievements,
   type AchievementCtx,
 } from '@/utils/engine/achievements';
+import { initialCourseProgress } from '@/utils/engine/aimlCourse';
 
 const questions = questionsJson as Question[];
 
@@ -174,7 +175,7 @@ test('course achievements: counters and specific-week arcs check the right ctx f
 });
 
 test('buildAchievementCtx computes course stats from byWeekId, and defaults to zeros when omitted', () => {
-  const doneWeek = { day1DoneOn: '2026-07-01', day2DoneOn: '2026-07-02', notes: '' };
+  const doneWeek = { ...initialCourseProgress(), day1DoneOn: '2026-07-01', day2DoneOn: '2026-07-02' };
   const ctx = buildAchievementCtx([], {}, {}, '2026-07-30', {
     w03: doneWeek,
     w04: doneWeek,

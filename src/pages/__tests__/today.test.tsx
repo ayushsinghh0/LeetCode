@@ -7,7 +7,7 @@ import { makeStore, type AppStore } from '@/store/store';
 import { TooltipProvider } from '@/components/ui/tooltip';
 import TodayPage from '@/pages/TodayPage';
 import { useCelebration, __setConfettiForTests } from '@/hooks/useCelebration';
-import { solveQuestion } from '@/store/actions';
+import { completeCourseSession, solveQuestion } from '@/store/actions';
 import { celebrationShown } from '@/store/slices/uiSlice';
 import questionsData from '@/data/questions.json';
 import type { Question } from '@/types';
@@ -135,6 +135,23 @@ describe('TodayPage', () => {
     expect(store.getState().course.byWeekId.w00.day1DoneOn).toBe('2026-07-30');
     expect(store.getState().gamification.xp).toBe(20);
     expect(screen.getByText('Day 2 · Practice')).toBeInTheDocument();
+
+    vi.useRealTimers();
+  });
+
+  test('AI/ML course card counts due week reviews', () => {
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date('2026-07-29T12:00:00'));
+
+    const store = makeStore();
+    store.dispatch(completeCourseSession('w00', 1));
+    store.dispatch(completeCourseSession('w00', 2)); // first review lands tomorrow (the 30th)
+    vi.setSystemTime(new Date('2026-07-30T12:00:00'));
+
+    renderWithStore(<TodayPage />, store);
+
+    expect(screen.getByText('Week 1 — Fast-tracking the Course of AI')).toBeInTheDocument();
+    expect(screen.getByText('1 week review due')).toBeInTheDocument();
 
     vi.useRealTimers();
   });

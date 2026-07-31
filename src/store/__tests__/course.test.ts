@@ -1,5 +1,11 @@
 import { makeStore } from '@/store/store';
-import { completeCourseSession, saveCourseNotes, importProgress, resetProgress } from '@/store/actions';
+import {
+  completeCourseSession,
+  reviseCourseWeek,
+  saveCourseNotes,
+  importProgress,
+  resetProgress,
+} from '@/store/actions';
 import {
   selectCourseNextSession,
   selectCourseProjectedFinish,
@@ -60,6 +66,18 @@ describe('completeCourseSession', () => {
     expect(store.getState().ui.celebration).toBe('confetti');
   });
 
+  test('clearing a core week enters the review ladder: first review due tomorrow', () => {
+    const store = makeStore();
+    store.dispatch(completeCourseSession('w00', 1));
+    store.dispatch(completeCourseSession('w00', 2));
+
+    expect(store.getState().course.byWeekId.w00.revisionStage).toBe(0);
+    expect(store.getState().course.byWeekId.w00.nextRevision).toBe('2026-07-31');
+    // Extras never enter the ladder.
+    store.dispatch(completeCourseSession('x-memory-1', 1));
+    expect(store.getState().course.byWeekId['x-memory-1'].nextRevision).toBeNull();
+  });
+
   test('course milestones unlock achievements and queue their toasts', () => {
     const store = makeStore();
     store.dispatch(completeCourseSession('w00', 1));
@@ -90,6 +108,50 @@ describe('completeCourseSession', () => {
   });
 });
 
+describe('reviseCourseWeek', () => {
+  test('a pass climbs the ladder and earns 10 XP through both registers', () => {
+    const store = makeStore();
+    store.dispatch(completeCourseSession('w00', 1));
+    store.dispatch(completeCourseSession('w00', 2));
+    const xpAfterClear = store.getState().gamification.xp;
+
+    store.dispatch(reviseCourseWeek('w00', true));
+
+    const p = store.getState().course.byWeekId.w00;
+    expect(p.revisionStage).toBe(1);
+    expect(p.nextRevision).toBe('2026-08-02'); // today + 3
+    expect(p.revisionHistory).toEqual([{ date: '2026-07-30', passed: true }]);
+    expect(store.getState().gamification.xp).toBe(xpAfterClear + 10);
+    expect(store.getState().progress.dayLogs['2026-07-30'].xpEarned).toBe(xpAfterClear + 10);
+    // Reviews never fake DSA streak activity.
+    expect(store.getState().progress.dayLogs['2026-07-30'].revisionsPassed).toEqual([]);
+  });
+
+  test('a fail restarts the ladder, due tomorrow', () => {
+    const store = makeStore();
+    store.dispatch(completeCourseSession('w00', 1));
+    store.dispatch(completeCourseSession('w00', 2));
+
+    store.dispatch(reviseCourseWeek('w00', false));
+
+    expect(store.getState().course.byWeekId.w00.revisionStage).toBe(0);
+    expect(store.getState().course.byWeekId.w00.nextRevision).toBe('2026-07-31');
+  });
+
+  test('no-ops on uncleared weeks, extras, and unknown ids', () => {
+    const store = makeStore();
+    store.dispatch(completeCourseSession('w00', 1)); // half done
+    const xpBefore = store.getState().gamification.xp;
+
+    store.dispatch(reviseCourseWeek('w00', true));
+    store.dispatch(reviseCourseWeek('x-memory-1', true));
+    store.dispatch(reviseCourseWeek('nope', true));
+
+    expect(store.getState().gamification.xp).toBe(xpBefore);
+    expect(store.getState().course.byWeekId.w00.revisionHistory).toEqual([]);
+  });
+});
+
 describe('saveCourseNotes', () => {
   test('saves markdown notes without awarding XP', () => {
     const store = makeStore();
@@ -116,15 +178,20 @@ describe('course selectors', () => {
 });
 
 describe('course import/reset lifecycle', () => {
-  test('stateImported restores course progress, and defaults to empty when the backup predates it', () => {
+  test('stateImported restores course progress (normalizing pre-ladder entries), empty when the backup predates it', () => {
     const store = makeStore();
+    // Pre-ladder backup entry: day stamps + notes only — the import path must fill the
+    // revision fields in.
+    const legacyEntry = { day1DoneOn: '2026-07-01', day2DoneOn: null, notes: 'hi' };
     store.dispatch(
       importProgress({
         ...basePersisted(),
-        course: { byWeekId: { w05: { day1DoneOn: '2026-07-01', day2DoneOn: null, notes: 'hi' } } },
+        course: { byWeekId: { w05: legacyEntry as never } },
       }),
     );
     expect(store.getState().course.byWeekId.w05.notes).toBe('hi');
+    expect(store.getState().course.byWeekId.w05.revisionStage).toBe(0);
+    expect(store.getState().course.byWeekId.w05.revisionHistory).toEqual([]);
 
     store.dispatch(importProgress(basePersisted())); // old backup, no course key
     expect(store.getState().course.byWeekId).toEqual({});

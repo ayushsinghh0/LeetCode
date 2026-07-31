@@ -77,13 +77,20 @@ function isValidProgressEntry(value: unknown): value is QuestionProgress {
   );
 }
 
-// Per-entry shape check for course.byWeekId[weekId].
+// Per-entry shape check for course.byWeekId[weekId]. The review-ladder fields shipped one
+// release after the day stamps, so they are optional-when-absent (pre-ladder payloads must
+// keep loading; loadInitialState/stateImported normalize them in) but strictly typed when
+// present.
 function isValidCourseEntry(value: unknown): value is CourseWeekProgress {
   if (!isPlainObject(value)) return false;
   return (
     isNullableString(value.day1DoneOn) &&
     isNullableString(value.day2DoneOn) &&
-    typeof value.notes === 'string'
+    typeof value.notes === 'string' &&
+    (!('revisionStage' in value) || typeof value.revisionStage === 'number') &&
+    (!('nextRevision' in value) || isNullableString(value.nextRevision)) &&
+    (!('lastReviewed' in value) || isNullableString(value.lastReviewed)) &&
+    (!('revisionHistory' in value) || isRevisionEventArray(value.revisionHistory))
   );
 }
 

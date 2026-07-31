@@ -7,7 +7,13 @@ import { useAppDispatch } from '@/store/hooks';
 import { completeCourseSession } from '@/store/actions';
 import type { CourseWeek } from '@/data/aimlCourse';
 import type { CourseWeekProgress } from '@/types';
-import { isWeekDone, sessionCount, type CourseDay, type WeekSchedule } from '@/utils/engine/aimlCourse';
+import {
+  isWeekDone,
+  isWeekRetained,
+  sessionCount,
+  type CourseDay,
+  type WeekSchedule,
+} from '@/utils/engine/aimlCourse';
 
 const monthDay = (iso: string): string => format(parseISO(iso), 'MMM d');
 
@@ -65,7 +71,14 @@ export function CourseWeekRow({ week, progress, planned, isCurrent, onOpenNotes 
   const clearedLabel = (() => {
     if (!done) return null;
     const last = week.optional ? progress.day1DoneOn : progress.day2DoneOn;
-    return last ? `cleared ${monthDay(last)}` : null;
+    const cleared = last ? `cleared ${monthDay(last)}` : null;
+    if (week.optional) return cleared; // extras never enter the review ladder
+    const retention = isWeekRetained(progress)
+      ? 'retained'
+      : progress.nextRevision
+        ? `review ${monthDay(progress.nextRevision)}`
+        : null;
+    return [cleared, retention].filter(Boolean).join(' · ') || null;
   })();
 
   return (

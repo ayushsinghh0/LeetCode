@@ -20,6 +20,7 @@ import { COURSE_WEEKS } from '@/data/aimlCourse';
 import {
   courseSchedule,
   courseStats,
+  dueCourseReviewWeekIds,
   nextSession,
   projectedFinish,
 } from '@/utils/engine/aimlCourse';
@@ -189,4 +190,9 @@ export const selectCourseSchedule = createSelector(
 export const selectCourseProjectedFinish = createSelector(
   [selectCourseByWeekId, selectTodayArg],
   (byWeekId, today) => projectedFinish(COURSE_WEEKS, byWeekId, today),
+);
+
+export const selectCourseDueReviewIds = createSelector(
+  [selectCourseByWeekId, selectTodayArg],
+  (byWeekId, today) => dueCourseReviewWeekIds(COURSE_WEEKS, byWeekId, today),
 );

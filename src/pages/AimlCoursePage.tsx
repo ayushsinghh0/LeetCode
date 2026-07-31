@@ -1,7 +1,16 @@
 import { useState } from 'react';
 import { motion } from 'framer-motion';
 import { format, parseISO } from 'date-fns';
-import { BookOpenCheck, CalendarClock, ExternalLink, GraduationCap, ListChecks, Sparkles } from 'lucide-react';
+import {
+  BookOpenCheck,
+  CalendarClock,
+  CheckCircle2,
+  ExternalLink,
+  GraduationCap,
+  ListChecks,
+  Sparkles,
+  XCircle,
+} from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Progress } from '@/components/ui/progress';
@@ -12,8 +21,9 @@ import { CourseNotesEditor } from '@/components/course/CourseNotesEditor';
 import { CourseWeekRow } from '@/components/course/CourseWeekRow';
 import { useToday } from '@/hooks/useToday';
 import { useAppDispatch, useAppSelector } from '@/store/hooks';
-import { completeCourseSession } from '@/store/actions';
+import { completeCourseSession, reviseCourseWeek } from '@/store/actions';
 import {
+  selectCourseDueReviewIds,
   selectCourseNextSession,
   selectCourseProjectedFinish,
   selectCourseSchedule,
@@ -44,6 +54,7 @@ export default function AimlCoursePage() {
   const next = useAppSelector(selectCourseNextSession);
   const schedule = useAppSelector((s) => selectCourseSchedule(s, today));
   const finish = useAppSelector((s) => selectCourseProjectedFinish(s, today));
+  const dueReviewIds = useAppSelector((s) => selectCourseDueReviewIds(s, today));
   // Single subscription to the whole byWeekId map — rows read their own entry out of it,
   // mirroring TodayPage's progressById pattern.
   const byWeekId = useAppSelector((s) => s.course.byWeekId);
@@ -138,6 +149,59 @@ export default function AimlCoursePage() {
           </div>
         )}
       </motion.section>
+
+      {dueReviewIds.length > 0 && (
+        <motion.section variants={blockVariants} className="glass flex flex-col gap-3 p-6">
+          <div className="flex items-center gap-2">
+            <h2 className="text-lg font-semibold">Review due</h2>
+            <Badge variant="secondary">{dueReviewIds.length}</Badge>
+          </div>
+          <p className="text-sm text-muted-foreground">
+            Re-derive each week from its slides and your notes, then grade yourself — a fail
+            restarts its ladder.
+          </p>
+          <ul className="list-none">
+            {dueReviewIds.map((weekId) => {
+              const week = courseWeekById.get(weekId);
+              if (!week) return null;
+              const progress = byWeekId[weekId] ?? initialCourseProgress();
+              return (
+                <li
+                  key={weekId}
+                  className="flex flex-col gap-2 border-t border-border py-3 first:border-t-0 first:pt-0 last:pb-0 md:flex-row md:items-center"
+                >
+                  <div className="min-w-0 flex-1 space-y-1">
+                    <p className="font-medium">
+                      Week {week.week} — {week.title}
+                    </p>
+                    <p className="figures text-xs text-muted-foreground/80">
+                      stage {progress.revisionStage} of 5
+                      {progress.nextRevision && ` · due ${monthDay(progress.nextRevision)}`}
+                    </p>
+                  </div>
+                  <div className="flex shrink-0 gap-1.5">
+                    <Button
+                      size="sm"
+                      aria-label={`Pass Week ${week.week} review`}
+                      onClick={() => dispatch(reviseCourseWeek(weekId, true))}
+                    >
+                      <CheckCircle2 /> Pass
+                    </Button>
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      aria-label={`Fail Week ${week.week} review`}
+                      onClick={() => dispatch(reviseCourseWeek(weekId, false))}
+                    >
+                      <XCircle /> Fail
+                    </Button>
+                  </div>
+                </li>
+              );
+            })}
+          </ul>
+        </motion.section>
+      )}
 
       <motion.section variants={blockVariants}>
         <h2 className="mb-3 text-lg font-semibold">Syllabus</h2>

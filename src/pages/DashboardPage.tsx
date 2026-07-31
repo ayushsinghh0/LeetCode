@@ -18,6 +18,7 @@ import { useToday } from '@/hooks/useToday';
 import { useAppDispatch, useAppSelector } from '@/store/hooks';
 import { activeQuestionSet } from '@/store/slices/uiSlice';
 import {
+  selectCourseDueReviewIds,
   selectCourseNextSession,
   selectCourseProjectedFinish,
   selectCourseStats,
@@ -79,6 +80,7 @@ export default function DashboardPage() {
   const courseStats = useAppSelector(selectCourseStats);
   const courseNext = useAppSelector(selectCourseNextSession);
   const courseFinish = useAppSelector((s) => selectCourseProjectedFinish(s, today));
+  const courseDueReviews = useAppSelector((s) => selectCourseDueReviewIds(s, today));
   const todaysNew = useAppSelector(selectTodaysNewQuestions);
   const progressById = useAppSelector((s) => s.progress.byId);
 
@@ -210,6 +212,8 @@ export default function DashboardPage() {
               courseWeekById.get(courseNext.weekId) &&
               ` · next: Week ${courseWeekById.get(courseNext.weekId)!.week} — ${courseWeekById.get(courseNext.weekId)!.title}`}
             {courseFinish && ` · finish ${format(parseISO(courseFinish), 'MMM d')}`}
+            {courseDueReviews.length > 0 &&
+              ` · ${courseDueReviews.length} review${courseDueReviews.length === 1 ? '' : 's'} due`}
             {courseNext === null && ' · complete'}
           </p>
         </motion.div>

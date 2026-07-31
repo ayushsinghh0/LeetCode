@@ -59,11 +59,16 @@ export interface SettingsState {
 
 // AI/ML course track (100xDevs cohort). A core week has two sessions — day 1 lecture,
 // day 2 practice; optional extras use day 1 only. Dates are ISO yyyy-MM-dd, stamped when
-// the session was marked done.
+// the session was marked done. Cleared core weeks climb the same 1/3/7/15/30 review ladder
+// as questions (stage 5 = retained, nextRevision null); extras never enter the ladder.
 export interface CourseWeekProgress {
   day1DoneOn: string | null;
   day2DoneOn: string | null;
   notes: string; // markdown, like QuestionProgress.notes
+  revisionStage: number; // 0..5; 5 = retained
+  nextRevision: string | null;
+  lastReviewed: string | null;
+  revisionHistory: RevisionEvent[];
 }
 
 export interface CourseState {

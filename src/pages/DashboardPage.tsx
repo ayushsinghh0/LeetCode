@@ -18,6 +18,9 @@ import { useToday } from '@/hooks/useToday';
 import { useAppDispatch, useAppSelector } from '@/store/hooks';
 import { activeQuestionSet } from '@/store/slices/uiSlice';
 import {
+  selectCourseNextSession,
+  selectCourseProjectedFinish,
+  selectCourseStats,
   selectCurrentDay,
   selectDueRevisionIds,
   selectEstimatedFinish,
@@ -36,6 +39,7 @@ import {
   selectTotalDays,
   selectWeakestPatterns,
 } from '@/store/selectors';
+import { courseWeekById } from '@/data/aimlCourse';
 import { HeuristicRecommender, seededRandomQuestion } from '@/utils/engine/recommendations';
 
 const heroVariants = {
@@ -72,6 +76,9 @@ export default function DashboardPage() {
   const dueIds = useAppSelector((s) => selectDueRevisionIds(s, today));
   const revisionQueueIds = useAppSelector((s) => selectRevisionQueueIds(s, today));
   const todayLog = useAppSelector((s) => selectTodayLog(s, today));
+  const courseStats = useAppSelector(selectCourseStats);
+  const courseNext = useAppSelector(selectCourseNextSession);
+  const courseFinish = useAppSelector((s) => selectCourseProjectedFinish(s, today));
   const todaysNew = useAppSelector(selectTodaysNewQuestions);
   const progressById = useAppSelector((s) => s.progress.byId);
 
@@ -188,7 +195,26 @@ export default function DashboardPage() {
           <StatCard label="Productivity" value={`${productivity} / 100`} icon={Gauge} />
         </motion.div>
 
-        {/* Row 3 */}
+        {/* Row 3: the AI/ML track, one quiet plate beside the DSA world. */}
+        <motion.div variants={itemVariants} className="glass flex flex-col gap-3 p-5">
+          <div className="flex items-center justify-between gap-3 border-b border-border/70 pb-2">
+            <h2 className="text-base font-medium">AI/ML Course</h2>
+            <Button asChild size="sm" variant="outline">
+              <Link to="/aiml">Continue</Link>
+            </Button>
+          </div>
+          <Progress value={courseStats.pct} aria-label="AI/ML course completion" />
+          <p className="figures text-sm text-muted-foreground">
+            {courseStats.sessionsDone} / {courseStats.sessionsTotal} sessions
+            {courseNext &&
+              courseWeekById.get(courseNext.weekId) &&
+              ` · next: Week ${courseWeekById.get(courseNext.weekId)!.week} — ${courseWeekById.get(courseNext.weekId)!.title}`}
+            {courseFinish && ` · finish ${format(parseISO(courseFinish), 'MMM d')}`}
+            {courseNext === null && ' · complete'}
+          </p>
+        </motion.div>
+
+        {/* Row 4 */}
         <motion.div variants={itemVariants} className="grid grid-cols-1 gap-4 lg:grid-cols-3">
           <div className="glass flex flex-col gap-3 p-5">
             <h2 className="border-b border-border/70 pb-2 text-base font-medium">Today&apos;s Progress</h2>
@@ -240,7 +266,7 @@ export default function DashboardPage() {
           </div>
         </motion.div>
 
-        {/* Row 4: heatmap */}
+        {/* Row 5: heatmap */}
         <motion.div variants={itemVariants} className="glass p-5">
           <h2 className="mb-3 border-b border-border/70 pb-2 text-base font-medium">Activity</h2>
           <Heatmap data={heatmapData} onSelectDate={() => navigate('/calendar')} />

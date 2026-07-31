@@ -20,6 +20,17 @@ import {
   questionStarted,
   revisionLogged,
 } from '@/store/slices/progressSlice';
+import { courseNotesSet, courseSessionCompleted } from '@/store/slices/courseSlice';
+import { courseWeekById } from '@/data/aimlCourse';
+import {
+  COURSE_SESSION_XP,
+  COURSE_WEEK_CLEAR_BONUS,
+  initialCourseProgress,
+  isSessionDone,
+  isWeekDone,
+  sessionCount,
+  type CourseDay,
+} from '@/utils/engine/aimlCourse';
 import { achievementsUnlocked, xpAdded } from '@/store/slices/gamificationSlice';
 import { celebrationShown, toastPushed } from '@/store/slices/uiSlice';
 import { progressReset, stateImported } from '@/store/sharedActions';
@@ -158,6 +169,40 @@ export const reviseQuestion = (id: number, passed: boolean): AppThunk => (dispat
   }
 
   evaluateAndUnlockAchievements(dispatch, getState, date);
+};
+
+// Marks one AI/ML course session done (one-way, like solveQuestion — no undo anywhere in the
+// app). Awards COURSE_SESSION_XP through both registers (gamification.xp and the day's ledger,
+// via bonusXpLogged) so Σ dayLogs[*].xpEarned stays in sync with gamification.xp. Course work
+// deliberately never touches solvedIds/revision arrays, so it can't fake DSA streak/heatmap
+// activity. Completing a core week's second session adds COURSE_WEEK_CLEAR_BONUS + confetti.
+export const completeCourseSession = (weekId: string, day: CourseDay): AppThunk => (
+  dispatch,
+  getState,
+) => {
+  const week = courseWeekById.get(weekId);
+  if (!week) return;
+  if (day > sessionCount(week)) return; // extras are single-session
+
+  const before = getState().course.byWeekId[weekId] ?? initialCourseProgress();
+  if (isSessionDone(before, day)) return; // idempotency choke point, mirrors solveQuestion
+
+  const date = todayISO();
+  dispatch(courseSessionCompleted({ weekId, day, date }));
+  dispatch(xpAdded(COURSE_SESSION_XP));
+  dispatch(bonusXpLogged({ date, xp: COURSE_SESSION_XP }));
+
+  const after = getState().course.byWeekId[weekId] ?? initialCourseProgress();
+  if (!week.optional && isWeekDone(week, after)) {
+    dispatch(xpAdded(COURSE_WEEK_CLEAR_BONUS));
+    dispatch(bonusXpLogged({ date, xp: COURSE_WEEK_CLEAR_BONUS }));
+    dispatch(celebrationShown('confetti'));
+  }
+};
+
+export const saveCourseNotes = (weekId: string, notes: string): AppThunk => (dispatch) => {
+  if (!courseWeekById.has(weekId)) return;
+  dispatch(courseNotesSet({ weekId, notes }));
 };
 
 export const importProgress = (state: PersistedStateV1): AppThunk => (dispatch) => {

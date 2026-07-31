@@ -6,6 +6,7 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Progress } from '@/components/ui/progress';
 import { QuestionCard } from '@/components/questions/QuestionCard';
+import { CourseTodayCard } from '@/components/course/CourseTodayCard';
 import { useToday } from '@/hooks/useToday';
 import { useAppDispatch, useAppSelector } from '@/store/hooks';
 import { activeQuestionSet } from '@/store/slices/uiSlice';
@@ -92,6 +93,8 @@ export default function TodayPage() {
           <p className="mt-1 text-sm font-medium text-primary">Daily goal crushed — come back tomorrow 🎉</p>
         )}
       </div>
+
+      <CourseTodayCard />
 
       <section>
         <h2 className="mb-3 text-lg font-semibold">New Questions</h2>

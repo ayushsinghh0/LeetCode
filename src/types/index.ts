@@ -57,6 +57,19 @@ export interface SettingsState {
   notifications: boolean;         // default false (stub)
 }
 
+// AI/ML course track (100xDevs cohort). A core week has two sessions — day 1 lecture,
+// day 2 practice; optional extras use day 1 only. Dates are ISO yyyy-MM-dd, stamped when
+// the session was marked done.
+export interface CourseWeekProgress {
+  day1DoneOn: string | null;
+  day2DoneOn: string | null;
+  notes: string; // markdown, like QuestionProgress.notes
+}
+
+export interface CourseState {
+  byWeekId: Record<string, CourseWeekProgress>; // sparse — only touched weeks exist
+}
+
 export interface PersistedStateV1 {
   version: 1;
   progress: {
@@ -66,4 +79,6 @@ export interface PersistedStateV1 {
   };
   settings: SettingsState;
   gamification: { xp: number; unlocked: Record<string, string> }; // achievementId -> ISO date
+  // Optional so pre-course backups (and older stored payloads) keep validating/loading.
+  course?: CourseState;
 }

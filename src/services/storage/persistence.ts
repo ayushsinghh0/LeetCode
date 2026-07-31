@@ -61,5 +61,7 @@ export function loadInitialState(adapter: StorageAdapter): Partial<RootState> | 
     },
     settings: persisted.settings,
     gamification: persisted.gamification,
+    // Absent in pre-course payloads — omit the key so the slice's own initialState applies.
+    ...(persisted.course ? { course: { byWeekId: persisted.course.byWeekId } } : {}),
   };
 }

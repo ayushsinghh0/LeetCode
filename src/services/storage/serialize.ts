@@ -1,10 +1,22 @@
-import type { Confidence, DayLog, PersistedStateV1, QuestionProgress, QuestionStatus, RevisionEvent } from '@/types';
+import type {
+  Confidence,
+  CourseWeekProgress,
+  DayLog,
+  PersistedStateV1,
+  QuestionProgress,
+  QuestionStatus,
+  RevisionEvent,
+} from '@/types';
 import type { RootState } from '@/store/store';
 
-// Projects the persistable slices (progress, settings, gamification) out of RootState. `ui` is
-// deliberately excluded — it holds only ephemeral session state (celebration, toast queue,
-// search-open flag) that PersistedStateV1 has no room for and that should not survive a reload.
+// Projects the persistable slices (progress, settings, gamification, course) out of RootState.
+// `ui` is deliberately excluded — it holds only ephemeral session state (celebration, toast
+// queue, search-open flag) that PersistedStateV1 has no room for and that should not survive a
+// reload. `course` is written only once it holds progress: untouched-course payloads stay
+// byte-identical to pre-course ones, so nothing changes for users (or fixtures) that never
+// touched the AI/ML track.
 export function selectPersistedState(root: RootState): PersistedStateV1 {
+  const courseByWeekId = root.course.byWeekId;
   return {
     version: 1,
     progress: {
@@ -14,6 +26,7 @@ export function selectPersistedState(root: RootState): PersistedStateV1 {
     },
     settings: { ...root.settings },
     gamification: { ...root.gamification },
+    ...(Object.keys(courseByWeekId).length > 0 ? { course: { byWeekId: courseByWeekId } } : {}),
   };
 }
 
@@ -64,6 +77,16 @@ function isValidProgressEntry(value: unknown): value is QuestionProgress {
   );
 }
 
+// Per-entry shape check for course.byWeekId[weekId].
+function isValidCourseEntry(value: unknown): value is CourseWeekProgress {
+  if (!isPlainObject(value)) return false;
+  return (
+    isNullableString(value.day1DoneOn) &&
+    isNullableString(value.day2DoneOn) &&
+    typeof value.notes === 'string'
+  );
+}
+
 // Per-entry shape check for progress.dayLogs[date] — in particular that solvedIds/revisionsPassed/
 // revisionsFailed are actually arrays of numbers, not just "present".
 function isValidDayLogEntry(value: unknown): value is DayLog {
@@ -111,6 +134,15 @@ export function validatePersisted(raw: unknown): PersistedStateV1 | null {
   if (typeof gamification.xp !== 'number') return null;
   if (!isPlainObject(gamification.unlocked)) return null;
   if (!Object.values(gamification.unlocked).every((v) => typeof v === 'string')) return null;
+
+  // `course` is optional (absent in pre-course payloads) — but when present it must be fully
+  // well-formed, same reject-wholesale rule as every other section.
+  if ('course' in raw && raw.course !== undefined) {
+    const course = raw.course;
+    if (!isPlainObject(course)) return null;
+    if (!isPlainObject(course.byWeekId)) return null;
+    if (!Object.values(course.byWeekId).every(isValidCourseEntry)) return null;
+  }
 
   return raw as unknown as PersistedStateV1;
 }

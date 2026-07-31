@@ -3,12 +3,14 @@ import type { Middleware, ThunkAction, UnknownAction } from '@reduxjs/toolkit';
 import progressReducer from '@/store/slices/progressSlice';
 import settingsReducer from '@/store/slices/settingsSlice';
 import gamificationReducer from '@/store/slices/gamificationSlice';
+import courseReducer from '@/store/slices/courseSlice';
 import uiReducer from '@/store/slices/uiSlice';
 
 const rootReducer = combineReducers({
   progress: progressReducer,
   settings: settingsReducer,
   gamification: gamificationReducer,
+  course: courseReducer,
   ui: uiReducer,
 });
 

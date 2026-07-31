@@ -16,6 +16,14 @@ import { buildAchievementCtx } from '@/utils/engine/achievements';
 import { weakestPatterns } from '@/utils/engine/recommendations';
 import { revisionLoadForecast } from '@/utils/engine/predictor';
 import { weeklyTopUp } from '@/utils/engine/weeklyRevision';
+import { COURSE_WEEKS } from '@/data/aimlCourse';
+import {
+  courseSchedule,
+  courseStats,
+  nextSession,
+  projectedFinish,
+} from '@/utils/engine/aimlCourse';
+import type { CourseWeekProgress } from '@/types';
 
 const questions = questionsData as Question[];
 const questionById = new Map(questions.map((q) => [q.id, q]));
@@ -157,4 +165,29 @@ export const selectTodayLog = createSelector(
 export const selectAchievementCtx = createSelector(
   [selectProgressById, selectDayLogs, selectTodayArg],
   (byId, dayLogs, today) => buildAchievementCtx(questions, byId, dayLogs, today),
+);
+
+// --- AI/ML course track -------------------------------------------------------------------
+
+const selectCourseByWeekId = (state: RootState): Record<string, CourseWeekProgress> =>
+  state.course.byWeekId;
+
+export const selectCourseProgressById = selectCourseByWeekId;
+
+export const selectCourseStats = createSelector([selectCourseByWeekId], (byWeekId) =>
+  courseStats(COURSE_WEEKS, byWeekId),
+);
+
+export const selectCourseNextSession = createSelector([selectCourseByWeekId], (byWeekId) =>
+  nextSession(COURSE_WEEKS, byWeekId),
+);
+
+export const selectCourseSchedule = createSelector(
+  [selectCourseByWeekId, selectTodayArg],
+  (byWeekId, today) => courseSchedule(COURSE_WEEKS, byWeekId, today),
+);
+
+export const selectCourseProjectedFinish = createSelector(
+  [selectCourseByWeekId, selectTodayArg],
+  (byWeekId, today) => projectedFinish(COURSE_WEEKS, byWeekId, today),
 );

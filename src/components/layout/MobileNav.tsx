@@ -7,6 +7,7 @@ import {
   RotateCcw,
   BarChart3,
   MoreHorizontal,
+  GraduationCap,
   Shapes,
   CalendarDays,
   Trophy,
@@ -35,6 +36,7 @@ const PRIMARY_ITEMS: MobileNavItem[] = [
 ];
 
 const MORE_ITEMS: MobileNavItem[] = [
+  { to: '/aiml', label: 'AI/ML', icon: GraduationCap },
   { to: '/patterns', label: 'Patterns', icon: Shapes },
   { to: '/calendar', label: 'Calendar', icon: CalendarDays },
   { to: '/achievements', label: 'Achievements', icon: Trophy },

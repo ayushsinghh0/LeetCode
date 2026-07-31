@@ -8,6 +8,7 @@ import { AppShell } from '@/components/layout/AppShell';
 const DashboardPage = lazy(() => import('@/pages/DashboardPage'));
 const TodayPage = lazy(() => import('@/pages/TodayPage'));
 const RoadmapPage = lazy(() => import('@/pages/RoadmapPage'));
+const AimlCoursePage = lazy(() => import('@/pages/AimlCoursePage'));
 const PatternsPage = lazy(() => import('@/pages/PatternsPage'));
 const PatternDetailPage = lazy(() => import('@/pages/PatternDetailPage'));
 const RevisionPage = lazy(() => import('@/pages/RevisionPage'));
@@ -46,6 +47,7 @@ export function AppRoutes() {
           <Route path="/" element={<DashboardPage />} />
           <Route path="/today" element={<TodayPage />} />
           <Route path="/roadmap" element={<RoadmapPage />} />
+          <Route path="/aiml" element={<AimlCoursePage />} />
           <Route path="/patterns" element={<PatternsPage />} />
           <Route path="/patterns/:patternId" element={<PatternDetailPage />} />
           <Route path="/revision" element={<RevisionPage />} />

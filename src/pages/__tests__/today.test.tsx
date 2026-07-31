@@ -1,7 +1,7 @@
 import type { ReactNode } from 'react';
 import { act } from 'react';
 import { Provider } from 'react-redux';
-import { render, screen, within } from '@testing-library/react';
+import { fireEvent, render, screen, within } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
 import { makeStore, type AppStore } from '@/store/store';
 import { TooltipProvider } from '@/components/ui/tooltip';
@@ -118,6 +118,25 @@ describe('TodayPage', () => {
     renderWithStore(<TodayPage />);
 
     expect(screen.getByText('No revisions due — enjoy the clean slate')).toBeInTheDocument();
+  });
+
+  test('AI/ML course card shows the next session and marks it done in place', () => {
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date('2026-07-30T12:00:00'));
+
+    const { store } = renderWithStore(<TodayPage />);
+
+    expect(screen.getByText('Week 0 — Orientation')).toBeInTheDocument();
+    expect(screen.getByText('Day 1 · Lecture')).toBeInTheDocument();
+    expect(screen.getByRole('link', { name: 'Open plan' })).toHaveAttribute('href', '/aiml');
+
+    fireEvent.click(screen.getByRole('button', { name: 'Mark done' }));
+
+    expect(store.getState().course.byWeekId.w00.day1DoneOn).toBe('2026-07-30');
+    expect(store.getState().gamification.xp).toBe(20);
+    expect(screen.getByText('Day 2 · Practice')).toBeInTheDocument();
+
+    vi.useRealTimers();
   });
 });
 

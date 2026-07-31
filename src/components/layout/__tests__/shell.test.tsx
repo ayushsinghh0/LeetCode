@@ -16,6 +16,7 @@ const SIDEBAR_LABELS = [
   'Dashboard',
   'Today',
   'Roadmap',
+  'AI/ML',
   'Patterns',
   'Revision',
   'Calendar',
@@ -41,7 +42,7 @@ function renderApp(initialEntries: string[] = ['/']) {
 }
 
 describe('AppShell routing', () => {
-  test('renders the Dashboard page and all 10 sidebar nav labels at "/"', async () => {
+  test('renders the Dashboard page and all 11 sidebar nav labels at "/"', async () => {
     renderApp(['/']);
 
     // This is the very first render of the whole tree, gated on DashboardPage's lazy chunk

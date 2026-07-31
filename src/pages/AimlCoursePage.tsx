@@ -4,12 +4,10 @@ import { format, parseISO } from 'date-fns';
 import {
   BookOpenCheck,
   CalendarClock,
-  CheckCircle2,
   ExternalLink,
   GraduationCap,
   ListChecks,
   Sparkles,
-  XCircle,
 } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -18,10 +16,11 @@ import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } f
 import { StatCard } from '@/components/shared/StatCard';
 import { CourseResourceChips } from '@/components/course/CourseResourceChips';
 import { CourseNotesEditor } from '@/components/course/CourseNotesEditor';
+import { CourseReviewList } from '@/components/course/CourseReviewList';
 import { CourseWeekRow } from '@/components/course/CourseWeekRow';
 import { useToday } from '@/hooks/useToday';
 import { useAppDispatch, useAppSelector } from '@/store/hooks';
-import { completeCourseSession, reviseCourseWeek } from '@/store/actions';
+import { completeCourseSession } from '@/store/actions';
 import {
   selectCourseDueReviewIds,
   selectCourseNextSession,
@@ -160,46 +159,7 @@ export default function AimlCoursePage() {
             Re-derive each week from its slides and your notes, then grade yourself — a fail
             restarts its ladder.
           </p>
-          <ul className="list-none">
-            {dueReviewIds.map((weekId) => {
-              const week = courseWeekById.get(weekId);
-              if (!week) return null;
-              const progress = byWeekId[weekId] ?? initialCourseProgress();
-              return (
-                <li
-                  key={weekId}
-                  className="flex flex-col gap-2 border-t border-border py-3 first:border-t-0 first:pt-0 last:pb-0 md:flex-row md:items-center"
-                >
-                  <div className="min-w-0 flex-1 space-y-1">
-                    <p className="font-medium">
-                      Week {week.week} — {week.title}
-                    </p>
-                    <p className="figures text-xs text-muted-foreground/80">
-                      stage {progress.revisionStage} of 5
-                      {progress.nextRevision && ` · due ${monthDay(progress.nextRevision)}`}
-                    </p>
-                  </div>
-                  <div className="flex shrink-0 gap-1.5">
-                    <Button
-                      size="sm"
-                      aria-label={`Pass Week ${week.week} review`}
-                      onClick={() => dispatch(reviseCourseWeek(weekId, true))}
-                    >
-                      <CheckCircle2 /> Pass
-                    </Button>
-                    <Button
-                      size="sm"
-                      variant="outline"
-                      aria-label={`Fail Week ${week.week} review`}
-                      onClick={() => dispatch(reviseCourseWeek(weekId, false))}
-                    >
-                      <XCircle /> Fail
-                    </Button>
-                  </div>
-                </li>
-              );
-            })}
-          </ul>
+          <CourseReviewList weekIds={dueReviewIds} byWeekId={byWeekId} />
         </motion.section>
       )}
 

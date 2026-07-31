@@ -1,18 +1,22 @@
 import { useMemo } from 'react';
 import { motion } from 'framer-motion';
+import { Link } from 'react-router-dom';
 import { format, parseISO } from 'date-fns';
-import { Award, CheckCircle2, Clock, Sparkles, TrendingUp } from 'lucide-react';
+import { Award, CheckCircle2, Clock, GraduationCap, Sparkles, TrendingUp } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { StatCard } from '@/components/shared/StatCard';
 import { EmptyState } from '@/components/shared/EmptyState';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
 import { QuestionCard } from '@/components/questions/QuestionCard';
 import { PatternChip } from '@/components/questions/PatternChip';
+import { CourseReviewList } from '@/components/course/CourseReviewList';
 import { patternById } from '@/data/patterns';
+import { CORE_WEEKS } from '@/data/aimlCourse';
 import { useToday } from '@/hooks/useToday';
 import { useAppDispatch, useAppSelector } from '@/store/hooks';
 import { activeQuestionSet } from '@/store/slices/uiSlice';
 import {
+  selectCourseDueReviewIds,
   selectForecast,
   selectIsWeeklyDay,
   selectQuestionById,
@@ -20,6 +24,7 @@ import {
 } from '@/store/selectors';
 import { overallRevisionPassRate } from '@/utils/engine/stats';
 import { initialProgress, isMastered } from '@/utils/engine/spacedRepetition';
+import { initialCourseProgress, isWeekDone, isWeekRetained } from '@/utils/engine/aimlCourse';
 import { addDays, diffDays } from '@/utils/dates';
 import { overdueLabel } from '@/utils/overdueLabel';
 import type { Question } from '@/types';
@@ -43,10 +48,12 @@ export default function RevisionPage() {
 
   const isWeeklyDay = useAppSelector(selectIsWeeklyDay);
   const revisionIds = useAppSelector((state) => selectRevisionQueueIds(state, today));
+  const courseDueIds = useAppSelector((state) => selectCourseDueReviewIds(state, today));
   const forecast = useAppSelector((state) => selectForecast(state, today));
   // Single subscription to the whole byId map — every derived list below reads its own entries
   // out of it, instead of each row mounting its own useAppSelector (same pattern as TodayPage).
   const progressById = useAppSelector((state) => state.progress.byId);
+  const courseByWeekId = useAppSelector((state) => state.course.byWeekId);
   const dayLogs = useAppSelector((state) => state.progress.dayLogs);
 
   const openDetail = (id: number) => dispatch(activeQuestionSet(id));
@@ -55,16 +62,28 @@ export default function RevisionPage() {
     .map((id) => selectQuestionById(id))
     .filter((q): q is Question => q !== undefined);
 
+  const dueCount = revisionIds.length + courseDueIds.length;
+
+  // Question revisions come from the day ledger; course review grades from week histories.
   const passedThisWeek = useMemo(() => {
     let count = 0;
+    const windowStart = addDays(today, -(PASSED_THIS_WEEK_DAYS - 1));
     for (let i = 0; i < PASSED_THIS_WEEK_DAYS; i++) {
       const log = dayLogs[addDays(today, -i)];
       if (log) count += log.revisionsPassed.length;
     }
+    for (const progress of Object.values(courseByWeekId)) {
+      for (const review of progress.revisionHistory) {
+        if (review.passed && review.date >= windowStart && review.date <= today) count++;
+      }
+    }
     return count;
-  }, [dayLogs, today]);
+  }, [dayLogs, courseByWeekId, today]);
 
-  const passRate = overallRevisionPassRate(progressById);
+  const passRate = overallRevisionPassRate([
+    ...Object.values(progressById),
+    ...Object.values(courseByWeekId),
+  ]);
   const passRateLabel = passRate === null ? '—' : `${Math.round(passRate * 100)}%`;
 
   const masteredQuestions = useMemo(
@@ -76,6 +95,25 @@ export default function RevisionPage() {
         .sort((a, b) => a.id - b.id),
     [progressById],
   );
+
+  const retainedWeeks = useMemo(
+    () => CORE_WEEKS.filter((week) => isWeekRetained(courseByWeekId[week.id] ?? initialCourseProgress())),
+    [courseByWeekId],
+  );
+
+  // Cleared, unretained weeks whose review lands strictly after today, within the horizon.
+  const upcomingCourseByDate = useMemo(() => {
+    const map: Record<string, { weekId: string; label: string }[]> = {};
+    const horizonEnd = addDays(today, UPCOMING_HORIZON_DAYS);
+    for (const week of CORE_WEEKS) {
+      const progress = courseByWeekId[week.id];
+      if (!progress || !isWeekDone(week, progress) || isWeekRetained(progress)) continue;
+      if (progress.nextRevision === null || progress.nextRevision <= today || progress.nextRevision > horizonEnd) continue;
+      const list = map[progress.nextRevision] ?? (map[progress.nextRevision] = []);
+      list.push({ weekId: week.id, label: `Week ${week.week} — ${week.title}` });
+    }
+    return map;
+  }, [courseByWeekId, today]);
 
   // Actual currently-scheduled questions per date, for solved-not-mastered items whose
   // nextRevision falls strictly after today and within the forecast horizon. The forecast
@@ -96,17 +134,27 @@ export default function RevisionPage() {
     return map;
   }, [progressById, today]);
 
-  const upcomingDays = forecast.filter((day) => day.count > 0);
+  const forecastByDate = useMemo(() => new Map(forecast.map((d) => [d.date, d.count])), [forecast]);
+  const upcomingDates = useMemo(
+    () =>
+      [
+        ...new Set([
+          ...forecast.filter((d) => d.count > 0).map((d) => d.date),
+          ...Object.keys(upcomingCourseByDate),
+        ]),
+      ].sort(),
+    [forecast, upcomingCourseByDate],
+  );
 
   return (
     <div className="flex flex-col gap-6">
       <header className="glass flex flex-col gap-4 p-6">
         <h1 className="text-2xl font-bold text-gradient">Revision</h1>
         <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
-          <StatCard label="Due now" value={revisionIds.length} icon={Clock} />
+          <StatCard label="Due now" value={dueCount} icon={Clock} />
           <StatCard label="Passed this week" value={passedThisWeek} icon={CheckCircle2} />
           <StatCard label="Overall pass rate" value={passRateLabel} icon={TrendingUp} />
-          <StatCard label="Mastered" value={masteredQuestions.length} icon={Award} />
+          <StatCard label="Mastered" value={masteredQuestions.length + retainedWeeks.length} icon={Award} />
         </div>
       </header>
 
@@ -119,49 +167,65 @@ export default function RevisionPage() {
 
       <Tabs defaultValue="due">
         <TabsList>
-          <TabsTrigger value="due">Due Today ({revisionIds.length})</TabsTrigger>
+          <TabsTrigger value="due">Due Today ({dueCount})</TabsTrigger>
           <TabsTrigger value="upcoming">Upcoming</TabsTrigger>
           <TabsTrigger value="mastered">Mastered</TabsTrigger>
         </TabsList>
 
         <TabsContent value="due">
-          {revisionQuestions.length === 0 ? (
+          {revisionQuestions.length === 0 && courseDueIds.length === 0 ? (
             <EmptyState icon={CheckCircle2} title="Nothing due — future you says thanks" />
           ) : (
-            <motion.div
-              className="grid grid-cols-1 gap-4 xl:grid-cols-2"
-              variants={gridVariants}
-              initial="hidden"
-              animate="show"
-            >
-              {revisionQuestions.map((question) => {
-                const progress = progressById[question.id] ?? initialProgress();
-                const overdueDays = progress.nextRevision ? diffDays(today, progress.nextRevision) : 0;
-                return (
-                  <motion.div key={question.id} variants={cardVariants} className="relative">
-                    {overdueDays > 0 && (
-                      <Badge
-                        variant="outline"
-                        className="absolute right-3 top-3 z-10 border-amber-500 bg-amber-500/20 text-amber-500"
-                      >
-                        {overdueLabel(overdueDays)}
-                      </Badge>
-                    )}
-                    <QuestionCard question={question} progress={progress} context="revision" onOpenDetail={openDetail} />
-                  </motion.div>
-                );
-              })}
-            </motion.div>
+            <div className="flex flex-col gap-4">
+              {revisionQuestions.length > 0 && (
+                <motion.div
+                  className="grid grid-cols-1 gap-4 xl:grid-cols-2"
+                  variants={gridVariants}
+                  initial="hidden"
+                  animate="show"
+                >
+                  {revisionQuestions.map((question) => {
+                    const progress = progressById[question.id] ?? initialProgress();
+                    const overdueDays = progress.nextRevision ? diffDays(today, progress.nextRevision) : 0;
+                    return (
+                      <motion.div key={question.id} variants={cardVariants} className="relative">
+                        {overdueDays > 0 && (
+                          <Badge
+                            variant="outline"
+                            className="absolute right-3 top-3 z-10 border-amber-500 bg-amber-500/20 text-amber-500"
+                          >
+                            {overdueLabel(overdueDays)}
+                          </Badge>
+                        )}
+                        <QuestionCard question={question} progress={progress} context="revision" onOpenDetail={openDetail} />
+                      </motion.div>
+                    );
+                  })}
+                </motion.div>
+              )}
+
+              {courseDueIds.length > 0 && (
+                <section className="glass flex flex-col gap-3 p-4" aria-label="Course reviews">
+                  <div className="flex items-center gap-2">
+                    <h2 className="text-lg font-semibold">Course reviews</h2>
+                    <Badge variant="secondary">{courseDueIds.length}</Badge>
+                  </div>
+                  <CourseReviewList weekIds={courseDueIds} byWeekId={courseByWeekId} />
+                </section>
+              )}
+            </div>
           )}
         </TabsContent>
 
         <TabsContent value="upcoming">
-          {upcomingDays.length === 0 ? (
+          {upcomingDates.length === 0 ? (
             <EmptyState icon={Sparkles} title="Nothing on the horizon" hint="No revisions forecast in the next 30 days" />
           ) : (
             <div className="flex flex-col gap-3">
-              {upcomingDays.map(({ date, count }) => {
+              {upcomingDates.map((date) => {
                 const titles = upcomingByDate[date] ?? [];
+                const courseItems = upcomingCourseByDate[date] ?? [];
+                const count = (forecastByDate.get(date) ?? 0) + courseItems.length;
                 const dateLabel = format(parseISO(date), 'EEE, MMM d');
                 return (
                   <div key={date} role="group" aria-label={dateLabel} className="glass flex flex-col gap-2 p-4">
@@ -169,7 +233,7 @@ export default function RevisionPage() {
                       <span className="font-medium">{dateLabel}</span>
                       <Badge variant="secondary">{count} due</Badge>
                     </div>
-                    {titles.length > 0 && (
+                    {(titles.length > 0 || courseItems.length > 0) && (
                       <div className="flex flex-wrap gap-2">
                         {titles.map(({ id, title }) => (
                           <button
@@ -181,6 +245,16 @@ export default function RevisionPage() {
                             {title}
                           </button>
                         ))}
+                        {courseItems.map(({ weekId, label }) => (
+                          <Link
+                            key={weekId}
+                            to="/aiml"
+                            className="flex items-center gap-1.5 rounded-md border px-2.5 py-1 text-left text-sm hover:bg-muted"
+                          >
+                            <GraduationCap className="h-3.5 w-3.5 text-muted-foreground" aria-hidden="true" />
+                            {label}
+                          </Link>
+                        ))}
                       </div>
                     )}
                   </div>
@@ -191,8 +265,8 @@ export default function RevisionPage() {
         </TabsContent>
 
         <TabsContent value="mastered">
-          {masteredQuestions.length === 0 ? (
-            <EmptyState icon={Award} title="No mastered questions yet — pass the 30-day review to master one" />
+          {masteredQuestions.length === 0 && retainedWeeks.length === 0 ? (
+            <EmptyState icon={Award} title="Nothing mastered yet — pass the 30-day review to master one" />
           ) : (
             <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-3">
               {masteredQuestions.map((question) => {
@@ -213,6 +287,17 @@ export default function RevisionPage() {
                   </div>
                 );
               })}
+              {retainedWeeks.map((week) => (
+                <div key={week.id} className="glass flex items-center gap-3 p-3">
+                  <GraduationCap className="h-5 w-5 shrink-0 text-amber-400" aria-hidden="true" />
+                  <div className="flex flex-1 flex-col items-start gap-1">
+                    <Link to="/aiml" className="text-left font-medium hover:underline">
+                      Week {week.week} — {week.title}
+                    </Link>
+                    <span className="text-xs text-muted-foreground">Course week · retained</span>
+                  </div>
+                </div>
+              ))}
             </div>
           )}
         </TabsContent>

@@ -18,6 +18,7 @@ const AchievementsPage = lazy(() => import('@/pages/AchievementsPage'));
 const BookmarksPage = lazy(() => import('@/pages/BookmarksPage'));
 const SettingsPage = lazy(() => import('@/pages/SettingsPage'));
 const FocusPage = lazy(() => import('@/pages/FocusPage'));
+const NotFoundPage = lazy(() => import('@/pages/NotFoundPage'));
 
 function PageFallback() {
   return (
@@ -56,6 +57,7 @@ export function AppRoutes() {
           <Route path="/achievements" element={<AchievementsPage />} />
           <Route path="/bookmarks" element={<BookmarksPage />} />
           <Route path="/settings" element={<SettingsPage />} />
+          <Route path="*" element={<NotFoundPage />} />
         </Route>
         <Route path="/focus" element={<FocusPage />} />
       </Routes>

@@ -1,46 +1,13 @@
 import { NavLink } from 'react-router-dom';
-import {
-  LayoutDashboard,
-  CalendarCheck,
-  Map,
-  GraduationCap,
-  Shapes,
-  RotateCcw,
-  CalendarDays,
-  BarChart3,
-  Trophy,
-  Bookmark,
-  Settings,
-  Search,
-  type LucideIcon,
-} from 'lucide-react';
+import { Search } from 'lucide-react';
 import { cn } from '@/utils/cn';
 import { useToday } from '@/hooks/useToday';
 import { useAppDispatch, useAppSelector } from '@/store/hooks';
 import { selectLevelInfo, selectStreaks } from '@/store/selectors';
 import { searchOpenSet } from '@/store/slices/uiSlice';
+import { NAV_ITEMS } from '@/components/layout/navItems';
 import { LevelRing } from '@/components/gamification/LevelRing';
 import { StreakFlame } from '@/components/gamification/StreakFlame';
-
-export interface SidebarNavItem {
-  to: string;
-  label: string;
-  icon: LucideIcon;
-}
-
-export const SIDEBAR_NAV_ITEMS: SidebarNavItem[] = [
-  { to: '/', label: 'Dashboard', icon: LayoutDashboard },
-  { to: '/today', label: 'Today', icon: CalendarCheck },
-  { to: '/roadmap', label: 'Roadmap', icon: Map },
-  { to: '/aiml', label: 'AI/ML', icon: GraduationCap },
-  { to: '/patterns', label: 'Patterns', icon: Shapes },
-  { to: '/revision', label: 'Revision', icon: RotateCcw },
-  { to: '/calendar', label: 'Calendar', icon: CalendarDays },
-  { to: '/analytics', label: 'Analytics', icon: BarChart3 },
-  { to: '/achievements', label: 'Achievements', icon: Trophy },
-  { to: '/bookmarks', label: 'Bookmarks', icon: Bookmark },
-  { to: '/settings', label: 'Settings', icon: Settings },
-];
 
 export function Sidebar() {
   const dispatch = useAppDispatch();
@@ -66,7 +33,7 @@ export function Sidebar() {
       </button>
 
       <nav aria-label="Sidebar navigation" className="flex flex-1 flex-col gap-1">
-        {SIDEBAR_NAV_ITEMS.map(({ to, label, icon: Icon }) => (
+        {NAV_ITEMS.map(({ to, label, icon: Icon }) => (
           <NavLink
             key={to}
             to={to}

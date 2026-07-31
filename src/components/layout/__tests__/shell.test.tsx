@@ -86,6 +86,17 @@ describe('AppShell routing', () => {
     await screen.findByRole('heading', { name: 'Today' }, { timeout: 5000 });
   });
 
+  test('an unknown path renders the 404 page inside the shell with a way back', async () => {
+    renderApp(['/nowhere']);
+
+    // Same lazy-chunk-under-Suspense wait as the tests above, same justified timeout.
+    await screen.findByRole('heading', { name: 'Page not found' }, { timeout: 5000 });
+    expect(screen.getByText('/nowhere')).toBeInTheDocument();
+    expect(screen.getByRole('link', { name: 'Back to Dashboard' })).toBeInTheDocument();
+    // Still inside the shell: the sidebar is present.
+    expect(screen.getByRole('navigation', { name: /sidebar navigation/i })).toBeInTheDocument();
+  });
+
   test('/focus renders the Focus page without sidebar chrome', async () => {
     renderApp(['/focus']);
 

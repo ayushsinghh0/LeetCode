@@ -7,7 +7,8 @@ import { format, parseISO } from 'date-fns';
 import { makeStore, type AppStore } from '@/store/store';
 import { TooltipProvider } from '@/components/ui/tooltip';
 import RevisionPage from '@/pages/RevisionPage';
-import { reviseQuestion, solveQuestion } from '@/store/actions';
+import { completeCourseSession, reviseCourseWeek, reviseQuestion, solveQuestion } from '@/store/actions';
+import { courseWeekById } from '@/data/aimlCourse';
 import questionsData from '@/data/questions.json';
 import type { Question } from '@/types';
 
@@ -54,6 +55,21 @@ function masterViaThunks(store: AppStore, id: number, solveDate: string) {
     setDate(dueDate);
     store.dispatch(reviseQuestion(id, true));
     dueDate = store.getState().progress.byId[id].nextRevision ?? dueDate;
+  }
+}
+
+// Course analogue of masterViaThunks: clears the week, then passes every review at its actual
+// due date until the week is retained (revisionStage 5).
+function retainWeekViaThunks(store: AppStore, weekId: string, clearDate: string) {
+  setDate(clearDate);
+  store.dispatch(completeCourseSession(weekId, 1));
+  store.dispatch(completeCourseSession(weekId, 2));
+
+  let dueDate = store.getState().course.byWeekId[weekId].nextRevision!;
+  while (store.getState().course.byWeekId[weekId].revisionStage < 5) {
+    setDate(dueDate);
+    store.dispatch(reviseCourseWeek(weekId, true));
+    dueDate = store.getState().course.byWeekId[weekId].nextRevision ?? dueDate;
   }
 }
 
@@ -142,6 +158,65 @@ describe('RevisionPage', () => {
 
     const masteredPanel = screen.getByRole('tabpanel');
     expect(within(masteredPanel).getByText(question1.title)).toBeInTheDocument();
+  });
+
+  test('a due course review renders in the Due tab, counts in its label, and Pass climbs the ladder', () => {
+    vi.useFakeTimers();
+    setDate('2026-07-30');
+    const store = makeStore();
+    store.dispatch(completeCourseSession('w00', 1));
+    store.dispatch(completeCourseSession('w00', 2)); // review due 2026-07-31
+
+    renderWithStore(<RevisionPage />, store);
+
+    act(() => {
+      setDate('2026-07-31');
+      vi.advanceTimersByTime(60_000);
+    });
+
+    expect(screen.getByRole('tab', { name: 'Due Today (1)' })).toBeInTheDocument();
+    const duePanel = screen.getByRole('tabpanel');
+    expect(within(duePanel).getByText('Course reviews')).toBeInTheDocument();
+
+    const w00 = courseWeekById.get('w00')!;
+    expect(within(duePanel).getByText(`Week ${w00.week} — ${w00.title}`)).toBeInTheDocument();
+
+    fireEvent.click(within(duePanel).getByRole('button', { name: `Pass Week ${w00.week} review` }));
+    expect(store.getState().course.byWeekId.w00.revisionStage).toBe(1);
+  });
+
+  test('an upcoming course review groups under its scheduled date in the Upcoming tab', () => {
+    vi.useFakeTimers();
+    setDate('2026-07-30');
+    const store = makeStore();
+    store.dispatch(completeCourseSession('w00', 1));
+    store.dispatch(completeCourseSession('w00', 2)); // review lands tomorrow
+
+    renderWithStore(<RevisionPage />, store);
+    fireEvent.mouseDown(screen.getByRole('tab', { name: 'Upcoming' }));
+
+    const dateLabel = format(parseISO('2026-07-31'), 'EEE, MMM d');
+    const dateGroup = screen.getByRole('group', { name: dateLabel });
+    const w00 = courseWeekById.get('w00')!;
+    expect(within(dateGroup).getByText(`Week ${w00.week} — ${w00.title}`)).toBeInTheDocument();
+    expect(within(dateGroup).getByText('1 due')).toBeInTheDocument();
+  });
+
+  test('a retained course week appears in the Mastered tab and counts in the header stat', () => {
+    vi.useFakeTimers();
+    const store = makeStore();
+    retainWeekViaThunks(store, 'w00', '2026-06-01'); // retained well before "today"
+    setDate('2026-07-30');
+
+    renderWithStore(<RevisionPage />, store);
+
+    const header = screen.getByRole('heading', { name: 'Revision' }).closest('header')!;
+    const masteredGroup = within(header).getByText('Mastered').parentElement!;
+    expect(within(masteredGroup).getByText('1')).toBeInTheDocument();
+
+    fireEvent.mouseDown(screen.getByRole('tab', { name: 'Mastered' }));
+    const masteredPanel = screen.getByRole('tabpanel');
+    expect(within(masteredPanel).getByText('Course week · retained')).toBeInTheDocument();
   });
 
   test('header stats show the correct due-now and mastered counts for the fixtures', () => {

@@ -93,10 +93,14 @@ export function difficultyStats(
   });
 }
 
-export function overallRevisionPassRate(byId: Record<number, QuestionProgress>): number | null {
+// Accepts any ladder-bearing records — question progress and course-week progress share the
+// revisionHistory shape, so a caller can blend both tracks into one rate.
+export function overallRevisionPassRate(
+  items: Iterable<{ revisionHistory: { date: string; passed: boolean }[] }>,
+): number | null {
   let passes = 0;
   let attempts = 0;
-  for (const p of Object.values(byId)) {
+  for (const p of items) {
     for (const ev of p.revisionHistory) {
       attempts += 1;
       if (ev.passed) passes += 1;
@@ -139,7 +143,7 @@ export function productivityScore(
 ): number {
   const consistency14 = consistency(dayLogs, today, DEFAULT_WINDOW_DAYS);
   const goalRate14 = goalRate(dayLogs, today, perDay, DEFAULT_WINDOW_DAYS);
-  const passRate = overallRevisionPassRate(byId);
+  const passRate = overallRevisionPassRate(Object.values(byId));
   const passRateTerm = passRate !== null
     ? passRate
     : hasSolveActivityInWindow(dayLogs, today, DEFAULT_WINDOW_DAYS) ? 0.5 : 0;

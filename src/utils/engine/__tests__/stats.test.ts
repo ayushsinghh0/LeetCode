@@ -106,8 +106,8 @@ test('difficultyStats: per-difficulty solved counts and pass rates', () => {
 
 test('overallRevisionPassRate aggregates all histories; null with zero attempts', () => {
   const byId = buildById();
-  expect(overallRevisionPassRate(byId)).toBeCloseTo(7 / 8);
-  expect(overallRevisionPassRate({})).toBeNull();
+  expect(overallRevisionPassRate(Object.values(byId))).toBeCloseTo(7 / 8);
+  expect(overallRevisionPassRate([])).toBeNull();
 });
 
 test('consistency: activeDays / windowDays over the trailing window', () => {

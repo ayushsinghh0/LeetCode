@@ -1,48 +1,14 @@
 import { useState } from 'react';
 import { NavLink } from 'react-router-dom';
-import {
-  LayoutDashboard,
-  CalendarCheck,
-  Map,
-  RotateCcw,
-  BarChart3,
-  MoreHorizontal,
-  GraduationCap,
-  Shapes,
-  CalendarDays,
-  Trophy,
-  Bookmark,
-  Settings,
-  Search,
-  type LucideIcon,
-} from 'lucide-react';
+import { MoreHorizontal, Search } from 'lucide-react';
 import { cn } from '@/utils/cn';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { useAppDispatch } from '@/store/hooks';
 import { searchOpenSet } from '@/store/slices/uiSlice';
+import { NAV_ITEMS } from '@/components/layout/navItems';
 
-interface MobileNavItem {
-  to: string;
-  label: string;
-  icon: LucideIcon;
-}
-
-const PRIMARY_ITEMS: MobileNavItem[] = [
-  { to: '/', label: 'Dashboard', icon: LayoutDashboard },
-  { to: '/today', label: 'Today', icon: CalendarCheck },
-  { to: '/roadmap', label: 'Roadmap', icon: Map },
-  { to: '/revision', label: 'Revision', icon: RotateCcw },
-  { to: '/analytics', label: 'Analytics', icon: BarChart3 },
-];
-
-const MORE_ITEMS: MobileNavItem[] = [
-  { to: '/aiml', label: 'AI/ML', icon: GraduationCap },
-  { to: '/patterns', label: 'Patterns', icon: Shapes },
-  { to: '/calendar', label: 'Calendar', icon: CalendarDays },
-  { to: '/achievements', label: 'Achievements', icon: Trophy },
-  { to: '/bookmarks', label: 'Bookmarks', icon: Bookmark },
-  { to: '/settings', label: 'Settings', icon: Settings },
-];
+const PRIMARY_ITEMS = NAV_ITEMS.filter((item) => item.mobile === 'primary');
+const MORE_ITEMS = NAV_ITEMS.filter((item) => item.mobile === 'more');
 
 export function MobileNav() {
   const dispatch = useAppDispatch();

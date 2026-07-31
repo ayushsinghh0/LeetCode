@@ -189,9 +189,9 @@ export default function DashboardPage() {
           <StatCard label="Completion" value={`${completionPct}%`} icon={BookOpen} />
           <StatCard
             label="Revisions Due"
-            value={revisionQueueIds.length}
+            value={revisionQueueIds.length + courseDueReviews.length}
             icon={RotateCcw}
-            accent={revisionQueueIds.length > 0}
+            accent={revisionQueueIds.length + courseDueReviews.length > 0}
           />
           <StatCard label="Est. Finish" value={format(parseISO(estFinish), 'MMM d')} icon={CalendarClock} />
           <StatCard label="Productivity" value={`${productivity} / 100`} icon={Gauge} />

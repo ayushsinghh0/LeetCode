@@ -60,6 +60,17 @@ describe('completeCourseSession', () => {
     expect(store.getState().ui.celebration).toBe('confetti');
   });
 
+  test('course milestones unlock achievements and queue their toasts', () => {
+    const store = makeStore();
+    store.dispatch(completeCourseSession('w00', 1));
+
+    expect(store.getState().gamification.unlocked['course-first-session']).toBe('2026-07-30');
+    expect(store.getState().ui.toastQueue).toContain('course-first-session');
+
+    store.dispatch(completeCourseSession('w00', 2));
+    expect(store.getState().gamification.unlocked['course-first-week']).toBe('2026-07-30');
+  });
+
   test('extras are single-session: 20 XP, no clear bonus, no celebration', () => {
     const store = makeStore();
     store.dispatch(completeCourseSession('x-memory-1', 1));

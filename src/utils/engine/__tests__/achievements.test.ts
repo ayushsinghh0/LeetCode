@@ -28,6 +28,7 @@ const zeroCtx: AchievementCtx = {
   difficultyStats: difficultyStats(questions, {}),
   perfectRevisionWeek: false,
   hadComeback: false,
+  course: { sessionsDone: 0, weeksDone: 0, extrasDone: 0, doneWeekIds: [] },
 };
 
 const fixedIds = [
@@ -37,13 +38,19 @@ const fixedIds = [
   'first-mastered', 'mastered-100',
 ];
 
-test('exactly 48 achievements: 20 fixed ids + one pattern-100-<id> per PATTERNS entry, no duplicates', () => {
+const courseIds = [
+  'course-first-session', 'course-first-week', 'course-transformers', 'course-rag',
+  'course-fine-tuning', 'course-agents', 'course-memory', 'course-research',
+  'course-halfway', 'course-complete', 'course-extras',
+];
+
+test('exactly 59 achievements: 20 fixed + one pattern-100-<id> per PATTERNS entry + 11 course ids, no duplicates', () => {
   const patternIds = PATTERNS.map((p) => `pattern-100-${p.id}`);
 
-  expect(ACHIEVEMENTS).toHaveLength(48);
+  expect(ACHIEVEMENTS).toHaveLength(59);
   const ids = ACHIEVEMENTS.map((a) => a.id);
-  expect(new Set(ids).size).toBe(48); // no duplicate ids
-  expect(new Set(ids)).toEqual(new Set([...fixedIds, ...patternIds]));
+  expect(new Set(ids).size).toBe(59); // no duplicate ids
+  expect(new Set(ids)).toEqual(new Set([...fixedIds, ...patternIds, ...courseIds]));
 });
 
 test('pattern-100-<id> defs are titled "100% <Pattern Name>" for every PATTERNS entry', () => {
@@ -134,6 +141,53 @@ test('buildAchievementCtx.perfectRevisionWeek: true only when all 7 trailing day
     [today]: mkLog(today, { revisionsPassed: [1], revisionsFailed: [99] }),
   };
   expect(buildAchievementCtx([], {}, withAFail, today).perfectRevisionWeek).toBe(false);
+});
+
+test('course achievements: counters and specific-week arcs check the right ctx fields', () => {
+  const withCourse = (course: AchievementCtx['course']): AchievementCtx => ({ ...zeroCtx, course });
+  const earnedFor = (course: AchievementCtx['course']): string[] =>
+    ACHIEVEMENTS.filter((a) => a.id.startsWith('course-') && a.check(withCourse(course))).map((a) => a.id);
+
+  expect(earnedFor(zeroCtx.course)).toEqual([]);
+
+  expect(earnedFor({ sessionsDone: 1, weeksDone: 0, extrasDone: 0, doneWeekIds: [] })).toEqual([
+    'course-first-session',
+  ]);
+
+  // Transformer Master needs BOTH transformer weeks — one alone is not enough.
+  expect(earnedFor({ sessionsDone: 2, weeksDone: 1, extrasDone: 0, doneWeekIds: ['w03'] })).toEqual([
+    'course-first-session', 'course-first-week',
+  ]);
+  expect(
+    earnedFor({ sessionsDone: 4, weeksDone: 2, extrasDone: 0, doneWeekIds: ['w03', 'w04'] }),
+  ).toContain('course-transformers');
+
+  expect(earnedFor({ sessionsDone: 26, weeksDone: 13, extrasDone: 0, doneWeekIds: [] })).toContain(
+    'course-halfway',
+  );
+  expect(earnedFor({ sessionsDone: 52, weeksDone: 26, extrasDone: 0, doneWeekIds: [] })).toContain(
+    'course-complete',
+  );
+  expect(earnedFor({ sessionsDone: 0, weeksDone: 0, extrasDone: 5, doneWeekIds: [] })).toEqual([
+    'course-extras',
+  ]);
+});
+
+test('buildAchievementCtx computes course stats from byWeekId, and defaults to zeros when omitted', () => {
+  const doneWeek = { day1DoneOn: '2026-07-01', day2DoneOn: '2026-07-02', notes: '' };
+  const ctx = buildAchievementCtx([], {}, {}, '2026-07-30', {
+    w03: doneWeek,
+    w04: doneWeek,
+    w09: { ...doneWeek, day2DoneOn: null }, // half-done week: sessions count, week doesn't
+    'x-memory-1': { ...doneWeek, day2DoneOn: null }, // extras are single-session
+  });
+  expect(ctx.course.sessionsDone).toBe(5);
+  expect(ctx.course.weeksDone).toBe(2);
+  expect(ctx.course.extrasDone).toBe(1);
+  expect(ctx.course.doneWeekIds.sort()).toEqual(['w03', 'w04', 'x-memory-1']);
+
+  const bare = buildAchievementCtx([], {}, {}, '2026-07-30');
+  expect(bare.course).toEqual({ sessionsDone: 0, weeksDone: 0, extrasDone: 0, doneWeekIds: [] });
 });
 
 test('buildAchievementCtx.hadComeback: true when two active days are >=4 days apart, false for a 3-day gap', () => {

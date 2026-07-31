@@ -1,12 +1,21 @@
 import { PATTERNS } from '@/data/patterns';
-import type { DayLog, Difficulty, Question, QuestionProgress } from '@/types';
+import { COURSE_WEEKS } from '@/data/aimlCourse';
+import type { CourseWeekProgress, DayLog, Difficulty, Question, QuestionProgress } from '@/types';
 import { addDays, diffDays } from '@/utils/dates';
 import { isMastered } from '@/utils/engine/spacedRepetition';
 import { difficultyStats, patternStats, type DifficultyStat, type PatternStat } from '@/utils/engine/stats';
 import { computeStreaks, hasActivity } from '@/utils/engine/streak';
+import { courseStats, initialCourseProgress, isWeekDone } from '@/utils/engine/aimlCourse';
 
 const PERFECT_REVISION_WINDOW_DAYS = 7;
 const COMEBACK_GAP_DAYS = 4;
+
+export interface CourseAchievementCtx {
+  sessionsDone: number;   // core sessions logged (0..52)
+  weeksDone: number;      // core weeks fully cleared (0..26)
+  extrasDone: number;     // optional extras watched (0..5)
+  doneWeekIds: string[];  // ids of fully-done weeks, core and extras alike
+}
 
 export interface AchievementCtx {
   solvedCount: number;
@@ -16,6 +25,7 @@ export interface AchievementCtx {
   difficultyStats: DifficultyStat[];
   perfectRevisionWeek: boolean; // last 7 calendar days: >=1 revision attempted every day, all passed
   hadComeback: boolean;         // an active day whose previous active day is >=4 days earlier
+  course: CourseAchievementCtx; // AI/ML track progress
 }
 
 export interface AchievementDef {
@@ -121,6 +131,58 @@ const FIXED_ACHIEVEMENTS: AchievementDef[] = [
   },
 ];
 
+const courseWeeksDone = (...ids: string[]) => (ctx: AchievementCtx): boolean =>
+  ids.every((id) => ctx.course.doneWeekIds.includes(id));
+
+// AI/ML course track milestones. Arc achievements name the course's real topic clusters and
+// check that every week of the cluster is fully cleared (both sessions).
+const COURSE_ACHIEVEMENTS: AchievementDef[] = [
+  {
+    id: 'course-first-session', title: 'First Lecture', description: 'Log your first AI/ML course session.',
+    icon: 'PlayCircle', check: (ctx) => ctx.course.sessionsDone >= 1,
+  },
+  {
+    id: 'course-first-week', title: 'Sprint One', description: 'Clear a course week — lecture one day, practice the next.',
+    icon: 'Flag', check: (ctx) => ctx.course.weeksDone >= 1,
+  },
+  {
+    id: 'course-transformers', title: 'Transformer Master', description: 'Clear both Transformers weeks.',
+    icon: 'Network', check: courseWeeksDone('w03', 'w04'),
+  },
+  {
+    id: 'course-rag', title: 'RAG Explorer', description: 'Clear both RAG weeks.',
+    icon: 'Database', check: courseWeeksDone('w09', 'w10'),
+  },
+  {
+    id: 'course-fine-tuning', title: 'Fine-Tuning Expert', description: 'Clear all three Fine-tuning weeks.',
+    icon: 'SlidersHorizontal', check: courseWeeksDone('w12', 'w13', 'w14'),
+  },
+  {
+    id: 'course-agents', title: 'Agent Builder', description: 'Clear From APIs to Agents, LangGraph, and the agent assignment.',
+    icon: 'Bot', check: courseWeeksDone('w08', 'w21', 'w22'),
+  },
+  {
+    id: 'course-memory', title: 'Memory Architect', description: 'Clear the Memory week.',
+    icon: 'Brain', check: courseWeeksDone('w18'),
+  },
+  {
+    id: 'course-research', title: 'Research Reader', description: 'Clear How to Read Research Papers.',
+    icon: 'ScrollText', check: courseWeeksDone('w20'),
+  },
+  {
+    id: 'course-halfway', title: 'Halfway There', description: 'Log 26 of the 52 course sessions.',
+    icon: 'Milestone', check: (ctx) => ctx.course.sessionsDone >= 26,
+  },
+  {
+    id: 'course-complete', title: 'AI/ML Graduate', description: 'Clear all 26 course weeks.',
+    icon: 'GraduationCap', check: (ctx) => ctx.course.weeksDone >= 26,
+  },
+  {
+    id: 'course-extras', title: 'Extra Credit', description: 'Watch all five optional extra sessions.',
+    icon: 'Sparkles', check: (ctx) => ctx.course.extrasDone >= 5,
+  },
+];
+
 const PATTERN_ACHIEVEMENTS: AchievementDef[] = PATTERNS.map((pattern) => ({
   id: `pattern-100-${pattern.id}`,
   title: `100% ${pattern.name}`,
@@ -132,7 +194,11 @@ const PATTERN_ACHIEVEMENTS: AchievementDef[] = PATTERNS.map((pattern) => ({
   },
 }));
 
-export const ACHIEVEMENTS: AchievementDef[] = [...FIXED_ACHIEVEMENTS, ...PATTERN_ACHIEVEMENTS];
+export const ACHIEVEMENTS: AchievementDef[] = [
+  ...FIXED_ACHIEVEMENTS,
+  ...PATTERN_ACHIEVEMENTS,
+  ...COURSE_ACHIEVEMENTS,
+];
 
 function computePerfectRevisionWeek(dayLogs: Record<string, DayLog>, today: string): boolean {
   let anyFailed = false;
@@ -157,9 +223,24 @@ function computeHadComeback(dayLogs: Record<string, DayLog>): boolean {
   return false;
 }
 
+function buildCourseCtx(byWeekId: Record<string, CourseWeekProgress>): CourseAchievementCtx {
+  const stats = courseStats(COURSE_WEEKS, byWeekId);
+  return {
+    sessionsDone: stats.sessionsDone,
+    weeksDone: stats.weeksDone,
+    extrasDone: stats.extrasDone,
+    doneWeekIds: COURSE_WEEKS.filter((w) =>
+      isWeekDone(w, byWeekId[w.id] ?? initialCourseProgress()),
+    ).map((w) => w.id),
+  };
+}
+
+// `courseByWeekId` is optional so pre-course callers (and tests) stay valid — omitting it
+// yields an all-zero course ctx, which unlocks nothing.
 export function buildAchievementCtx(
   all: Question[], byId: Record<number, QuestionProgress>,
   dayLogs: Record<string, DayLog>, today: string,
+  courseByWeekId: Record<string, CourseWeekProgress> = {},
 ): AchievementCtx {
   let solvedCount = 0;
   let masteredCount = 0;
@@ -178,6 +259,7 @@ export function buildAchievementCtx(
     difficultyStats: difficultyStats(all, byId),
     perfectRevisionWeek: computePerfectRevisionWeek(dayLogs, today),
     hadComeback: computeHadComeback(dayLogs),
+    course: buildCourseCtx(courseByWeekId),
   };
 }
 

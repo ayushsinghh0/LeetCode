@@ -45,7 +45,13 @@ function evaluateAndUnlockAchievements(
   today: string,
 ): void {
   const state = getState();
-  const ctx = buildAchievementCtx(questions, state.progress.byId, state.progress.dayLogs, today);
+  const ctx = buildAchievementCtx(
+    questions,
+    state.progress.byId,
+    state.progress.dayLogs,
+    today,
+    state.course.byWeekId,
+  );
   const newIds = evaluateAchievements(ctx, state.gamification.unlocked);
   if (newIds.length > 0) {
     dispatch(achievementsUnlocked({ ids: newIds, date: today }));
@@ -198,6 +204,8 @@ export const completeCourseSession = (weekId: string, day: CourseDay): AppThunk 
     dispatch(bonusXpLogged({ date, xp: COURSE_WEEK_CLEAR_BONUS }));
     dispatch(celebrationShown('confetti'));
   }
+
+  evaluateAndUnlockAchievements(dispatch, getState, date);
 };
 
 export const saveCourseNotes = (weekId: string, notes: string): AppThunk => (dispatch) => {

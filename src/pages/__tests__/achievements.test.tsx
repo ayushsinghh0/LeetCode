@@ -11,7 +11,7 @@ import { achievementsUnlocked } from '@/store/slices/gamificationSlice';
 import { toastPushed } from '@/store/slices/uiSlice';
 import { ACHIEVEMENTS } from '@/utils/engine/achievements';
 
-const TOTAL = ACHIEVEMENTS.length; // 48: 20 fixed + 28 pattern-100-<patternId>
+const TOTAL = ACHIEVEMENTS.length; // 59: 20 fixed + 28 pattern-100-<patternId> + 11 course-*
 
 // react-router-dom v6.28 warns about the v7 behaviors it will adopt by default in v7 unless
 // these future flags are opted into — mirrors src/pages/__tests__/patterns.test.tsx.
@@ -36,17 +36,17 @@ function renderWithStore(ui: ReactNode, store: AppStore = makeStore()) {
 }
 
 describe('AchievementsPage', () => {
-  test('sanity: the achievements engine exposes exactly 48 defs', () => {
-    expect(TOTAL).toBe(48);
+  test('sanity: the achievements engine exposes exactly 59 defs', () => {
+    expect(TOTAL).toBe(59);
   });
 
-  test('fresh store: renders all 48 achievement cards (locked) and "Unlocked 0 / 48"', () => {
+  test('fresh store: renders all 59 achievement cards (locked) and "Unlocked 0 / 59"', () => {
     renderWithStore(<AchievementsPage />);
 
     for (const def of ACHIEVEMENTS) {
       expect(screen.getByLabelText(`${def.title} — locked`)).toBeInTheDocument();
     }
-    expect(screen.getByText('Unlocked 0 / 48')).toBeInTheDocument();
+    expect(screen.getByText('Unlocked 0 / 59')).toBeInTheDocument();
   });
 
   test('a fixture-unlocked achievement shows its unlock date and bumps the header count; an untouched one stays locked', () => {
@@ -56,16 +56,16 @@ describe('AchievementsPage', () => {
 
     const unlockedCard = screen.getByLabelText('First Blood — unlocked');
     expect(within(unlockedCard).getByText('Unlocked Jul 30, 2026')).toBeInTheDocument();
-    expect(screen.getByText('Unlocked 1 / 48')).toBeInTheDocument();
+    expect(screen.getByText('Unlocked 1 / 59')).toBeInTheDocument();
 
     const lockedDef = ACHIEVEMENTS.find((a) => a.id === 'solved-539')!;
     expect(screen.getByLabelText(`${lockedDef.title} — locked`)).toBeInTheDocument();
   });
 
-  test('renders all five group section headings', () => {
+  test('renders all six group section headings', () => {
     renderWithStore(<AchievementsPage />);
 
-    for (const heading of ['Progress', 'Streaks', 'Patterns', 'Mastery', 'Special']) {
+    for (const heading of ['Progress', 'Streaks', 'Patterns', 'Mastery', 'Course', 'Special']) {
       expect(screen.getByRole('heading', { name: heading })).toBeInTheDocument();
     }
   });
@@ -79,7 +79,7 @@ describe('groupAchievements', () => {
   test('every def in ACHIEVEMENTS lands in exactly one of the 5 groups', () => {
     const groups = groupAchievements(ACHIEVEMENTS);
 
-    expect(groups.map((g) => g.name)).toEqual(['Progress', 'Streaks', 'Patterns', 'Mastery', 'Special']);
+    expect(groups.map((g) => g.name)).toEqual(['Progress', 'Streaks', 'Patterns', 'Mastery', 'Course', 'Special']);
 
     const totalGrouped = groups.reduce((sum, g) => sum + g.items.length, 0);
     expect(totalGrouped).toBe(ACHIEVEMENTS.length);

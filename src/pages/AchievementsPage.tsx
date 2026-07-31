@@ -17,19 +17,20 @@ export interface AchievementGroup {
 }
 
 // Every matcher's ids are mutually exclusive by prefix, so a def can match at most one of these
-// 4 — Special (below) is the complement of their union, not a 5th independent matcher.
+// 5 — Special (below) is the complement of their union, not a 6th independent matcher.
 const GROUP_MATCHERS: { name: string; test: (id: string) => boolean }[] = [
   { name: 'Progress', test: (id) => id === 'first-solve' || id.startsWith('solved-') },
   { name: 'Streaks', test: (id) => id.startsWith('streak-') },
   { name: 'Patterns', test: (id) => id.startsWith('pattern-100-') },
   { name: 'Mastery', test: (id) => id === 'first-mastered' || id === 'mastered-100' },
+  { name: 'Course', test: (id) => id.startsWith('course-') },
 ];
 
 /**
- * Groups every def in `defs` into exactly one of 5 sections, derived from the real achievements
+ * Groups every def in `defs` into exactly one of 6 sections, derived from the real achievements
  * array rather than a hardcoded id-by-id list. Special is the catch-all: today that's
  * all-easy/all-medium/all-hard/perfect-revision-week/comeback, but it's computed as "whatever
- * matched none of the first 4 matchers" so a future engine addition whose id fits no prefix
+ * matched none of the first 5 matchers" so a future engine addition whose id fits no prefix
  * still lands somewhere instead of being silently dropped.
  */
 export function groupAchievements(defs: AchievementDef[]): AchievementGroup[] {

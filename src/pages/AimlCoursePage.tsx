@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { motion } from 'framer-motion';
 import { format, parseISO } from 'date-fns';
 import { BookOpenCheck, CalendarClock, ExternalLink, GraduationCap, ListChecks, Sparkles } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
@@ -23,6 +24,18 @@ import { initialCourseProgress } from '@/utils/engine/aimlCourse';
 
 const monthDay = (iso: string): string => format(parseISO(iso), 'MMM d');
 
+// Same staggered entrance vocabulary as TodayPage/DashboardPage (150ms states, 12px rise);
+// MotionConfig reducedMotion="user" in App.tsx already zeroes this for reduced-motion users.
+const pageVariants = {
+  hidden: {},
+  show: { transition: { staggerChildren: 0.05 } },
+};
+
+const blockVariants = {
+  hidden: { opacity: 0, y: 12 },
+  show: { opacity: 1, y: 0 },
+};
+
 export default function AimlCoursePage() {
   const today = useToday();
   const dispatch = useAppDispatch();
@@ -41,8 +54,8 @@ export default function AimlCoursePage() {
   const notesProgress = notesWeek ? (byWeekId[notesWeek.id] ?? initialCourseProgress()) : null;
 
   return (
-    <div className="flex flex-col gap-6">
-      <header className="glass flex flex-col gap-4 p-6">
+    <motion.div className="flex flex-col gap-6" variants={pageVariants} initial="hidden" animate="show">
+      <motion.header variants={blockVariants} className="glass flex flex-col gap-4 p-6">
         <div className="flex flex-wrap items-start justify-between gap-3">
           <div>
             <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
@@ -63,9 +76,9 @@ export default function AimlCoursePage() {
         <p className="figures text-xs text-muted-foreground">
           {stats.sessionsDone} of {stats.sessionsTotal} sessions · {stats.weeksDone} of {stats.weeksTotal} weeks
         </p>
-      </header>
+      </motion.header>
 
-      <div className="grid grid-cols-2 gap-4 md:grid-cols-4">
+      <motion.div variants={blockVariants} className="grid grid-cols-2 gap-4 md:grid-cols-4">
         <StatCard label="Sessions" value={`${stats.sessionsDone} / ${stats.sessionsTotal}`} icon={ListChecks} />
         <StatCard label="Weeks cleared" value={`${stats.weeksDone} / ${stats.weeksTotal}`} icon={BookOpenCheck} />
         <StatCard
@@ -75,9 +88,9 @@ export default function AimlCoursePage() {
           accent={finish !== null}
         />
         <StatCard label="Extras" value={`${stats.extrasDone} / ${stats.extrasTotal}`} icon={Sparkles} />
-      </div>
+      </motion.div>
 
-      <section className="glass flex flex-col gap-4 p-6">
+      <motion.section variants={blockVariants} className="glass flex flex-col gap-4 p-6">
         <h2 className="text-lg font-semibold">Up next</h2>
         {next && nextWeek ? (
           <>
@@ -124,11 +137,11 @@ export default function AimlCoursePage() {
             )}
           </div>
         )}
-      </section>
+      </motion.section>
 
-      <section>
+      <motion.section variants={blockVariants}>
         <h2 className="mb-3 text-lg font-semibold">Syllabus</h2>
-        <div className="glass">
+        <ul className="glass list-none">
           {CORE_WEEKS.map((week) => (
             <CourseWeekRow
               key={week.id}
@@ -139,15 +152,15 @@ export default function AimlCoursePage() {
               onOpenNotes={setNotesWeek}
             />
           ))}
-        </div>
-      </section>
+        </ul>
+      </motion.section>
 
-      <section>
+      <motion.section variants={blockVariants}>
         <div className="mb-3 flex items-center gap-2">
           <h2 className="text-lg font-semibold">Extra sessions</h2>
           <Badge variant="secondary">optional</Badge>
         </div>
-        <div className="glass">
+        <ul className="glass list-none">
           {EXTRA_WEEKS.map((week) => (
             <CourseWeekRow
               key={week.id}
@@ -156,8 +169,8 @@ export default function AimlCoursePage() {
               onOpenNotes={setNotesWeek}
             />
           ))}
-        </div>
-      </section>
+        </ul>
+      </motion.section>
 
       <Dialog open={notesWeek !== null} onOpenChange={(open) => !open && setNotesWeek(null)}>
         {notesWeek && notesProgress && (
@@ -172,6 +185,6 @@ export default function AimlCoursePage() {
           </DialogContent>
         )}
       </Dialog>
-    </div>
+    </motion.div>
   );
 }

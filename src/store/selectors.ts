@@ -162,15 +162,16 @@ export const selectTodayLog = createSelector(
   (dayLogs, today): DayLog | undefined => dayLogs[today],
 );
 
-export const selectAchievementCtx = createSelector(
-  [selectProgressById, selectDayLogs, selectTodayArg],
-  (byId, dayLogs, today) => buildAchievementCtx(questions, byId, dayLogs, today),
-);
-
 // --- AI/ML course track -------------------------------------------------------------------
 
 const selectCourseByWeekId = (state: RootState): Record<string, CourseWeekProgress> =>
   state.course.byWeekId;
+
+export const selectAchievementCtx = createSelector(
+  [selectProgressById, selectDayLogs, selectTodayArg, selectCourseByWeekId],
+  (byId, dayLogs, today, courseByWeekId) =>
+    buildAchievementCtx(questions, byId, dayLogs, today, courseByWeekId),
+);
 
 export const selectCourseProgressById = selectCourseByWeekId;
 

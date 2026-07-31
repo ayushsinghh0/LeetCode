@@ -69,7 +69,8 @@ export function CourseWeekRow({ week, progress, planned, isCurrent, onOpenNotes 
   })();
 
   return (
-    <div
+    <li
+      aria-current={isCurrent ? 'step' : undefined}
       className={cn(
         'flex flex-col gap-3 border-t border-border p-4 first:border-t-0 md:flex-row md:items-center',
         isCurrent && 'bg-muted/40',
@@ -114,6 +115,6 @@ export function CourseWeekRow({ week, progress, planned, isCurrent, onOpenNotes 
           />
         </Button>
       </div>
-    </div>
+    </li>
   );
 }

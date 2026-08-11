@@ -63,6 +63,7 @@ export function QuestionFilterRow({
             type="button"
             size="sm"
             variant={difficulty === d ? 'default' : 'outline'}
+            aria-pressed={difficulty === d}
             onClick={() => toggleDifficulty(d)}
           >
             {DIFFICULTY_CHIP_LABEL[d]}
@@ -78,6 +79,7 @@ export function QuestionFilterRow({
             type="button"
             size="sm"
             variant={status === s ? 'default' : 'outline'}
+            aria-pressed={status === s}
             onClick={() => toggleStatus(s)}
           >
             {STATUS_CHIP_LABEL[s]}
@@ -88,7 +90,7 @@ export function QuestionFilterRow({
       <div className="flex items-center gap-2">
         <span className="text-sm text-muted-foreground">Pattern</span>
         <Select value={pattern} onValueChange={(v) => onPatternChange(v as PatternFilterValue)}>
-          <SelectTrigger aria-label="Filter by pattern" className="w-48">
+          <SelectTrigger aria-label="Filter by pattern" className="w-full sm:w-48">
             <SelectValue />
           </SelectTrigger>
           <SelectContent>

@@ -1,15 +1,10 @@
 import { useEffect, useRef } from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
-import * as LucideIcons from 'lucide-react';
-import type { LucideIcon } from 'lucide-react';
-import { X } from 'lucide-react';
+import { Award, X } from 'lucide-react';
+import { iconByName } from '@/components/shared/iconMap';
 import { useAppDispatch, useAppSelector } from '@/store/hooks';
 import { toastPopped } from '@/store/slices/uiSlice';
 import { ACHIEVEMENTS } from '@/utils/engine/achievements';
-
-// Dynamic icon lookup, same cast rationale as PatternChip: lucide-react's real export type is a
-// large named union, not an index signature.
-const Icons = LucideIcons as unknown as Record<string, LucideIcon>;
 
 const TOAST_DURATION_MS = 4000;
 
@@ -48,10 +43,12 @@ export function AchievementToast() {
   }
 
   const def = currentId ? achievementById.get(currentId) : undefined;
-  const Icon = def ? (Icons[def.icon] ?? LucideIcons.Award) : LucideIcons.Award;
+  const Icon = def ? iconByName(def.icon, Award) : Award;
 
+  // bottom-20 below md clears MobileNav's fixed full-width bottom bar (same offset the
+  // floating PomodoroWidget uses); md+ can sit in the corner proper.
   return (
-    <div className="pointer-events-none fixed bottom-4 right-4 z-50">
+    <div className="pointer-events-none fixed bottom-20 right-4 z-50 md:bottom-4">
       {/* No `exit` variant on the motion.div below: framer-motion only defers unmounting for an
           AnimatePresence child that declares one, and this toast needs to leave the DOM the
           instant its id is popped from the queue (both on the 4s auto-dismiss and the X button)
@@ -67,7 +64,7 @@ export function AchievementToast() {
             role="status"
             className="glass pointer-events-auto flex items-center gap-3 p-4 pr-3 shadow-lg"
           >
-            <span className="inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-accent-gradient text-white">
+            <span className="inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-accent-gradient text-primary-foreground">
               <Icon className="h-5 w-5" aria-hidden="true" />
             </span>
             <div className="min-w-0">

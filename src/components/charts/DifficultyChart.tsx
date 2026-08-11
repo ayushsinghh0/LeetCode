@@ -17,7 +17,12 @@ export function DifficultyChart({ stats }: DifficultyChartProps) {
   return (
     <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
       {stats.map((s) => (
-        <div key={s.difficulty} className="glass flex flex-col items-center gap-3 p-4 text-center">
+        // Hairline-ruled tiles, not nested .glass plates — this grid always renders inside a
+        // page-level plate, and DESIGN.md rules out cards-within-cards.
+        <div
+          key={s.difficulty}
+          className="flex flex-col items-center gap-3 rounded-lg border border-border/70 p-4 text-center"
+        >
           <ProgressRing value={s.solved} max={s.total} size={84} strokeWidth={7}>
             <span className="text-lg font-bold">{s.pct}%</span>
           </ProgressRing>

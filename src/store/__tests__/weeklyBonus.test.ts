@@ -156,6 +156,36 @@ test('weekly day: solving a new question after the queue drains does not regrow 
   expect(store.getState().gamification.xp).toBe(drainXp + WEEKLY_CLEAR_BONUS + newQuestionXp);
 });
 
+test('same roadmap week, next calendar day: re-draining the refilled queue never re-awards the bonus', () => {
+  const store = buildWeeklyDayStore();
+  for (const id of selectRevisionQueueIds(store.getState(), TODAY)) {
+    store.dispatch(reviseQuestion(id, true));
+  }
+  expect(store.getState().gamification.weeklyClearBonusDay).toBe(7); // marker set by the first drain
+
+  // Next calendar morning. currentDay derives from solved count, so it is STILL roadmap day 7
+  // (still a weekly-revision day), and the due/top-up pool has re-opened (yesterday's
+  // lastReviewed stamps no longer exclude anything). Without the marker this second drain
+  // would farm another +50.
+  vi.setSystemTime(new Date('2026-07-31T09:00:00'));
+  const TOMORROW = '2026-07-31';
+
+  const state = store.getState();
+  expect(selectCurrentDay(state)).toBe(7);
+  expect(selectIsWeeklyDay(state)).toBe(true);
+  const refilled = selectRevisionQueueIds(state, TOMORROW);
+  expect(refilled.length).toBeGreaterThan(0);
+
+  const xpBefore = state.gamification.xp;
+  for (const id of refilled) {
+    store.dispatch(reviseQuestion(id, true));
+  }
+
+  const perAttemptXp = refilled.reduce((sum, id) => sum + revisionXp(questionById.get(id)!.difficulty), 0);
+  expect(store.getState().gamification.xp - xpBefore).toBe(perAttemptXp); // exactly zero bonus XP
+  expect(selectRevisionQueueIds(store.getState(), TOMORROW)).toEqual([]); // drained, yet no +50
+});
+
 test('non-weekly day: fully draining the due queue never awards WEEKLY_CLEAR_BONUS', () => {
   const store = importFixture({
     1: progressFixture({ status: 'solved', completedAt: '2026-07-01', nextRevision: '2026-07-20' }),

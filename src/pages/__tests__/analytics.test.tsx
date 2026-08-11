@@ -1,10 +1,8 @@
-import type { ReactElement, ReactNode } from 'react';
+import type { ReactElement } from 'react';
 import { cloneElement } from 'react';
-import { Provider } from 'react-redux';
-import { render, screen, within, fireEvent } from '@testing-library/react';
-import { MemoryRouter } from 'react-router-dom';
-import { makeStore, type AppStore } from '@/store/store';
-import { TooltipProvider } from '@/components/ui/tooltip';
+import { screen, within, fireEvent } from '@testing-library/react';
+import { makeStore } from '@/store/store';
+import { renderWithStore } from '@/test/renderWithStore';
 import AnalyticsPage from '@/pages/AnalyticsPage';
 import { completeCourseSession, reviseCourseWeek, solveQuestion } from '@/store/actions';
 import { selectStreaks, selectProductivityScore, selectWeakestPatterns } from '@/store/selectors';
@@ -15,10 +13,6 @@ import type { Question } from '@/types';
 
 const questions = questionsData as Question[];
 const TODAY = '2026-07-30';
-
-// react-router-dom v6.28 warns about the v7 behaviors it will adopt by default in v7 unless
-// these future flags are opted into — mirrors src/pages/__tests__/today.test.tsx.
-const routerFutureFlags = { v7_startTransition: true, v7_relativeSplatPath: true } as const;
 
 // --- Recharts + jsdom -------------------------------------------------------------------------
 // jsdom has no layout engine, so ResponsiveContainer always measures its parent as 0x0 (Recharts
@@ -47,19 +41,6 @@ vi.mock('recharts', async (importOriginal) => {
 // exists" accessibility requirement) and also gives tests a stable, implementation-detail-free
 // hook: asserting on it proves the full N-point zero-filled series actually reached the chart
 // component, without asserting on rendered SVG.
-
-function renderWithStore(ui: ReactNode, store: AppStore = makeStore()) {
-  return {
-    store,
-    ...render(
-      <Provider store={store}>
-        <TooltipProvider>
-          <MemoryRouter future={routerFutureFlags}>{ui}</MemoryRouter>
-        </TooltipProvider>
-      </Provider>,
-    ),
-  };
-}
 
 beforeEach(() => {
   vi.useFakeTimers();

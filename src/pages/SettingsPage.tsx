@@ -122,6 +122,14 @@ export default function SettingsPage() {
     ? Object.values(pendingImport.progress.byId).filter((p) => p.status === 'solved').length
     : 0;
   const importXp = pendingImport ? pendingImport.gamification.xp : 0;
+  // Course sessions in the backup — import replaces the course slice wholesale too, so the
+  // preview must say what happens to that track (0 for pre-course backups is the honest answer).
+  const importCourseSessions = pendingImport?.course
+    ? Object.values(pendingImport.course.byWeekId).reduce(
+        (sum, week) => sum + (week.day1DoneOn !== null ? 1 : 0) + (week.day2DoneOn !== null ? 1 : 0),
+        0,
+      )
+    : 0;
 
   // --- Reset ---------------------------------------------------------------------------------
 
@@ -222,7 +230,9 @@ export default function SettingsPage() {
             <div className="flex items-center justify-between gap-4">
               <div>
                 <Label htmlFor="notifications">Notifications</Label>
-                <p className="text-sm text-muted-foreground">Reminders and due-today alerts. Coming soon.</p>
+                <p className="text-sm text-muted-foreground">
+                  A browser notification when revisions are due — at most once a day, while the app is open.
+                </p>
               </div>
               <Controller
                 control={control}
@@ -231,7 +241,14 @@ export default function SettingsPage() {
                   <Switch
                     id="notifications"
                     checked={field.value}
-                    onCheckedChange={field.onChange}
+                    onCheckedChange={(checked) => {
+                      // Ask for browser permission on the enabling gesture itself — the only
+                      // moment browsers reliably allow the prompt.
+                      if (checked && typeof Notification !== 'undefined' && Notification.permission === 'default') {
+                        void Notification.requestPermission();
+                      }
+                      field.onChange(checked);
+                    }}
                     aria-label="Notifications"
                   />
                 )}
@@ -275,7 +292,11 @@ export default function SettingsPage() {
               onChange={handleFileChange}
             />
           </div>
-          {importError && <p className="text-sm text-destructive">{importError}</p>}
+          {importError && (
+            <p role="alert" className="text-sm text-destructive">
+              {importError}
+            </p>
+          )}
 
           <div className="flex flex-wrap items-center justify-between gap-4 border-t pt-4">
             <div>
@@ -294,8 +315,8 @@ export default function SettingsPage() {
           <DialogHeader>
             <DialogTitle>Import this backup?</DialogTitle>
             <DialogDescription>
-              This will replace your current progress with {importSolvedCount} solved, {importXp} XP. This
-              cannot be undone.
+              This will replace your current progress with {importSolvedCount} solved, {importCourseSessions} course
+              session{importCourseSessions === 1 ? '' : 's'}, {importXp} XP. This cannot be undone.
             </DialogDescription>
           </DialogHeader>
           <DialogFooter>

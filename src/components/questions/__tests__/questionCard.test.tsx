@@ -1,9 +1,9 @@
-import type { ReactNode } from 'react';
 import { act } from 'react';
 import { Provider } from 'react-redux';
-import { render, screen, fireEvent } from '@testing-library/react';
-import { makeStore, type AppStore } from '@/store/store';
+import { screen, fireEvent } from '@testing-library/react';
+import { makeStore } from '@/store/store';
 import { TooltipProvider } from '@/components/ui/tooltip';
+import { renderWithStore } from '@/test/renderWithStore';
 import { QuestionCard } from '@/components/questions/QuestionCard';
 import { QuestionDetailModal } from '@/components/questions/QuestionDetailModal';
 import { initialProgress } from '@/utils/engine/spacedRepetition';
@@ -22,17 +22,6 @@ const question1 = questions.find((q) => q.id === 1)!;
 afterEach(() => {
   vi.useRealTimers();
 });
-
-function renderWithStore(ui: ReactNode, store: AppStore = makeStore()) {
-  return {
-    store,
-    ...render(
-      <Provider store={store}>
-        <TooltipProvider>{ui}</TooltipProvider>
-      </Provider>,
-    ),
-  };
-}
 
 describe('QuestionCard', () => {
   test('renders title, difficulty, pattern, and estimated time', () => {
@@ -173,7 +162,8 @@ describe('QuestionDetailModal', () => {
       store.dispatch(reviseQuestion(1, false));
     });
 
-    expect(screen.getByText('2026-07-30')).toBeInTheDocument();
+    // History dates render human-readable now, not as raw ISO strings.
+    expect(screen.getByText('Jul 30, 2026')).toBeInTheDocument();
     expect(screen.getByText('Failed')).toBeInTheDocument();
 
     vi.useRealTimers();

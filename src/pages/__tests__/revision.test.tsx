@@ -1,11 +1,8 @@
-import type { ReactNode } from 'react';
 import { act } from 'react';
-import { Provider } from 'react-redux';
-import { render, screen, within, fireEvent } from '@testing-library/react';
-import { MemoryRouter } from 'react-router-dom';
+import { screen, within, fireEvent } from '@testing-library/react';
 import { format, parseISO } from 'date-fns';
 import { makeStore, type AppStore } from '@/store/store';
-import { TooltipProvider } from '@/components/ui/tooltip';
+import { renderWithStore } from '@/test/renderWithStore';
 import RevisionPage from '@/pages/RevisionPage';
 import { completeCourseSession, reviseCourseWeek, reviseQuestion, solveQuestion } from '@/store/actions';
 import { courseWeekById } from '@/data/aimlCourse';
@@ -16,26 +13,9 @@ const questions = questionsData as Question[];
 const question1 = questions.find((q) => q.id === 1)!; // "Valid Palindrome"
 const question2 = questions.find((q) => q.id === 2)!; // "3Sum"
 
-// react-router-dom v6.28 warns about the v7 behaviors it will adopt by default in v7 unless
-// these future flags are opted into — mirrors src/pages/__tests__/today.test.tsx.
-const routerFutureFlags = { v7_startTransition: true, v7_relativeSplatPath: true } as const;
-
 afterEach(() => {
   vi.useRealTimers();
 });
-
-function renderWithStore(ui: ReactNode, store: AppStore = makeStore()) {
-  return {
-    store,
-    ...render(
-      <Provider store={store}>
-        <TooltipProvider>
-          <MemoryRouter future={routerFutureFlags}>{ui}</MemoryRouter>
-        </TooltipProvider>
-      </Provider>,
-    ),
-  };
-}
 
 // Fake-timer date advance, mirroring today.test.tsx's "solve now, advance to due date" pattern.
 // Noon avoids any timezone-induced off-by-one on the yyyy-MM-dd conversion.

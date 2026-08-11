@@ -1,5 +1,6 @@
 import { Bar, BarChart, CartesianGrid, Cell, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts';
 import type { PatternId } from '@/types';
+import { useMediaQuery } from '@/hooks/useMediaQuery';
 import { CHART_COLORS, ChartTooltip, type TooltipEntry } from '@/components/charts/chartPrimitives';
 
 export interface PatternCompletionDatum {
@@ -16,7 +17,10 @@ export interface PatternCompletionChartProps {
 }
 
 const ROW_HEIGHT = 28;
+// A fixed 180px label gutter eats over half the drawing area inside a 375px-wide plate, so
+// narrow viewports get a compact gutter (labels ellipsize) and keep readable bars.
 const Y_AXIS_WIDTH = 180;
+const Y_AXIS_WIDTH_NARROW = 104;
 
 function formatRow(entry: TooltipEntry) {
   const datum = entry.payload as PatternCompletionDatum;
@@ -37,6 +41,7 @@ function formatRow(entry: TooltipEntry) {
  * row, already directly labeled — a 28-swatch legend would be pure redundancy.
  */
 export function PatternCompletionChart({ data }: PatternCompletionChartProps) {
+  const narrow = useMediaQuery('(max-width: 640px)');
   return (
     <div className="flex flex-col gap-1">
       <p className="sr-only">
@@ -64,8 +69,8 @@ export function PatternCompletionChart({ data }: PatternCompletionChartProps) {
             <YAxis
               type="category"
               dataKey="name"
-              width={Y_AXIS_WIDTH}
-              tick={{ fontSize: 12, fill: 'hsl(var(--foreground))' }}
+              width={narrow ? Y_AXIS_WIDTH_NARROW : Y_AXIS_WIDTH}
+              tick={{ fontSize: narrow ? 11 : 12, fill: 'hsl(var(--foreground))' }}
               axisLine={false}
               tickLine={false}
             />

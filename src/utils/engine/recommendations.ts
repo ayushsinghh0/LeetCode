@@ -30,30 +30,35 @@ export function weakestPatterns(stats: PatternStat[], minAttempts = 3): WeakPatt
 }
 
 export interface Recommendation {
-  kind: 'revision' | 'weak-pattern' | 'new';
-  questionIds: number[];
+  kind: 'revision' | 'weak-pattern' | 'new' | 'course-review' | 'course-session';
+  questionIds: number[]; // empty for course-* kinds
+  weekIds?: string[]; // present only on course-* kinds
   reason: string;
 }
 
+// Course signal is optional so question-only callers (and the planned LLM-backed Recommender)
+// keep working unchanged; when present, due week reviews rank right after due question
+// revisions (both are retention work), and the next session ranks last — it surfaces only on
+// days when the DSA workload leaves room.
+export interface RecommendArgs {
+  all: Question[];
+  byId: Record<number, QuestionProgress>;
+  due: number[];
+  todaysNew: number[];
+  weakest: WeakPattern[];
+  course?: {
+    dueReviewWeekIds: string[];
+    nextSessionWeekId: string | null;
+  };
+}
+
 export interface Recommender {
-  recommend(args: {
-    all: Question[];
-    byId: Record<number, QuestionProgress>;
-    due: number[];
-    todaysNew: number[];
-    weakest: WeakPattern[];
-  }): Recommendation[];
+  recommend(args: RecommendArgs): Recommendation[];
 }
 
 export class HeuristicRecommender implements Recommender {
-  recommend(args: {
-    all: Question[];
-    byId: Record<number, QuestionProgress>;
-    due: number[];
-    todaysNew: number[];
-    weakest: WeakPattern[];
-  }): Recommendation[] {
-    const { all, byId, due, todaysNew, weakest } = args;
+  recommend(args: RecommendArgs): Recommendation[] {
+    const { all, byId, due, todaysNew, weakest, course } = args;
     const recommendations: Recommendation[] = [];
 
     if (due.length > 0) {
@@ -61,6 +66,16 @@ export class HeuristicRecommender implements Recommender {
         kind: 'revision',
         questionIds: [...due],
         reason: `${due.length} question${due.length === 1 ? ' is' : 's are'} due or overdue for revision — review ${due.length === 1 ? 'it' : 'them'} today.`,
+      });
+    }
+
+    if (course && course.dueReviewWeekIds.length > 0) {
+      const n = course.dueReviewWeekIds.length;
+      recommendations.push({
+        kind: 'course-review',
+        questionIds: [],
+        weekIds: [...course.dueReviewWeekIds],
+        reason: `${n} course week${n === 1 ? ' is' : 's are'} due for review — refresh ${n === 1 ? 'it' : 'them'} before the details fade.`,
       });
     }
 
@@ -85,6 +100,15 @@ export class HeuristicRecommender implements Recommender {
         kind: 'new',
         questionIds: [...todaysNew],
         reason: "Today's new questions to get started on.",
+      });
+    }
+
+    if (course && course.nextSessionWeekId !== null) {
+      recommendations.push({
+        kind: 'course-session',
+        questionIds: [],
+        weekIds: [course.nextSessionWeekId],
+        reason: 'Your next AI/ML session is ready — keep the two-day sprint moving.',
       });
     }
 

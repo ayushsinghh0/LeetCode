@@ -144,6 +144,30 @@ test('buildAchievementCtx.perfectRevisionWeek: true only when all 7 trailing day
   expect(buildAchievementCtx([], {}, withAFail, today).perfectRevisionWeek).toBe(false);
 });
 
+test('buildAchievementCtx.perfectRevisionWeek: course week reviews count as revision work (either track keeps the week alive)', () => {
+  const today = '2026-07-30';
+
+  // 6 days of passing DSA revisions; today has no DSA revisions at all.
+  const dsaDays: Record<string, DayLog> = {};
+  for (let i = 1; i < 7; i++) {
+    const date = addDays(today, -i);
+    dsaDays[date] = mkLog(date, { revisionsPassed: [i] });
+  }
+  expect(buildAchievementCtx([], {}, dsaDays, today).perfectRevisionWeek).toBe(false);
+
+  // A passed course week review on the DSA-free day fills the gap...
+  const coursePassed = {
+    w01: { ...initialCourseProgress(), revisionHistory: [{ date: today, passed: true }] },
+  };
+  expect(buildAchievementCtx([], {}, dsaDays, today, coursePassed).perfectRevisionWeek).toBe(true);
+
+  // ...but a FAILED course review anywhere in the window breaks the all-passed rule.
+  const courseFailed = {
+    w01: { ...initialCourseProgress(), revisionHistory: [{ date: today, passed: false }] },
+  };
+  expect(buildAchievementCtx([], {}, dsaDays, today, courseFailed).perfectRevisionWeek).toBe(false);
+});
+
 test('course achievements: counters and specific-week arcs check the right ctx fields', () => {
   const withCourse = (course: AchievementCtx['course']): AchievementCtx => ({ ...zeroCtx, course });
   const earnedFor = (course: AchievementCtx['course']): string[] =>

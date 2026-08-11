@@ -25,7 +25,12 @@ export function filterQuestions(
   const query = filter.query?.trim().toLowerCase();
 
   return all.filter((q) => {
-    if (query && !q.title.toLowerCase().includes(query)) return false;
+    if (query) {
+      // Titles and the user's own notes are both searchable — "that trick I wrote down about
+      // heaps" should be findable without remembering which question it was written under.
+      const notes = (byId[q.id] ?? initialProgress()).notes;
+      if (!q.title.toLowerCase().includes(query) && !notes.toLowerCase().includes(query)) return false;
+    }
     if (filter.difficulty && q.difficulty !== filter.difficulty) return false;
     if (filter.pattern && q.pattern !== filter.pattern) return false;
 

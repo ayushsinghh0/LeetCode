@@ -12,24 +12,36 @@ export interface ConfidenceRatingProps {
 }
 
 export function ConfidenceRating({ value, onChange }: ConfidenceRatingProps) {
+  // Read-only: one summarizing role="img" label — aria-label on bare spans is ignored by AT,
+  // and five separate "Confidence n" labels would be noise anyway.
+  if (!onChange) {
+    return (
+      <div
+        role="img"
+        aria-label={value === null ? 'Confidence not set' : `Confidence ${value} of 5`}
+        className="inline-flex items-center gap-1"
+      >
+        {LEVELS.map((n) => (
+          <span
+            key={n}
+            aria-hidden="true"
+            className={cn('h-2 w-2 rounded-full', value !== null && n <= value ? 'bg-primary' : 'bg-muted')}
+          />
+        ))}
+      </div>
+    );
+  }
+
   return (
     <div className="inline-flex items-center gap-1">
       {LEVELS.map((n) => {
         const filled = value !== null && n <= value;
-        if (!onChange) {
-          return (
-            <span
-              key={n}
-              aria-label={`Confidence ${n}`}
-              className={cn('h-2 w-2 rounded-full', filled ? 'bg-primary' : 'bg-muted')}
-            />
-          );
-        }
         return (
           <button
             key={n}
             type="button"
             aria-label={`Confidence ${n}`}
+            aria-pressed={value === n}
             onClick={(e) => {
               e.stopPropagation();
               onChange(n);

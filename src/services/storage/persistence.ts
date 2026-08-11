@@ -4,6 +4,7 @@ import { selectPersistedState } from '@/services/storage/serialize';
 import type { RootState } from '@/store/store';
 import { progressReset, stateImported } from '@/store/sharedActions';
 import { normalizeCourseWeekProgress } from '@/utils/engine/aimlCourse';
+import { normalizeQuestionProgress } from '@/utils/engine/spacedRepetition';
 
 const DEFAULT_DEBOUNCE_MS = 500;
 
@@ -20,6 +21,7 @@ export function createPersistenceMiddleware(
   debounceMs: number = DEFAULT_DEBOUNCE_MS,
 ): Middleware {
   let timer: ReturnType<typeof setTimeout> | undefined;
+  let lifecycleFlushRegistered = false;
 
   const cancelPending = (): void => {
     if (timer !== undefined) {
@@ -28,22 +30,43 @@ export function createPersistenceMiddleware(
     }
   };
 
-  return (store) => (next) => (action) => {
-    const result = next(action);
-
-    if (stateImported.match(action) || progressReset.match(action)) {
+  return (store) => {
+    const saveNow = (): void => {
       cancelPending();
       adapter.save(selectPersistedState(store.getState() as RootState));
-      return result;
+    };
+
+    // A refresh/close inside the debounce window would silently drop the last mutation, so any
+    // pending save flushes when the page is being hidden or unloaded. `pagehide` covers
+    // navigation/close (including iOS Safari, which never fires unload); `visibilitychange` to
+    // hidden covers tab switches, the last observable moment on mobile.
+    if (!lifecycleFlushRegistered && typeof window !== 'undefined') {
+      lifecycleFlushRegistered = true;
+      const flushIfPending = (): void => {
+        if (timer !== undefined) saveNow();
+      };
+      window.addEventListener('pagehide', flushIfPending);
+      document.addEventListener('visibilitychange', () => {
+        if (document.visibilityState === 'hidden') flushIfPending();
+      });
     }
 
-    cancelPending();
-    timer = setTimeout(() => {
-      timer = undefined;
-      adapter.save(selectPersistedState(store.getState() as RootState));
-    }, debounceMs);
+    return (next) => (action) => {
+      const result = next(action);
 
-    return result;
+      if (stateImported.match(action) || progressReset.match(action)) {
+        saveNow();
+        return result;
+      }
+
+      cancelPending();
+      timer = setTimeout(() => {
+        timer = undefined;
+        adapter.save(selectPersistedState(store.getState() as RootState));
+      }, debounceMs);
+
+      return result;
+    };
   };
 }
 
@@ -56,12 +79,20 @@ export function loadInitialState(adapter: StorageAdapter): Partial<RootState> | 
 
   return {
     progress: {
-      byId: persisted.progress.byId,
+      byId: Object.fromEntries(
+        Object.entries(persisted.progress.byId).map(([id, p]) => [id, normalizeQuestionProgress(p)]),
+      ),
       dayLogs: persisted.progress.dayLogs,
       startDate: persisted.progress.startDate,
     },
     settings: persisted.settings,
-    gamification: persisted.gamification,
+    gamification: {
+      xp: persisted.gamification.xp,
+      unlocked: persisted.gamification.unlocked,
+      // Optional in older payloads — same boundary-normalization rule as progress entries.
+      dailyGoalBonusDate: persisted.gamification.dailyGoalBonusDate ?? null,
+      weeklyClearBonusDay: persisted.gamification.weeklyClearBonusDay ?? null,
+    },
     // Absent in pre-course payloads — omit the key so the slice's own initialState applies.
     // Present entries are normalized so pre-ladder payloads gain the revision fields.
     ...(persisted.course

@@ -1,6 +1,6 @@
 import { useMemo, useState } from 'react';
-import * as LucideIcons from 'lucide-react';
-import type { LucideIcon } from 'lucide-react';
+import { Shapes } from 'lucide-react';
+import { iconByName } from '@/components/shared/iconMap';
 import { Link } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { Progress } from '@/components/ui/progress';
@@ -12,10 +12,6 @@ import { selectPatternStats, selectQuestions, selectSolvedNewCount } from '@/sto
 import { weakestPatterns } from '@/utils/engine/recommendations';
 import type { PatternStat } from '@/utils/engine/stats';
 import type { Confidence } from '@/types';
-
-// Dynamic icon lookup: pattern.icon is a lucide-react component name stored as a plain string
-// (see src/data/patterns.ts) — same approach as PatternChip.
-const Icons = LucideIcons as unknown as Record<string, LucideIcon>;
 
 type SortMode = 'course' | 'completion' | 'weakest';
 
@@ -60,7 +56,7 @@ interface PatternCardProps {
 
 function PatternCard({ stat }: PatternCardProps) {
   const meta = patternById[stat.pattern];
-  const Icon = Icons[meta.icon] ?? LucideIcons.Shapes;
+  const Icon = iconByName(meta.icon, Shapes);
   const roundedConfidence = stat.avgConfidence !== null ? (Math.round(stat.avgConfidence) as Confidence) : null;
 
   return (
@@ -82,27 +78,29 @@ function PatternCard({ stat }: PatternCardProps) {
           </div>
         </div>
 
+        {/* The number+word pairs are already readable text — no aria-label needed (and on a
+            bare div it would be ignored anyway). */}
         <div className="grid grid-cols-4 gap-1 text-center text-[11px] text-muted-foreground">
-          <div aria-label={`${stat.solved} solved`}>
+          <div>
             <p className="font-semibold text-foreground">{stat.solved}</p>
             <p>solved</p>
           </div>
-          <div aria-label={`${stat.inRevision} in revision`}>
+          <div>
             <p className="font-semibold text-foreground">{stat.inRevision}</p>
             <p>in revision</p>
           </div>
-          <div aria-label={`${stat.mastered} mastered`}>
+          <div>
             <p className="font-semibold text-foreground">{stat.mastered}</p>
             <p>mastered</p>
           </div>
-          <div aria-label={`${stat.remaining} remaining`}>
+          <div>
             <p className="font-semibold text-foreground">{stat.remaining}</p>
             <p>remaining</p>
           </div>
         </div>
 
         <div>
-          <Progress value={stat.pct} className="h-1.5" />
+          <Progress value={stat.pct} className="h-1.5" aria-label={`${meta.name} completion`} />
           <p className="mt-1 text-right text-xs text-muted-foreground">{stat.pct}%</p>
         </div>
 

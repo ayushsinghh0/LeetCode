@@ -1,9 +1,6 @@
-import type { ReactNode } from 'react';
-import { Provider } from 'react-redux';
-import { render, screen, fireEvent, waitForElementToBeRemoved } from '@testing-library/react';
-import { MemoryRouter } from 'react-router-dom';
-import { makeStore, type AppStore } from '@/store/store';
-import { TooltipProvider } from '@/components/ui/tooltip';
+import { screen, fireEvent, waitForElementToBeRemoved } from '@testing-library/react';
+import { makeStore } from '@/store/store';
+import { renderWithStore } from '@/test/renderWithStore';
 import RoadmapPage from '@/pages/RoadmapPage';
 import { solveQuestion } from '@/store/actions';
 import questionsData from '@/data/questions.json';
@@ -12,23 +9,6 @@ import type { Question } from '@/types';
 const questions = questionsData as Question[];
 const TOTAL_DAYS = 68; // ceil(539 / 8) — derived here for assertions, not hardcoded in the page.
 const day2Titles = questions.slice(8, 16).map((q) => q.title); // ids 9-16
-
-// react-router-dom v6.28 warns about the v7 behaviors it will adopt by default in v7 unless
-// these future flags are opted into — mirrors src/pages/__tests__/today.test.tsx.
-const routerFutureFlags = { v7_startTransition: true, v7_relativeSplatPath: true } as const;
-
-function renderWithStore(ui: ReactNode, store: AppStore = makeStore()) {
-  return {
-    store,
-    ...render(
-      <Provider store={store}>
-        <TooltipProvider>
-          <MemoryRouter future={routerFutureFlags}>{ui}</MemoryRouter>
-        </TooltipProvider>
-      </Provider>,
-    ),
-  };
-}
 
 describe('RoadmapPage', () => {
   test('renders all 68 day rows', () => {

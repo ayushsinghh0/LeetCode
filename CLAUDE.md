@@ -30,7 +30,7 @@ The load-bearing layering, in dependency order:
 Three invariants that bite if forgotten:
 
 - **`progress.byId` is sparse** — only touched questions exist. Every reader must fall back: `byId[id] ?? initialProgress()`. Same rule for **`course.byWeekId`**: fall back to `initialCourseProgress()`.
-- **Product rules are locked spec** (see `PRODUCT.md` and the tests): revision ladder 1/3/7/15/30 days, stage 5 = mastered (`nextRevision: null`), any fail → stage 0 due tomorrow; XP 10/20/30 solve, half for revisions, +25 daily goal, +50 weekly clear; course XP 20 session / +50 week clear / 10 review; weekly revision day = roadmap day % 7 === 0; `daySlice` is static id ranges and `currentDay` derives from solved count. Don't "fix" these without being asked.
+- **Product rules are locked spec** (see `PRODUCT.md` and the tests): revision ladder 1/3/7/15/30 days, stage 5 = mastered (`nextRevision: null`), any fail → stage 0 due tomorrow; XP 10/20/30 solve, half for revisions, +25 daily goal, +50 weekly clear; course XP 20 session / +50 week clear / 10 review; weekly revision day = roadmap day % 7 === 0; `daySlice` is static id ranges and `currentDay` derives from solved count. Bonus gates: daily bonus at most once per calendar date (`gamification.dailyGoalBonusDate`), weekly bonus at most once per roadmap day (`gamification.weeklyClearBonusDay`); only solved, unmastered questions are revisable. Don't "fix" these without being asked.
 - **Course activity is derived, not logged** — streaks/heatmap/calendar count course work via `courseActivityByDate(course.byWeekId)` (session stamps + review grades), never by writing into `DayLog` arrays, which stay DSA-only ledgers.
 
 ## Tests

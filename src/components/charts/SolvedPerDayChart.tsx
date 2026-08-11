@@ -1,4 +1,6 @@
 import { Bar, BarChart, CartesianGrid, Legend, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts';
+import { BarChart3 } from 'lucide-react';
+import { EmptyState } from '@/components/shared/EmptyState';
 import {
   CHART_COLORS,
   ChartTooltip,
@@ -28,6 +30,9 @@ export interface SolvedPerDayChartProps {
  * is the documented, deliberate workaround for that library limitation.
  */
 export function SolvedPerDayChart({ data }: SolvedPerDayChartProps) {
+  // The series is zero-filled by the caller, so "new user" means all-zero, not empty.
+  const hasAnyActivity = data.some((d) => d.solved > 0 || d.revisions > 0);
+
   return (
     <div className="flex flex-col gap-1">
       {/* Accessible text equivalent of the chart (dataviz skill: "a table view exists"), and a
@@ -38,6 +43,15 @@ export function SolvedPerDayChart({ data }: SolvedPerDayChartProps) {
           ? 'No activity data yet.'
           : `Solved and revision counts for ${data.length} days, from ${data[0].date} to ${data[data.length - 1].date}.`}
       </p>
+      {!hasAnyActivity ? (
+        <div className="flex h-72 items-center justify-center">
+          <EmptyState
+            icon={BarChart3}
+            title="No activity in this range"
+            hint="Solve or revise a question and it will chart here"
+          />
+        </div>
+      ) : (
       <div className="h-72 w-full" aria-hidden="true">
         <ResponsiveContainer width="100%" height="100%">
           <BarChart data={data} barCategoryGap={2} margin={{ top: 8, right: 8, left: 0, bottom: 0 }}>
@@ -78,6 +92,7 @@ export function SolvedPerDayChart({ data }: SolvedPerDayChartProps) {
           </BarChart>
         </ResponsiveContainer>
       </div>
+      )}
     </div>
   );
 }

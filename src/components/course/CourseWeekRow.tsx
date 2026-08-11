@@ -119,7 +119,11 @@ export function CourseWeekRow({ week, progress, planned, isCurrent, onOpenNotes 
         <Button
           variant="ghost"
           size="sm"
-          aria-label={week.optional ? `Notes for ${week.title}` : `Notes for Week ${week.week}`}
+          // Add vs Edit tells AT users whether notes exist — visually that state is only the
+          // icon's ink color.
+          aria-label={`${progress.notes.trim() !== '' ? 'Edit' : 'Add'} notes for ${
+            week.optional ? week.title : `Week ${week.week}`
+          }`}
           onClick={() => onOpenNotes(week)}
         >
           <NotebookPen

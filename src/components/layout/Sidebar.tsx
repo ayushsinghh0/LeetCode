@@ -47,8 +47,10 @@ export function Sidebar() {
               )
             }
           >
-            <Icon className="h-4 w-4 shrink-0" />
-            <span className="hidden lg:inline">{label}</span>
+            <Icon className="h-4 w-4 shrink-0" aria-hidden="true" />
+            {/* sr-only below lg (not display:none): in the 64px icon-only rail each link keeps
+                its accessible name instead of becoming an unlabeled icon. */}
+            <span className="sr-only lg:not-sr-only">{label}</span>
           </NavLink>
         ))}
       </nav>

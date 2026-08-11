@@ -1,4 +1,5 @@
 import { Bookmark, BookmarkCheck, CheckCircle2, Clock, XCircle } from 'lucide-react';
+import { format, parseISO } from 'date-fns';
 import questionsData from '@/data/questions.json';
 import { patternById } from '@/data/patterns';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog';
@@ -52,6 +53,15 @@ export function QuestionDetailModal() {
               {question.estimatedTime} min
             </span>
             <span className="text-sm text-muted-foreground">{STATUS_LABEL[progress.status]}</span>
+            {/* Where this question sits on the ladder — the schedule shouldn't require the
+                Revision page to discover. */}
+            {progress.status === 'solved' && (
+              <span className="text-sm text-muted-foreground">
+                {progress.nextRevision
+                  ? `· next review ${format(parseISO(progress.nextRevision), 'MMM d')}`
+                  : '· mastered'}
+              </span>
+            )}
           </div>
 
           <div className="flex items-center justify-between gap-4">
@@ -87,7 +97,7 @@ export function QuestionDetailModal() {
                     ) : (
                       <XCircle className="h-4 w-4 text-hard" aria-hidden="true" />
                     )}
-                    <span>{ev.date}</span>
+                    <span>{format(parseISO(ev.date), 'MMM d, yyyy')}</span>
                     <span>{ev.passed ? 'Passed' : 'Failed'}</span>
                   </li>
                 ))}

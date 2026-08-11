@@ -1,9 +1,6 @@
-import type { ReactNode } from 'react';
-import { Provider } from 'react-redux';
-import { render, screen, within, fireEvent } from '@testing-library/react';
-import { MemoryRouter } from 'react-router-dom';
-import { makeStore, type AppStore } from '@/store/store';
-import { TooltipProvider } from '@/components/ui/tooltip';
+import { screen, within, fireEvent } from '@testing-library/react';
+import { makeStore } from '@/store/store';
+import { renderWithStore } from '@/test/renderWithStore';
 import CalendarPage from '@/pages/CalendarPage';
 import { completeCourseSession, solveQuestion } from '@/store/actions';
 import { SOLVE_XP } from '@/utils/engine/xp';
@@ -16,23 +13,6 @@ const question2 = questions.find((q) => q.id === 2)!; // "3Sum" — medium
 const SOLVE_TOTAL_XP = SOLVE_XP[question1.difficulty] + SOLVE_XP[question2.difficulty]; // 10 + 20 = 30
 
 const TODAY = '2026-07-30'; // Thursday, July 2026 — month starts on a Wednesday (3 leading pad cells)
-
-// react-router-dom v6.28 warns about the v7 behaviors it will adopt by default in v7 unless
-// these future flags are opted into — mirrors src/pages/__tests__/today.test.tsx.
-const routerFutureFlags = { v7_startTransition: true, v7_relativeSplatPath: true } as const;
-
-function renderWithStore(ui: ReactNode, store: AppStore = makeStore()) {
-  return {
-    store,
-    ...render(
-      <Provider store={store}>
-        <TooltipProvider>
-          <MemoryRouter future={routerFutureFlags}>{ui}</MemoryRouter>
-        </TooltipProvider>
-      </Provider>,
-    ),
-  };
-}
 
 beforeEach(() => {
   vi.useFakeTimers();

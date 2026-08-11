@@ -1,25 +1,6 @@
-import type { ReactNode } from 'react';
-import { Provider } from 'react-redux';
-import { render, screen, fireEvent } from '@testing-library/react';
-import { MemoryRouter } from 'react-router-dom';
-import { makeStore, type AppStore } from '@/store/store';
-import { TooltipProvider } from '@/components/ui/tooltip';
+import { screen, fireEvent } from '@testing-library/react';
+import { renderWithStore } from '@/test/renderWithStore';
 import { MobileNav } from '@/components/layout/MobileNav';
-
-const routerFutureFlags = { v7_startTransition: true, v7_relativeSplatPath: true } as const;
-
-function renderWithStore(ui: ReactNode, store: AppStore = makeStore()) {
-  return {
-    store,
-    ...render(
-      <Provider store={store}>
-        <TooltipProvider>
-          <MemoryRouter future={routerFutureFlags}>{ui}</MemoryRouter>
-        </TooltipProvider>
-      </Provider>,
-    ),
-  };
-}
 
 // Below the md breakpoint there's no physical keyboard for Ctrl/Cmd+K, so the "More" sheet is
 // the only mobile entry point into SearchDialog (see Sidebar's search button for the desktop

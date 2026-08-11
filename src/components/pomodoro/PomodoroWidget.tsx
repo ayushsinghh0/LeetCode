@@ -53,8 +53,19 @@ export function PomodoroWidget({ variant = 'floating' }: PomodoroWidgetProps) {
         aria-label="Pomodoro timer"
         className={cn('glass flex items-center gap-3', isInline ? 'flex-col p-8' : 'p-3')}
       >
-        <div className="relative shrink-0">
-          <svg viewBox="0 0 48 48" className={cn(isInline ? 'h-40 w-40' : 'h-14 w-14')}>
+        {/* Announces phase transitions (focus -> break -> ready) to screen readers; changes only
+            when `phase` changes, never on a tick. */}
+        <span aria-live="polite" className="sr-only">
+          {phase === 'idle' ? 'Pomodoro ready' : `${PHASE_LABEL[phase]} phase running`}
+        </span>
+        {/* role="timer" (implicit aria-live=off) names the countdown without announcing every
+            tick; the sr-only live region below announces only phase transitions. */}
+        <div
+          className="relative shrink-0"
+          role="timer"
+          aria-label={`Pomodoro: ${PHASE_LABEL[phase]}, ${formatClock(remainingSec)} remaining`}
+        >
+          <svg viewBox="0 0 48 48" aria-hidden="true" className={cn(isInline ? 'h-40 w-40' : 'h-14 w-14')}>
             <circle cx="24" cy="24" r={RADIUS} fill="none" strokeWidth="4" className="text-muted-foreground/20" stroke="currentColor" />
             <circle
               cx="24"

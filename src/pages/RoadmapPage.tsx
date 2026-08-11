@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
-import { AnimatePresence, motion } from 'framer-motion';
+import { AnimatePresence, motion, useReducedMotion } from 'framer-motion';
 import { CheckCircle2, Circle, Sparkles } from 'lucide-react';
 import { DifficultyBadge } from '@/components/questions/DifficultyBadge';
 import { Progress } from '@/components/ui/progress';
@@ -42,6 +42,9 @@ interface StatusNodeProps {
 
 function StatusNode({ day, isComplete, isCurrentDay }: StatusNodeProps) {
   const label = isComplete ? `Day ${day} complete` : isCurrentDay ? `Day ${day} current` : `Day ${day} upcoming`;
+  // MotionConfig reducedMotion="user" only suppresses transform/layout values — the opacity
+  // half of this infinite pulse would keep flashing forever, so the whole marker is skipped.
+  const reducedMotion = useReducedMotion();
 
   return (
     <div
@@ -50,7 +53,7 @@ function StatusNode({ day, isComplete, isCurrentDay }: StatusNodeProps) {
       aria-label={label}
       aria-current={isCurrentDay ? 'step' : undefined}
     >
-      {isCurrentDay && !isComplete && (
+      {isCurrentDay && !isComplete && !reducedMotion && (
         <motion.span
           className="absolute inset-0 rounded-full bg-primary/50"
           aria-hidden="true"
@@ -99,6 +102,8 @@ function RoadmapRow({ day, slice, isCurrentDay, isExpanded, progressById, onTogg
         <button
           type="button"
           onClick={() => onToggle(day)}
+          aria-expanded={isExpanded}
+          aria-controls={`roadmap-day-${day}-questions`}
           className="glass flex w-full flex-col gap-2 p-4 text-left transition-colors duration-150 ease-swift hover:border-primary/40"
         >
           <div className="flex items-center gap-2">
@@ -107,7 +112,7 @@ function RoadmapRow({ day, slice, isCurrentDay, isExpanded, progressById, onTogg
           </div>
           {patterns !== '' && <p className="text-sm text-muted-foreground">{patterns}</p>}
           {difficulty !== '' && <p className="text-xs text-muted-foreground">{difficulty}</p>}
-          <Progress value={progressPct} className="h-1.5" />
+          <Progress value={progressPct} className="h-1.5" aria-label={`Day ${day} progress`} />
           <p className="text-xs text-muted-foreground">
             {solvedCount}/{slice.length} solved
           </p>
@@ -116,6 +121,7 @@ function RoadmapRow({ day, slice, isCurrentDay, isExpanded, progressById, onTogg
         <AnimatePresence initial={false}>
           {isExpanded && (
             <motion.div
+              id={`roadmap-day-${day}-questions`}
               layout
               initial={{ height: 0, opacity: 0 }}
               animate={{ height: 'auto', opacity: 1 }}

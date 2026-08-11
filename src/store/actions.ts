@@ -38,7 +38,13 @@ import {
   sessionCount,
   type CourseDay,
 } from '@/utils/engine/aimlCourse';
-import { achievementsUnlocked, xpAdded } from '@/store/slices/gamificationSlice';
+import {
+  achievementsUnlocked,
+  dailyGoalBonusMarked,
+  weeklyClearBonusMarked,
+  xpAdded,
+} from '@/store/slices/gamificationSlice';
+import { isMastered } from '@/utils/engine/spacedRepetition';
 import { celebrationShown, toastPushed } from '@/store/slices/uiSlice';
 import { progressReset, stateImported } from '@/store/sharedActions';
 import { selectAchievementCtx, selectRevisionQueueIds, selectSolvedNewCount } from '@/store/selectors';
@@ -124,10 +130,16 @@ export const solveQuestion = (id: number): AppThunk => (dispatch, getState) => {
     const dayLog = getState().progress.dayLogs[date];
     const solvedTodayCount = dayLog ? dayLog.solvedIds.length : 0;
 
+    // ">= perDay" plus a once-per-date marker rather than "=== perDay": questionsPerDay can
+    // change mid-day. With a bare equality check, raising it after the bonus fired would let the
+    // count cross the new threshold and award +25 twice; lowering it below the current count
+    // would mean the bonus never fires at all. The marker makes both directions safe.
     let celebration: 'confetti' | 'fireworks' | null = null;
-    if (solvedTodayCount === perDay) {
+    const goalAlreadyAwarded = getState().gamification.dailyGoalBonusDate === date;
+    if (solvedTodayCount >= perDay && !goalAlreadyAwarded) {
       dispatch(xpAdded(DAILY_GOAL_BONUS));
       dispatch(bonusXpLogged({ date, xp: DAILY_GOAL_BONUS })); // keep dayLog.xpEarned in sync with gamification.xp
+      dispatch(dailyGoalBonusMarked(date));
       celebration = 'confetti';
     }
 
@@ -158,10 +170,19 @@ export const reviseQuestion = (id: number, passed: boolean): AppThunk => (dispat
   const question = questionById.get(id);
   if (!question) return;
 
+  const stateBefore = getState();
+
+  // Only solved, not-yet-mastered questions are reviewable — mirrors reviseCourseWeek's
+  // isWeekDone/isWeekRetained guard. Without this, any dataset id could be "revised",
+  // materializing an unsolved sparse entry with a revision history, skewing pass rates, and
+  // farming revision XP. (Dueness is deliberately NOT a precondition: reviewing early, e.g.
+  // from a weekly top-up, is allowed.)
+  const progressBefore = stateBefore.progress.byId[id];
+  if (!progressBefore || progressBefore.status !== 'solved' || isMastered(progressBefore)) return;
+
   const date = todayISO();
   const xp = revisionXp(question.difficulty);
 
-  const stateBefore = getState();
   const perDay = stateBefore.settings.questionsPerDay;
   const day = currentDay(selectSolvedNewCount(stateBefore), perDay, questions.length);
   const queueBefore = selectRevisionQueueIds(stateBefore, date).length;
@@ -169,10 +190,19 @@ export const reviseQuestion = (id: number, passed: boolean): AppThunk => (dispat
   dispatch(revisionLogged({ id, date, passed, xp }));
   dispatch(xpAdded(xp)); // every revision attempt earns xp, pass or fail
 
+  // Once per roadmap day, gated by the persisted marker: currentDay derives from solved count,
+  // not the calendar, so a user parked on the same weekly day across several calendar days
+  // would otherwise re-drain the refilled queue and re-earn +50 every day.
   const queueAfter = selectRevisionQueueIds(getState(), date).length;
-  if (isWeeklyRevisionDay(day) && queueBefore > 0 && queueAfter === 0) {
+  if (
+    isWeeklyRevisionDay(day) &&
+    queueBefore > 0 &&
+    queueAfter === 0 &&
+    stateBefore.gamification.weeklyClearBonusDay !== day
+  ) {
     dispatch(xpAdded(WEEKLY_CLEAR_BONUS));
     dispatch(bonusXpLogged({ date, xp: WEEKLY_CLEAR_BONUS })); // keep dayLog.xpEarned in sync with gamification.xp
+    dispatch(weeklyClearBonusMarked(day));
   }
 
   evaluateAndUnlockAchievements(dispatch, getState, date);

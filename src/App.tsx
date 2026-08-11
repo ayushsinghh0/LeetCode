@@ -4,6 +4,7 @@ import { MotionConfig } from 'framer-motion';
 import { ThemeProvider } from '@/contexts/ThemeContext';
 import { TooltipProvider } from '@/components/ui/tooltip';
 import { AppShell } from '@/components/layout/AppShell';
+import { ErrorBoundary } from '@/components/shared/ErrorBoundary';
 
 const DashboardPage = lazy(() => import('@/pages/DashboardPage'));
 const TodayPage = lazy(() => import('@/pages/TodayPage'));
@@ -73,7 +74,11 @@ export default function App() {
       <MotionConfig reducedMotion="user">
         <TooltipProvider>
           <BrowserRouter future={routerFutureFlags}>
-            <AppRoutes />
+            {/* Outer backstop for crashes outside any page (shell, providers' children). The
+                per-page boundary lives inside AppShell so page crashes keep the nav alive. */}
+            <ErrorBoundary>
+              <AppRoutes />
+            </ErrorBoundary>
           </BrowserRouter>
         </TooltipProvider>
       </MotionConfig>

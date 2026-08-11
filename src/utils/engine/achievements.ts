@@ -28,8 +28,8 @@ export interface AchievementCtx {
   streak: { current: number; longest: number };
   patternStats: PatternStat[];
   difficultyStats: DifficultyStat[];
-  perfectRevisionWeek: boolean; // last 7 calendar days: >=1 revision attempted every day, all passed
-  hadComeback: boolean;         // an active day whose previous active day is >=4 days earlier
+  perfectRevisionWeek: boolean; // last 7 calendar days: >=1 revision attempted every day (either track), all passed
+  hadComeback: boolean;         // an active day whose previous active day is >=4 days earlier (3+ idle days between)
   course: CourseAchievementCtx; // AI/ML track progress
 }
 
@@ -123,7 +123,7 @@ const FIXED_ACHIEVEMENTS: AchievementDef[] = [
   },
   {
     id: 'comeback', title: 'The Comeback',
-    description: 'Return to solving after a break of 4 or more days.',
+    description: 'Return to studying after 3 or more days away.',
     icon: 'Undo2', check: (ctx) => ctx.hadComeback,
   },
   {
@@ -205,14 +205,33 @@ export const ACHIEVEMENTS: AchievementDef[] = [
   ...COURSE_ACHIEVEMENTS,
 ];
 
-function computePerfectRevisionWeek(dayLogs: Record<string, DayLog>, today: string): boolean {
+// Revision work from either track counts: DSA attempts come from the day's ledger, course week
+// reviews from each week's graded revisionHistory — a day whose only revision was a course
+// review keeps the perfect week alive, matching the unified activity model everywhere else.
+function computePerfectRevisionWeek(
+  dayLogs: Record<string, DayLog>,
+  today: string,
+  courseByWeekId: Record<string, CourseWeekProgress>,
+): boolean {
+  const courseTallies = new Map<string, { attempts: number; failed: number }>();
+  for (const p of Object.values(courseByWeekId)) {
+    for (const ev of p.revisionHistory) {
+      const tally = courseTallies.get(ev.date) ?? { attempts: 0, failed: 0 };
+      tally.attempts += 1;
+      if (!ev.passed) tally.failed += 1;
+      courseTallies.set(ev.date, tally);
+    }
+  }
+
   let anyFailed = false;
   for (let delta = 0; delta < PERFECT_REVISION_WINDOW_DAYS; delta++) {
     const date = addDays(today, -delta);
     const log = dayLogs[date];
-    const attempts = log ? log.revisionsPassed.length + log.revisionsFailed.length : 0;
+    const course = courseTallies.get(date);
+    const attempts =
+      (log ? log.revisionsPassed.length + log.revisionsFailed.length : 0) + (course?.attempts ?? 0);
     if (attempts === 0) return false;
-    if (log.revisionsFailed.length > 0) anyFailed = true;
+    if ((log?.revisionsFailed.length ?? 0) > 0 || (course?.failed ?? 0) > 0) anyFailed = true;
   }
   return !anyFailed;
 }
@@ -271,7 +290,7 @@ export function buildAchievementCtx(
     streak: computeStreaks(dayLogs, today, courseActiveDates),
     patternStats: patternStats(all, byId),
     difficultyStats: difficultyStats(all, byId),
-    perfectRevisionWeek: computePerfectRevisionWeek(dayLogs, today),
+    perfectRevisionWeek: computePerfectRevisionWeek(dayLogs, today, courseByWeekId),
     hadComeback: computeHadComeback(dayLogs, courseActiveDates),
     course: buildCourseCtx(courseByWeekId),
   };

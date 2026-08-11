@@ -1,15 +1,10 @@
 import { format, parseISO } from 'date-fns';
-import * as LucideIcons from 'lucide-react';
-import type { LucideIcon } from 'lucide-react';
-import { Lock } from 'lucide-react';
+import { Award, Lock } from 'lucide-react';
+import { iconByName } from '@/components/shared/iconMap';
 import { ProgressRing } from '@/components/shared/ProgressRing';
 import { cn } from '@/utils/cn';
 import { useAppSelector } from '@/store/hooks';
 import { ACHIEVEMENTS, type AchievementDef } from '@/utils/engine/achievements';
-
-// Dynamic icon lookup, same cast rationale as PatternChip: lucide-react's real export type is a
-// large named union, not an index signature.
-const Icons = LucideIcons as unknown as Record<string, LucideIcon>;
 
 export interface AchievementGroup {
   name: string;
@@ -50,26 +45,28 @@ interface AchievementCardProps {
 }
 
 function AchievementCard({ def, unlockedDate }: AchievementCardProps) {
-  const Icon = Icons[def.icon] ?? LucideIcons.Award;
+  const Icon = iconByName(def.icon, Award);
   const unlocked = !!unlockedDate;
 
   return (
     <div
-      aria-label={`${def.title} — ${unlocked ? 'unlocked' : 'locked'}`}
       className={cn(
         'glass relative flex flex-col items-center gap-1.5 p-4 text-center',
-        unlocked ? 'border-primary/60 shadow-[0_0_24px_hsl(var(--primary)/0.35)]' : 'opacity-50',
+        // Accent border only — DESIGN.md bans glow shadows; the ink border + full opacity
+        // already separate unlocked from locked cards.
+        unlocked ? 'border-primary/60' : 'opacity-50',
       )}
     >
+      {/* Locked state must reach AT too — the visual cues are an icon and reduced opacity. */}
       {!unlocked && (
-        <span className="absolute right-2 top-2 text-muted-foreground" aria-hidden="true">
-          <Lock className="h-3.5 w-3.5" />
+        <span className="absolute right-2 top-2 text-muted-foreground" role="img" aria-label="Locked">
+          <Lock className="h-3.5 w-3.5" aria-hidden="true" />
         </span>
       )}
       <span
         className={cn(
           'inline-flex h-12 w-12 items-center justify-center rounded-full',
-          unlocked ? 'bg-accent-gradient text-white' : 'bg-muted text-muted-foreground',
+          unlocked ? 'bg-accent-gradient text-primary-foreground' : 'bg-muted text-muted-foreground',
         )}
       >
         <Icon className="h-6 w-6" aria-hidden="true" />

@@ -93,9 +93,11 @@ export const selectDueRevisionIds = createSelector(
   (byId, today) => dueIds(byId, today),
 );
 
+// Gated on the weekly day here (not just at the queue-assembly step below) so the 539-question
+// pool scan never runs on the six days out of seven whose result would be discarded anyway.
 export const selectWeeklyTopUpIds = createSelector(
-  [selectProgressById, selectDueRevisionIds, selectTodayArg],
-  (byId, due, today) => weeklyTopUp(questions, byId, due, today),
+  [selectIsWeeklyDay, selectProgressById, selectDueRevisionIds, selectTodayArg],
+  (isWeekly, byId, due, today): number[] => (isWeekly ? weeklyTopUp(questions, byId, due, today) : []),
 );
 
 // Due items every day; on weekly-revision days, due + weekly top-up extras. [] whenever

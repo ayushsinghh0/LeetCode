@@ -8,6 +8,7 @@ import type {
   RevisionEvent,
 } from '@/types';
 import type { RootState } from '@/store/store';
+import { MASTERED_STAGE } from '@/utils/engine/spacedRepetition';
 
 // Projects the persistable slices (progress, settings, gamification, course) out of RootState.
 // `ui` is deliberately excluded — it holds only ephemeral session state (celebration, toast
@@ -34,8 +35,29 @@ function isPlainObject(value: unknown): value is Record<string, unknown> {
   return typeof value === 'object' && value !== null && !Array.isArray(value);
 }
 
-function isNullableString(value: unknown): value is string | null {
-  return value === null || typeof value === 'string';
+// The whole engine compares dates as `yyyy-MM-dd` strings with <= — a date in any other shape
+// ("2026-1-5", "tomorrow", an ISO timestamp) would pass a typeof check but silently break every
+// due/streak/forecast computation, so date fields are validated against the exact format.
+const ISO_DATE_RE = /^\d{4}-\d{2}-\d{2}$/;
+
+function isIsoDate(value: unknown): value is string {
+  return typeof value === 'string' && ISO_DATE_RE.test(value);
+}
+
+function isNullableIsoDate(value: unknown): value is string | null {
+  return value === null || isIsoDate(value);
+}
+
+// xpEarned, focusMinutes, timeSpentMin, xp — counters that must be real non-negative numbers
+// (NaN/Infinity would poison every sum they feed).
+function isNonNegativeNumber(value: unknown): value is number {
+  return typeof value === 'number' && Number.isFinite(value) && value >= 0;
+}
+
+// Ladder stage: an integer within 0..MASTERED_STAGE. `stage >= 5` means mastered and the
+// interval table is indexed by stage, so NaN / -1 / 1e9 must all be rejected.
+function isRevisionStage(value: unknown): value is number {
+  return typeof value === 'number' && Number.isInteger(value) && value >= 0 && value <= MASTERED_STAGE;
 }
 
 function isQuestionStatus(value: unknown): value is QuestionStatus {
@@ -49,12 +71,12 @@ function isConfidence(value: unknown): value is Confidence | null {
 function isRevisionEventArray(value: unknown): value is RevisionEvent[] {
   return (
     Array.isArray(value) &&
-    value.every((ev) => isPlainObject(ev) && typeof ev.date === 'string' && typeof ev.passed === 'boolean')
+    value.every((ev) => isPlainObject(ev) && isIsoDate(ev.date) && typeof ev.passed === 'boolean')
   );
 }
 
-function isNumberArray(value: unknown): value is number[] {
-  return Array.isArray(value) && value.every((v) => typeof v === 'number');
+function isIdArray(value: unknown): value is number[] {
+  return Array.isArray(value) && value.every((v) => typeof v === 'number' && Number.isInteger(v));
 }
 
 // Per-entry shape check for progress.byId[id] — every field of QuestionProgress, not just "is it
@@ -65,15 +87,15 @@ function isValidProgressEntry(value: unknown): value is QuestionProgress {
   if (!isPlainObject(value)) return false;
   return (
     isQuestionStatus(value.status) &&
-    typeof value.revisionStage === 'number' &&
-    isNullableString(value.nextRevision) &&
-    isNullableString(value.lastReviewed) &&
+    isRevisionStage(value.revisionStage) &&
+    isNullableIsoDate(value.nextRevision) &&
+    isNullableIsoDate(value.lastReviewed) &&
     isRevisionEventArray(value.revisionHistory) &&
     typeof value.notes === 'string' &&
     typeof value.bookmarked === 'boolean' &&
-    isNullableString(value.completedAt) &&
+    isNullableIsoDate(value.completedAt) &&
     isConfidence(value.confidence) &&
-    typeof value.timeSpentMin === 'number'
+    isNonNegativeNumber(value.timeSpentMin)
   );
 }
 
@@ -84,12 +106,12 @@ function isValidProgressEntry(value: unknown): value is QuestionProgress {
 function isValidCourseEntry(value: unknown): value is CourseWeekProgress {
   if (!isPlainObject(value)) return false;
   return (
-    isNullableString(value.day1DoneOn) &&
-    isNullableString(value.day2DoneOn) &&
+    isNullableIsoDate(value.day1DoneOn) &&
+    isNullableIsoDate(value.day2DoneOn) &&
     typeof value.notes === 'string' &&
-    (!('revisionStage' in value) || typeof value.revisionStage === 'number') &&
-    (!('nextRevision' in value) || isNullableString(value.nextRevision)) &&
-    (!('lastReviewed' in value) || isNullableString(value.lastReviewed)) &&
+    (!('revisionStage' in value) || isRevisionStage(value.revisionStage)) &&
+    (!('nextRevision' in value) || isNullableIsoDate(value.nextRevision)) &&
+    (!('lastReviewed' in value) || isNullableIsoDate(value.lastReviewed)) &&
     (!('revisionHistory' in value) || isRevisionEventArray(value.revisionHistory))
   );
 }
@@ -99,12 +121,12 @@ function isValidCourseEntry(value: unknown): value is CourseWeekProgress {
 function isValidDayLogEntry(value: unknown): value is DayLog {
   if (!isPlainObject(value)) return false;
   return (
-    typeof value.date === 'string' &&
-    isNumberArray(value.solvedIds) &&
-    isNumberArray(value.revisionsPassed) &&
-    isNumberArray(value.revisionsFailed) &&
-    typeof value.xpEarned === 'number' &&
-    typeof value.focusMinutes === 'number'
+    isIsoDate(value.date) &&
+    isIdArray(value.solvedIds) &&
+    isIdArray(value.revisionsPassed) &&
+    isIdArray(value.revisionsFailed) &&
+    isNonNegativeNumber(value.xpEarned) &&
+    isNonNegativeNumber(value.focusMinutes)
   );
 }
 
@@ -112,9 +134,12 @@ function isValidDayLogEntry(value: unknown): value is DayLog {
 // a PersistedStateV1". Both LocalStorageAdapter.load() and any future adapter (including the
 // Settings page's import-from-file flow, where genuinely untrusted JSON reaches this function)
 // must route their parsed/fetched data through here before handing it to the store. Validation
-// goes one level deeper than top-level key presence: every entry inside progress.byId and
-// progress.dayLogs is checked against its full expected shape, so a malformed-but-version-1 file
-// (wrong-typed fields, missing arrays, etc.) is rejected wholesale rather than partially accepted.
+// goes deeper than top-level key presence: every entry inside progress.byId and progress.dayLogs
+// is checked against its full expected shape — including domain ranges (revisionStage 0..5) and
+// exact yyyy-MM-dd date formats — so a malformed-but-version-1 file is rejected wholesale rather
+// than partially accepted. The return value is rebuilt field-by-field from the validated input
+// (never a cast of the raw object), so unknown extra keys are dropped instead of smuggled into
+// the store.
 export function validatePersisted(raw: unknown): PersistedStateV1 | null {
   if (!isPlainObject(raw)) return null;
   if (raw.version !== 1) return null;
@@ -122,36 +147,120 @@ export function validatePersisted(raw: unknown): PersistedStateV1 | null {
   const progress = raw.progress;
   if (!isPlainObject(progress)) return null;
   if (!isPlainObject(progress.byId)) return null;
-  if (!Object.values(progress.byId).every(isValidProgressEntry)) return null;
-  if (!isPlainObject(progress.dayLogs)) return null;
-  if (!Object.values(progress.dayLogs).every(isValidDayLogEntry)) return null;
-  if (!('startDate' in progress) || (progress.startDate !== null && typeof progress.startDate !== 'string')) {
-    return null;
+  const byId: Record<number, QuestionProgress> = {};
+  for (const [key, entry] of Object.entries(progress.byId)) {
+    const id = Number(key);
+    if (!Number.isInteger(id)) return null;
+    if (!isValidProgressEntry(entry)) return null;
+    byId[id] = {
+      status: entry.status,
+      revisionStage: entry.revisionStage,
+      nextRevision: entry.nextRevision,
+      lastReviewed: entry.lastReviewed,
+      revisionHistory: entry.revisionHistory.map((ev) => ({ date: ev.date, passed: ev.passed })),
+      notes: entry.notes,
+      bookmarked: entry.bookmarked,
+      completedAt: entry.completedAt,
+      confidence: entry.confidence,
+      timeSpentMin: entry.timeSpentMin,
+    };
   }
+  if (!isPlainObject(progress.dayLogs)) return null;
+  const dayLogs: Record<string, DayLog> = {};
+  for (const [date, entry] of Object.entries(progress.dayLogs)) {
+    if (!isIsoDate(date)) return null;
+    if (!isValidDayLogEntry(entry)) return null;
+    dayLogs[date] = {
+      date: entry.date,
+      solvedIds: [...entry.solvedIds],
+      revisionsPassed: [...entry.revisionsPassed],
+      revisionsFailed: [...entry.revisionsFailed],
+      xpEarned: entry.xpEarned,
+      focusMinutes: entry.focusMinutes,
+    };
+  }
+  if (!('startDate' in progress) || !isNullableIsoDate(progress.startDate)) return null;
 
   const settings = raw.settings;
   if (!isPlainObject(settings)) return null;
-  if (typeof settings.questionsPerDay !== 'number') return null;
+  if (typeof settings.questionsPerDay !== 'number' || !Number.isInteger(settings.questionsPerDay) || settings.questionsPerDay < 1) {
+    return null;
+  }
   if (typeof settings.revisionEnabled !== 'boolean') return null;
   if (settings.theme !== 'dark' && settings.theme !== 'light') return null;
   if (typeof settings.notifications !== 'boolean') return null;
 
   const gamification = raw.gamification;
   if (!isPlainObject(gamification)) return null;
-  if (typeof gamification.xp !== 'number') return null;
+  if (!isNonNegativeNumber(gamification.xp)) return null;
   if (!isPlainObject(gamification.unlocked)) return null;
   if (!Object.values(gamification.unlocked).every((v) => typeof v === 'string')) return null;
+  // Bonus gates are optional (absent in payloads saved before they shipped).
+  if ('dailyGoalBonusDate' in gamification && gamification.dailyGoalBonusDate !== undefined && !isNullableIsoDate(gamification.dailyGoalBonusDate)) {
+    return null;
+  }
+  const weeklyDay = gamification.weeklyClearBonusDay;
+  if ('weeklyClearBonusDay' in gamification && weeklyDay !== undefined && weeklyDay !== null && !(typeof weeklyDay === 'number' && Number.isInteger(weeklyDay) && weeklyDay >= 0)) {
+    return null;
+  }
 
   // `course` is optional (absent in pre-course payloads) — but when present it must be fully
   // well-formed, same reject-wholesale rule as every other section.
+  let course: PersistedStateV1['course'];
   if ('course' in raw && raw.course !== undefined) {
-    const course = raw.course;
-    if (!isPlainObject(course)) return null;
-    if (!isPlainObject(course.byWeekId)) return null;
-    if (!Object.values(course.byWeekId).every(isValidCourseEntry)) return null;
+    const rawCourse = raw.course;
+    if (!isPlainObject(rawCourse)) return null;
+    if (!isPlainObject(rawCourse.byWeekId)) return null;
+    const byWeekId: Record<string, CourseWeekProgress> = {};
+    for (const [weekId, entry] of Object.entries(rawCourse.byWeekId)) {
+      if (!isValidCourseEntry(entry)) return null;
+      // Ladder fields may be genuinely absent in pre-ladder payloads — they must stay absent
+      // here (writing `field: undefined` would later override normalizeCourseWeekProgress's
+      // spread defaults), so each is copied only when present. The cast is safe: presence and
+      // types were just validated, and the load boundary normalizes the gaps in.
+      byWeekId[weekId] = {
+        day1DoneOn: entry.day1DoneOn,
+        day2DoneOn: entry.day2DoneOn,
+        notes: entry.notes,
+        ...('revisionStage' in entry ? { revisionStage: entry.revisionStage } : {}),
+        ...('nextRevision' in entry ? { nextRevision: entry.nextRevision } : {}),
+        ...('lastReviewed' in entry ? { lastReviewed: entry.lastReviewed } : {}),
+        ...('revisionHistory' in entry
+          ? { revisionHistory: entry.revisionHistory.map((ev) => ({ date: ev.date, passed: ev.passed })) }
+          : {}),
+      } as CourseWeekProgress;
+    }
+    course = { byWeekId };
   }
 
-  return raw as unknown as PersistedStateV1;
+  return {
+    version: 1,
+    progress: {
+      byId,
+      dayLogs,
+      startDate: progress.startDate as string | null,
+    },
+    settings: {
+      questionsPerDay: settings.questionsPerDay,
+      revisionEnabled: settings.revisionEnabled,
+      theme: settings.theme,
+      notifications: settings.notifications,
+    },
+    // Bonus gates are echoed only when the payload carried them — validation preserves the
+    // input shape; defaulting absent fields to null is the load boundary's job
+    // (loadInitialState / the gamification slice's stateImported case).
+    gamification: {
+      xp: gamification.xp,
+      unlocked: { ...(gamification.unlocked as Record<string, string>) },
+      ...('dailyGoalBonusDate' in gamification && gamification.dailyGoalBonusDate !== undefined
+        ? { dailyGoalBonusDate: gamification.dailyGoalBonusDate as string | null }
+        : {}),
+      ...('weeklyClearBonusDay' in gamification && weeklyDay !== undefined
+        ? { weeklyClearBonusDay: weeklyDay as number | null }
+        : {}),
+    },
+    ...(course ? { course } : {}),
+  };
 }
 
 export function exportAsJson(root: RootState): string {

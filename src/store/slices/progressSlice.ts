@@ -1,6 +1,11 @@
 import { createSlice, type PayloadAction } from '@reduxjs/toolkit';
 import type { Confidence, DayLog, PersistedStateV1, QuestionProgress } from '@/types';
-import { applyRevision, applySolve, initialProgress } from '@/utils/engine/spacedRepetition';
+import {
+  applyRevision,
+  applySolve,
+  initialProgress,
+  normalizeQuestionProgress,
+} from '@/utils/engine/spacedRepetition';
 import { progressReset, stateImported } from '@/store/sharedActions';
 
 export interface ProgressState {
@@ -123,7 +128,11 @@ const progressSlice = createSlice({
   },
   extraReducers: (builder) => {
     builder.addCase(stateImported, (state, action: PayloadAction<PersistedStateV1>) => {
-      state.byId = action.payload.progress.byId;
+      // Normalized at the boundary (mirrors courseSlice running normalizeCourseWeekProgress)
+      // so a future optional QuestionProgress field defaults in instead of arriving undefined.
+      state.byId = Object.fromEntries(
+        Object.entries(action.payload.progress.byId).map(([id, p]) => [id, normalizeQuestionProgress(p)]),
+      );
       state.dayLogs = action.payload.progress.dayLogs;
       state.startDate = action.payload.progress.startDate;
     });

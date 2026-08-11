@@ -39,6 +39,21 @@ describe('filterQuestions', () => {
     expect(result).toEqual(FIXTURE);
   });
 
+  test('query: matches against the question notes as well as the title', () => {
+    const byId: Record<number, QuestionProgress> = {
+      4: { ...emptyProgress(), notes: 'Use a min-HEAP of list heads.' },
+    };
+    // "heap" appears in no title, only in id 4's notes; matching is case-insensitive.
+    const result = filterQuestions(FIXTURE, byId, { query: 'heap' }, TODAY);
+    expect(result.map((q) => q.id)).toEqual([4]);
+  });
+
+  test('query: questions without a progress entry are still matched by title only', () => {
+    // No byId entries at all — the sparse-state fallback must not throw on notes access.
+    const result = filterQuestions(FIXTURE, {}, { query: 'palindrome' }, TODAY);
+    expect(result.map((q) => q.id)).toEqual([3]);
+  });
+
   test('difficulty: filters to exactly the given difficulty', () => {
     const result = filterQuestions(FIXTURE, {}, { difficulty: 'easy' }, TODAY);
     expect(result.map((q) => q.id).sort()).toEqual([2, 3]);

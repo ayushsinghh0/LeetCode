@@ -5,6 +5,7 @@ import questionsData from '@/data/questions.json';
 import { patternById } from '@/data/patterns';
 import { COURSE_WEEKS, type CourseWeek } from '@/data/aimlCourse';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { DifficultyBadge } from '@/components/questions/DifficultyBadge';
 import { PatternChip } from '@/components/questions/PatternChip';
@@ -131,10 +132,16 @@ export function SearchDialog() {
 
   const weekItems = useMemo((): PaletteItem[] => {
     if (trimmed === '' || hasQuestionFilter) return [];
-    return COURSE_WEEKS.filter((week) => weekLabel(week).toLowerCase().includes(trimmed))
+    return COURSE_WEEKS.filter((week) => {
+      if (weekLabel(week).toLowerCase().includes(trimmed)) return true;
+      // The user's own module notes are searchable too — mirrors filterQuestions matching
+      // question notes, so one palette query covers everything they've written down.
+      const notes = (courseByWeekId[week.id] ?? initialCourseProgress()).notes;
+      return notes.toLowerCase().includes(trimmed);
+    })
       .slice(0, WEEK_LIMIT)
       .map((week) => ({ kind: 'week', week }));
-  }, [trimmed, hasQuestionFilter]);
+  }, [trimmed, hasQuestionFilter, courseByWeekId]);
 
   const questionResults = useMemo(() => {
     if (!hasActiveFilter) return [];
@@ -255,7 +262,26 @@ export function SearchDialog() {
           />
 
           {items.length === 0 ? (
-            <p className="py-8 text-center text-sm text-muted-foreground">Nothing matches your search.</p>
+            <div className="flex flex-col items-center gap-3 py-6">
+              <p className="text-sm text-muted-foreground">Nothing matches your search.</p>
+              <p className="text-xs text-muted-foreground">
+                Titles, your notes, course weeks, pages, and actions are all searchable — try fewer words
+                {hasQuestionFilter ? ', or clear the filters below' : ''}.
+              </p>
+              {hasQuestionFilter && (
+                <Button
+                  size="sm"
+                  variant="outline"
+                  onClick={() => {
+                    setDifficulty('all');
+                    setStatus('all');
+                    setPattern('all');
+                  }}
+                >
+                  Clear filters
+                </Button>
+              )}
+            </div>
           ) : (
             <div id="palette-listbox" role="listbox" aria-label="Search results" className="flex flex-col gap-3">
               {pageItems.length > 0 && (

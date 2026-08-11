@@ -38,6 +38,13 @@ export function initialProgress(): QuestionProgress {
   };
 }
 
+// Boundary normalizer, mirroring normalizeCourseWeekProgress: imported/loaded entries pass
+// through here so a future optional QuestionProgress field gains its default instead of
+// arriving undefined. Today every field is required, so this is pure forward-compat seam.
+export function normalizeQuestionProgress(raw: Partial<QuestionProgress>): QuestionProgress {
+  return { ...initialProgress(), ...raw };
+}
+
 export function applySolve(p: QuestionProgress, date: string): QuestionProgress {
   return { ...p, status: 'solved', completedAt: date, ...ladderEntry(date) };
 }

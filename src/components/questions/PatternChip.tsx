@@ -1,18 +1,15 @@
-import * as LucideIcons from 'lucide-react';
-import type { LucideIcon } from 'lucide-react';
+import { Shapes } from 'lucide-react';
+import { iconByName } from '@/components/shared/iconMap';
 import type { PatternMeta } from '@/types';
-
-// Dynamic icon lookup: pattern.icon is a lucide-react component name stored as a plain string
-// (see src/data/patterns.ts). The namespace import has to be cast — lucide-react's real type is
-// a large union of named exports, not an index signature — so we assert it as a lookup table.
-const Icons = LucideIcons as unknown as Record<string, LucideIcon>;
 
 export interface PatternChipProps {
   pattern: PatternMeta;
 }
 
 export function PatternChip({ pattern }: PatternChipProps) {
-  const Icon = Icons[pattern.icon] ?? LucideIcons.Shapes;
+  // pattern.icon is a lucide component name stored as a string (src/data/patterns.ts) —
+  // resolved through the explicit ICON_MAP so the icon library stays tree-shakeable.
+  const Icon = iconByName(pattern.icon, Shapes);
 
   // The pattern ink stays on the icon, border, and tint; the label wears the text token so it
   // meets body-text contrast on both grounds (the ink midtones can't).

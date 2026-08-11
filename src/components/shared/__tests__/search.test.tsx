@@ -1,15 +1,12 @@
-import type { ReactNode } from 'react';
-import { Provider } from 'react-redux';
-import { render, screen, fireEvent, within } from '@testing-library/react';
-import { MemoryRouter, useLocation } from 'react-router-dom';
-import { makeStore, type AppStore } from '@/store/store';
-import { ThemeProvider } from '@/contexts/ThemeContext';
-import { TooltipProvider } from '@/components/ui/tooltip';
+import { screen, fireEvent, within } from '@testing-library/react';
+import { useLocation } from 'react-router-dom';
+import { makeStore } from '@/store/store';
+import { renderWithStore } from '@/test/renderWithStore';
 import { SearchDialog } from '@/components/shared/SearchDialog';
 import { QuestionDetailModal } from '@/components/questions/QuestionDetailModal';
 import { Sidebar } from '@/components/layout/Sidebar';
 import { searchOpenSet } from '@/store/slices/uiSlice';
-import { toggleBookmark } from '@/store/actions';
+import { saveCourseNotes, saveNotes, toggleBookmark } from '@/store/actions';
 import questionsData from '@/data/questions.json';
 import type { Question } from '@/types';
 
@@ -18,28 +15,11 @@ const questions = questionsData as Question[];
 // full dataset (no "Two Sum"/"3Sum Closest"/etc collide on that substring).
 const threeSum = questions.find((q) => q.title === '3Sum')!;
 
-const routerFutureFlags = { v7_startTransition: true, v7_relativeSplatPath: true } as const;
-
 // The palette navigates (pages, weeks, focus mode) — this probe makes the resulting
 // location assertable without mounting real routes.
 function LocationProbe() {
   const { pathname } = useLocation();
   return <div data-testid="location">{pathname}</div>;
-}
-
-function renderWithStore(ui: ReactNode, store: AppStore = makeStore()) {
-  return {
-    store,
-    ...render(
-      <Provider store={store}>
-        <ThemeProvider>
-          <TooltipProvider>
-            <MemoryRouter future={routerFutureFlags}>{ui}</MemoryRouter>
-          </TooltipProvider>
-        </ThemeProvider>
-      </Provider>,
-    ),
-  };
 }
 
 describe('SearchDialog', () => {
@@ -204,6 +184,30 @@ describe('SearchDialog', () => {
     fireEvent.keyDown(input, { key: 'Enter' });
 
     expect(store.getState().settings.theme).toBe('light');
+  });
+
+  test('course weeks match by the notes written on them, not just the title', () => {
+    const store = makeStore();
+    // "backprop chain rule" appears in no week title — only in these notes on w02.
+    store.dispatch(saveCourseNotes('w02', 'Key insight: backprop chain rule, layer by layer.'));
+    store.dispatch(searchOpenSet(true));
+    renderWithStore(<SearchDialog />, store);
+
+    fireEvent.change(screen.getByPlaceholderText(/search/i), { target: { value: 'backprop' } });
+
+    expect(screen.getByRole('option', { name: /Neural Networks from Scratch/i })).toBeInTheDocument();
+  });
+
+  test('question results match by saved notes as well as title', () => {
+    const store = makeStore();
+    // "monotonic deque trick" appears in no question title — only in these notes on 3Sum.
+    store.dispatch(saveNotes(threeSum.id, 'Remember the monotonic deque trick here.'));
+    store.dispatch(searchOpenSet(true));
+    renderWithStore(<SearchDialog />, store);
+
+    fireEvent.change(screen.getByPlaceholderText(/search/i), { target: { value: 'monotonic deque' } });
+
+    expect(screen.getByRole('option', { name: /3Sum/i })).toBeInTheDocument();
   });
 
   test('course weeks match by title and clicking one goes to the course page', () => {

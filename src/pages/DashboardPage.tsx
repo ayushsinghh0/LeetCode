@@ -24,7 +24,6 @@ import {
   selectCourseProjectedFinish,
   selectCourseStats,
   selectCurrentDay,
-  selectDueRevisionIds,
   selectEstimatedFinish,
   selectHeatmapData,
   selectLevelInfo,
@@ -75,7 +74,6 @@ export default function DashboardPage() {
   const productivity = useAppSelector((s) => selectProductivityScore(s, today));
   const weakest = useAppSelector(selectWeakestPatterns);
   const patternStats = useAppSelector(selectPatternStats);
-  const dueIds = useAppSelector((s) => selectDueRevisionIds(s, today));
   const revisionQueueIds = useAppSelector((s) => selectRevisionQueueIds(s, today));
   const todayLog = useAppSelector((s) => selectTodayLog(s, today));
   const courseStats = useAppSelector(selectCourseStats);
@@ -102,12 +100,18 @@ export default function DashboardPage() {
   const weakestEntry = weakest[0] ?? null;
   const weakestStat = weakestEntry ? patternStats.find((s) => s.pattern === weakestEntry.pattern) : undefined;
 
+  // `due` is the full queue the Revision surfaces render (due + weekly top-up, [] when revision
+  // is disabled) so the recommendation count always matches the banner beside it.
   const recommendations = recommender.recommend({
     all: questions,
     byId: progressById,
-    due: dueIds,
+    due: revisionQueueIds,
     todaysNew: todaysNew.map((q) => q.id),
     weakest,
+    course: {
+      dueReviewWeekIds: courseDueReviews,
+      nextSessionWeekId: courseNext?.weekId ?? null,
+    },
   });
 
   function openQuestion(id: number) {
@@ -145,7 +149,7 @@ export default function DashboardPage() {
             </p>
 
             {roadmapComplete ? (
-              <p className="text-lg font-semibold">Roadmap complete 🎉</p>
+              <p className="text-lg font-semibold">Roadmap complete — every question solved.</p>
             ) : currentQuestion && currentPattern ? (
               <div className="flex flex-wrap items-center gap-2">
                 <span className="text-sm text-muted-foreground">You&apos;re in:</span>
@@ -259,6 +263,15 @@ export default function DashboardPage() {
                           </Button>
                         );
                       })}
+                      {(rec.weekIds ?? []).slice(0, 3).map((weekId) => {
+                        const week = courseWeekById.get(weekId);
+                        if (!week) return null;
+                        return (
+                          <Button key={weekId} size="sm" variant="ghost" onClick={() => navigate('/aiml')}>
+                            Week {week.week} — {week.title}
+                          </Button>
+                        );
+                      })}
                     </div>
                   </li>
                 ))}
@@ -270,7 +283,7 @@ export default function DashboardPage() {
         {/* Row 5: heatmap */}
         <motion.div variants={itemVariants} className="glass p-5">
           <h2 className="mb-3 border-b border-border/70 pb-2 text-base font-medium">Activity</h2>
-          <Heatmap data={heatmapData} onSelectDate={() => navigate('/calendar')} />
+          <Heatmap data={heatmapData} onSelectDate={(date) => navigate('/calendar', { state: { date } })} />
         </motion.div>
       </motion.div>
     </div>

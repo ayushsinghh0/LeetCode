@@ -113,8 +113,7 @@ Failing a revision — at any stage — resets `revisionStage` to `0` and resche
 ## Roadmap (v2)
 
 - **Supabase adapter** — implement the existing `StorageAdapter` interface (`load` / `save`) against Supabase instead of `localStorage`, enabling account-based multi-device sync without changing the Redux store, selectors, or any UI code — the seam this app is already built around.
-- **Real AI recommender** — replace `HeuristicRecommender` with an LLM-backed implementation of the `Recommender` interface (`recommend({ all, byId, due, todaysNew, weakest }): Recommendation[]`) for genuinely personalized next-question suggestions and weak-area coaching, in place of today's fixed heuristic (due revisions, then weakest pattern, then today's new questions).
-- Wire up the `notifications` setting — already toggleable in Settings, currently a no-op — to real due-today reminders.
+- **Real AI recommender** — replace `HeuristicRecommender` with an LLM-backed implementation of the `Recommender` interface (`recommend({ all, byId, due, todaysNew, weakest, course? }): Recommendation[]`) for genuinely personalized next-question suggestions and weak-area coaching, in place of today's fixed heuristic (due question revisions, then due course week reviews, then weakest pattern, then today's new questions, then the next course session).
 
 ## Responsive
 

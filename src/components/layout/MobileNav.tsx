@@ -40,8 +40,9 @@ export function MobileNav() {
               )
             }
           >
-            <Icon className="h-5 w-5" />
-            {label}
+            <Icon className="h-5 w-5" aria-hidden="true" />
+            {/* Six slots share ~350px at 375vw — labels must ellipsize, never wrap or overflow. */}
+            <span className="max-w-full truncate">{label}</span>
           </NavLink>
         ))}
         <button

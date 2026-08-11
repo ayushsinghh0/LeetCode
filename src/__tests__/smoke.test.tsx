@@ -9,5 +9,7 @@ test('app renders', async () => {
       <App />
     </Provider>,
   );
-  expect(await screen.findByText(/DSA Roadmap/i)).toBeInTheDocument();
+  // Generous timeout: the dashboard chunk is lazy-loaded, and under a fully parallel suite its
+  // resolution can exceed findBy's 1s default on a loaded machine.
+  expect(await screen.findByText(/DSA Roadmap/i, undefined, { timeout: 5000 })).toBeInTheDocument();
 });

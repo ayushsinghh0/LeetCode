@@ -5,7 +5,7 @@ import { makeStore, type AppStore } from '@/store/store';
 import { TooltipProvider } from '@/components/ui/tooltip';
 import { ThemeProvider } from '@/contexts/ThemeContext';
 import SettingsPage from '@/pages/SettingsPage';
-import { solveQuestion } from '@/store/actions';
+import { completeCourseSession, solveQuestion } from '@/store/actions';
 import { settingsUpdated } from '@/store/slices/settingsSlice';
 import { exportAsJson } from '@/services/storage/serialize';
 import { totalDays } from '@/utils/engine/roadmap';
@@ -67,7 +67,8 @@ describe('SettingsPage: Preferences form', () => {
     expect(screen.getByText(new RegExp(`${totalDays(TOTAL_QUESTIONS, 8)} days`))).toBeInTheDocument();
     expect(screen.getByRole('switch', { name: 'Spaced revision' })).toHaveAttribute('aria-checked', 'true');
     expect(screen.getByRole('switch', { name: 'Notifications' })).toHaveAttribute('aria-checked', 'false');
-    expect(screen.getByText(/coming soon/i)).toBeInTheDocument();
+    // The setting is live now — the description states what it actually does.
+    expect(screen.getByText(/A browser notification when revisions are due/i)).toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'Save' })).toBeDisabled();
   });
 
@@ -155,7 +156,7 @@ describe('SettingsPage: Export', () => {
 });
 
 describe('SettingsPage: Import', () => {
-  test('importing a valid backup shows a confirm dialog with "X solved, Y XP", and Import applies it', async () => {
+  test('importing a valid backup shows a confirm dialog with solved/course/XP counts, and Import applies it', async () => {
     const sourceStore = makeStore();
     sourceStore.dispatch(solveQuestion(1));
     sourceStore.dispatch(solveQuestion(2));
@@ -166,7 +167,8 @@ describe('SettingsPage: Import', () => {
     const file = new File([backupJson], 'backup.json', { type: 'application/json' });
     fireEvent.change(screen.getByLabelText('Import backup file'), { target: { files: [file] } });
 
-    await screen.findByText(new RegExp(`2 solved, ${expectedXp} XP`));
+    // A DSA-only backup carries no course slice — the preview says so explicitly (0 sessions).
+    await screen.findByText(new RegExp(`2 solved, 0 course\\s+sessions, ${expectedXp} XP`));
     expect(screen.queryByText(/not a valid/i)).not.toBeInTheDocument();
 
     fireEvent.click(screen.getByRole('button', { name: 'Import' }));
@@ -174,6 +176,21 @@ describe('SettingsPage: Import', () => {
     expect(store.getState().progress.byId[1].status).toBe('solved');
     expect(store.getState().progress.byId[2].status).toBe('solved');
     expect(store.getState().gamification.xp).toBe(expectedXp);
+  });
+
+  test('a backup carrying course work previews its session count too', async () => {
+    const sourceStore = makeStore();
+    sourceStore.dispatch(solveQuestion(1));
+    sourceStore.dispatch(completeCourseSession('w00', 1));
+    sourceStore.dispatch(completeCourseSession('w00', 2));
+    sourceStore.dispatch(completeCourseSession('w01', 1));
+    const backupJson = exportAsJson(sourceStore.getState());
+
+    renderWithStore();
+    const file = new File([backupJson], 'backup.json', { type: 'application/json' });
+    fireEvent.change(screen.getByLabelText('Import backup file'), { target: { files: [file] } });
+
+    await screen.findByText(/1 solved, 3 course\s+sessions/);
   });
 
   test('after importing, the Preferences form re-syncs to the imported settings, and a subsequent Save does not revert them', async () => {

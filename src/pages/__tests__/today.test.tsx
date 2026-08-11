@@ -1,10 +1,7 @@
-import type { ReactNode } from 'react';
 import { act } from 'react';
-import { Provider } from 'react-redux';
-import { fireEvent, render, screen, within } from '@testing-library/react';
-import { MemoryRouter } from 'react-router-dom';
-import { makeStore, type AppStore } from '@/store/store';
-import { TooltipProvider } from '@/components/ui/tooltip';
+import { fireEvent, screen, within } from '@testing-library/react';
+import { makeStore } from '@/store/store';
+import { renderWithStore } from '@/test/renderWithStore';
 import TodayPage from '@/pages/TodayPage';
 import { useCelebration, __setConfettiForTests } from '@/hooks/useCelebration';
 import { completeCourseSession, solveQuestion } from '@/store/actions';
@@ -16,27 +13,10 @@ const questions = questionsData as Question[];
 const question1 = questions.find((q) => q.id === 1)!; // "Valid Palindrome"
 const day1Titles = questions.slice(0, 8).map((q) => q.title);
 
-// react-router-dom v6.28 warns about the v7 behaviors it will adopt by default in v7 unless
-// these future flags are opted into — mirrors src/components/layout/__tests__/shell.test.tsx.
-const routerFutureFlags = { v7_startTransition: true, v7_relativeSplatPath: true } as const;
-
 // Safety net mirroring the existing suites: fake timers must never leak between tests.
 afterEach(() => {
   vi.useRealTimers();
 });
-
-function renderWithStore(ui: ReactNode, store: AppStore = makeStore()) {
-  return {
-    store,
-    ...render(
-      <Provider store={store}>
-        <TooltipProvider>
-          <MemoryRouter future={routerFutureFlags}>{ui}</MemoryRouter>
-        </TooltipProvider>
-      </Provider>,
-    ),
-  };
-}
 
 describe('TodayPage', () => {
   test('fresh store: shows all 8 of today\'s questions and "0 / 8 solved today"', () => {
@@ -71,7 +51,7 @@ describe('TodayPage', () => {
     expect(screen.getAllByRole('button', { name: 'Start' })).toHaveLength(7);
   });
 
-  test('daily goal crushed message appears once solvedToday reaches perDay', () => {
+  test('daily goal met message appears once solvedToday reaches perDay', () => {
     const store = makeStore();
     for (let id = 1; id <= 8; id++) {
       store.dispatch(solveQuestion(id));
@@ -79,7 +59,7 @@ describe('TodayPage', () => {
     renderWithStore(<TodayPage />, store);
 
     expect(screen.getByText('8 / 8 solved today')).toBeInTheDocument();
-    expect(screen.getByText(/Daily goal crushed/)).toBeInTheDocument();
+    expect(screen.getByText(/Daily goal met/)).toBeInTheDocument();
   });
 
   test('revision due section lists a due card, then shows an overdue badge once past its due date', () => {

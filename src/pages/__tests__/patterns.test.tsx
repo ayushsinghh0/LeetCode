@@ -1,9 +1,7 @@
-import type { ReactNode } from 'react';
-import { Provider } from 'react-redux';
-import { render, screen, within } from '@testing-library/react';
-import { MemoryRouter, Routes, Route } from 'react-router-dom';
+import { screen, within } from '@testing-library/react';
+import { Routes, Route } from 'react-router-dom';
 import { makeStore, type AppStore } from '@/store/store';
-import { TooltipProvider } from '@/components/ui/tooltip';
+import { renderWithStore } from '@/test/renderWithStore';
 import PatternsPage, { sortStats } from '@/pages/PatternsPage';
 import PatternDetailPage, { filterPatternQuestions } from '@/pages/PatternDetailPage';
 import { solveQuestion } from '@/store/actions';
@@ -18,25 +16,6 @@ const TOTAL_PATTERNS = PATTERNS.length; // 28
 const twoPointersQuestions = questions.filter((q) => q.pattern === 'two-pointers'); // ids 1-34
 
 const TODAY = '2026-07-30';
-
-// react-router-dom v6.28 warns about the v7 behaviors it will adopt by default in v7 unless
-// these future flags are opted into — mirrors src/pages/__tests__/roadmap.test.tsx.
-const routerFutureFlags = { v7_startTransition: true, v7_relativeSplatPath: true } as const;
-
-function renderWithStore(ui: ReactNode, store: AppStore = makeStore(), initialPath = '/patterns') {
-  return {
-    store,
-    ...render(
-      <Provider store={store}>
-        <TooltipProvider>
-          <MemoryRouter initialEntries={[initialPath]} future={routerFutureFlags}>
-            {ui}
-          </MemoryRouter>
-        </TooltipProvider>
-      </Provider>,
-    ),
-  };
-}
 
 function renderDetail(patternId: string, store: AppStore = makeStore()) {
   return renderWithStore(
@@ -64,7 +43,7 @@ afterEach(() => {
 
 describe('PatternsPage', () => {
   test('renders 28 pattern cards, and the two-pointers card shows "34 Questions"', () => {
-    renderWithStore(<PatternsPage />);
+    renderWithStore(<PatternsPage />, makeStore(), '/patterns');
 
     const links = screen.getAllByRole('link');
     expect(links).toHaveLength(TOTAL_PATTERNS);
@@ -74,7 +53,7 @@ describe('PatternsPage', () => {
   });
 
   test('fresh store: every card shows 0%', () => {
-    renderWithStore(<PatternsPage />);
+    renderWithStore(<PatternsPage />, makeStore(), '/patterns');
 
     expect(screen.getAllByText('0%')).toHaveLength(TOTAL_PATTERNS);
   });
@@ -84,10 +63,12 @@ describe('PatternsPage', () => {
     store.dispatch(solveQuestion(1));
     store.dispatch(solveQuestion(2));
     store.dispatch(solveQuestion(3));
-    renderWithStore(<PatternsPage />, store);
+    renderWithStore(<PatternsPage />, store, '/patterns');
 
+    // The stat is plain visible text now (number + word), not a dead aria-label on a div.
     const card = screen.getByText('Two Pointers').closest('a')!;
-    expect(within(card).getByLabelText('3 solved')).toBeInTheDocument();
+    const solvedFigure = within(card).getByText('solved').previousElementSibling!;
+    expect(solvedFigure).toHaveTextContent('3');
   });
 });
 

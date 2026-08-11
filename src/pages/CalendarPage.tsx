@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { useLocation } from 'react-router-dom';
 import {
   startOfMonth,
   endOfMonth,
@@ -17,7 +18,8 @@ import { useAppDispatch, useAppSelector } from '@/store/hooks';
 import { activeQuestionSet } from '@/store/slices/uiSlice';
 import { selectCourseActivityByDate, selectPerDay, selectQuestionById } from '@/store/selectors';
 import { hasActivity, isPerfectDay } from '@/utils/engine/streak';
-import { toISODate, todayISO } from '@/utils/dates';
+import { useToday } from '@/hooks/useToday';
+import { toISODate } from '@/utils/dates';
 import { cn } from '@/utils/cn';
 import { courseWeekById } from '@/data/aimlCourse';
 import type { CourseWeekProgress, DayLog } from '@/types';
@@ -87,9 +89,15 @@ export default function CalendarPage() {
   const courseByWeekId = useAppSelector((s) => s.course.byWeekId);
   const courseActivity = useAppSelector(selectCourseActivityByDate);
   const perDay = useAppSelector(selectPerDay);
-  const today = todayISO();
-  const [viewMonth, setViewMonth] = useState<Date>(() => parseISO(today));
-  const [selectedDate, setSelectedDate] = useState<string | null>(null);
+  // useToday (not a raw todayISO() read at render) so a calendar left open across midnight
+  // rolls over like every other page.
+  const today = useToday();
+  // A date handed over by another surface (e.g. clicking a heatmap cell on the dashboard)
+  // opens straight onto that day, with its month in view.
+  const locationState = useLocation().state as { date?: unknown } | null;
+  const handedDate = typeof locationState?.date === 'string' ? locationState.date : null;
+  const [viewMonth, setViewMonth] = useState<Date>(() => parseISO(handedDate ?? today));
+  const [selectedDate, setSelectedDate] = useState<string | null>(handedDate);
 
   const monthStart = startOfMonth(viewMonth);
   const monthEnd = endOfMonth(viewMonth);
@@ -173,7 +181,7 @@ export default function CalendarPage() {
                 type="button"
                 disabled={future}
                 data-level={level}
-                aria-label={`${format(day, 'MMMM d, yyyy')} — ${count} activities`}
+                aria-label={`${format(day, 'MMMM d, yyyy')} — ${count} activities${perfect ? ' — perfect day' : ''}`}
                 onClick={() => setSelectedDate(iso)}
                 className={cn(
                   'relative flex h-16 flex-col items-center justify-center gap-1 rounded-md border border-transparent text-sm transition-colors',

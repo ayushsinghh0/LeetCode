@@ -153,6 +153,52 @@ test('HeuristicRecommender: skips weak-pattern when the weakest pattern has no u
   expect(recs).toEqual([]);
 });
 
+test('HeuristicRecommender: due course reviews rank right after due question revisions', () => {
+  const recs = new HeuristicRecommender().recommend({
+    all: questions, byId: {}, due: [10], todaysNew: [20],
+    weakest: [{ pattern: 'two-pointers', score: 0.1 }],
+    course: { dueReviewWeekIds: ['w02', 'w05'], nextSessionWeekId: 'w07' },
+  });
+
+  // Cap of 3 holds: course-review displaces 'new' and course-session on a full day.
+  expect(recs.map((r) => r.kind)).toEqual(['revision', 'course-review', 'weak-pattern']);
+  expect(recs[1].weekIds).toEqual(['w02', 'w05']);
+  expect(recs[1].questionIds).toEqual([]);
+  expect(recs[1].reason).toContain('2');
+  expect(recs[1].reason).toMatch(/review/i);
+});
+
+test('HeuristicRecommender: next course session surfaces last, only when the day has room', () => {
+  // Light day: no due work, no weak patterns — the session recommendation fits.
+  const light = new HeuristicRecommender().recommend({
+    all: questions, byId: {}, due: [], todaysNew: [20], weakest: [],
+    course: { dueReviewWeekIds: [], nextSessionWeekId: 'w03' },
+  });
+  expect(light.map((r) => r.kind)).toEqual(['new', 'course-session']);
+  expect(light[1].weekIds).toEqual(['w03']);
+
+  // Full day: three question recommendations already fill the cap.
+  const full = new HeuristicRecommender().recommend({
+    all: questions, byId: {}, due: [10], todaysNew: [20],
+    weakest: [{ pattern: 'two-pointers', score: 0.1 }],
+    course: { dueReviewWeekIds: [], nextSessionWeekId: 'w03' },
+  });
+  expect(full.map((r) => r.kind)).toEqual(['revision', 'weak-pattern', 'new']);
+});
+
+test('HeuristicRecommender: no course arg (or a finished course) emits no course recommendations', () => {
+  const withoutArg = new HeuristicRecommender().recommend({
+    all: questions, byId: {}, due: [], todaysNew: [20], weakest: [],
+  });
+  expect(withoutArg.map((r) => r.kind)).toEqual(['new']);
+
+  const finished = new HeuristicRecommender().recommend({
+    all: questions, byId: {}, due: [], todaysNew: [20], weakest: [],
+    course: { dueReviewWeekIds: [], nextSessionWeekId: null },
+  });
+  expect(finished.map((r) => r.kind)).toEqual(['new']);
+});
+
 test('HeuristicRecommender: does not mutate its inputs', () => {
   const byId: Record<number, QuestionProgress> = { 5: applySolve(initialProgress(), '2026-07-01') };
   const due = [10, 11];

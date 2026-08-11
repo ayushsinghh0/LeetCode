@@ -54,6 +54,10 @@ export function QuestionCard({ question, progress, context = 'browse', onOpenDet
   };
 
   function handleKeyDown(e: KeyboardEvent<HTMLDivElement>) {
+    // Keydown from the nested action buttons (Solved / Pass / Fail / Bookmark…) bubbles up here;
+    // without this guard, pressing Enter on "Solved" would ALSO pop the detail modal open —
+    // the keyboard twin of the stopPropagation in act() above.
+    if (e.target !== e.currentTarget) return;
     if (e.key === 'Enter' || e.key === ' ') {
       e.preventDefault();
       onOpenDetail(question.id);

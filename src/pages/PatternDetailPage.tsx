@@ -1,8 +1,7 @@
 import { useMemo, useState } from 'react';
-import * as LucideIcons from 'lucide-react';
-import type { LucideIcon } from 'lucide-react';
 import { Link, useParams } from 'react-router-dom';
-import { SearchX } from 'lucide-react';
+import { SearchX, Shapes } from 'lucide-react';
+import { iconByName } from '@/components/shared/iconMap';
 import { EmptyState } from '@/components/shared/EmptyState';
 import { ProgressRing } from '@/components/shared/ProgressRing';
 import { DifficultyBadge } from '@/components/questions/DifficultyBadge';
@@ -24,10 +23,6 @@ import { initialProgress, isDue } from '@/utils/engine/spacedRepetition';
 import type { Difficulty, PatternId, Question, QuestionProgress } from '@/types';
 
 const questions = questionsData as Question[];
-
-// Dynamic icon lookup: pattern.icon is a lucide-react component name stored as a plain string
-// (see src/data/patterns.ts) — same approach as PatternChip.
-const Icons = LucideIcons as unknown as Record<string, LucideIcon>;
 
 const DIFFICULTIES: Difficulty[] = ['easy', 'medium', 'hard'];
 
@@ -121,7 +116,7 @@ export default function PatternDetailPage() {
   }
 
   const meta = patternById[patternId];
-  const Icon = Icons[meta.icon] ?? LucideIcons.Shapes;
+  const Icon = iconByName(meta.icon, Shapes);
   const stat = stats.find((s) => s.pattern === patternId)!;
 
   const difficultyCounts = DIFFICULTIES.map((d) => ({

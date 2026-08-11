@@ -83,7 +83,15 @@ export interface PersistedStateV1 {
     startDate: string | null;
   };
   settings: SettingsState;
-  gamification: { xp: number; unlocked: Record<string, string> }; // achievementId -> ISO date
+  // unlocked: achievementId -> ISO date. The two bonus markers gate the daily-goal (+25) and
+  // weekly-clear (+50) bonuses to once per day / once per roadmap week; optional so payloads
+  // saved before they shipped keep validating (absent -> null).
+  gamification: {
+    xp: number;
+    unlocked: Record<string, string>;
+    dailyGoalBonusDate?: string | null;   // ISO date the +25 daily bonus last fired
+    weeklyClearBonusDay?: number | null;  // roadmap day the +50 weekly bonus last fired
+  };
   // Optional so pre-course backups (and older stored payloads) keep validating/loading.
   course?: CourseState;
 }

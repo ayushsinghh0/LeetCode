@@ -1,10 +1,11 @@
 import { Link } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { format, parseISO } from 'date-fns';
-import { CheckCircle2, Sparkles } from 'lucide-react';
+import { CheckCircle2 } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { DailyGoalProgress } from '@/components/shared/DailyGoalProgress';
+import { WeeklyRevisionBanner } from '@/components/shared/WeeklyRevisionBanner';
 import { QuestionCard } from '@/components/questions/QuestionCard';
 import { CourseTodayCard } from '@/components/course/CourseTodayCard';
 import { useToday } from '@/hooks/useToday';
@@ -75,12 +76,7 @@ export default function TodayPage() {
         </div>
       </header>
 
-      {isWeeklyDay && (
-        <div className="glass flex items-center gap-3 bg-accent-gradient p-4 text-white">
-          <Sparkles className="h-5 w-5 shrink-0" aria-hidden="true" />
-          <p className="font-semibold">Weekly Revision Day — {revisionIds.length} revisions queued</p>
-        </div>
-      )}
+      {isWeeklyDay && <WeeklyRevisionBanner count={revisionIds.length} />}
 
       <div className="glass p-6">
         <DailyGoalProgress solvedToday={solvedToday} perDay={perDay} />
@@ -135,7 +131,7 @@ export default function TodayPage() {
                   {overdueDays > 0 && (
                     <Badge
                       variant="outline"
-                      className="absolute right-3 top-3 z-10 border-amber-500 bg-amber-500/20 text-amber-500"
+                      className="absolute right-3 top-3 z-10 border-medium bg-medium/15 text-medium"
                     >
                       {overdueLabel(overdueDays)}
                     </Badge>

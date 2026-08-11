@@ -256,6 +256,87 @@ describe('validatePersisted', () => {
     };
     expect(validatePersisted(bad)).toBeNull();
   });
+
+  // --- Domain-range validation: type-correct but semantically poisonous values ---------------
+  // The engine compares dates as yyyy-MM-dd strings and indexes the ladder by stage, so a
+  // "valid number"/"valid string" that violates those domains must be rejected wholesale.
+
+  test.each([[-1], [99], [2.5]])('rejects an out-of-range revisionStage (%s)', (stage) => {
+    const bad = {
+      ...validFixture,
+      progress: {
+        ...validFixture.progress,
+        byId: { 1: { ...validFixture.progress.byId[1], revisionStage: stage } },
+      },
+    };
+    expect(validatePersisted(bad)).toBeNull();
+  });
+
+  test.each([['2026-1-5'], ['tomorrow'], ['2026-07-30T12:00:00Z']])(
+    'rejects a non-yyyy-MM-dd nextRevision (%s)',
+    (date) => {
+      const bad = {
+        ...validFixture,
+        progress: {
+          ...validFixture.progress,
+          byId: { 1: { ...validFixture.progress.byId[1], nextRevision: date } },
+        },
+      };
+      expect(validatePersisted(bad)).toBeNull();
+    },
+  );
+
+  test('rejects NaN/negative counters (gamification.xp, dayLog.focusMinutes)', () => {
+    const nanXp = { ...validFixture, gamification: { ...validFixture.gamification, xp: NaN } };
+    expect(validatePersisted(nanXp)).toBeNull();
+
+    const negativeFocus = {
+      ...validFixture,
+      progress: {
+        ...validFixture.progress,
+        dayLogs: { '2026-07-30': { ...validFixture.progress.dayLogs['2026-07-30'], focusMinutes: -5 } },
+      },
+    };
+    expect(validatePersisted(negativeFocus)).toBeNull();
+  });
+
+  test('rejects a dayLogs key that is not a yyyy-MM-dd date', () => {
+    const bad = {
+      ...validFixture,
+      progress: {
+        ...validFixture.progress,
+        dayLogs: { 'someday': { ...validFixture.progress.dayLogs['2026-07-30'] } },
+      },
+    };
+    expect(validatePersisted(bad)).toBeNull();
+  });
+
+  test('accepts the optional gamification bonus gates and rejects malformed ones', () => {
+    const withGates = {
+      ...validFixture,
+      gamification: { ...validFixture.gamification, dailyGoalBonusDate: '2026-07-30', weeklyClearBonusDay: 7 },
+    };
+    expect(validatePersisted(withGates)).toEqual(withGates);
+
+    const badDate = {
+      ...validFixture,
+      gamification: { ...validFixture.gamification, dailyGoalBonusDate: 'yesterday' },
+    };
+    expect(validatePersisted(badDate)).toBeNull();
+
+    const badDay = {
+      ...validFixture,
+      gamification: { ...validFixture.gamification, weeklyClearBonusDay: 6.5 },
+    };
+    expect(validatePersisted(badDay)).toBeNull();
+  });
+
+  test('drops unknown extra keys instead of smuggling them into the store', () => {
+    const withExtras = { ...validFixture, futureField: 'surprise' };
+    const result = validatePersisted(withExtras);
+    expect(result).not.toBeNull();
+    expect(result).not.toHaveProperty('futureField');
+  });
 });
 
 // --- serialize.ts: exportAsJson ---------------------------------------------------------------
@@ -317,6 +398,29 @@ describe('LocalStorageAdapter', () => {
     expect(() => adapter.save(validFixture)).not.toThrow();
 
     spy.mockRestore();
+  });
+
+  test('load() quarantines an unreadable-but-present payload so a later save cannot destroy it', () => {
+    const foreign = JSON.stringify({ version: 2, someFutureShape: true });
+    localStorage.setItem(STORAGE_KEY, foreign);
+    const warn = vi.spyOn(console, 'warn').mockImplementation(() => {});
+
+    expect(new LocalStorageAdapter().load()).toBeNull();
+
+    expect(localStorage.getItem('dsa-roadmap:v1:quarantine')).toBe(foreign);
+    warn.mockRestore();
+  });
+
+  test('quarantine keeps the earliest snapshot — a second failure never clobbers it', () => {
+    const warn = vi.spyOn(console, 'warn').mockImplementation(() => {});
+    localStorage.setItem(STORAGE_KEY, '{"version":2,"first":true}');
+    new LocalStorageAdapter().load();
+
+    localStorage.setItem(STORAGE_KEY, '{corrupt-garbage');
+    new LocalStorageAdapter().load();
+
+    expect(localStorage.getItem('dsa-roadmap:v1:quarantine')).toBe('{"version":2,"first":true}');
+    warn.mockRestore();
   });
 
   test('load() never throws even if localStorage.getItem throws (security error)', () => {
@@ -394,8 +498,13 @@ describe('createPersistenceMiddleware immediate flush', () => {
     store.dispatch(stateImported(validFixture));
 
     // No vi.advanceTimersByTime call at all: if this were debounced, saved would still be empty.
+    // The saved payload is the store's own state, where the boundary normalizes the optional
+    // gamification bonus gates in (absent in the imported fixture -> null in the store).
     expect(adapter.saved).toHaveLength(1);
-    expect(adapter.saved[0]).toEqual(validFixture);
+    expect(adapter.saved[0]).toEqual({
+      ...validFixture,
+      gamification: { ...validFixture.gamification, dailyGoalBonusDate: null, weeklyClearBonusDay: null },
+    });
   });
 
   test('progressReset flushes synchronously without waiting for the debounce', () => {
@@ -448,7 +557,8 @@ describe('loadInitialState', () => {
     expect(preloaded).toEqual({
       progress: validFixture.progress,
       settings: validFixture.settings,
-      gamification: validFixture.gamification,
+      // Optional bonus gates default to null at the load boundary.
+      gamification: { ...validFixture.gamification, dailyGoalBonusDate: null, weeklyClearBonusDay: null },
     });
   });
 });

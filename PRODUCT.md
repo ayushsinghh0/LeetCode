@@ -22,6 +22,12 @@ One person: a software engineer preparing for technical interviews, self-directe
 
 - Dataset is fixed: 539 questions, 28 patterns, difficulty mix committed in the repo. Pattern names are canonical (Two Pointers, Sliding Window, Dynamic Programming, …). The course dataset (26 core weeks + 5 extras, resource links) is likewise committed in the repo.
 - Revision rules, XP values, streak rules are locked spec (do not alter in design work). Course XP register: 20 per session, 50 per cleared week, 10 per review — same locked status.
+- Bonus gates (anti-farming, part of the locked spec's intent): the +25 daily-goal bonus fires at most once per calendar date (count ≥ perDay, marker-gated, so changing questionsPerDay mid-day can neither double-fire nor suppress it); the +50 weekly-clear bonus fires at most once per roadmap day number (currentDay is progress-derived, so parking on a weekly day across several calendar days cannot re-earn it). Only solved, not-yet-mastered questions are revisable.
+- Focus mode (`/focus`) runs the whole day's work, one item at a time: today's next question → due question revision → next course session → due course week review. Skip advances (a skipped question leaves the focus queue for the day).
+- Recommendations are course-aware: due week reviews rank right after due question revisions; the next course session surfaces when the DSA workload leaves room (cap of 3 stands).
+- The notifications setting is live: with permission granted, at most one browser notification per day when revision work is due, fired while the app is open. No background scheduling.
+- Search (Ctrl/Cmd+K) matches question titles, the user's own question notes, course week titles, and course notes.
+- Unreadable persisted state (corrupt JSON, wrong version) is quarantined to `dsa-roadmap:v1:quarantine` before the app boots empty — never silently overwritten.
 - A day counts as active (streak, heatmap, calendar) when either track saw work: solves, question revisions, course sessions, or course reviews.
 - Tech: Vite + React 18 + TypeScript strict + Tailwind 3.4 + vendored shadcn/Radix primitives + Redux Toolkit + Recharts + Framer Motion. The full Vitest suite must stay green; UI copy is asserted in tests — behavior and copy are product truth.
 - Routes: Dashboard `/`, Today, Roadmap, AI/ML course `/aiml`, Patterns (+detail), Revision, Calendar, Analytics, Achievements, Bookmarks, Settings, a 404 catch-all, and a bare distraction-free Focus mode at `/focus` with a pomodoro.

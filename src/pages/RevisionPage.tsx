@@ -6,6 +6,7 @@ import { Award, CheckCircle2, Clock, GraduationCap, Sparkles, TrendingUp } from 
 import { Badge } from '@/components/ui/badge';
 import { StatCard } from '@/components/shared/StatCard';
 import { EmptyState } from '@/components/shared/EmptyState';
+import { WeeklyRevisionBanner } from '@/components/shared/WeeklyRevisionBanner';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
 import { QuestionCard } from '@/components/questions/QuestionCard';
 import { PatternChip } from '@/components/questions/PatternChip';
@@ -106,8 +107,8 @@ export default function RevisionPage() {
     const map: Record<string, { weekId: string; label: string }[]> = {};
     const horizonEnd = addDays(today, UPCOMING_HORIZON_DAYS);
     for (const week of CORE_WEEKS) {
-      const progress = courseByWeekId[week.id];
-      if (!progress || !isWeekDone(week, progress) || isWeekRetained(progress)) continue;
+      const progress = courseByWeekId[week.id] ?? initialCourseProgress();
+      if (!isWeekDone(week, progress) || isWeekRetained(progress)) continue;
       if (progress.nextRevision === null || progress.nextRevision <= today || progress.nextRevision > horizonEnd) continue;
       const list = map[progress.nextRevision] ?? (map[progress.nextRevision] = []);
       list.push({ weekId: week.id, label: `Week ${week.week} — ${week.title}` });
@@ -158,12 +159,7 @@ export default function RevisionPage() {
         </div>
       </header>
 
-      {isWeeklyDay && (
-        <div className="glass flex items-center gap-3 bg-accent-gradient p-4 text-white">
-          <Sparkles className="h-5 w-5 shrink-0" aria-hidden="true" />
-          <p className="font-semibold">Weekly Revision Day — {revisionIds.length} revisions queued</p>
-        </div>
-      )}
+      {isWeeklyDay && <WeeklyRevisionBanner count={revisionIds.length} />}
 
       <Tabs defaultValue="due">
         <TabsList>
@@ -192,7 +188,7 @@ export default function RevisionPage() {
                         {overdueDays > 0 && (
                           <Badge
                             variant="outline"
-                            className="absolute right-3 top-3 z-10 border-amber-500 bg-amber-500/20 text-amber-500"
+                            className="absolute right-3 top-3 z-10 border-medium bg-medium/15 text-medium"
                           >
                             {overdueLabel(overdueDays)}
                           </Badge>
@@ -273,7 +269,7 @@ export default function RevisionPage() {
                 const pattern = patternById[question.pattern];
                 return (
                   <div key={question.id} className="glass flex items-center gap-3 p-3">
-                    <Award className="h-5 w-5 shrink-0 text-amber-400" aria-hidden="true" />
+                    <Award className="h-5 w-5 shrink-0 text-medium" aria-hidden="true" />
                     <div className="flex flex-1 flex-col items-start gap-1">
                       <button
                         type="button"
@@ -289,7 +285,7 @@ export default function RevisionPage() {
               })}
               {retainedWeeks.map((week) => (
                 <div key={week.id} className="glass flex items-center gap-3 p-3">
-                  <GraduationCap className="h-5 w-5 shrink-0 text-amber-400" aria-hidden="true" />
+                  <GraduationCap className="h-5 w-5 shrink-0 text-medium" aria-hidden="true" />
                   <div className="flex flex-1 flex-col items-start gap-1">
                     <Link to="/aiml" className="text-left font-medium hover:underline">
                       Week {week.week} — {week.title}

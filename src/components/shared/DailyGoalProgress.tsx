@@ -12,12 +12,12 @@ export function DailyGoalProgress({ solvedToday, perDay }: DailyGoalProgressProp
   const pct = perDay === 0 ? 0 : Math.min(100, (solvedToday / perDay) * 100);
   return (
     <div>
-      <Progress value={pct} />
+      <Progress value={pct} aria-label="Daily goal progress" />
       <p className="figures mt-2 text-sm text-muted-foreground">
         {solvedToday} / {perDay} solved today
       </p>
       {perDay > 0 && solvedToday >= perDay && (
-        <p className="mt-1 text-sm font-medium text-primary">Daily goal crushed — come back tomorrow 🎉</p>
+        <p className="mt-1 text-sm font-medium text-primary">Daily goal met — come back tomorrow.</p>
       )}
     </div>
   );

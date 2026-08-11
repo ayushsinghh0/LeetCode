@@ -1,14 +1,9 @@
-import type { ReactNode } from 'react';
-import { Provider } from 'react-redux';
-import { fireEvent, render, screen, within } from '@testing-library/react';
-import { MemoryRouter } from 'react-router-dom';
-import { makeStore, type AppStore } from '@/store/store';
-import { TooltipProvider } from '@/components/ui/tooltip';
+import { fireEvent, screen, within } from '@testing-library/react';
+import { makeStore } from '@/store/store';
+import { renderWithStore } from '@/test/renderWithStore';
 import AimlCoursePage from '@/pages/AimlCoursePage';
 import { completeCourseSession } from '@/store/actions';
 import { CORE_WEEKS } from '@/data/aimlCourse';
-
-const routerFutureFlags = { v7_startTransition: true, v7_relativeSplatPath: true } as const;
 
 // The page derives its plan from useToday() — pin the clock like every date-dependent suite.
 beforeEach(() => {
@@ -19,19 +14,6 @@ beforeEach(() => {
 afterEach(() => {
   vi.useRealTimers();
 });
-
-function renderWithStore(ui: ReactNode, store: AppStore = makeStore()) {
-  return {
-    store,
-    ...render(
-      <Provider store={store}>
-        <TooltipProvider>
-          <MemoryRouter future={routerFutureFlags}>{ui}</MemoryRouter>
-        </TooltipProvider>
-      </Provider>,
-    ),
-  };
-}
 
 describe('AimlCoursePage', () => {
   test('fresh store: hero shows the course header, zero progress and the projected finish', () => {
@@ -133,7 +115,7 @@ describe('AimlCoursePage', () => {
   test('week notes open in a dialog and autosave on blur', () => {
     const { store } = renderWithStore(<AimlCoursePage />);
 
-    fireEvent.click(screen.getByRole('button', { name: 'Notes for Week 3' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Add notes for Week 3' }));
     const dialog = screen.getByRole('dialog');
     const textarea = within(dialog).getByLabelText('Notes');
     fireEvent.change(textarea, { target: { value: 'attention heads' } });

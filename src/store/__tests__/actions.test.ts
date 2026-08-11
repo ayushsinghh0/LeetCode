@@ -216,9 +216,79 @@ test('importProgress replaces state wholesale', () => {
   expect(state.progress.dayLogs).toEqual(fixture.progress.dayLogs);
   expect(state.progress.startDate).toBe('2026-07-01');
   expect(state.settings).toEqual(fixture.settings);
-  expect(state.gamification).toEqual(fixture.gamification);
+  // Optional bonus gates normalize to null at the import boundary.
+  expect(state.gamification).toEqual({
+    ...fixture.gamification,
+    dailyGoalBonusDate: null,
+    weeklyClearBonusDay: null,
+  });
 
   expect(selectSolvedNewCount(state)).toBe(2);
+});
+
+// Guards and bonus gates ---------------------------------------------------------------------
+
+test('reviseQuestion: no-op on an unsolved question and on an unknown id', () => {
+  const store = makeStore();
+
+  store.dispatch(reviseQuestion(1, true)); // in the dataset, but never solved
+  store.dispatch(reviseQuestion(999_999, true)); // not in the dataset at all
+
+  const state = store.getState();
+  expect(state.progress.byId[1]).toBeUndefined(); // no sparse entry materialized
+  expect(state.gamification.xp).toBe(0); // no revision XP farmed
+  expect(state.progress.dayLogs[TODAY]).toBeUndefined(); // nothing logged
+});
+
+test('reviseQuestion: no-op on a mastered (stage 5) question', () => {
+  const fixture: PersistedStateV1 = {
+    version: 1,
+    progress: {
+      byId: {
+        1: { ...initialProgress(), status: 'solved', completedAt: '2026-07-01', revisionStage: 5, nextRevision: null },
+      },
+      dayLogs: {},
+      startDate: '2026-07-01',
+    },
+    settings: { questionsPerDay: 8, revisionEnabled: true, theme: 'dark', notifications: false },
+    gamification: { xp: 0, unlocked: {} },
+  };
+  const store = makeStore();
+  store.dispatch(importProgress(fixture));
+
+  store.dispatch(reviseQuestion(1, false));
+
+  const state = store.getState();
+  expect(state.progress.byId[1].revisionStage).toBe(5); // untouched — a fail cannot demote a mastered question
+  expect(state.progress.byId[1].nextRevision).toBeNull();
+  expect(state.gamification.xp).toBe(0);
+});
+
+test('raising questionsPerDay after the daily-goal bonus fired does not award it twice', () => {
+  const store = makeStore();
+  for (let id = 1; id <= 8; id++) store.dispatch(solveQuestion(id));
+
+  expect(store.getState().gamification.dailyGoalBonusDate).toBe(TODAY); // bonus fired at 8/8
+
+  store.dispatch(settingsUpdated({ questionsPerDay: 10 }));
+  store.dispatch(solveQuestion(9));
+  store.dispatch(solveQuestion(10)); // crosses the RAISED threshold — must not re-fire
+
+  const rawXp = questions.slice(0, 10).reduce((sum, q) => sum + SOLVE_XP[q.difficulty], 0);
+  expect(store.getState().gamification.xp).toBe(rawXp + DAILY_GOAL_BONUS); // exactly one +25
+});
+
+test('lowering questionsPerDay below the current count still awards the bonus once, on the next solve', () => {
+  const store = makeStore();
+  for (let id = 1; id <= 5; id++) store.dispatch(solveQuestion(id));
+  expect(store.getState().gamification.dailyGoalBonusDate).toBeNull(); // 5 < 8, nothing fired
+
+  store.dispatch(settingsUpdated({ questionsPerDay: 4 }));
+  store.dispatch(solveQuestion(6)); // 6 >= 4 and not yet awarded today -> fires now
+
+  const rawXp = questions.slice(0, 6).reduce((sum, q) => sum + SOLVE_XP[q.difficulty], 0);
+  expect(store.getState().gamification.xp).toBe(rawXp + DAILY_GOAL_BONUS);
+  expect(store.getState().gamification.dailyGoalBonusDate).toBe(TODAY);
 });
 
 // Flow 7 -----------------------------------------------------------------------------------

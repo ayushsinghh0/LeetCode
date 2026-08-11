@@ -1,10 +1,7 @@
-import type { ReactNode } from 'react';
 import { act } from 'react';
-import { Provider } from 'react-redux';
-import { render, screen, within, fireEvent } from '@testing-library/react';
-import { MemoryRouter } from 'react-router-dom';
-import { makeStore, type AppStore } from '@/store/store';
-import { TooltipProvider } from '@/components/ui/tooltip';
+import { screen, within, fireEvent } from '@testing-library/react';
+import { makeStore } from '@/store/store';
+import { renderWithStore } from '@/test/renderWithStore';
 import AchievementsPage, { groupAchievements } from '@/pages/AchievementsPage';
 import { AchievementToast } from '@/components/gamification/AchievementToast';
 import { achievementsUnlocked } from '@/store/slices/gamificationSlice';
@@ -13,27 +10,10 @@ import { ACHIEVEMENTS } from '@/utils/engine/achievements';
 
 const TOTAL = ACHIEVEMENTS.length; // 59: 20 fixed + 28 pattern-100-<patternId> + 11 course-*
 
-// react-router-dom v6.28 warns about the v7 behaviors it will adopt by default in v7 unless
-// these future flags are opted into — mirrors src/pages/__tests__/patterns.test.tsx.
-const routerFutureFlags = { v7_startTransition: true, v7_relativeSplatPath: true } as const;
-
 // Safety net mirroring the existing suites: fake timers must never leak between tests.
 afterEach(() => {
   vi.useRealTimers();
 });
-
-function renderWithStore(ui: ReactNode, store: AppStore = makeStore()) {
-  return {
-    store,
-    ...render(
-      <Provider store={store}>
-        <TooltipProvider>
-          <MemoryRouter future={routerFutureFlags}>{ui}</MemoryRouter>
-        </TooltipProvider>
-      </Provider>,
-    ),
-  };
-}
 
 describe('AchievementsPage', () => {
   test('sanity: the achievements engine exposes exactly 59 defs', () => {
@@ -43,9 +23,12 @@ describe('AchievementsPage', () => {
   test('fresh store: renders all 59 achievement cards (locked) and "Unlocked 0 / 59"', () => {
     renderWithStore(<AchievementsPage />);
 
+    // Locked state is announced by a role="img" "Locked" badge on each card (an aria-label on
+    // the bare card div was ignored by AT — deliberate a11y rework).
     for (const def of ACHIEVEMENTS) {
-      expect(screen.getByLabelText(`${def.title} — locked`)).toBeInTheDocument();
+      expect(screen.getByText(def.title)).toBeInTheDocument();
     }
+    expect(screen.getAllByRole('img', { name: 'Locked' })).toHaveLength(TOTAL);
     expect(screen.getByText('Unlocked 0 / 59')).toBeInTheDocument();
   });
 
@@ -54,12 +37,15 @@ describe('AchievementsPage', () => {
     store.dispatch(achievementsUnlocked({ ids: ['first-solve'], date: '2026-07-30' }));
     renderWithStore(<AchievementsPage />, store);
 
-    const unlockedCard = screen.getByLabelText('First Blood — unlocked');
+    const unlockedCard = screen.getByText('First Blood').closest('div')!;
     expect(within(unlockedCard).getByText('Unlocked Jul 30, 2026')).toBeInTheDocument();
+    expect(within(unlockedCard).queryByRole('img', { name: 'Locked' })).not.toBeInTheDocument();
     expect(screen.getByText('Unlocked 1 / 59')).toBeInTheDocument();
 
     const lockedDef = ACHIEVEMENTS.find((a) => a.id === 'solved-539')!;
-    expect(screen.getByLabelText(`${lockedDef.title} — locked`)).toBeInTheDocument();
+    const lockedCard = screen.getByText(lockedDef.title).closest('div')!;
+    expect(within(lockedCard).getByRole('img', { name: 'Locked' })).toBeInTheDocument();
+    expect(screen.getAllByRole('img', { name: 'Locked' })).toHaveLength(TOTAL - 1);
   });
 
   test('renders all six group section headings', () => {

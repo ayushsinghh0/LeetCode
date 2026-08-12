@@ -105,6 +105,18 @@ export function applyCourseReview(
 
 export const isWeekRetained = (p: CourseWeekProgress): boolean => p.revisionStage >= MASTERED_STAGE;
 
+// The ladder items the course contributes to revision surfaces (forecast, upcoming): the same
+// population the due-scan below draws from — cleared, unretained core weeks — each progress
+// entry tagged with its week so callers can label it. Extras never enter the ladder.
+export function courseLadderItems(
+  weeks: CourseWeek[],
+  byWeekId: Record<string, CourseWeekProgress>,
+): (CourseWeekProgress & { week: CourseWeek })[] {
+  return weeks
+    .map((week) => ({ week, ...progressFor(byWeekId, week.id) }))
+    .filter((item) => !item.week.optional && isWeekDone(item.week, item) && !isWeekRetained(item));
+}
+
 // Cleared, unretained core weeks whose review date has arrived — ordered by review date,
 // then course order. Extras never enter the ladder.
 export function dueCourseReviewWeekIds(
@@ -190,8 +202,9 @@ export function courseSchedule(
 
   remainingSessions(weeks, byWeekId).forEach((s, i) => {
     const planned = addDays(today, i);
-    if (s.day === 1) schedule[s.weekId].day1 = planned;
-    else schedule[s.weekId].day2 = planned;
+    const entry = schedule[s.weekId]!; // courseSessions covers exactly the non-optional weeks seeded above
+    if (s.day === 1) entry.day1 = planned;
+    else entry.day2 = planned;
   });
 
   return schedule;

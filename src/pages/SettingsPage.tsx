@@ -26,12 +26,15 @@ import type { PersistedStateV1, Question } from '@/types';
 
 const TOTAL_QUESTIONS = (questionsData as Question[]).length;
 const PER_DAY_OPTIONS = Array.from({ length: 13 }, (_, i) => i + 4); // 4..16
+// Study budget the daily plan sums against — half-hour steps from a light hour to a long day.
+const CAPACITY_OPTIONS = [60, 90, 120, 150, 180, 240, 300, 360, 480];
 const RESET_CONFIRM_TEXT = 'RESET';
 
 interface SettingsFormValues {
   questionsPerDay: number;
   revisionEnabled: boolean;
   notifications: boolean;
+  dailyCapacityMin: number;
 }
 
 export default function SettingsPage() {
@@ -52,6 +55,7 @@ export default function SettingsPage() {
       questionsPerDay: settings.questionsPerDay,
       revisionEnabled: settings.revisionEnabled,
       notifications: settings.notifications,
+      dailyCapacityMin: settings.dailyCapacityMin,
     },
   });
 
@@ -190,6 +194,32 @@ export default function SettingsPage() {
               <p className="text-sm text-muted-foreground">
                 At this pace, you&apos;ll finish all {TOTAL_QUESTIONS} questions in{' '}
                 {totalDays(TOTAL_QUESTIONS, watchedPerDay)} days.
+              </p>
+            </div>
+
+            <div className="flex flex-col gap-2">
+              <Label htmlFor="dailyCapacityMin">Daily study capacity</Label>
+              <Controller
+                control={control}
+                name="dailyCapacityMin"
+                render={({ field }) => (
+                  <Select value={String(field.value)} onValueChange={(v) => field.onChange(Number(v))}>
+                    <SelectTrigger id="dailyCapacityMin" aria-label="Daily study capacity" className="w-40">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {CAPACITY_OPTIONS.map((min) => (
+                        <SelectItem key={min} value={String(min)}>
+                          {min % 60 === 0 ? `${min / 60} hour${min === 60 ? '' : 's'}` : `${Math.floor(min / 60)}h ${min % 60}m`}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                )}
+              />
+              <p className="text-sm text-muted-foreground">
+                The Today plan sums its estimates against this budget — it never schedules more for you, it just
+                tells you when the day is overfull.
               </p>
             </div>
 

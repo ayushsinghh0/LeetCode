@@ -26,7 +26,7 @@ const LEVEL_CLASS: Record<0 | 1 | 2 | 3 | 4, string> = {
 // its correct weekday row without reshuffling any real entries.
 function buildWeeks(data: HeatmapDatum[]): (HeatmapDatum | null)[][] {
   if (data.length === 0) return [];
-  const firstWeekday = getDay(parseISO(data[0].date)); // 0 = Sunday
+  const firstWeekday = getDay(parseISO(data[0]!.date)); // 0 = Sunday
   const padded: (HeatmapDatum | null)[] = [...Array<null>(firstWeekday).fill(null), ...data];
   const weeks: (HeatmapDatum | null)[][] = [];
   for (let i = 0; i < padded.length; i += 7) {

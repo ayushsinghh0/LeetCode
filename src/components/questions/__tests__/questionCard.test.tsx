@@ -42,7 +42,7 @@ describe('QuestionCard', () => {
 
     fireEvent.click(screen.getByRole('button', { name: 'Solved' }));
 
-    expect(store.getState().progress.byId[1].status).toBe('solved');
+    expect(store.getState().progress.byId[1]!.status).toBe('solved');
   });
 
   test('today context: clicking Need Revision solves the question AND flags it low-confidence (2)', () => {
@@ -52,7 +52,7 @@ describe('QuestionCard', () => {
 
     fireEvent.click(screen.getByRole('button', { name: 'Need Revision' }));
 
-    const progress = store.getState().progress.byId[1];
+    const progress = store.getState().progress.byId[1]!;
     expect(progress.status).toBe('solved');
     expect(progress.confidence).toBe(2);
   });
@@ -65,7 +65,7 @@ describe('QuestionCard', () => {
     store.dispatch(solveQuestion(1)); // solved today; nextRevision = tomorrow (2026-07-31)
     vi.setSystemTime(new Date('2026-07-31T12:00:00')); // advance so the revision is actually due
 
-    const progressBefore = store.getState().progress.byId[1];
+    const progressBefore = store.getState().progress.byId[1]!;
     renderWithStore(
       <QuestionCard question={question1} progress={progressBefore} context="revision" onOpenDetail={() => {}} />,
       store,
@@ -76,7 +76,7 @@ describe('QuestionCard', () => {
 
     fireEvent.click(screen.getByRole('button', { name: 'Pass' }));
 
-    expect(store.getState().progress.byId[1].revisionStage).toBe(1);
+    expect(store.getState().progress.byId[1]!.revisionStage).toBe(1);
 
     vi.useRealTimers();
   });
@@ -184,7 +184,7 @@ describe('QuestionDetailModal', () => {
 
     fireEvent.click(screen.getByRole('button', { name: 'Confidence 4' }));
 
-    expect(store.getState().progress.byId[1].confidence).toBe(4);
+    expect(store.getState().progress.byId[1]!.confidence).toBe(4);
   });
 
   test('clicking Bookmark toggles bookmarked for the active question', async () => {
@@ -202,7 +202,7 @@ describe('QuestionDetailModal', () => {
 
     fireEvent.click(screen.getByRole('button', { name: 'Bookmark' }));
 
-    expect(store.getState().progress.byId[1].bookmarked).toBe(true);
+    expect(store.getState().progress.byId[1]!.bookmarked).toBe(true);
   });
 
   test('notes: typing then blurring the textarea autosaves via saveNotes', async () => {
@@ -222,7 +222,7 @@ describe('QuestionDetailModal', () => {
     fireEvent.change(textarea, { target: { value: 'Use two pointers from both ends.' } });
     fireEvent.blur(textarea);
 
-    expect(store.getState().progress.byId[1].notes).toBe('Use two pointers from both ends.');
+    expect(store.getState().progress.byId[1]!.notes).toBe('Use two pointers from both ends.');
     // Autosave re-baselines the form, so Save goes back to disabled (nothing left to persist).
     expect(screen.getByRole('button', { name: 'Save' })).toBeDisabled();
   });

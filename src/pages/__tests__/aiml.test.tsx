@@ -44,7 +44,7 @@ describe('AimlCoursePage', () => {
     fireEvent.click(within(upNext).getByRole('button', { name: 'Mark session done' }));
 
     expect(store.getState().gamification.xp).toBe(20);
-    expect(store.getState().course.byWeekId.w00.day1DoneOn).toBe('2026-07-30');
+    expect(store.getState().course.byWeekId.w00!.day1DoneOn).toBe('2026-07-30');
     expect(within(upNext).getByText('Day 2 · Practice')).toBeInTheDocument();
   });
 
@@ -107,7 +107,7 @@ describe('AimlCoursePage', () => {
     fireEvent.click(within(plate).getByRole('button', { name: 'Pass Week 0 review' }));
 
     expect(store.getState().gamification.xp).toBe(xpBefore + 10);
-    expect(store.getState().course.byWeekId.w00.revisionStage).toBe(1);
+    expect(store.getState().course.byWeekId.w00!.revisionStage).toBe(1);
     // Nothing else is due, so the plate disappears entirely.
     expect(screen.queryByRole('heading', { name: 'Review due' })).not.toBeInTheDocument();
   });
@@ -123,6 +123,6 @@ describe('AimlCoursePage', () => {
     // same contract as questions/NotesEditor).
     fireEvent.blur(textarea);
 
-    expect(store.getState().course.byWeekId.w03.notes).toBe('attention heads');
+    expect(store.getState().course.byWeekId.w03!.notes).toBe('attention heads');
   });
 });

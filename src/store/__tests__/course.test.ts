@@ -37,13 +37,13 @@ describe('completeCourseSession', () => {
     store.dispatch(completeCourseSession('w00', 1));
 
     const state = store.getState();
-    expect(state.course.byWeekId.w00.day1DoneOn).toBe('2026-07-30');
-    expect(state.course.byWeekId.w00.day2DoneOn).toBeNull();
+    expect(state.course.byWeekId.w00!.day1DoneOn).toBe('2026-07-30');
+    expect(state.course.byWeekId.w00!.day2DoneOn).toBeNull();
     expect(state.gamification.xp).toBe(20);
     // Ledger invariant: Σ dayLogs[*].xpEarned tracks gamification.xp.
-    expect(state.progress.dayLogs['2026-07-30'].xpEarned).toBe(20);
+    expect(state.progress.dayLogs['2026-07-30']!.xpEarned).toBe(20);
     // Course work never writes into the DSA ledger arrays…
-    expect(state.progress.dayLogs['2026-07-30'].solvedIds).toEqual([]);
+    expect(state.progress.dayLogs['2026-07-30']!.solvedIds).toEqual([]);
     // …yet the day still counts as unified activity: the streak starts.
     expect(selectStreaks(state, '2026-07-30').current).toBe(1);
   });
@@ -54,7 +54,7 @@ describe('completeCourseSession', () => {
     store.dispatch(completeCourseSession('w00', 1));
 
     expect(store.getState().gamification.xp).toBe(20);
-    expect(store.getState().progress.dayLogs['2026-07-30'].xpEarned).toBe(20);
+    expect(store.getState().progress.dayLogs['2026-07-30']!.xpEarned).toBe(20);
   });
 
   test('completing both sessions of a core week adds the 50 XP clear bonus and confetti', () => {
@@ -63,7 +63,7 @@ describe('completeCourseSession', () => {
     store.dispatch(completeCourseSession('w00', 2));
 
     expect(store.getState().gamification.xp).toBe(20 + 20 + 50);
-    expect(store.getState().progress.dayLogs['2026-07-30'].xpEarned).toBe(90);
+    expect(store.getState().progress.dayLogs['2026-07-30']!.xpEarned).toBe(90);
     expect(store.getState().ui.celebration).toBe('confetti');
   });
 
@@ -72,11 +72,11 @@ describe('completeCourseSession', () => {
     store.dispatch(completeCourseSession('w00', 1));
     store.dispatch(completeCourseSession('w00', 2));
 
-    expect(store.getState().course.byWeekId.w00.revisionStage).toBe(0);
-    expect(store.getState().course.byWeekId.w00.nextRevision).toBe('2026-07-31');
+    expect(store.getState().course.byWeekId.w00!.revisionStage).toBe(0);
+    expect(store.getState().course.byWeekId.w00!.nextRevision).toBe('2026-07-31');
     // Extras never enter the ladder.
     store.dispatch(completeCourseSession('x-memory-1', 1));
-    expect(store.getState().course.byWeekId['x-memory-1'].nextRevision).toBeNull();
+    expect(store.getState().course.byWeekId['x-memory-1']!.nextRevision).toBeNull();
   });
 
   test('course milestones unlock achievements and queue their toasts', () => {
@@ -94,7 +94,7 @@ describe('completeCourseSession', () => {
     const store = makeStore();
     store.dispatch(completeCourseSession('x-memory-1', 1));
 
-    expect(store.getState().course.byWeekId['x-memory-1'].day1DoneOn).toBe('2026-07-30');
+    expect(store.getState().course.byWeekId['x-memory-1']!.day1DoneOn).toBe('2026-07-30');
     expect(store.getState().gamification.xp).toBe(20);
     expect(store.getState().ui.celebration).toBeNull();
   });
@@ -118,14 +118,14 @@ describe('reviseCourseWeek', () => {
 
     store.dispatch(reviseCourseWeek('w00', true));
 
-    const p = store.getState().course.byWeekId.w00;
+    const p = store.getState().course.byWeekId.w00!;
     expect(p.revisionStage).toBe(1);
     expect(p.nextRevision).toBe('2026-08-02'); // today + 3
     expect(p.revisionHistory).toEqual([{ date: '2026-07-30', passed: true }]);
     expect(store.getState().gamification.xp).toBe(xpAfterClear + 10);
-    expect(store.getState().progress.dayLogs['2026-07-30'].xpEarned).toBe(xpAfterClear + 10);
+    expect(store.getState().progress.dayLogs['2026-07-30']!.xpEarned).toBe(xpAfterClear + 10);
     // Reviews live in course revisionHistory, never in the DSA ledger arrays.
-    expect(store.getState().progress.dayLogs['2026-07-30'].revisionsPassed).toEqual([]);
+    expect(store.getState().progress.dayLogs['2026-07-30']!.revisionsPassed).toEqual([]);
   });
 
   test('course activity alone extends the streak; a review can unlock streak achievements', () => {
@@ -147,8 +147,8 @@ describe('reviseCourseWeek', () => {
 
     store.dispatch(reviseCourseWeek('w00', false));
 
-    expect(store.getState().course.byWeekId.w00.revisionStage).toBe(0);
-    expect(store.getState().course.byWeekId.w00.nextRevision).toBe('2026-07-31');
+    expect(store.getState().course.byWeekId.w00!.revisionStage).toBe(0);
+    expect(store.getState().course.byWeekId.w00!.nextRevision).toBe('2026-07-31');
   });
 
   test('no-ops on uncleared weeks, extras, and unknown ids', () => {
@@ -161,7 +161,7 @@ describe('reviseCourseWeek', () => {
     store.dispatch(reviseCourseWeek('nope', true));
 
     expect(store.getState().gamification.xp).toBe(xpBefore);
-    expect(store.getState().course.byWeekId.w00.revisionHistory).toEqual([]);
+    expect(store.getState().course.byWeekId.w00!.revisionHistory).toEqual([]);
   });
 });
 
@@ -170,8 +170,8 @@ describe('saveCourseNotes', () => {
     const store = makeStore();
     store.dispatch(saveCourseNotes('w03', '## attention is all you need'));
 
-    expect(store.getState().course.byWeekId.w03.notes).toBe('## attention is all you need');
-    expect(store.getState().course.byWeekId.w03.day1DoneOn).toBeNull();
+    expect(store.getState().course.byWeekId.w03!.notes).toBe('## attention is all you need');
+    expect(store.getState().course.byWeekId.w03!.day1DoneOn).toBeNull();
     expect(store.getState().gamification.xp).toBe(0);
   });
 });
@@ -205,11 +205,11 @@ describe('course import/reset lifecycle', () => {
         course: { byWeekId: { w05: legacyEntry as never, w06: legacyCleared as never } },
       }),
     );
-    expect(store.getState().course.byWeekId.w05.notes).toBe('hi');
-    expect(store.getState().course.byWeekId.w05.revisionStage).toBe(0);
-    expect(store.getState().course.byWeekId.w05.revisionHistory).toEqual([]);
-    expect(store.getState().course.byWeekId.w05.nextRevision).toBeNull(); // half-done: no backfill
-    expect(store.getState().course.byWeekId.w06.nextRevision).toBe('2026-07-03');
+    expect(store.getState().course.byWeekId.w05!.notes).toBe('hi');
+    expect(store.getState().course.byWeekId.w05!.revisionStage).toBe(0);
+    expect(store.getState().course.byWeekId.w05!.revisionHistory).toEqual([]);
+    expect(store.getState().course.byWeekId.w05!.nextRevision).toBeNull(); // half-done: no backfill
+    expect(store.getState().course.byWeekId.w06!.nextRevision).toBe('2026-07-03');
 
     store.dispatch(importProgress(basePersisted())); // old backup, no course key
     expect(store.getState().course.byWeekId).toEqual({});

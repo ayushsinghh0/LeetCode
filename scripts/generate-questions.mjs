@@ -1,7 +1,15 @@
 // Generates src/data/questions.json from the canonical question list.
 // Source of truth: the user's pasted 539-question roadmap (28 patterns, in order).
 // Run: node scripts/generate-questions.mjs
-import { writeFileSync, mkdirSync } from 'node:fs';
+//
+// External identity: every question is resolved against the committed LeetCode catalog
+// snapshot (scripts/data/leetcode-catalog.json, fetched by fetch-leetcode-catalog.mjs).
+// Resolution is closed-world — a title must EITHER exact-match a catalog title (after
+// normalization), OR appear in LEETCODE_ALIASES (hand-verified renames), OR appear in
+// NOT_ON_LEETCODE (Educative/Grokking originals with no exact LeetCode counterpart).
+// Anything else is a hard failure, so a typo'd new title can never silently ship linkless,
+// and no URL is ever emitted that didn't come from LeetCode's own catalog.
+import { readFileSync, writeFileSync, mkdirSync } from 'node:fs';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
@@ -298,21 +306,130 @@ const SECTIONS = [
   ]],
 ];
 
+// Roadmap title -> LeetCode slug, for titles that differ from LeetCode's canonical name.
+// Every entry was verified against the catalog snapshot (slug exists, identity confirmed) —
+// these are known renames of the SAME problem, never "similar" problems.
+const LEETCODE_ALIASES = {
+  'Find the Lexicographically Largest String From Box II': 'find-the-lexicographically-largest-string-from-the-box-ii',
+  'Longest Subarray With Diff At Most Limit': 'longest-continuous-subarray-with-absolute-diff-less-than-or-equal-to-limit',
+  'Maximize Capital': 'ipo',
+  'Find Median from a Data Stream': 'find-median-from-data-stream',
+  'Split Array Into Two Arrays to Minimize Sum Difference': 'partition-array-into-two-arrays-to-minimize-sum-difference',
+  'Jump Game I': 'jump-game',
+  'Gas Stations': 'gas-station',
+  'Number of Steps to Reduce a Binary Number to One': 'number-of-steps-to-reduce-a-number-in-binary-representation-to-one',
+  'Find the Corrupt Pair': 'set-mismatch',
+  'Set Matrix Zeros': 'set-matrix-zeroes',
+  'Build Binary Tree from Preorder and Inorder Traversal': 'construct-binary-tree-from-preorder-and-inorder-traversal',
+  'Sum of Distances in a Tree': 'sum-of-distances-in-tree',
+  'Level Order Traversal of Binary Tree': 'binary-tree-level-order-traversal',
+  'Implement Trie': 'implement-trie-prefix-tree',
+  'Check If a Word is a Prefix of Any Word in a Sentence': 'check-if-a-word-occurs-as-a-prefix-of-any-word-in-a-sentence',
+  'Implement LRU Cache': 'lru-cache',
+  "All O'one Data Structures": 'all-oone-data-structure',
+  'Find the Longest Substring Having Vowels in Even Counts': 'find-the-longest-substring-containing-vowels-in-even-counts',
+};
+
+// Educative/Grokking originals with no exact LeetCode counterpart. Mapping these to a
+// "similar" LeetCode problem would either misrepresent the problem or duplicate a mapping
+// that another roadmap question already owns (e.g. Compilation Order ≡ Course Schedule,
+// which is its own row) — so they deliberately carry no external link.
+const NOT_ON_LEETCODE = new Set([
+  'Linked List Cycle III',
+  'Linked List Cycle IV',
+  'Schedule Tasks on Minimum Machines',
+  'Kth Smallest Number in M Sorted Lists',
+  'K Maximum Sum Combinations From Two Arrays',
+  'Find K-Sum Subsets',
+  '0/1 Knapsack',
+  'Find the First K Missing Positive Numbers',
+  'Cyclic Sort',
+  'Compilation Order',
+  'Connect All Siblings of a Binary Tree',
+]);
+
+// Case/punctuation-insensitive title key — LeetCode uses backticks, apostrophes, and
+// spelling variants ("Zeroes") that must not defeat an otherwise-exact match.
+const normalizeTitle = (t) =>
+  t
+    .toLowerCase()
+    .replace(/[‘’'`]/g, '')
+    .replace(/[^a-z0-9]+/g, ' ')
+    .trim();
+
+const catalog = JSON.parse(readFileSync(join(root, 'scripts', 'data', 'leetcode-catalog.json'), 'utf8'));
+const catalogBySlug = new Map(catalog.problems.map((p) => [p.slug, p]));
+const catalogByTitleKey = new Map();
+for (const p of catalog.problems) {
+  const key = normalizeTitle(p.title);
+  // First occurrence wins; the dry run confirmed zero collisions among roadmap titles.
+  if (!catalogByTitleKey.has(key)) catalogByTitleKey.set(key, p);
+}
+
+function resolveLeetCode(title) {
+  if (NOT_ON_LEETCODE.has(title)) return null;
+  const aliasSlug = LEETCODE_ALIASES[title];
+  const problem = aliasSlug ? catalogBySlug.get(aliasSlug) : catalogByTitleKey.get(normalizeTitle(title));
+  if (!problem) {
+    console.error(
+      `UNRESOLVED: "${title}" — not an exact catalog match, not aliased, not declared NOT_ON_LEETCODE. ` +
+        `Fix the title, add a verified alias, or declare it unresolved.`,
+    );
+    process.exitCode = 1;
+    return null;
+  }
+  return problem;
+}
+
 let id = 0;
 const questions = [];
 const patterns = [];
+const difficultyMismatches = [];
 for (const [patternId, patternName, items] of SECTIONS) {
   patterns.push({ id: patternId, name: patternName, count: items.length });
   for (const [title, d] of items) {
     const difficulty = D[d];
-    questions.push({ id: ++id, title, pattern: patternId, difficulty, estimatedTime: EST_TIME[difficulty] });
+    const problem = resolveLeetCode(title);
+    questions.push({
+      id: ++id,
+      title,
+      pattern: patternId,
+      difficulty,
+      estimatedTime: EST_TIME[difficulty],
+      // Present only when the exact LeetCode problem is verified: the URL is constructed
+      // from the catalog's own slug, never guessed. `premium` marks paywalled problems so
+      // the UI can say so before the user clicks into a wall.
+      ...(problem
+        ? {
+            url: `https://leetcode.com/problems/${problem.slug}/`,
+            leetcodeId: problem.id,
+            ...(problem.paid ? { premium: true } : {}),
+          }
+        : {}),
+    });
+    // Informational only: the roadmap's difficulty is its own editorial pacing judgment
+    // (and feeds locked XP values), so LeetCode disagreement is reported, never applied.
+    if (problem && problem.difficulty !== difficulty) {
+      difficultyMismatches.push(`  #${id} ${title}: roadmap ${difficulty} vs LeetCode ${problem.difficulty}`);
+    }
   }
+}
+
+if (process.exitCode === 1) {
+  console.error('Aborting: unresolved titles above.');
+  process.exit(1);
 }
 
 mkdirSync(join(root, 'src', 'data'), { recursive: true });
 writeFileSync(join(root, 'src', 'data', 'questions.json'), JSON.stringify(questions, null, 2) + '\n');
 
 const byDiff = questions.reduce((a, q) => ((a[q.difficulty] = (a[q.difficulty] ?? 0) + 1), a), {});
+const linked = questions.filter((q) => q.url).length;
 console.log(`total: ${questions.length}`);
 console.log('difficulties:', byDiff);
+console.log(`leetcode-linked: ${linked} (${questions.length - linked} declared not-on-leetcode)`);
+if (difficultyMismatches.length > 0) {
+  console.log(`difficulty disagreements vs LeetCode (informational, not applied): ${difficultyMismatches.length}`);
+  for (const m of difficultyMismatches) console.log(m);
+}
 for (const p of patterns) console.log(`${p.id}: ${p.count}`);

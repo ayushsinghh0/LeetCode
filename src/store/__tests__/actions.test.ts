@@ -5,13 +5,14 @@ import { SOLVE_XP, DAILY_GOAL_BONUS, revisionXp } from '@/utils/engine/xp';
 import { makeStore } from '@/store/store';
 import {
   importProgress,
+  logFocusSession,
   reviseQuestion,
   resetProgress,
   setConfidence,
   solveQuestion,
 } from '@/store/actions';
 import { settingsUpdated } from '@/store/slices/settingsSlice';
-import { celebrationShown } from '@/store/slices/uiSlice';
+import { celebrationShown, focusQuestionSet } from '@/store/slices/uiSlice';
 import { selectCurrentDay, selectSolvedNewCount, selectTodaysNewQuestions, selectHeatmapData } from '@/store/selectors';
 
 const questions = questionsData as Question[];
@@ -32,8 +33,8 @@ test('solveQuestion(1): marks solved, logs today, awards easy XP', () => {
   store.dispatch(solveQuestion(1));
   const state = store.getState();
 
-  expect(state.progress.byId[1].status).toBe('solved');
-  expect(state.progress.dayLogs[TODAY].solvedIds).toEqual([1]);
+  expect(state.progress.byId[1]!.status).toBe('solved');
+  expect(state.progress.dayLogs[TODAY]!.solvedIds).toEqual([1]);
   expect(state.gamification.xp).toBe(10); // question 1 is easy
   expect(state.progress.startDate).toBe(TODAY); // set on first-ever solve
 });
@@ -44,8 +45,8 @@ test('solving the same question twice the same day does not double-count XP', ()
   store.dispatch(solveQuestion(1));
   const state = store.getState();
 
-  expect(state.progress.dayLogs[TODAY].solvedIds).toEqual([1]); // not [1, 1]
-  expect(state.progress.dayLogs[TODAY].xpEarned).toBe(10);
+  expect(state.progress.dayLogs[TODAY]!.solvedIds).toEqual([1]); // not [1, 1]
+  expect(state.progress.dayLogs[TODAY]!.xpEarned).toBe(10);
   expect(state.gamification.xp).toBe(10);
 });
 
@@ -68,7 +69,7 @@ test('solving 8 questions awards the daily-goal bonus exactly once, with confett
   const stateAfter9 = store.getState();
 
   // 9th solve must NOT re-award the daily-goal bonus.
-  expect(stateAfter9.gamification.xp).toBe(xpAfter8 + SOLVE_XP[questions[8].difficulty]);
+  expect(stateAfter9.gamification.xp).toBe(xpAfter8 + SOLVE_XP[questions[8]!.difficulty]);
 });
 
 test('daily-goal bonus is credited into dayLog.xpEarned too, keeping the per-day sum in sync with gamification.xp', () => {
@@ -79,7 +80,7 @@ test('daily-goal bonus is credited into dayLog.xpEarned too, keeping the per-day
   const state = store.getState();
 
   expect(state.gamification.xp).toBeGreaterThan(0); // sanity: DAILY_GOAL_BONUS was actually awarded
-  expect(state.progress.dayLogs[TODAY].xpEarned).toBe(state.gamification.xp);
+  expect(state.progress.dayLogs[TODAY]!.xpEarned).toBe(state.gamification.xp);
 });
 
 test('re-solving an already-solved-today question does not re-award the daily-goal bonus or re-fire celebration', () => {
@@ -146,13 +147,13 @@ test('reviseQuestion pass then fail: revisionStage transitions 1 then 0, XP each
 
   store.dispatch(reviseQuestion(1, true));
   let state = store.getState();
-  expect(state.progress.byId[1].revisionStage).toBe(1);
+  expect(state.progress.byId[1]!.revisionStage).toBe(1);
   const xpAfterPass = state.gamification.xp;
   expect(xpAfterPass).toBe(10 + revisionXp('easy'));
 
   store.dispatch(reviseQuestion(1, false));
   state = store.getState();
-  expect(state.progress.byId[1].revisionStage).toBe(0);
+  expect(state.progress.byId[1]!.revisionStage).toBe(0);
   expect(state.gamification.xp).toBe(xpAfterPass + revisionXp('easy'));
 });
 
@@ -215,7 +216,8 @@ test('importProgress replaces state wholesale', () => {
   expect(state.progress.byId).toEqual(fixture.progress.byId);
   expect(state.progress.dayLogs).toEqual(fixture.progress.dayLogs);
   expect(state.progress.startDate).toBe('2026-07-01');
-  expect(state.settings).toEqual(fixture.settings);
+  // dailyCapacityMin is absent in the (pre-plan) fixture — the boundary defaults it to 180.
+  expect(state.settings).toEqual({ ...fixture.settings, dailyCapacityMin: 180 });
   // Optional bonus gates normalize to null at the import boundary.
   expect(state.gamification).toEqual({
     ...fixture.gamification,
@@ -259,8 +261,8 @@ test('reviseQuestion: no-op on a mastered (stage 5) question', () => {
   store.dispatch(reviseQuestion(1, false));
 
   const state = store.getState();
-  expect(state.progress.byId[1].revisionStage).toBe(5); // untouched — a fail cannot demote a mastered question
-  expect(state.progress.byId[1].nextRevision).toBeNull();
+  expect(state.progress.byId[1]!.revisionStage).toBe(5); // untouched — a fail cannot demote a mastered question
+  expect(state.progress.byId[1]!.nextRevision).toBeNull();
   expect(state.gamification.xp).toBe(0);
 });
 
@@ -291,6 +293,28 @@ test('lowering questionsPerDay below the current count still awards the bonus on
   expect(store.getState().gamification.dailyGoalBonusDate).toBe(TODAY);
 });
 
+test('logFocusSession: always credits the day ledger; attributes the same minutes to the on-screen question as a breakdown', () => {
+  const store = makeStore();
+
+  // No question on the Focus screen — total ledger only.
+  store.dispatch(logFocusSession(25));
+  expect(store.getState().progress.dayLogs[TODAY]!.focusMinutes).toBe(25);
+  expect(store.getState().progress.byId[1]).toBeUndefined();
+
+  // Question 1 on screen — total advances AND the question gets its per-item breakdown.
+  // The two dimensions describe the same 25 real minutes (never summed together).
+  store.dispatch(focusQuestionSet(1));
+  store.dispatch(logFocusSession(25));
+  expect(store.getState().progress.dayLogs[TODAY]!.focusMinutes).toBe(50);
+  expect(store.getState().progress.byId[1]!.timeSpentMin).toBe(25);
+
+  // Unknown ids never materialize a sparse entry.
+  store.dispatch(focusQuestionSet(999_999));
+  store.dispatch(logFocusSession(5));
+  expect(store.getState().progress.dayLogs[TODAY]!.focusMinutes).toBe(55);
+  expect(store.getState().progress.byId[999_999]).toBeUndefined();
+});
+
 // Flow 7 -----------------------------------------------------------------------------------
 test('selectors: selectCurrentDay advances, selectTodaysNewQuestions/selectHeatmapData follow', () => {
   const store = makeStore();
@@ -308,6 +332,6 @@ test('selectors: selectCurrentDay advances, selectTodaysNewQuestions/selectHeatm
 
   const heatmap = selectHeatmapData(state, TODAY);
   expect(heatmap).toHaveLength(365);
-  expect(heatmap[heatmap.length - 1].date).toBe(TODAY);
-  expect(heatmap[heatmap.length - 1].count).toBe(8);
+  expect(heatmap[heatmap.length - 1]!.date).toBe(TODAY);
+  expect(heatmap[heatmap.length - 1]!.count).toBe(8);
 });

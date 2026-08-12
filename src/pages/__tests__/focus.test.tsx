@@ -34,7 +34,16 @@ describe('FocusPage: new-question source (today\'s slice has an unsolved item)',
 
     fireEvent.click(screen.getByRole('button', { name: 'Solved' }));
 
-    expect(store.getState().progress.byId[1].status).toBe('solved');
+    expect(store.getState().progress.byId[1]!.status).toBe('solved');
+  });
+
+  test('keeps ui.focusQuestionId pointed at the on-screen question, and clears it on unmount', () => {
+    const { store, unmount } = renderWithStore(<FocusPage />);
+
+    expect(store.getState().ui.focusQuestionId).toBe(1); // "Valid Palindrome" is up
+
+    unmount();
+    expect(store.getState().ui.focusQuestionId).toBeNull(); // pomodoro attribution stops with the page
   });
 
   test('clicking Skip advances to the next question instead of re-presenting the same one', () => {
@@ -43,7 +52,7 @@ describe('FocusPage: new-question source (today\'s slice has an unsolved item)',
     expect(screen.getByRole('heading', { name: 'Valid Palindrome' })).toBeInTheDocument();
     fireEvent.click(screen.getByRole('button', { name: 'Skip' }));
 
-    expect(store.getState().progress.byId[1].status).toBe('skipped');
+    expect(store.getState().progress.byId[1]!.status).toBe('skipped');
     // Day 1's second question (id 2, "3Sum") takes the stage — the skipped one does not linger.
     expect(screen.queryByRole('heading', { name: 'Valid Palindrome' })).not.toBeInTheDocument();
     expect(screen.getByRole('heading', { name: '3Sum' })).toBeInTheDocument();
@@ -88,7 +97,7 @@ describe('FocusPage: revision-queue source (today\'s slice is fully solved, a re
 
     fireEvent.click(screen.getByRole('button', { name: 'Pass' }));
 
-    expect(store.getState().progress.byId[1].revisionStage).toBe(2); // 1 -> 2, not reset to 0
+    expect(store.getState().progress.byId[1]!.revisionStage).toBe(2); // 1 -> 2, not reset to 0
   });
 
   test('clicking Fail dispatches reviseQuestion(id, false), resetting the revision stage', () => {
@@ -97,8 +106,8 @@ describe('FocusPage: revision-queue source (today\'s slice is fully solved, a re
 
     fireEvent.click(screen.getByRole('button', { name: 'Fail' }));
 
-    expect(store.getState().progress.byId[1].revisionStage).toBe(0);
-    expect(store.getState().progress.byId[1].nextRevision).toBe('2026-07-31'); // today + 1
+    expect(store.getState().progress.byId[1]!.revisionStage).toBe(0);
+    expect(store.getState().progress.byId[1]!.nextRevision).toBe('2026-07-31'); // today + 1
   });
 });
 
@@ -129,14 +138,14 @@ describe('FocusPage: course-session source (no DSA work left)', () => {
     expect(screen.getByText(/Day 1 — Lecture/)).toBeInTheDocument();
 
     fireEvent.click(screen.getByRole('button', { name: 'Session done' }));
-    expect(store.getState().course.byWeekId['w00'].day1DoneOn).toBe(TODAY);
+    expect(store.getState().course.byWeekId['w00']!.day1DoneOn).toBe(TODAY);
 
     // Same week, day 2 comes up next — still Orientation, now labelled Practice.
     expect(screen.getByRole('heading', { name: 'Orientation' })).toBeInTheDocument();
     expect(screen.getByText(/Day 2 — Practice/)).toBeInTheDocument();
 
     fireEvent.click(screen.getByRole('button', { name: 'Session done' }));
-    expect(store.getState().course.byWeekId['w00'].day2DoneOn).toBe(TODAY);
+    expect(store.getState().course.byWeekId['w00']!.day2DoneOn).toBe(TODAY);
     expect(screen.getByRole('heading', { name: 'Fast-tracking the Course of AI' })).toBeInTheDocument();
   });
 });
@@ -157,7 +166,7 @@ describe('FocusPage: course-review source (course complete, one week review due)
         lastReviewed: '2026-07-02',
       };
     }
-    byWeekId['w00'] = { ...byWeekId['w00'], nextRevision: TODAY }; // the one due review
+    byWeekId['w00'] = { ...byWeekId['w00']!, nextRevision: TODAY }; // the one due review
 
     return makeStore({
       progress: { byId: dsaExhaustedById(), dayLogs: {}, startDate: '2026-01-01' },
@@ -174,7 +183,7 @@ describe('FocusPage: course-review source (course complete, one week review due)
 
     fireEvent.click(screen.getByRole('button', { name: 'Pass' }));
 
-    expect(store.getState().course.byWeekId['w00'].revisionStage).toBe(2); // 1 -> 2
+    expect(store.getState().course.byWeekId['w00']!.revisionStage).toBe(2); // 1 -> 2
   });
 
   test('Fail resets the week to stage 0, due tomorrow', () => {
@@ -183,7 +192,7 @@ describe('FocusPage: course-review source (course complete, one week review due)
 
     fireEvent.click(screen.getByRole('button', { name: 'Fail' }));
 
-    expect(store.getState().course.byWeekId['w00'].revisionStage).toBe(0);
-    expect(store.getState().course.byWeekId['w00'].nextRevision).toBe('2026-07-31');
+    expect(store.getState().course.byWeekId['w00']!.revisionStage).toBe(0);
+    expect(store.getState().course.byWeekId['w00']!.nextRevision).toBe('2026-07-31');
   });
 });

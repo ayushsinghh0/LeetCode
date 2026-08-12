@@ -2,9 +2,9 @@
 // because cross-slice writes (progress + gamification + ui) only happen safely here.
 import type { ThunkDispatch, UnknownAction } from '@reduxjs/toolkit';
 import questionsData from '@/data/questions.json';
-import type { Confidence, PersistedStateV1, Question } from '@/types';
+import type { Confidence, PersistedStateV1, Question, TaskCategory } from '@/types';
 import type { AppThunk, RootState } from '@/store/store';
-import { todayISO } from '@/utils/dates';
+import { addDays, todayISO } from '@/utils/dates';
 import { DAILY_GOAL_BONUS, SOLVE_XP, WEEKLY_CLEAR_BONUS, revisionXp } from '@/utils/engine/xp';
 import { currentDay, isWeeklyRevisionDay } from '@/utils/engine/roadmap';
 import { patternStats } from '@/utils/engine/stats';
@@ -19,6 +19,7 @@ import {
   questionSolved,
   questionStarted,
   revisionLogged,
+  timeSpentAdded,
 } from '@/store/slices/progressSlice';
 import {
   courseNotesSet,
@@ -26,6 +27,13 @@ import {
   courseRevisionLogged,
   courseSessionCompleted,
 } from '@/store/slices/courseSlice';
+import {
+  nextTaskId,
+  taskAdded,
+  taskDeleted,
+  taskRescheduled,
+  taskToggled,
+} from '@/store/slices/tasksSlice';
 import { courseWeekById } from '@/data/aimlCourse';
 import {
   COURSE_REVIEW_XP,
@@ -86,9 +94,18 @@ export const setConfidence = (id: number, confidence: Confidence): AppThunk => (
   dispatch(confidenceSet({ id, confidence }));
 };
 
-export const logFocusSession = (minutes: number): AppThunk => (dispatch) => {
+// Records a completed focus phase. DayLog.focusMinutes is the canonical total time ledger;
+// when the Focus screen has a question up (ui.focusQuestionId, maintained by FocusPage), the
+// same minutes are ALSO attributed to that question's timeSpentMin — a breakdown of the total,
+// not an addition to it, so analytics must never sum the two dimensions together.
+export const logFocusSession = (minutes: number): AppThunk => (dispatch, getState) => {
   const date = todayISO();
   dispatch(focusMinutesAdded({ date, minutes }));
+
+  const questionId = getState().ui.focusQuestionId;
+  if (questionId !== null && questionById.has(questionId)) {
+    dispatch(timeSpentAdded({ id: questionId, minutes }));
+  }
 };
 
 // Solves `id`, awarding SOLVE_XP[difficulty]. Daily-goal bonus + confetti fire the instant
@@ -269,6 +286,43 @@ export const reviseCourseWeek = (weekId: string, passed: boolean): AppThunk => (
 export const saveCourseNotes = (weekId: string, notes: string): AppThunk => (dispatch) => {
   if (!courseWeekById.has(weekId)) return;
   dispatch(courseNotesSet({ weekId, notes }));
+};
+
+// --- Daily execution layer -------------------------------------------------------------
+
+export const addTask = (input: {
+  title: string;
+  category: TaskCategory;
+  estMinutes?: number | null;
+  notes?: string;
+}): AppThunk => (dispatch, getState) => {
+  const title = input.title.trim();
+  if (title === '') return;
+  dispatch(
+    taskAdded({
+      id: nextTaskId(getState().tasks.byId),
+      title,
+      category: input.category,
+      date: todayISO(),
+      done: false,
+      completedOn: null,
+      estMinutes: input.estMinutes ?? null,
+      notes: input.notes ?? '',
+    }),
+  );
+};
+
+export const toggleTask = (id: string): AppThunk => (dispatch) => {
+  dispatch(taskToggled({ id, date: todayISO() }));
+};
+
+export const deleteTask = (id: string): AppThunk => (dispatch) => {
+  dispatch(taskDeleted({ id }));
+};
+
+// "Not today" — pushes an open task to tomorrow's plan.
+export const deferTaskToTomorrow = (id: string): AppThunk => (dispatch) => {
+  dispatch(taskRescheduled({ id, date: addDays(todayISO(), 1) }));
 };
 
 export const importProgress = (state: PersistedStateV1): AppThunk => (dispatch) => {

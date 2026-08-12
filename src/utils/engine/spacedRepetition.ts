@@ -22,7 +22,7 @@ export function ladderAfterReview(stage: number, date: string, passed: boolean):
   const next = stage + 1;
   return {
     revisionStage: next,
-    nextRevision: next >= MASTERED_STAGE ? null : addDays(date, REVISION_INTERVALS[next]),
+    nextRevision: next >= MASTERED_STAGE ? null : addDays(date, REVISION_INTERVALS[next]!),
   };
 }
 

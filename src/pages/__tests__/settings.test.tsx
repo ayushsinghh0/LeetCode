@@ -143,7 +143,7 @@ describe('SettingsPage: Export', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Export' }));
 
     expect(window.URL.createObjectURL).toHaveBeenCalledTimes(1);
-    const blobArg = (window.URL.createObjectURL as ReturnType<typeof vi.fn>).mock.calls[0][0] as Blob;
+    const blobArg = (window.URL.createObjectURL as ReturnType<typeof vi.fn>).mock.calls[0]![0] as Blob;
     expect(blobArg.type).toBe('application/json');
     expect(await readBlobAsText(blobArg)).toBe(exportAsJson(store.getState()));
 
@@ -173,8 +173,8 @@ describe('SettingsPage: Import', () => {
 
     fireEvent.click(screen.getByRole('button', { name: 'Import' }));
 
-    expect(store.getState().progress.byId[1].status).toBe('solved');
-    expect(store.getState().progress.byId[2].status).toBe('solved');
+    expect(store.getState().progress.byId[1]!.status).toBe('solved');
+    expect(store.getState().progress.byId[2]!.status).toBe('solved');
     expect(store.getState().gamification.xp).toBe(expectedXp);
   });
 
@@ -302,6 +302,6 @@ describe('SettingsPage: Reset', () => {
     fireEvent.change(screen.getByLabelText('Type RESET to confirm'), { target: { value: 'RESET' } });
     fireEvent.click(screen.getByRole('button', { name: 'Cancel' }));
 
-    expect(store.getState().progress.byId[1].status).toBe('solved'); // untouched
+    expect(store.getState().progress.byId[1]!.status).toBe('solved'); // untouched
   });
 });

@@ -9,6 +9,7 @@ import {
   GraduationCap,
   ListChecks,
   ShieldCheck,
+  Timer,
   TrendingUp,
   TrendingDown,
 } from 'lucide-react';
@@ -35,6 +36,8 @@ import {
   selectWeakestPatterns,
 } from '@/store/selectors';
 import { consistency, overallRevisionPassRate, solvedPerDaySeries } from '@/utils/engine/stats';
+import { formatMinutes } from '@/utils/engine/planner';
+import { addDays } from '@/utils/dates';
 import { format, parseISO } from 'date-fns';
 
 const ACTIVE_WINDOW_DAYS = 14;
@@ -74,6 +77,17 @@ export default function AnalyticsPage() {
     [dayLogs, today, courseActiveDates],
   );
 
+  // Focus-timer minutes over the same window — DayLog.focusMinutes is the canonical total time
+  // ledger (per-question timeSpentMin is a breakdown of these same minutes, never added here).
+  const focusMinutes14 = useMemo(() => {
+    let total = 0;
+    for (let i = 0; i < ACTIVE_WINDOW_DAYS; i++) {
+      const log = dayLogs[addDays(today, -i)];
+      if (log) total += log.focusMinutes;
+    }
+    return total;
+  }, [dayLogs, today]);
+
   const solvedPerDay = useMemo(() => solvedPerDaySeries(dayLogs, today, range), [dayLogs, today, range]);
 
   const patternCompletionData = useMemo(
@@ -92,7 +106,7 @@ export default function AnalyticsPage() {
   // Not derived from a selector: selectors.ts only exposes overallRevisionPassRate (a ratio, see
   // src/utils/engine/stats.ts) â€” no existing selector/engine function returns raw pass/fail
   // *counts*. This mirrors the same local-reduction-over-byId pattern RevisionPage.tsx already
-  // uses for its own page-only aggregates (passedThisWeek, upcomingByDate).
+  // uses for its own page-only aggregates (passedThisWeek).
   const revisionCounts = useMemo(() => {
     let passed = 0;
     let failed = 0;
@@ -126,10 +140,11 @@ export default function AnalyticsPage() {
 
       <motion.div className="flex flex-col gap-6" variants={sectionVariants} initial="hidden" animate="show">
         {/* Row: streak/consistency/productivity stat cards */}
-        <motion.div variants={cardVariants} className="grid grid-cols-2 gap-4 md:grid-cols-4">
+        <motion.div variants={cardVariants} className="grid grid-cols-2 gap-4 md:grid-cols-5">
           <StatCard label="Current streak" value={streaks.current} icon={Flame} accent={streaks.current > 0} />
           <StatCard label="Longest streak" value={streaks.longest} icon={Trophy} />
           <StatCard label="Active days (14d)" value={activeDays} icon={CalendarCheck} />
+          <StatCard label="Focus time (14d)" value={formatMinutes(focusMinutes14)} icon={Timer} />
           <StatCard label="Productivity score" value={`${productivity} / 100`} icon={Gauge} />
         </motion.div>
 

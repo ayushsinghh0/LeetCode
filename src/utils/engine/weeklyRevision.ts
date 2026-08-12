@@ -65,8 +65,8 @@ export function weeklyTopUp(
     p.revisionHistory.filter((e) => !e.passed).length;
 
   const ranked = [...pool].sort((idA, idB) => {
-    const a = byId[idA];
-    const b = byId[idB];
+    const a = byId[idA]!; // pool ids were filtered on byId presence above
+    const b = byId[idB]!;
 
     const confA = a.confidence ?? 2.5;
     const confB = b.confidence ?? 2.5;

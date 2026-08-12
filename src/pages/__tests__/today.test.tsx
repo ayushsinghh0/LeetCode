@@ -46,7 +46,7 @@ describe('TodayPage', () => {
     });
 
     expect(screen.getByText('1 / 8 solved today')).toBeInTheDocument();
-    expect(store.getState().progress.byId[1].status).toBe('solved');
+    expect(store.getState().progress.byId[1]!.status).toBe('solved');
     // Solved questions no longer show a "Start" button — one fewer than before.
     expect(screen.getAllByRole('button', { name: 'Start' })).toHaveLength(7);
   });
@@ -112,7 +112,7 @@ describe('TodayPage', () => {
 
     fireEvent.click(screen.getByRole('button', { name: 'Mark done' }));
 
-    expect(store.getState().course.byWeekId.w00.day1DoneOn).toBe('2026-07-30');
+    expect(store.getState().course.byWeekId.w00!.day1DoneOn).toBe('2026-07-30');
     expect(store.getState().gamification.xp).toBe(20);
     expect(screen.getByText('Day 2 · Practice')).toBeInTheDocument();
 

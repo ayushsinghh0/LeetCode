@@ -22,6 +22,13 @@ export interface UiState {
   searchOpen: boolean;
   toastQueue: string[]; // achievement ids awaiting a toast
   pomodoro: PomodoroState;
+  // The question currently on the Focus screen, kept up to date by FocusPage (null anywhere
+  // else, and for course items). The logFocusSession thunk reads it when a focus phase
+  // completes, attributing those minutes to QuestionProgress.timeSpentMin. Attribution model:
+  // DayLog.focusMinutes is the canonical TOTAL time ledger; timeSpentMin is a per-question
+  // BREAKDOWN of the same minutes — one real interval is counted once in each dimension,
+  // never summed across them.
+  focusQuestionId: number | null;
 }
 
 const initialState: UiState = {
@@ -31,6 +38,7 @@ const initialState: UiState = {
   searchOpen: false,
   toastQueue: [],
   pomodoro: { phase: 'idle', endsAt: null, focusLenMin: 25, breakLenMin: 5 },
+  focusQuestionId: null,
 };
 
 const uiSlice = createSlice({
@@ -68,6 +76,9 @@ const uiSlice = createSlice({
       state.pomodoro.focusLenMin = action.payload.focusLenMin;
       state.pomodoro.breakLenMin = action.payload.breakLenMin;
     },
+    focusQuestionSet(state, action: PayloadAction<number | null>) {
+      state.focusQuestionId = action.payload;
+    },
   },
   extraReducers: (builder) => {
     // PersistedStateV1 carries no UI data, so stateImported does not touch this slice.
@@ -89,6 +100,7 @@ export const {
   toastPopped,
   pomodoroPhaseSet,
   pomodoroLengthsSet,
+  focusQuestionSet,
 } = uiSlice.actions;
 
 export default uiSlice.reducer;

@@ -6,12 +6,13 @@ import { patternStats, difficultyStats, productivityScore } from '@/utils/engine
 import { computeStreaks } from '@/utils/engine/streak';
 import { levelProgress } from '@/utils/engine/xp';
 import { weakestPatterns } from '@/utils/engine/recommendations';
-import { revisionLoadForecast } from '@/utils/engine/predictor';
+import { combinedRevisionLoadForecast, revisionLoadForecast } from '@/utils/engine/predictor';
+import { COURSE_WEEKS } from '@/data/aimlCourse';
 import { weeklyTopUp } from '@/utils/engine/weeklyRevision';
 import { buildAchievementCtx } from '@/utils/engine/achievements';
 import { estimatedFinishDate } from '@/utils/engine/roadmap';
 import { makeStore } from '@/store/store';
-import { importProgress, solveQuestion } from '@/store/actions';
+import { completeCourseSession, importProgress, solveQuestion } from '@/store/actions';
 import { settingsUpdated } from '@/store/slices/settingsSlice';
 import {
   selectAchievementCtx,
@@ -263,7 +264,23 @@ test('selectEstimatedFinish/selectProductivityScore/selectWeakestPatterns/select
 
   expect(selectWeakestPatterns(state)).toEqual(weakestPatterns(patternStats(questions, state.progress.byId)));
 
+  // With no course progress, the merged forecast collapses to the question-only series.
   expect(selectForecast(state, TODAY)).toEqual(revisionLoadForecast(state.progress.byId, TODAY));
+});
+
+test('selectForecast counts course-week reviews alongside question revisions', () => {
+  const store = makeStore();
+  store.dispatch(solveQuestion(1));                // question review due tomorrow
+  store.dispatch(completeCourseSession('w00', 1));
+  store.dispatch(completeCourseSession('w00', 2)); // week cleared -> review due tomorrow
+  const state = store.getState();
+
+  const forecast = selectForecast(state, TODAY);
+  expect(forecast).toEqual(
+    combinedRevisionLoadForecast(state.progress.byId, COURSE_WEEKS, state.course.byWeekId, TODAY),
+  );
+  // Both tracks land tomorrow: one question revision + one course review.
+  expect(forecast[0]).toEqual({ date: addDays(TODAY, 1), count: 2 });
 });
 
 // --- Heatmap -------------------------------------------------------------------------------
@@ -281,7 +298,7 @@ test('selectHeatmapData returns 365 entries with correct counts and level thresh
     dateForOffset[offset] = addDays(TODAY, -offset);
   }
   for (const [offsetStr, count] of Object.entries(countsByOffset)) {
-    const iso = dateForOffset[Number(offsetStr)];
+    const iso = dateForOffset[Number(offsetStr)]!;
     dayLogs[iso] = {
       date: iso,
       solvedIds: Array.from({ length: count }, (_, i) => i + 1),
@@ -296,12 +313,12 @@ test('selectHeatmapData returns 365 entries with correct counts and level thresh
 
   const heatmap = selectHeatmapData(state, TODAY);
   expect(heatmap).toHaveLength(365);
-  expect(heatmap[heatmap.length - 1].date).toBe(TODAY);
-  expect(heatmap[0].date).toBe(addDays(TODAY, -364));
+  expect(heatmap[heatmap.length - 1]!.date).toBe(TODAY);
+  expect(heatmap[0]!.date).toBe(addDays(TODAY, -364));
 
   const byDate = new Map(heatmap.map((h) => [h.date, h]));
   for (const offset of Object.keys(countsByOffset).map(Number)) {
-    const entry = byDate.get(dateForOffset[offset]);
+    const entry = byDate.get(dateForOffset[offset]!);
     expect(entry?.count).toBe(countsByOffset[offset]);
     expect(entry?.level).toBe(expectedLevelByOffset[offset]);
   }

@@ -247,7 +247,7 @@ function computeHadComeback(
     .sort();
 
   for (let i = 1; i < activeDates.length; i++) {
-    if (diffDays(activeDates[i], activeDates[i - 1]) >= COMEBACK_GAP_DAYS) return true;
+    if (diffDays(activeDates[i]!, activeDates[i - 1]!) >= COMEBACK_GAP_DAYS) return true;
   }
   return false;
 }

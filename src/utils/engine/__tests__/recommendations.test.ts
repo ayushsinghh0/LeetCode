@@ -35,9 +35,9 @@ test('weakestPatterns: filters by eligibility, scores correctly, sorts ascending
 
   expect(result.map((r) => r.pattern)).toEqual(['sliding-window', 'two-pointers', 'intervals']);
   expect(result.find((r) => r.pattern === 'graphs')).toBeUndefined();
-  expect(result[0].score).toBeCloseTo(0.28);
-  expect(result[1].score).toBeCloseTo(0.54);
-  expect(result[2].score).toBeCloseTo(0.8);
+  expect(result[0]!.score).toBeCloseTo(0.28);
+  expect(result[1]!.score).toBeCloseTo(0.54);
+  expect(result[2]!.score).toBeCloseTo(0.8);
 });
 
 test('weakestPatterns: custom minAttempts raises the solved-count eligibility bar', () => {
@@ -67,7 +67,7 @@ test('weakestPatterns: ties are broken by pattern id ascending', () => {
   ];
   const result = weakestPatterns(stats);
   expect(result.map((r) => r.pattern)).toEqual(['graphs', 'hash-maps']);
-  expect(result[0].score).toBeCloseTo(result[1].score);
+  expect(result[0]!.score).toBeCloseTo(result[1]!.score);
 });
 
 // ---------------------------------------------------------------------------
@@ -100,18 +100,18 @@ test('HeuristicRecommender: emits revision, weak-pattern, new — in that order 
 
   expect(recs.map((r) => r.kind)).toEqual(['revision', 'weak-pattern', 'new']);
 
-  expect(recs[0].questionIds).toEqual(due);
-  expect(recs[0].reason.length).toBeGreaterThan(0);
-  expect(recs[0].reason).toContain(String(due.length));
-  expect(recs[0].reason).toMatch(/due|overdue/i);
+  expect(recs[0]!.questionIds).toEqual(due);
+  expect(recs[0]!.reason.length).toBeGreaterThan(0);
+  expect(recs[0]!.reason).toContain(String(due.length));
+  expect(recs[0]!.reason).toMatch(/due|overdue/i);
 
   // up to 3 unsolved ids from the single weakest pattern (two-pointers); id5 already solved
-  expect(recs[1].questionIds).toEqual([1, 2, 3]);
-  expect(recs[1].reason.length).toBeGreaterThan(0);
-  expect(recs[1].reason).toContain('two-pointers');
+  expect(recs[1]!.questionIds).toEqual([1, 2, 3]);
+  expect(recs[1]!.reason.length).toBeGreaterThan(0);
+  expect(recs[1]!.reason).toContain('two-pointers');
 
-  expect(recs[2].questionIds).toEqual(todaysNew);
-  expect(recs[2].reason.length).toBeGreaterThan(0);
+  expect(recs[2]!.questionIds).toEqual(todaysNew);
+  expect(recs[2]!.reason.length).toBeGreaterThan(0);
 });
 
 test('HeuristicRecommender: skips empty sections without leaving gaps or reordering', () => {
@@ -162,10 +162,10 @@ test('HeuristicRecommender: due course reviews rank right after due question rev
 
   // Cap of 3 holds: course-review displaces 'new' and course-session on a full day.
   expect(recs.map((r) => r.kind)).toEqual(['revision', 'course-review', 'weak-pattern']);
-  expect(recs[1].weekIds).toEqual(['w02', 'w05']);
-  expect(recs[1].questionIds).toEqual([]);
-  expect(recs[1].reason).toContain('2');
-  expect(recs[1].reason).toMatch(/review/i);
+  expect(recs[1]!.weekIds).toEqual(['w02', 'w05']);
+  expect(recs[1]!.questionIds).toEqual([]);
+  expect(recs[1]!.reason).toContain('2');
+  expect(recs[1]!.reason).toMatch(/review/i);
 });
 
 test('HeuristicRecommender: next course session surfaces last, only when the day has room', () => {
@@ -175,7 +175,7 @@ test('HeuristicRecommender: next course session surfaces last, only when the day
     course: { dueReviewWeekIds: [], nextSessionWeekId: 'w03' },
   });
   expect(light.map((r) => r.kind)).toEqual(['new', 'course-session']);
-  expect(light[1].weekIds).toEqual(['w03']);
+  expect(light[1]!.weekIds).toEqual(['w03']);
 
   // Full day: three question recommendations already fill the cap.
   const full = new HeuristicRecommender().recommend({

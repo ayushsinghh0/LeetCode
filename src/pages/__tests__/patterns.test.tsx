@@ -79,14 +79,14 @@ describe('PatternDetailPage', () => {
     // Each QuestionCard's root is role="button" (browse context renders no action buttons),
     // so counting buttons counts rendered cards.
     expect(screen.getAllByRole('button')).toHaveLength(twoPointersQuestions.length);
-    expect(screen.getByText(twoPointersQuestions[0].title)).toBeInTheDocument();
+    expect(screen.getByText(twoPointersQuestions[0]!.title)).toBeInTheDocument();
   });
 
   test('invalid patternId shows a "Pattern not found" empty state with a link back to /patterns', () => {
     renderDetail('nope');
 
     expect(screen.getByText('Pattern not found')).toBeInTheDocument();
-    expect(screen.queryByText(twoPointersQuestions[0].title)).not.toBeInTheDocument();
+    expect(screen.queryByText(twoPointersQuestions[0]!.title)).not.toBeInTheDocument();
 
     const backLink = screen.getByRole('link', { name: /patterns/i });
     expect(backLink).toHaveAttribute('href', '/patterns');

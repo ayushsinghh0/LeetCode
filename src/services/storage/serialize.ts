@@ -1,11 +1,13 @@
 import type {
   Confidence,
   CourseWeekProgress,
+  DailyTask,
   DayLog,
   PersistedStateV1,
   QuestionProgress,
   QuestionStatus,
   RevisionEvent,
+  TaskCategory,
 } from '@/types';
 import type { RootState } from '@/store/store';
 import { MASTERED_STAGE } from '@/utils/engine/spacedRepetition';
@@ -18,6 +20,7 @@ import { MASTERED_STAGE } from '@/utils/engine/spacedRepetition';
 // touched the AI/ML track.
 export function selectPersistedState(root: RootState): PersistedStateV1 {
   const courseByWeekId = root.course.byWeekId;
+  const tasksById = root.tasks.byId;
   return {
     version: 1,
     progress: {
@@ -28,6 +31,9 @@ export function selectPersistedState(root: RootState): PersistedStateV1 {
     settings: { ...root.settings },
     gamification: { ...root.gamification },
     ...(Object.keys(courseByWeekId).length > 0 ? { course: { byWeekId: courseByWeekId } } : {}),
+    // Same written-only-once-touched rule as `course`: payloads from users who never created a
+    // task stay byte-identical to pre-tasks ones.
+    ...(Object.keys(tasksById).length > 0 ? { tasks: { byId: tasksById } } : {}),
   };
 }
 
@@ -116,6 +122,28 @@ function isValidCourseEntry(value: unknown): value is CourseWeekProgress {
   );
 }
 
+function isTaskCategory(value: unknown): value is TaskCategory {
+  return value === 'study' || value === 'project' || value === 'communication' || value === 'admin';
+}
+
+// Per-entry shape check for tasks.byId[id] — the daily execution layer's persisted unit.
+function isValidTaskEntry(value: unknown): value is DailyTask {
+  if (!isPlainObject(value)) return false;
+  return (
+    typeof value.id === 'string' &&
+    value.id.length > 0 &&
+    typeof value.title === 'string' &&
+    value.title.trim() !== '' &&
+    isTaskCategory(value.category) &&
+    isIsoDate(value.date) &&
+    typeof value.done === 'boolean' &&
+    (value.completedOn === null || isIsoDate(value.completedOn)) &&
+    (value.estMinutes === null ||
+      (typeof value.estMinutes === 'number' && Number.isInteger(value.estMinutes) && value.estMinutes > 0)) &&
+    typeof value.notes === 'string'
+  );
+}
+
 // Per-entry shape check for progress.dayLogs[date] — in particular that solvedIds/revisionsPassed/
 // revisionsFailed are actually arrays of numbers, not just "present".
 function isValidDayLogEntry(value: unknown): value is DayLog {
@@ -189,6 +217,11 @@ export function validatePersisted(raw: unknown): PersistedStateV1 | null {
   if (typeof settings.revisionEnabled !== 'boolean') return null;
   if (settings.theme !== 'dark' && settings.theme !== 'light') return null;
   if (typeof settings.notifications !== 'boolean') return null;
+  // Optional (predates the daily plan); when present it must be a sane study budget.
+  const capacity = settings.dailyCapacityMin;
+  if ('dailyCapacityMin' in settings && capacity !== undefined) {
+    if (typeof capacity !== 'number' || !Number.isInteger(capacity) || capacity < 30 || capacity > 960) return null;
+  }
 
   const gamification = raw.gamification;
   if (!isPlainObject(gamification)) return null;
@@ -202,6 +235,31 @@ export function validatePersisted(raw: unknown): PersistedStateV1 | null {
   const weeklyDay = gamification.weeklyClearBonusDay;
   if ('weeklyClearBonusDay' in gamification && weeklyDay !== undefined && weeklyDay !== null && !(typeof weeklyDay === 'number' && Number.isInteger(weeklyDay) && weeklyDay >= 0)) {
     return null;
+  }
+
+  // `tasks` is optional (absent in pre-daily-plan payloads) — reject-wholesale when malformed,
+  // and each entry's key must equal its own id (the map invariant every reader assumes).
+  let tasks: PersistedStateV1['tasks'];
+  if ('tasks' in raw && raw.tasks !== undefined) {
+    const rawTasks = raw.tasks;
+    if (!isPlainObject(rawTasks)) return null;
+    if (!isPlainObject(rawTasks.byId)) return null;
+    const byId: Record<string, DailyTask> = {};
+    for (const [key, entry] of Object.entries(rawTasks.byId)) {
+      if (!isValidTaskEntry(entry)) return null;
+      if (entry.id !== key) return null;
+      byId[key] = {
+        id: entry.id,
+        title: entry.title,
+        category: entry.category,
+        date: entry.date,
+        done: entry.done,
+        completedOn: entry.completedOn,
+        estMinutes: entry.estMinutes,
+        notes: entry.notes,
+      };
+    }
+    tasks = { byId };
   }
 
   // `course` is optional (absent in pre-course payloads) — but when present it must be fully
@@ -245,6 +303,9 @@ export function validatePersisted(raw: unknown): PersistedStateV1 | null {
       revisionEnabled: settings.revisionEnabled,
       theme: settings.theme,
       notifications: settings.notifications,
+      // Echoed only when the payload carried it — same input-shape-preserving rule as the
+      // gamification bonus gates below; the load boundary defaults it.
+      ...('dailyCapacityMin' in settings && capacity !== undefined ? { dailyCapacityMin: capacity as number } : {}),
     },
     // Bonus gates are echoed only when the payload carried them — validation preserves the
     // input shape; defaulting absent fields to null is the load boundary's job
@@ -260,6 +321,7 @@ export function validatePersisted(raw: unknown): PersistedStateV1 | null {
         : {}),
     },
     ...(course ? { course } : {}),
+    ...(tasks ? { tasks } : {}),
   };
 }
 

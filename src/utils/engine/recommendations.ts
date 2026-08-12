@@ -80,7 +80,7 @@ export class HeuristicRecommender implements Recommender {
     }
 
     if (weakest.length > 0) {
-      const weakestPattern = weakest[0].pattern;
+      const weakestPattern = weakest[0]!.pattern;
       const unsolvedIds = all
         .filter((q) => q.pattern === weakestPattern && (byId[q.id]?.status ?? 'unsolved') !== 'solved')
         .map((q) => q.id)
@@ -146,5 +146,5 @@ function mulberry32(seed: number): () => number {
 export function seededRandomQuestion(all: Question[], seed: string): Question {
   const random = mulberry32(hashSeed(seed));
   const index = Math.floor(random() * all.length);
-  return all[index];
+  return all[index]!;
 }

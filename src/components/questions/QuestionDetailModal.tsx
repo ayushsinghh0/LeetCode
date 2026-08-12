@@ -1,4 +1,4 @@
-import { Bookmark, BookmarkCheck, CheckCircle2, Clock, XCircle } from 'lucide-react';
+import { Bookmark, BookmarkCheck, CheckCircle2, Clock, ExternalLink, XCircle } from 'lucide-react';
 import { format, parseISO } from 'date-fns';
 import questionsData from '@/data/questions.json';
 import { patternById } from '@/data/patterns';
@@ -52,6 +52,10 @@ export function QuestionDetailModal() {
               <Clock className="h-4 w-4" aria-hidden="true" />
               {question.estimatedTime} min
             </span>
+            {/* Minutes attributed from completed focus phases spent on this question. */}
+            {progress.timeSpentMin > 0 && (
+              <span className="figures text-sm text-muted-foreground">· {progress.timeSpentMin}m focused</span>
+            )}
             <span className="text-sm text-muted-foreground">{STATUS_LABEL[progress.status]}</span>
             {/* Where this question sits on the ladder — the schedule shouldn't require the
                 Revision page to discover. */}
@@ -64,11 +68,22 @@ export function QuestionDetailModal() {
             )}
           </div>
 
-          <div className="flex items-center justify-between gap-4">
-            <div>
-              <p className="mb-1 text-sm font-medium">Confidence</p>
-              <ConfidenceRating value={progress.confidence} onChange={(v) => dispatch(setConfidence(question.id, v))} />
-            </div>
+          {/* The problem itself is the primary action — never buried below notes/history.
+              528 questions carry a verified LeetCode mapping; the rest are Educative-course
+              originals with no public page, stated plainly instead of a dead button. */}
+          <div className="flex flex-wrap items-center gap-2">
+            {question.url ? (
+              <Button asChild size="sm">
+                <a href={question.url} target="_blank" rel="noopener noreferrer">
+                  <ExternalLink /> Solve on LeetCode
+                  {question.premium && <span className="ml-1 text-xs opacity-80">· Premium</span>}
+                </a>
+              </Button>
+            ) : (
+              <p className="text-sm text-muted-foreground">
+                Course-exclusive problem — practice it from your course material; no public LeetCode page exists.
+              </p>
+            )}
             <Button
               size="sm"
               variant={progress.bookmarked ? 'secondary' : 'outline'}
@@ -77,6 +92,11 @@ export function QuestionDetailModal() {
               {progress.bookmarked ? <BookmarkCheck /> : <Bookmark />}
               {progress.bookmarked ? 'Bookmarked' : 'Bookmark'}
             </Button>
+          </div>
+
+          <div>
+            <p className="mb-1 text-sm font-medium">Confidence</p>
+            <ConfidenceRating value={progress.confidence} onChange={(v) => dispatch(setConfidence(question.id, v))} />
           </div>
 
           <div>

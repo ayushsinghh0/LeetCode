@@ -14,7 +14,7 @@ import { levelProgress } from '@/utils/engine/xp';
 import { difficultyStats, patternStats, productivityScore } from '@/utils/engine/stats';
 import { buildAchievementCtx } from '@/utils/engine/achievements';
 import { weakestPatterns } from '@/utils/engine/recommendations';
-import { revisionLoadForecast } from '@/utils/engine/predictor';
+import { combinedRevisionLoadForecast } from '@/utils/engine/predictor';
 import { weeklyTopUp } from '@/utils/engine/weeklyRevision';
 import { COURSE_WEEKS } from '@/data/aimlCourse';
 import {
@@ -166,9 +166,11 @@ export const selectWeakestPatterns = createSelector([selectPatternStats], (stats
   weakestPatterns(stats),
 );
 
+// Course weeks climb the same 1/3/7/15/30 ladder as questions, so the load forecast counts
+// both tracks in one series.
 export const selectForecast = createSelector(
-  [selectProgressById, selectTodayArg],
-  (byId, today) => revisionLoadForecast(byId, today),
+  [selectProgressById, selectCourseByWeekId, selectTodayArg],
+  (byId, byWeekId, today) => combinedRevisionLoadForecast(byId, COURSE_WEEKS, byWeekId, today),
 );
 
 export const selectBookmarkedIds = createSelector([selectProgressById], (byId): number[] =>

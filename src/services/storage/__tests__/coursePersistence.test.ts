@@ -98,7 +98,7 @@ describe('selectPersistedState course projection', () => {
     store.dispatch(saveCourseNotes('w04', 'kv cache'));
 
     const persisted = selectPersistedState(store.getState());
-    expect(persisted.course?.byWeekId.w04.notes).toBe('kv cache');
+    expect(persisted.course?.byWeekId.w04!.notes).toBe('kv cache');
   });
 });
 
@@ -142,8 +142,8 @@ describe('round trip: course progress survives a reload', () => {
 
     const store2 = makeStore(loadInitialState(new LocalStorageAdapter()));
 
-    expect(store2.getState().course.byWeekId.w00.day1DoneOn).toBe('2026-07-30');
-    expect(store2.getState().course.byWeekId.w00.notes).toBe('orientation done');
+    expect(store2.getState().course.byWeekId.w00!.day1DoneOn).toBe('2026-07-30');
+    expect(store2.getState().course.byWeekId.w00!.notes).toBe('orientation done');
     expect(store2.getState().gamification.xp).toBe(store1.getState().gamification.xp);
   });
 });

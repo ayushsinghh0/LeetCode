@@ -84,7 +84,7 @@ test('weekly day: draining the full due+top-up queue via revision attempts award
 
   queueIds.forEach((id, index) => {
     const xpBefore = store.getState().gamification.xp;
-    store.dispatch(reviseQuestion(id, passResults[id]));
+    store.dispatch(reviseQuestion(id, passResults[id]!));
     const xpAfter = store.getState().gamification.xp;
     const baseXp = revisionXp(questionById.get(id)!.difficulty);
     const isLastAttempt = index === queueIds.length - 1;
@@ -124,7 +124,7 @@ test('weekly day: WEEKLY_CLEAR_BONUS is credited into dayLog.xpEarned too, keepi
   const state = store.getState();
 
   expect(state.gamification.xp).toBeGreaterThan(0);
-  expect(state.progress.dayLogs[TODAY].xpEarned).toBe(state.gamification.xp);
+  expect(state.progress.dayLogs[TODAY]!.xpEarned).toBe(state.gamification.xp);
 });
 
 test('weekly day: solving a new question after the queue drains does not regrow the queue or re-award the bonus (re-review regression)', () => {

@@ -72,7 +72,7 @@ describe('usePomodoro', () => {
 
     expect(result.current.phase).toBe('break');
     expect(result.current.isRunning).toBe(true);
-    expect(store.getState().progress.dayLogs[todayISO()].focusMinutes).toBe(1);
+    expect(store.getState().progress.dayLogs[todayISO()]!.focusMinutes).toBe(1);
   });
 
   test('a break phase completing returns to idle without logging another focus session', () => {
@@ -96,7 +96,7 @@ describe('usePomodoro', () => {
 
     expect(result.current.phase).toBe('idle');
     expect(result.current.isRunning).toBe(false);
-    expect(store.getState().progress.dayLogs[todayISO()].focusMinutes).toBe(1); // unchanged
+    expect(store.getState().progress.dayLogs[todayISO()]!.focusMinutes).toBe(1); // unchanged
   });
 
   test('skip() ends the current phase: focus -> break, break -> idle', () => {

@@ -17,6 +17,12 @@ export interface Question {
   pattern: PatternId;
   difficulty: Difficulty;
   estimatedTime: number; // minutes
+  // Verified external identity, present on the 528 questions with an exact LeetCode
+  // counterpart (resolved against the committed catalog snapshot by the generator —
+  // see scripts/generate-questions.mjs). Absent for Educative/Grokking originals.
+  url?: string;
+  leetcodeId?: number;
+  premium?: boolean; // LeetCode paywalled problem — link works, content needs a subscription
 }
 
 export interface RevisionEvent { date: string; passed: boolean }
@@ -54,7 +60,30 @@ export interface SettingsState {
   questionsPerDay: number;        // default 8
   revisionEnabled: boolean;       // default true
   theme: 'dark' | 'light';        // default 'dark'
-  notifications: boolean;         // default false (stub)
+  notifications: boolean;         // default false
+  dailyCapacityMin: number;       // default 180 — study minutes the daily plan budgets against
+}
+
+// --- Daily execution layer -------------------------------------------------------------
+// Lightweight, learning-adjacent tasks (a project milestone, a follow-up email, an admin
+// errand) that share the day with roadmap/course work in the Today plan. Deliberately NOT a
+// project-management system: no assignees, no subtasks, no recurring rules.
+
+export type TaskCategory = 'study' | 'project' | 'communication' | 'admin';
+
+export interface DailyTask {
+  id: string;                 // stable "t<N>" — never derived from title or date
+  title: string;
+  category: TaskCategory;
+  date: string;               // yyyy-MM-dd the task belongs to
+  done: boolean;
+  completedOn: string | null; // stamped when done flips true
+  estMinutes: number | null;  // explicit user estimate; null = use the plan's default
+  notes: string;
+}
+
+export interface TasksState {
+  byId: Record<string, DailyTask>; // sparse like every other map — reads must tolerate absence
 }
 
 // AI/ML course track (100xDevs cohort). A core week has two sessions — day 1 lecture,
@@ -82,7 +111,9 @@ export interface PersistedStateV1 {
     dayLogs: Record<string, DayLog>;
     startDate: string | null;
   };
-  settings: SettingsState;
+  // dailyCapacityMin is optional in persisted payloads (predates the daily plan; the load
+  // boundary defaults it to 180) but always present in the live store.
+  settings: Omit<SettingsState, 'dailyCapacityMin'> & { dailyCapacityMin?: number };
   // unlocked: achievementId -> ISO date. The two bonus markers gate the daily-goal (+25) and
   // weekly-clear (+50) bonuses to once per day / once per roadmap week; optional so payloads
   // saved before they shipped keep validating (absent -> null).
@@ -94,4 +125,6 @@ export interface PersistedStateV1 {
   };
   // Optional so pre-course backups (and older stored payloads) keep validating/loading.
   course?: CourseState;
+  // Optional for the same reason — payloads saved before the daily execution layer shipped.
+  tasks?: TasksState;
 }

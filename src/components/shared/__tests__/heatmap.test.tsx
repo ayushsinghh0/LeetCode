@@ -41,7 +41,7 @@ describe('Heatmap', () => {
     const data = buildFixture();
     renderHeatmap(data);
 
-    const target = data[200];
+    const target = data[200]!;
     const cell = screen.getByRole('button', { name: `${target.count} activities on ${target.date}` });
     expect(cell.className).toContain('bg-primary');
   });
@@ -50,7 +50,7 @@ describe('Heatmap', () => {
     const data = buildFixture();
     renderHeatmap(data);
 
-    const target = data[1]; // index 1: not a multiple of 5, not 200 -> level 0
+    const target = data[1]!; // index 1: not a multiple of 5, not 200 -> level 0
     const cell = screen.getByRole('button', { name: `${target.count} activities on ${target.date}` });
     expect(cell.className).toContain('bg-muted/40');
   });
@@ -60,7 +60,7 @@ describe('Heatmap', () => {
     const onSelectDate = vi.fn();
     renderHeatmap(data, onSelectDate);
 
-    const target = data[200];
+    const target = data[200]!;
     const cell = screen.getByRole('button', { name: `${target.count} activities on ${target.date}` });
     fireEvent.click(cell);
 

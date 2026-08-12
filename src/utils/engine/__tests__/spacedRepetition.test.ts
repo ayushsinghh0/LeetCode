@@ -37,7 +37,7 @@ test('passing walks the full ladder 1→3→7→15→30 then masters', () => {
       expect(p.revisionStage).toBe(pass + 1);
       expect(p.nextRevision).toBe(
         // next due = review day + gap for the new stage
-        addDays(day, gaps[pass])
+        addDays(day, gaps[pass]!)
       );
       day = p.nextRevision!;
     }

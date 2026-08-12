@@ -52,7 +52,7 @@ test('fires one notification when enabled, permitted, and revision work is due â
   const { unmount } = renderReminder(store);
 
   expect(notificationCalls).toHaveLength(1);
-  expect(notificationCalls[0].body).toBe('1 item is due for review today.');
+  expect(notificationCalls[0]!.body).toBe('1 item is due for review today.');
 
   // Remounting (e.g. navigating to /focus and back unmounts AppShell) must not re-fire.
   unmount();

@@ -31,4 +31,4 @@ export const QUOTES: string[] = [
   "Don't watch the clock; do what it does. Keep going. — Sam Levenson",
 ];
 
-export const quoteForDate = (iso: string): string => QUOTES[[...iso].reduce((a, c) => a + c.charCodeAt(0), 0) % QUOTES.length];
+export const quoteForDate = (iso: string): string => QUOTES[[...iso].reduce((a, c) => a + c.charCodeAt(0), 0) % QUOTES.length]!;

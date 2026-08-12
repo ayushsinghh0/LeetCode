@@ -225,7 +225,7 @@ describe('SearchDialog', () => {
 
     const weekOptions = screen.getAllByRole('option', { name: /transformers/i });
     expect(weekOptions.length).toBeGreaterThan(0);
-    fireEvent.click(weekOptions[0]);
+    fireEvent.click(weekOptions[0]!);
 
     expect(screen.getByTestId('location')).toHaveTextContent('/aiml');
     expect(store.getState().ui.searchOpen).toBe(false);

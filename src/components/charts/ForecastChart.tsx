@@ -40,7 +40,7 @@ export function ForecastChart({ data }: ForecastChartProps) {
       <p className="sr-only">
         {data.length === 0
           ? 'No forecast data yet.'
-          : `Forecasted revision load for ${data.length} days, from ${data[0].date} to ${data[data.length - 1].date}.`}
+          : `Forecasted revision load for ${data.length} days, from ${data[0]!.date} to ${data[data.length - 1]!.date}.`}
       </p>
       {!hasAnyLoad ? (
         <div className="flex h-64 items-center justify-center">

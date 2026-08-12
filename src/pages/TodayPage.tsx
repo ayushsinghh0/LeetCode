@@ -6,6 +6,7 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { DailyGoalProgress } from '@/components/shared/DailyGoalProgress';
 import { WeeklyRevisionBanner } from '@/components/shared/WeeklyRevisionBanner';
+import { TodayPlan } from '@/components/tasks/TodayPlan';
 import { QuestionCard } from '@/components/questions/QuestionCard';
 import { CourseTodayCard } from '@/components/course/CourseTodayCard';
 import { useToday } from '@/hooks/useToday';
@@ -81,6 +82,8 @@ export default function TodayPage() {
       <div className="glass p-6">
         <DailyGoalProgress solvedToday={solvedToday} perDay={perDay} />
       </div>
+
+      <TodayPlan />
 
       <CourseTodayCard />
 

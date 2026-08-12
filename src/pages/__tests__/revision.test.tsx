@@ -30,11 +30,11 @@ function masterViaThunks(store: AppStore, id: number, solveDate: string) {
   setDate(solveDate);
   store.dispatch(solveQuestion(id));
 
-  let dueDate = store.getState().progress.byId[id].nextRevision!;
-  while (store.getState().progress.byId[id].revisionStage < 5) {
+  let dueDate = store.getState().progress.byId[id]!.nextRevision!;
+  while (store.getState().progress.byId[id]!.revisionStage < 5) {
     setDate(dueDate);
     store.dispatch(reviseQuestion(id, true));
-    dueDate = store.getState().progress.byId[id].nextRevision ?? dueDate;
+    dueDate = store.getState().progress.byId[id]!.nextRevision ?? dueDate;
   }
 }
 
@@ -45,11 +45,11 @@ function retainWeekViaThunks(store: AppStore, weekId: string, clearDate: string)
   store.dispatch(completeCourseSession(weekId, 1));
   store.dispatch(completeCourseSession(weekId, 2));
 
-  let dueDate = store.getState().course.byWeekId[weekId].nextRevision!;
-  while (store.getState().course.byWeekId[weekId].revisionStage < 5) {
+  let dueDate = store.getState().course.byWeekId[weekId]!.nextRevision!;
+  while (store.getState().course.byWeekId[weekId]!.revisionStage < 5) {
     setDate(dueDate);
     store.dispatch(reviseCourseWeek(weekId, true));
-    dueDate = store.getState().course.byWeekId[weekId].nextRevision ?? dueDate;
+    dueDate = store.getState().course.byWeekId[weekId]!.nextRevision ?? dueDate;
   }
 }
 
@@ -96,7 +96,7 @@ describe('RevisionPage', () => {
 
     fireEvent.click(screen.getByRole('button', { name: 'Pass' }));
 
-    expect(store.getState().progress.byId[1].revisionStage).toBe(1);
+    expect(store.getState().progress.byId[1]!.revisionStage).toBe(1);
   });
 
   test('Upcoming tab groups the question title under its newly scheduled date after a pass', () => {
@@ -116,7 +116,7 @@ describe('RevisionPage', () => {
       store.dispatch(reviseQuestion(1, true)); // stage 1, nextRevision = 2026-08-03 (+3 days)
     });
 
-    expect(store.getState().progress.byId[1].nextRevision).toBe('2026-08-03');
+    expect(store.getState().progress.byId[1]!.nextRevision).toBe('2026-08-03');
 
     fireEvent.mouseDown(screen.getByRole('tab', { name: 'Upcoming' }));
 
@@ -130,8 +130,8 @@ describe('RevisionPage', () => {
     const store = makeStore();
     masterViaThunks(store, 1, '2026-07-30');
 
-    expect(store.getState().progress.byId[1].revisionStage).toBe(5);
-    expect(store.getState().progress.byId[1].nextRevision).toBeNull();
+    expect(store.getState().progress.byId[1]!.revisionStage).toBe(5);
+    expect(store.getState().progress.byId[1]!.nextRevision).toBeNull();
 
     renderWithStore(<RevisionPage />, store);
     fireEvent.mouseDown(screen.getByRole('tab', { name: 'Mastered' }));
@@ -162,7 +162,7 @@ describe('RevisionPage', () => {
     expect(within(duePanel).getByText(`Week ${w00.week} — ${w00.title}`)).toBeInTheDocument();
 
     fireEvent.click(within(duePanel).getByRole('button', { name: `Pass Week ${w00.week} review` }));
-    expect(store.getState().course.byWeekId.w00.revisionStage).toBe(1);
+    expect(store.getState().course.byWeekId.w00!.revisionStage).toBe(1);
   });
 
   test('an upcoming course review groups under its scheduled date in the Upcoming tab', () => {

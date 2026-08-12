@@ -71,7 +71,7 @@ test('weeklyTopUp: excludes items already reviewed today from the pool, giving t
   // and the Weekly Revision queue would never drain.
   const byIdReviewedToday: Record<number, QuestionProgress> = {
     ...byId,
-    4: { ...byId[4], lastReviewed: TODAY },
+    4: { ...byId[4]!, lastReviewed: TODAY },
   };
 
   const result = weeklyTopUp(all, byIdReviewedToday, due, TODAY, 7, 7);

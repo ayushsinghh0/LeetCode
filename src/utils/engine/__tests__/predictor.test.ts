@@ -2,15 +2,37 @@ import { addDays } from '@/utils/dates';
 import {
   applyRevision, applySolve, initialProgress, MASTERED_STAGE,
 } from '@/utils/engine/spacedRepetition';
-import { revisionLoadForecast } from '@/utils/engine/predictor';
-import type { QuestionProgress } from '@/types';
+import {
+  combinedRevisionLoadForecast, ladderForecast, revisionLoadForecast, upcomingByDate,
+} from '@/utils/engine/predictor';
+import {
+  applyCourseReview, applyCourseWeekClear, initialCourseProgress,
+} from '@/utils/engine/aimlCourse';
+import type { CourseWeek } from '@/data/aimlCourse';
+import type { CourseWeekProgress, QuestionProgress } from '@/types';
+
+// Minimal synthetic weeks — the course eligibility filter only reads `id` and `optional`.
+const coreWeek = (id: string): CourseWeek => ({
+  id, week: 1, title: id, taughtOn: null, contentId: null, contentKind: 'video', resources: [],
+});
+const extraWeek = (id: string): CourseWeek => ({ ...coreWeek(id), week: null, optional: true });
+
+// Both sessions done and the ladder entered on `date` — first review due date+1, like a solve.
+const clearedWeek = (date: string): CourseWeekProgress =>
+  applyCourseWeekClear({ ...initialCourseProgress(), day1DoneOn: date, day2DoneOn: date }, date);
+
+const retainedWeek = (clearDate: string): CourseWeekProgress => {
+  let p = clearedWeek(clearDate);
+  while (p.revisionStage < MASTERED_STAGE) p = applyCourseReview(p, p.nextRevision!, true);
+  return p;
+};
 
 test('revisionLoadForecast: exact horizon length and date range, default horizonDays=30', () => {
   const today = '2026-07-30';
   const forecast = revisionLoadForecast({}, today);
   expect(forecast).toHaveLength(30);
-  expect(forecast[0].date).toBe(addDays(today, 1));
-  expect(forecast[29].date).toBe(addDays(today, 30));
+  expect(forecast[0]!.date).toBe(addDays(today, 1));
+  expect(forecast[29]!.date).toBe(addDays(today, 30));
   expect(forecast.every((f) => f.count === 0)).toBe(true);
 });
 
@@ -95,4 +117,83 @@ test('revisionLoadForecast: does not mutate its input', () => {
   const snapshot = JSON.parse(JSON.stringify(byId));
   revisionLoadForecast(byId, today, 30, 2);
   expect(byId).toEqual(snapshot);
+});
+
+test('ladderForecast: revisionLoadForecast is its solved-question specialization', () => {
+  const today = '2026-07-30';
+  const overdue = applySolve(initialProgress(), '2026-07-01');
+  const scheduled = applyRevision(applySolve(initialProgress(), '2026-07-28'), '2026-07-29', true);
+  const byId = { 1: overdue, 2: scheduled, 3: initialProgress() }; // unsolved is the caller's filter
+  expect(ladderForecast([overdue, scheduled], today, 30)).toEqual(revisionLoadForecast(byId, today, 30));
+});
+
+test('combinedRevisionLoadForecast: a cleared, unretained course week walks the ladder like a question', () => {
+  const today = '2026-07-30';
+  const weeks = [coreWeek('w1')];
+  const byWeekId = { w1: clearedWeek('2026-07-30') }; // review due 2026-07-31
+  const forecast = combinedRevisionLoadForecast({}, weeks, byWeekId, today, 30);
+  const byDate = new Map(forecast.map((f) => [f.date, f.count]));
+
+  expect(byDate.get('2026-07-31')).toBe(1); // stage-0 review on its scheduled date
+  expect(byDate.get('2026-08-03')).toBe(1); // stage 1 gap (+3)
+  expect(byDate.get('2026-08-10')).toBe(1); // stage 2 gap (+7)
+  expect(byDate.get('2026-08-25')).toBe(1); // stage 3 gap (+15)
+  // stage-4 gap (+30) from 08-25 falls past the horizon -> not counted
+  expect(forecast.reduce((a, f) => a + f.count, 0)).toBe(4);
+});
+
+test('combinedRevisionLoadForecast: retained, undone, and extra weeks never contribute', () => {
+  const today = '2026-07-30';
+  const weeks = [coreWeek('w1'), coreWeek('w2'), extraWeek('x1')];
+  const byWeekId: Record<string, CourseWeekProgress> = {
+    w1: retainedWeek('2026-01-01'),
+    w2: { ...initialCourseProgress(), day1DoneOn: '2026-07-29' }, // half-done: not cleared
+    x1: clearedWeek('2026-07-30'), // even with a (never-produced) schedule, extras stay out
+  };
+  const forecast = combinedRevisionLoadForecast({}, weeks, byWeekId, today, 30);
+  expect(forecast.every((f) => f.count === 0)).toBe(true);
+});
+
+test('combinedRevisionLoadForecast: question and course events sum on shared dates', () => {
+  const today = '2026-07-30';
+  const question = applySolve(initialProgress(), '2026-07-30'); // review due 2026-07-31
+  const weeks = [coreWeek('w1')];
+  const byWeekId = { w1: clearedWeek('2026-07-30') };           // review due 2026-07-31
+  const forecast = combinedRevisionLoadForecast({ 1: question }, weeks, byWeekId, today, 30);
+  const byDate = new Map(forecast.map((f) => [f.date, f.count]));
+
+  // Identical schedules -> every simulated event date carries both tracks.
+  expect(byDate.get('2026-07-31')).toBe(2);
+  expect(byDate.get('2026-08-03')).toBe(2);
+  expect(byDate.get('2026-08-10')).toBe(2);
+  expect(byDate.get('2026-08-25')).toBe(2);
+  expect(forecast.reduce((a, f) => a + f.count, 0)).toBe(8);
+});
+
+test('combinedRevisionLoadForecast: empty state yields an all-zero, contiguous horizon', () => {
+  const today = '2026-07-30';
+  const forecast = combinedRevisionLoadForecast({}, [coreWeek('w1')], {}, today);
+  expect(forecast).toHaveLength(30);
+  expect(forecast[0]!.date).toBe(addDays(today, 1));
+  expect(forecast[29]!.date).toBe(addDays(today, 30));
+  expect(forecast.every((f) => f.count === 0)).toBe(true);
+});
+
+test('upcomingByDate: groups items by their actual scheduled date within (today, today+horizon]', () => {
+  const today = '2026-07-30';
+  const dueToday = { revisionStage: 1, nextRevision: today };            // due -> due queue, not upcoming
+  const overdue = { revisionStage: 0, nextRevision: '2026-07-01' };
+  const inWindow = { revisionStage: 1, nextRevision: '2026-08-03' };
+  const sameDate = { revisionStage: 2, nextRevision: '2026-08-03' };
+  const edge = { revisionStage: 3, nextRevision: addDays(today, 30) };   // last day inside
+  const beyond = { revisionStage: 4, nextRevision: addDays(today, 31) }; // first day outside
+  const retired = { revisionStage: MASTERED_STAGE, nextRevision: null };
+
+  const grouped = upcomingByDate(
+    [dueToday, overdue, inWindow, sameDate, edge, beyond, retired], today, 30,
+  );
+
+  expect([...grouped.keys()].sort()).toEqual(['2026-08-03', addDays(today, 30)]);
+  expect(grouped.get('2026-08-03')).toEqual([inWindow, sameDate]); // input order preserved
+  expect(grouped.get(addDays(today, 30))).toEqual([edge]);
 });

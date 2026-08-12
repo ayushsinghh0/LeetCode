@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState, type KeyboardEvent as ReactKeyboardEvent } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { GraduationCap, Moon, Search, Sun, Timer, type LucideIcon } from 'lucide-react';
+import { GraduationCap, ListTodo, Moon, Search, Sun, Timer, type LucideIcon } from 'lucide-react';
 import questionsData from '@/data/questions.json';
 import { patternById } from '@/data/patterns';
 import { COURSE_WEEKS, type CourseWeek } from '@/data/aimlCourse';
@@ -26,7 +26,7 @@ import { initialProgress } from '@/utils/engine/spacedRepetition';
 import { initialCourseProgress, isWeekDone, isWeekRetained } from '@/utils/engine/aimlCourse';
 import { filterQuestions } from '@/utils/filterQuestions';
 import { cn } from '@/utils/cn';
-import type { CourseWeekProgress, Question } from '@/types';
+import type { CourseWeekProgress, DailyTask, Question } from '@/types';
 
 const questions = questionsData as Question[];
 
@@ -39,7 +39,10 @@ type PaletteItem =
   | { kind: 'page'; label: string; icon: LucideIcon; to: string }
   | { kind: 'action'; label: string; icon: LucideIcon; run: () => void }
   | { kind: 'week'; week: CourseWeek }
+  | { kind: 'task'; task: DailyTask }
   | { kind: 'question'; question: Question };
+
+const TASK_LIMIT = 5;
 
 function weekLabel(week: CourseWeek): string {
   return week.optional ? week.title : `Week ${week.week} — ${week.title}`;
@@ -66,6 +69,7 @@ export function SearchDialog() {
   const searchOpen = useAppSelector((s) => s.ui.searchOpen);
   const byId = useAppSelector((s) => s.progress.byId);
   const courseByWeekId = useAppSelector((s) => s.course.byWeekId);
+  const tasksById = useAppSelector((s) => s.tasks.byId);
 
   const [query, setQuery] = useState('');
   const [difficulty, setDifficulty] = useState<DifficultyFilterValue>('all');
@@ -143,6 +147,16 @@ export function SearchDialog() {
       .map((week) => ({ kind: 'week', week }));
   }, [trimmed, hasQuestionFilter, courseByWeekId]);
 
+  // The user's own open tasks — their data ranks above the dataset, right after weeks.
+  const taskItems = useMemo((): PaletteItem[] => {
+    if (trimmed === '' || hasQuestionFilter) return [];
+    return Object.values(tasksById)
+      .filter((task) => !task.done && task.title.toLowerCase().includes(trimmed))
+      .sort((a, b) => a.date.localeCompare(b.date))
+      .slice(0, TASK_LIMIT)
+      .map((task) => ({ kind: 'task', task }));
+  }, [trimmed, hasQuestionFilter, tasksById]);
+
   const questionResults = useMemo(() => {
     if (!hasActiveFilter) return [];
     return filterQuestions(
@@ -167,8 +181,8 @@ export function SearchDialog() {
   );
 
   const items = useMemo(
-    () => [...pageItems, ...actionItems, ...weekItems, ...questionItems],
-    [pageItems, actionItems, weekItems, questionItems],
+    () => [...pageItems, ...actionItems, ...weekItems, ...taskItems, ...questionItems],
+    [pageItems, actionItems, weekItems, taskItems, questionItems],
   );
 
   // Typing or filtering re-anchors the highlight to the first row.
@@ -191,6 +205,8 @@ export function SearchDialog() {
       item.run();
     } else if (item.kind === 'week') {
       navigate('/aiml');
+    } else if (item.kind === 'task') {
+      navigate('/today');
     } else {
       dispatch(activeQuestionSet(item.question.id));
     }
@@ -215,7 +231,8 @@ export function SearchDialog() {
   // Flat index across all sections so one activedescendant walks the whole palette.
   const actionOffset = pageItems.length;
   const weekOffset = actionOffset + actionItems.length;
-  const questionOffset = weekOffset + weekItems.length;
+  const taskOffset = weekOffset + weekItems.length;
+  const questionOffset = taskOffset + taskItems.length;
 
   const optionRowClass = (index: number) =>
     cn(
@@ -368,9 +385,37 @@ export function SearchDialog() {
                 </div>
               )}
 
+              {taskItems.length > 0 && (
+                <div role="group" aria-label="Tasks" className="flex flex-col gap-1">
+                  <p aria-hidden="true" className="px-1 text-xs font-medium uppercase tracking-wide text-muted-foreground">
+                    Tasks
+                  </p>
+                  {taskItems.map((item, i) => {
+                    if (item.kind !== 'task') return null;
+                    const index = taskOffset + i;
+                    return (
+                      <button
+                        key={item.task.id}
+                        type="button"
+                        role="option"
+                        id={`palette-option-${index}`}
+                        aria-selected={index === activeIndex}
+                        className={optionRowClass(index)}
+                        onClick={() => selectItem(item)}
+                        onMouseMove={() => setActiveIndex(index)}
+                      >
+                        <ListTodo className="h-4 w-4 shrink-0" aria-hidden="true" />
+                        <span className="flex-1 truncate font-medium">{item.task.title}</span>
+                        <span className="figures text-xs">{item.task.date}</span>
+                      </button>
+                    );
+                  })}
+                </div>
+              )}
+
               {questionItems.length > 0 && (
                 <div role="group" aria-label="Questions" data-testid="search-results" className="flex flex-col gap-2">
-                  {(pageItems.length > 0 || actionItems.length > 0 || weekItems.length > 0) && (
+                  {(pageItems.length > 0 || actionItems.length > 0 || weekItems.length > 0 || taskItems.length > 0) && (
                     <p aria-hidden="true" className="px-1 text-xs font-medium uppercase tracking-wide text-muted-foreground">
                       Questions
                     </p>

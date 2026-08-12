@@ -1,5 +1,6 @@
+import { useEffect } from 'react';
 import { Link } from 'react-router-dom';
-import { CheckCircle2, GraduationCap, RotateCcw, SkipForward, X, XCircle } from 'lucide-react';
+import { CheckCircle2, ExternalLink, GraduationCap, RotateCcw, SkipForward, X, XCircle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { DifficultyBadge } from '@/components/questions/DifficultyBadge';
 import { PatternChip } from '@/components/questions/PatternChip';
@@ -19,6 +20,7 @@ import {
   skipQuestion,
   solveQuestion,
 } from '@/store/actions';
+import { focusQuestionSet } from '@/store/slices/uiSlice';
 import {
   selectCourseDueReviewIds,
   selectCourseNextSession,
@@ -62,9 +64,9 @@ export default function FocusPage() {
     const status = progressById[q.id]?.status ?? 'unsolved';
     return status !== 'solved' && status !== 'skipped';
   });
-  const dueRevision = revisionIds.length > 0 ? selectQuestionById(revisionIds[0]) : undefined;
+  const dueRevision = revisionIds.length > 0 ? selectQuestionById(revisionIds[0]!) : undefined;
   const nextSessionWeek = courseNext ? courseWeekById.get(courseNext.weekId) : undefined;
-  const dueReviewWeek = courseDueReviewIds.length > 0 ? courseWeekById.get(courseDueReviewIds[0]) : undefined;
+  const dueReviewWeek = courseDueReviewIds.length > 0 ? courseWeekById.get(courseDueReviewIds[0]!) : undefined;
 
   const item: FocusItem | null = currentNew
     ? { kind: 'new-question', question: currentNew }
@@ -75,6 +77,19 @@ export default function FocusPage() {
         : dueReviewWeek
           ? { kind: 'course-review', week: dueReviewWeek }
           : null;
+
+  // Keep ui.focusQuestionId pointing at the question on screen (null for course items and on
+  // exit) so a completing pomodoro phase attributes its minutes to the right place — see
+  // logFocusSession in store/actions.ts for the attribution model.
+  const dispatch = useAppDispatch();
+  const focusQuestionId =
+    item && (item.kind === 'new-question' || item.kind === 'question-revision') ? item.question.id : null;
+  useEffect(() => {
+    dispatch(focusQuestionSet(focusQuestionId));
+    return () => {
+      dispatch(focusQuestionSet(null));
+    };
+  }, [dispatch, focusQuestionId]);
 
   return (
     <div className="mx-auto flex min-h-screen w-full max-w-3xl flex-col gap-6 p-6">
@@ -134,6 +149,17 @@ function QuestionFocus({
       <h1 className="max-w-2xl font-serif text-4xl font-semibold leading-tight tracking-tight md:text-5xl">
         {question.title}
       </h1>
+
+      {/* Focus mode is where the solving happens — the verified problem link sits right under
+          the title, before the grading actions. */}
+      {question.url && (
+        <Button asChild variant="outline" size="sm">
+          <a href={question.url} target="_blank" rel="noopener noreferrer">
+            <ExternalLink /> Open on LeetCode
+            {question.premium && <span className="ml-1 text-xs opacity-80">· Premium</span>}
+          </a>
+        </Button>
+      )}
 
       <div className="flex flex-wrap justify-center gap-2">
         {isRevision ? (

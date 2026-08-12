@@ -25,7 +25,8 @@ import {
 } from '@/store/selectors';
 import { overallRevisionPassRate } from '@/utils/engine/stats';
 import { initialProgress, isMastered } from '@/utils/engine/spacedRepetition';
-import { initialCourseProgress, isWeekDone, isWeekRetained } from '@/utils/engine/aimlCourse';
+import { courseLadderItems, initialCourseProgress, isWeekRetained } from '@/utils/engine/aimlCourse';
+import { upcomingByDate } from '@/utils/engine/predictor';
 import { addDays, diffDays } from '@/utils/dates';
 import { overdueLabel } from '@/utils/overdueLabel';
 import type { Question } from '@/types';
@@ -102,49 +103,32 @@ export default function RevisionPage() {
     [courseByWeekId],
   );
 
-  // Cleared, unretained weeks whose review lands strictly after today, within the horizon.
-  const upcomingCourseByDate = useMemo(() => {
-    const map: Record<string, { weekId: string; label: string }[]> = {};
-    const horizonEnd = addDays(today, UPCOMING_HORIZON_DAYS);
-    for (const week of CORE_WEEKS) {
-      const progress = courseByWeekId[week.id] ?? initialCourseProgress();
-      if (!isWeekDone(week, progress) || isWeekRetained(progress)) continue;
-      if (progress.nextRevision === null || progress.nextRevision <= today || progress.nextRevision > horizonEnd) continue;
-      const list = map[progress.nextRevision] ?? (map[progress.nextRevision] = []);
-      list.push({ weekId: week.id, label: `Week ${week.week} — ${week.title}` });
-    }
-    return map;
-  }, [courseByWeekId, today]);
+  // Cleared, unretained weeks whose review lands strictly after today, within the horizon —
+  // the same eligibility (courseLadderItems) and date window (upcomingByDate) the engine uses.
+  const upcomingCourseByDate = useMemo(
+    () => upcomingByDate(courseLadderItems(CORE_WEEKS, courseByWeekId), today, UPCOMING_HORIZON_DAYS),
+    [courseByWeekId, today],
+  );
 
   // Actual currently-scheduled questions per date, for solved-not-mastered items whose
   // nextRevision falls strictly after today and within the forecast horizon. The forecast
   // (selectForecast) simulates hypothetical future passes too, so its per-day counts can exceed
   // the number of actual titles found here for the same date — both are shown side by side.
-  const upcomingByDate = useMemo(() => {
-    const map: Record<string, { id: number; title: string }[]> = {};
-    const horizonEnd = addDays(today, UPCOMING_HORIZON_DAYS);
-    for (const [idStr, p] of Object.entries(progressById)) {
-      if (p.status !== 'solved' || isMastered(p) || p.nextRevision === null) continue;
-      if (p.nextRevision <= today || p.nextRevision > horizonEnd) continue;
-      const question = selectQuestionById(Number(idStr));
-      if (!question) continue;
-      const list = map[p.nextRevision] ?? (map[p.nextRevision] = []);
-      list.push({ id: question.id, title: question.title });
-    }
-    for (const list of Object.values(map)) list.sort((a, b) => a.id - b.id);
-    return map;
+  const upcomingQuestionsByDate = useMemo(() => {
+    const solved = Object.entries(progressById)
+      .filter(([, p]) => p.status === 'solved')
+      .map(([id, p]) => ({ ...p, id: Number(id) }));
+    const grouped = upcomingByDate(solved, today, UPCOMING_HORIZON_DAYS);
+    for (const items of grouped.values()) items.sort((a, b) => a.id - b.id);
+    return grouped;
   }, [progressById, today]);
 
   const forecastByDate = useMemo(() => new Map(forecast.map((d) => [d.date, d.count])), [forecast]);
+  // The forecast counts both tracks, so any date with actual scheduled items has count > 0 —
+  // no separate merge of course dates needed.
   const upcomingDates = useMemo(
-    () =>
-      [
-        ...new Set([
-          ...forecast.filter((d) => d.count > 0).map((d) => d.date),
-          ...Object.keys(upcomingCourseByDate),
-        ]),
-      ].sort(),
-    [forecast, upcomingCourseByDate],
+    () => forecast.filter((d) => d.count > 0).map((d) => d.date),
+    [forecast],
   );
 
   return (
@@ -219,9 +203,9 @@ export default function RevisionPage() {
           ) : (
             <div className="flex flex-col gap-3">
               {upcomingDates.map((date) => {
-                const titles = upcomingByDate[date] ?? [];
-                const courseItems = upcomingCourseByDate[date] ?? [];
-                const count = (forecastByDate.get(date) ?? 0) + courseItems.length;
+                const questionItems = upcomingQuestionsByDate.get(date) ?? [];
+                const courseItems = upcomingCourseByDate.get(date) ?? [];
+                const count = forecastByDate.get(date) ?? 0;
                 const dateLabel = format(parseISO(date), 'EEE, MMM d');
                 return (
                   <div key={date} role="group" aria-label={dateLabel} className="glass flex flex-col gap-2 p-4">
@@ -229,26 +213,30 @@ export default function RevisionPage() {
                       <span className="font-medium">{dateLabel}</span>
                       <Badge variant="secondary">{count} due</Badge>
                     </div>
-                    {(titles.length > 0 || courseItems.length > 0) && (
+                    {(questionItems.length > 0 || courseItems.length > 0) && (
                       <div className="flex flex-wrap gap-2">
-                        {titles.map(({ id, title }) => (
-                          <button
-                            key={id}
-                            type="button"
-                            className="rounded-md border px-2.5 py-1 text-left text-sm hover:bg-muted"
-                            onClick={() => openDetail(id)}
-                          >
-                            {title}
-                          </button>
-                        ))}
-                        {courseItems.map(({ weekId, label }) => (
+                        {questionItems.map((item) => {
+                          const question = selectQuestionById(item.id);
+                          if (!question) return null;
+                          return (
+                            <button
+                              key={item.id}
+                              type="button"
+                              className="rounded-md border px-2.5 py-1 text-left text-sm hover:bg-muted"
+                              onClick={() => openDetail(item.id)}
+                            >
+                              {question.title}
+                            </button>
+                          );
+                        })}
+                        {courseItems.map((item) => (
                           <Link
-                            key={weekId}
+                            key={item.week.id}
                             to="/aiml"
                             className="flex items-center gap-1.5 rounded-md border px-2.5 py-1 text-left text-sm hover:bg-muted"
                           >
                             <GraduationCap className="h-3.5 w-3.5 text-muted-foreground" aria-hidden="true" />
-                            {label}
+                            Week {item.week.week} — {item.week.title}
                           </Link>
                         ))}
                       </div>

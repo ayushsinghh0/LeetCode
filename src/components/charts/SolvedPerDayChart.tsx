@@ -41,7 +41,7 @@ export function SolvedPerDayChart({ data }: SolvedPerDayChartProps) {
       <p className="sr-only">
         {data.length === 0
           ? 'No activity data yet.'
-          : `Solved and revision counts for ${data.length} days, from ${data[0].date} to ${data[data.length - 1].date}.`}
+          : `Solved and revision counts for ${data.length} days, from ${data[0]!.date} to ${data[data.length - 1]!.date}.`}
       </p>
       {!hasAnyActivity ? (
         <div className="flex h-72 items-center justify-center">

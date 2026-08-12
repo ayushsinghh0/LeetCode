@@ -4,6 +4,7 @@ import progressReducer from '@/store/slices/progressSlice';
 import settingsReducer from '@/store/slices/settingsSlice';
 import gamificationReducer from '@/store/slices/gamificationSlice';
 import courseReducer from '@/store/slices/courseSlice';
+import tasksReducer from '@/store/slices/tasksSlice';
 import uiReducer from '@/store/slices/uiSlice';
 
 const rootReducer = combineReducers({
@@ -11,6 +12,7 @@ const rootReducer = combineReducers({
   settings: settingsReducer,
   gamification: gamificationReducer,
   course: courseReducer,
+  tasks: tasksReducer,
   ui: uiReducer,
 });
 

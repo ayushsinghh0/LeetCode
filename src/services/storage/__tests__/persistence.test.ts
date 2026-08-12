@@ -83,7 +83,7 @@ describe('selectPersistedState', () => {
     const persisted = selectPersistedState(store.getState());
 
     expect(persisted.version).toBe(1);
-    expect(persisted.progress.byId[1].status).toBe('solved');
+    expect(persisted.progress.byId[1]!.status).toBe('solved');
     expect(persisted.progress.startDate).toBe('2026-07-30');
     expect(persisted.settings).toEqual(store.getState().settings);
     expect(persisted.gamification).toEqual(store.getState().gamification);
@@ -207,7 +207,7 @@ describe('validatePersisted', () => {
   });
 
   test('rejects a progress.byId entry missing a required field (timeSpentMin)', () => {
-    const { timeSpentMin: _timeSpentMin, ...entryWithoutTimeSpent } = validFixture.progress.byId[1];
+    const { timeSpentMin: _timeSpentMin, ...entryWithoutTimeSpent } = validFixture.progress.byId[1]!;
     const bad = {
       ...validFixture,
       progress: { ...validFixture.progress, byId: { 1: entryWithoutTimeSpent } },
@@ -227,7 +227,7 @@ describe('validatePersisted', () => {
   });
 
   test('rejects a dayLogs entry missing the solvedIds array', () => {
-    const { solvedIds: _solvedIds, ...logWithoutSolvedIds } = validFixture.progress.dayLogs['2026-07-30'];
+    const { solvedIds: _solvedIds, ...logWithoutSolvedIds } = validFixture.progress.dayLogs['2026-07-30']!;
     const bad = {
       ...validFixture,
       progress: { ...validFixture.progress, dayLogs: { '2026-07-30': logWithoutSolvedIds } },
@@ -456,7 +456,7 @@ describe('createPersistenceMiddleware debounce behavior', () => {
     vi.advanceTimersByTime(500);
 
     expect(adapter.saved).toHaveLength(1);
-    expect(adapter.saved[0].progress.byId[1].status).toBe('solved');
+    expect(adapter.saved[0]!.progress.byId[1]!.status).toBe('solved');
   });
 
   test('two rapid dispatches collapse into a single save (debounced)', () => {
@@ -470,8 +470,8 @@ describe('createPersistenceMiddleware debounce behavior', () => {
 
     expect(adapter.saved).toHaveLength(1);
     // the single save reflects the latest state (both solves applied)
-    expect(adapter.saved[0].progress.byId[1].status).toBe('solved');
-    expect(adapter.saved[0].progress.byId[2].status).toBe('solved');
+    expect(adapter.saved[0]!.progress.byId[1]!.status).toBe('solved');
+    expect(adapter.saved[0]!.progress.byId[2]!.status).toBe('solved');
   });
 
   test('a dispatch after the debounce window schedules a second, independent save', () => {
@@ -499,10 +499,11 @@ describe('createPersistenceMiddleware immediate flush', () => {
 
     // No vi.advanceTimersByTime call at all: if this were debounced, saved would still be empty.
     // The saved payload is the store's own state, where the boundary normalizes the optional
-    // gamification bonus gates in (absent in the imported fixture -> null in the store).
+    // fields in (bonus gates -> null, dailyCapacityMin -> 180).
     expect(adapter.saved).toHaveLength(1);
     expect(adapter.saved[0]).toEqual({
       ...validFixture,
+      settings: { ...validFixture.settings, dailyCapacityMin: 180 },
       gamification: { ...validFixture.gamification, dailyGoalBonusDate: null, weeklyClearBonusDay: null },
     });
   });
@@ -515,8 +516,8 @@ describe('createPersistenceMiddleware immediate flush', () => {
     store.dispatch(progressReset());
 
     expect(adapter.saved).toHaveLength(1);
-    expect(adapter.saved[0].progress.byId).toEqual({});
-    expect(adapter.saved[0].gamification.xp).toBe(0);
+    expect(adapter.saved[0]!.progress.byId).toEqual({});
+    expect(adapter.saved[0]!.gamification.xp).toBe(0);
   });
 
   test('an immediate flush cancels a pending debounced save so it does not fire twice', () => {
@@ -556,8 +557,8 @@ describe('loadInitialState', () => {
 
     expect(preloaded).toEqual({
       progress: validFixture.progress,
-      settings: validFixture.settings,
-      // Optional bonus gates default to null at the load boundary.
+      // Optional fields default at the load boundary (capacity -> 180, bonus gates -> null).
+      settings: { ...validFixture.settings, dailyCapacityMin: 180 },
       gamification: { ...validFixture.gamification, dailyGoalBonusDate: null, weeklyClearBonusDay: null },
     });
   });

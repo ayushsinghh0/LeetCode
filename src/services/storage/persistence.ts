@@ -85,7 +85,14 @@ export function loadInitialState(adapter: StorageAdapter): Partial<RootState> | 
       dayLogs: persisted.progress.dayLogs,
       startDate: persisted.progress.startDate,
     },
-    settings: persisted.settings,
+    settings: {
+      questionsPerDay: persisted.settings.questionsPerDay,
+      revisionEnabled: persisted.settings.revisionEnabled,
+      theme: persisted.settings.theme,
+      notifications: persisted.settings.notifications,
+      // Optional in older payloads — same boundary-normalization rule as the bonus gates.
+      dailyCapacityMin: persisted.settings.dailyCapacityMin ?? 180,
+    },
     gamification: {
       xp: persisted.gamification.xp,
       unlocked: persisted.gamification.unlocked,
@@ -107,5 +114,7 @@ export function loadInitialState(adapter: StorageAdapter): Partial<RootState> | 
           },
         }
       : {}),
+    // Absent in pre-daily-plan payloads — omit so the tasks slice's own initialState applies.
+    ...(persisted.tasks ? { tasks: { byId: persisted.tasks.byId } } : {}),
   };
 }

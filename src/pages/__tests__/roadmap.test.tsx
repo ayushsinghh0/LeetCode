@@ -57,7 +57,7 @@ describe('RoadmapPage', () => {
     const day2Button = screen.getByRole('button', { name: /^Day 2\b/ });
     fireEvent.click(day2Button);
 
-    const firstTitle = day2Titles[0]; // id 9
+    const firstTitle = day2Titles[0]!; // id 9
     fireEvent.click(screen.getByText(firstTitle));
 
     expect(store.getState().ui.activeQuestionId).toBe(9);
@@ -68,7 +68,7 @@ describe('RoadmapPage', () => {
 
     const day1Button = screen.getByRole('button', { name: /^Day 1\b/ });
     const day2Button = screen.getByRole('button', { name: /^Day 2\b/ });
-    const day1FirstTitle = questions[0].title; // "Valid Palindrome"
+    const day1FirstTitle = questions[0]!.title; // "Valid Palindrome"
 
     fireEvent.click(day1Button);
     for (const title of questions.slice(0, 8).map((q) => q.title)) {

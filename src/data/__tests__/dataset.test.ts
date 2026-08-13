@@ -1,5 +1,6 @@
 import questions from '@/data/questions.json';
 import { PATTERNS, patternById } from '@/data/patterns';
+import { FAMILIES, SUBPATTERNS, familyById } from '@/data/curriculum';
 import type { Question } from '@/types';
 
 const qs = questions as Question[];
@@ -76,6 +77,51 @@ test('every mapping is well-formed and unique: canonical URL shape, url+leetcode
     expect(lcIds.has(q.leetcodeId!)).toBe(false);
     lcIds.add(q.leetcodeId!);
   }
+});
+
+// --- Curriculum intelligence (families + subpatterns, emitted by the same generator from
+// hand-verified scripts/data/curriculum.json). ---
+
+test('problem families are substantial and well-formed: 3+ members, exactly one canonical, resolvable ids', () => {
+  expect(FAMILIES.length).toBeGreaterThanOrEqual(100);
+  const byId = new Map(qs.map((q) => [q.id, q]));
+  const seenMembers = new Set<number>();
+  const roles = new Set(['canonical', 'warmup', 'standard', 'variant', 'stretch']);
+  for (const f of FAMILIES) {
+    expect(f.members.length).toBeGreaterThanOrEqual(3);
+    expect(f.members.filter((m) => m.role === 'canonical')).toHaveLength(1);
+    for (const m of f.members) {
+      expect(roles.has(m.role)).toBe(true);
+      expect(byId.has(m.questionId)).toBe(true);
+      expect(seenMembers.has(m.questionId)).toBe(false); // one family per question
+      seenMembers.add(m.questionId);
+      expect(byId.get(m.questionId)!.familyId).toBe(f.id);
+    }
+    expect(f.signals.length).toBeGreaterThanOrEqual(2);
+    expect(f.idea).not.toBe('');
+    expect(f.trap).not.toBe('');
+  }
+});
+
+test('every familyId and subpattern on a question is backed by the curriculum data', () => {
+  const subpatternByQuestion = new Map<number, string>();
+  for (const [patternId, groups] of Object.entries(SUBPATTERNS)) {
+    for (const g of groups) {
+      for (const qid of g.questionIds) {
+        expect(subpatternByQuestion.has(qid)).toBe(false); // one subpattern per question
+        subpatternByQuestion.set(qid, g.id);
+        const q = qs[qid - 1]!;
+        expect(q.pattern).toBe(patternId); // subpatterns stay pattern-pure
+      }
+    }
+  }
+  for (const q of qs) {
+    if (q.familyId !== undefined) expect(familyById[q.familyId]).toBeDefined();
+    if (q.subpattern !== undefined) expect(subpatternByQuestion.get(q.id)).toBe(q.subpattern);
+  }
+  // Coverage floor: the curated layer must stay substantial, not decay silently.
+  expect(qs.filter((q) => q.familyId).length).toBeGreaterThanOrEqual(400);
+  expect(qs.filter((q) => q.subpattern).length).toBeGreaterThanOrEqual(450);
 });
 
 test('spot-pinned identities: well-known problems map to their canonical LeetCode ids', () => {

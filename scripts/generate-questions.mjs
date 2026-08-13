@@ -348,6 +348,81 @@ const NOT_ON_LEETCODE = new Set([
   'Connect All Siblings of a Binary Tree',
 ]);
 
+// ── Curriculum intelligence (scripts/data/curriculum.json) ─────────────────────────────
+// Hand-verified problem families ("these questions are the same idea underneath") and
+// sub-pattern groupings. Same closed-world rule as external identity: every referenced
+// title must exact-match a SECTIONS entry of the declared pattern, or the build fails.
+// Emitted as src/data/families.json + src/data/subpatterns.json, plus per-question
+// `familyId`/`subpattern` fields on questions.json.
+const FAMILY_ROLES = new Set(['canonical', 'warmup', 'standard', 'variant', 'stretch']);
+const KEBAB = /^[a-z0-9]+(-[a-z0-9]+)*$/;
+
+function validateCurriculum(curriculum, titlesByPattern) {
+  const errors = [];
+  const patternIds = new Set(titlesByPattern.keys());
+  // Family members may come from any section (a family may deliberately reach across
+  // patterns to show the same idea under another banner); subpatterns stay pattern-pure.
+  const allTitles = new Set([...titlesByPattern.values()].flatMap((s) => [...s]));
+  const familyIds = new Set();
+  const titleToFamily = new Map();
+
+  for (const f of curriculum.families) {
+    const where = `family "${f.id}"`;
+    if (!KEBAB.test(f.id)) errors.push(`${where}: id must be kebab-case`);
+    if (familyIds.has(f.id)) errors.push(`${where}: duplicate family id`);
+    familyIds.add(f.id);
+    if (!patternIds.has(f.pattern)) errors.push(`${where}: unknown pattern "${f.pattern}"`);
+    for (const field of ['name', 'idea', 'trap']) {
+      if (typeof f[field] !== 'string' || f[field].trim() === '') errors.push(`${where}: empty ${field}`);
+    }
+    if (!Array.isArray(f.signals) || f.signals.length < 2 || f.signals.some((s) => typeof s !== 'string' || !s.trim())) {
+      errors.push(`${where}: signals must be 2+ non-empty strings`);
+    }
+    if (!Array.isArray(f.members) || f.members.length < 3) {
+      errors.push(`${where}: needs 3+ members`);
+      continue;
+    }
+    let canonicals = 0;
+    for (const [title, role] of f.members) {
+      if (!FAMILY_ROLES.has(role)) errors.push(`${where}: invalid role "${role}" on "${title}"`);
+      if (role === 'canonical') canonicals++;
+      if (!allTitles.has(title)) {
+        errors.push(`${where}: "${title}" is not a SECTIONS title`);
+      }
+      if (titleToFamily.has(title)) {
+        errors.push(`${where}: "${title}" already belongs to family "${titleToFamily.get(title)}"`);
+      }
+      titleToFamily.set(title, f.id);
+    }
+    if (canonicals !== 1) errors.push(`${where}: needs exactly one canonical member, found ${canonicals}`);
+  }
+
+  const titleToSubpattern = new Map();
+  for (const [patternId, groups] of Object.entries(curriculum.subpatterns)) {
+    if (!patternIds.has(patternId)) errors.push(`subpatterns: unknown pattern "${patternId}"`);
+    const sectionTitles = titlesByPattern.get(patternId) ?? new Set();
+    const groupIds = new Set();
+    for (const g of groups) {
+      const where = `subpattern "${patternId}/${g.id}"`;
+      if (!KEBAB.test(g.id)) errors.push(`${where}: id must be kebab-case`);
+      if (groupIds.has(g.id)) errors.push(`${where}: duplicate subpattern id in pattern`);
+      groupIds.add(g.id);
+      if (typeof g.name !== 'string' || g.name.trim() === '') errors.push(`${where}: empty name`);
+      if (!Array.isArray(g.titles) || g.titles.length === 0) errors.push(`${where}: empty titles`);
+      for (const title of g.titles ?? []) {
+        if (!sectionTitles.has(title)) errors.push(`${where}: "${title}" is not a SECTIONS title of "${patternId}"`);
+        const key = `${patternId}::${title}`;
+        if (titleToSubpattern.has(key)) {
+          errors.push(`${where}: "${title}" already in subpattern "${titleToSubpattern.get(key)}"`);
+        }
+        titleToSubpattern.set(key, g.id);
+      }
+    }
+  }
+
+  return { errors, titleToFamily, titleToSubpattern };
+}
+
 // Case/punctuation-insensitive title key — LeetCode uses backticks, apostrophes, and
 // spelling variants ("Zeroes") that must not defeat an otherwise-exact match.
 const normalizeTitle = (t) =>
@@ -381,6 +456,18 @@ function resolveLeetCode(title) {
   return problem;
 }
 
+const curriculum = JSON.parse(readFileSync(join(root, 'scripts', 'data', 'curriculum.json'), 'utf8'));
+const titlesByPattern = new Map(SECTIONS.map(([pid, , items]) => [pid, new Set(items.map(([t]) => t))]));
+const {
+  errors: curriculumErrors,
+  titleToFamily,
+  titleToSubpattern,
+} = validateCurriculum(curriculum, titlesByPattern);
+if (curriculumErrors.length > 0) {
+  for (const e of curriculumErrors) console.error(`CURRICULUM: ${e}`);
+  process.exitCode = 1;
+}
+
 let id = 0;
 const questions = [];
 const patterns = [];
@@ -390,12 +477,16 @@ for (const [patternId, patternName, items] of SECTIONS) {
   for (const [title, d] of items) {
     const difficulty = D[d];
     const problem = resolveLeetCode(title);
+    const familyId = titleToFamily.get(title);
+    const subpattern = titleToSubpattern.get(`${patternId}::${title}`);
     questions.push({
       id: ++id,
       title,
       pattern: patternId,
       difficulty,
       estimatedTime: EST_TIME[difficulty],
+      ...(subpattern ? { subpattern } : {}),
+      ...(familyId ? { familyId } : {}),
       // Present only when the exact LeetCode problem is verified: the URL is constructed
       // from the catalog's own slug, never guessed. `premium` marks paywalled problems so
       // the UI can say so before the user clicks into a wall.
@@ -423,11 +514,37 @@ if (process.exitCode === 1) {
 mkdirSync(join(root, 'src', 'data'), { recursive: true });
 writeFileSync(join(root, 'src', 'data', 'questions.json'), JSON.stringify(questions, null, 2) + '\n');
 
+// Families and subpatterns resolved to question ids — the app never joins on titles.
+const idByTitle = new Map(questions.map((q) => [q.title, q.id]));
+const familiesOut = curriculum.families.map((f) => ({
+  id: f.id,
+  pattern: f.pattern,
+  name: f.name,
+  idea: f.idea,
+  signals: f.signals,
+  trap: f.trap,
+  members: f.members.map(([title, role]) => ({ questionId: idByTitle.get(title), role })),
+}));
+writeFileSync(join(root, 'src', 'data', 'families.json'), JSON.stringify(familiesOut, null, 2) + '\n');
+
+const subpatternsOut = {};
+for (const [patternId, groups] of Object.entries(curriculum.subpatterns)) {
+  subpatternsOut[patternId] = groups.map((g) => ({
+    id: g.id,
+    name: g.name,
+    questionIds: g.titles.map((t) => idByTitle.get(t)),
+  }));
+}
+writeFileSync(join(root, 'src', 'data', 'subpatterns.json'), JSON.stringify(subpatternsOut, null, 2) + '\n');
+
 const byDiff = questions.reduce((a, q) => ((a[q.difficulty] = (a[q.difficulty] ?? 0) + 1), a), {});
 const linked = questions.filter((q) => q.url).length;
+const inFamily = questions.filter((q) => q.familyId).length;
+const inSubpattern = questions.filter((q) => q.subpattern).length;
 console.log(`total: ${questions.length}`);
 console.log('difficulties:', byDiff);
 console.log(`leetcode-linked: ${linked} (${questions.length - linked} declared not-on-leetcode)`);
+console.log(`families: ${familiesOut.length} (${inFamily} member questions); subpatterned: ${inSubpattern}`);
 if (difficultyMismatches.length > 0) {
   console.log(`difficulty disagreements vs LeetCode (informational, not applied): ${difficultyMismatches.length}`);
   for (const m of difficultyMismatches) console.log(m);

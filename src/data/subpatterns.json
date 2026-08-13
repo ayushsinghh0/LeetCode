@@ -1,0 +1,1191 @@
+{
+  "two-pointers": [
+    {
+      "id": "converging-ends",
+      "name": "Converging from both ends",
+      "questionIds": [
+        1,
+        7,
+        9,
+        10,
+        18,
+        26,
+        17,
+        2
+      ]
+    },
+    {
+      "id": "reader-writer",
+      "name": "Reader-writer compaction",
+      "questionIds": [
+        21,
+        25,
+        30,
+        22,
+        4,
+        34
+      ]
+    },
+    {
+      "id": "parallel-sequences",
+      "name": "One pointer per sequence",
+      "questionIds": [
+        27,
+        16,
+        28,
+        6,
+        29,
+        32,
+        14
+      ]
+    },
+    {
+      "id": "offset-runners",
+      "name": "Offset runners on linked structures",
+      "questionIds": [
+        3,
+        19,
+        8
+      ]
+    },
+    {
+      "id": "block-reversal",
+      "name": "Rearranging with block reversals",
+      "questionIds": [
+        23,
+        5,
+        24,
+        33,
+        11
+      ]
+    },
+    {
+      "id": "bounded-window",
+      "name": "Same-direction bounded scan",
+      "questionIds": [
+        31,
+        12,
+        20
+      ]
+    }
+  ],
+  "fast-slow-pointers": [
+    {
+      "id": "cycle-detection",
+      "name": "Cycle detection on a successor chain",
+      "questionIds": [
+        36,
+        41,
+        42,
+        35,
+        38,
+        39
+      ]
+    },
+    {
+      "id": "midpoint-halving",
+      "name": "Midpoint finding and half-splitting",
+      "questionIds": [
+        37,
+        40,
+        43,
+        44
+      ]
+    }
+  ],
+  "linked-list-inplace": [
+    {
+      "id": "window-reversal",
+      "name": "Link reversal in windows and groups",
+      "questionIds": [
+        79,
+        81,
+        85,
+        80,
+        84
+      ]
+    },
+    {
+      "id": "unlink-deletion",
+      "name": "Deletion by skipping links",
+      "questionIds": [
+        87,
+        89,
+        88
+      ]
+    },
+    {
+      "id": "segment-splicing",
+      "name": "Segment cutting and splicing",
+      "questionIds": [
+        91,
+        92,
+        86,
+        90,
+        82
+      ]
+    }
+  ],
+  "sliding-window": [
+    {
+      "id": "fixed-size",
+      "name": "Fixed-size window",
+      "questionIds": [
+        55,
+        56,
+        45,
+        62,
+        64,
+        60,
+        46
+      ]
+    },
+    {
+      "id": "longest-grow-shrink",
+      "name": "Grow-and-shrink for longest",
+      "questionIds": [
+        50,
+        53,
+        65,
+        48,
+        54,
+        66,
+        52
+      ]
+    },
+    {
+      "id": "shortest-covering",
+      "name": "Shrink-to-shortest covering",
+      "questionIds": [
+        49,
+        51,
+        47
+      ]
+    },
+    {
+      "id": "window-counting",
+      "name": "Counting qualifying windows",
+      "questionIds": [
+        57,
+        67,
+        61,
+        58,
+        63,
+        59
+      ]
+    }
+  ],
+  "intervals": [
+    {
+      "id": "coalesce-sorted",
+      "name": "Sort, sweep, coalesce",
+      "questionIds": [
+        68,
+        69,
+        70,
+        71,
+        75,
+        74,
+        77
+      ]
+    },
+    {
+      "id": "active-count-sweep",
+      "name": "Active-set timeline sweep",
+      "questionIds": [
+        73,
+        76,
+        78
+      ]
+    }
+  ],
+  "two-heaps": [
+    {
+      "id": "two-heap-partition",
+      "name": "Balanced / classed two-heap partition",
+      "questionIds": [
+        94,
+        95,
+        102
+      ]
+    },
+    {
+      "id": "locked-vs-available",
+      "name": "Locked heap vs available heap",
+      "questionIds": [
+        93,
+        96,
+        97,
+        101,
+        103
+      ]
+    },
+    {
+      "id": "single-heap-greedy",
+      "name": "Pop, transform, push back",
+      "questionIds": [
+        98,
+        99,
+        100,
+        104
+      ]
+    }
+  ],
+  "k-way-merge": [
+    {
+      "id": "explicit-sources",
+      "name": "Explicit sorted sources",
+      "questionIds": [
+        105,
+        108,
+        106,
+        109
+      ]
+    },
+    {
+      "id": "virtual-sources",
+      "name": "Virtual sorted sources",
+      "questionIds": [
+        107,
+        110,
+        111
+      ]
+    }
+  ],
+  "modified-binary-search": [
+    {
+      "id": "exact-and-boundary",
+      "name": "Exact & boundary lookups",
+      "questionIds": [
+        130,
+        147,
+        132,
+        149,
+        153
+      ]
+    },
+    {
+      "id": "rotated-and-structural",
+      "name": "Rotated & structured arrays",
+      "questionIds": [
+        131,
+        138,
+        140,
+        148,
+        134
+      ]
+    },
+    {
+      "id": "answer-space-feasibility",
+      "name": "Answer-space feasibility",
+      "questionIds": [
+        151,
+        146,
+        135,
+        143,
+        141,
+        142,
+        137,
+        150
+      ]
+    },
+    {
+      "id": "search-as-subroutine",
+      "name": "Binary search as a subroutine",
+      "questionIds": [
+        136,
+        145,
+        139,
+        133,
+        144
+      ]
+    }
+  ],
+  "sort-search": [
+    {
+      "id": "prefix-budget-queries",
+      "name": "Prefix-sum budget queries",
+      "questionIds": [
+        273,
+        272,
+        265,
+        268,
+        276
+      ]
+    },
+    {
+      "id": "binary-search-the-value",
+      "name": "Binary search the value",
+      "questionIds": [
+        267,
+        275,
+        274
+      ]
+    },
+    {
+      "id": "pair-counting-after-sort",
+      "name": "Pair counting after sort",
+      "questionIds": [
+        277,
+        278,
+        279,
+        269
+      ]
+    },
+    {
+      "id": "ranks-and-neighbors",
+      "name": "Ranks & neighbors after sort",
+      "questionIds": [
+        281,
+        270,
+        283,
+        280
+      ]
+    },
+    {
+      "id": "index-order-sensitive",
+      "name": "Index-order sensitive",
+      "questionIds": [
+        282,
+        271,
+        266
+      ]
+    }
+  ],
+  "top-k-elements": [
+    {
+      "id": "bounded-heap-selection",
+      "name": "Pick the k best",
+      "questionIds": [
+        116,
+        112,
+        119,
+        114,
+        118,
+        120
+      ]
+    },
+    {
+      "id": "frequency-ranking",
+      "name": "Rank by frequency, not value",
+      "questionIds": [
+        115,
+        113,
+        128
+      ]
+    },
+    {
+      "id": "k-greedy-operations",
+      "name": "k operations on the current extreme",
+      "questionIds": [
+        117,
+        127,
+        129
+      ]
+    },
+    {
+      "id": "two-criteria-sweep",
+      "name": "Sort one criterion, heap the other",
+      "questionIds": [
+        123,
+        121
+      ]
+    },
+    {
+      "id": "k-way-best-first",
+      "name": "k-way merge and best-first frontiers",
+      "questionIds": [
+        122,
+        124,
+        126
+      ]
+    }
+  ],
+  "stacks": [
+    {
+      "id": "matching-cancellation",
+      "name": "Matching and cancellation",
+      "questionIds": [
+        310,
+        305,
+        322,
+        313,
+        306,
+        318,
+        323
+      ]
+    },
+    {
+      "id": "monotonic",
+      "name": "Monotonic stacks",
+      "questionIds": [
+        312,
+        315,
+        320,
+        314,
+        319,
+        317
+      ]
+    },
+    {
+      "id": "parsing-evaluation",
+      "name": "Parsing and expression evaluation",
+      "questionIds": [
+        311,
+        304,
+        321,
+        316,
+        307,
+        308
+      ]
+    }
+  ],
+  "custom-data-structures": [
+    {
+      "id": "composed-structures",
+      "name": "Composed structures for O(1) operations",
+      "questionIds": [
+        465,
+        470,
+        466,
+        477,
+        475
+      ]
+    },
+    {
+      "id": "write-time-indexing",
+      "name": "Versioned and precomputed lookups",
+      "questionIds": [
+        464,
+        463,
+        473,
+        469
+      ]
+    },
+    {
+      "id": "running-aggregates",
+      "name": "Running aggregates under updates",
+      "questionIds": [
+        467,
+        471,
+        478
+      ]
+    },
+    {
+      "id": "build-the-primitive",
+      "name": "Build the primitive from scratch",
+      "questionIds": [
+        474,
+        472
+      ]
+    }
+  ],
+  "dynamic-programming": [
+    {
+      "id": "1d-linear",
+      "name": "1D linear recurrences",
+      "questionIds": [
+        221,
+        208,
+        235,
+        212,
+        210,
+        226,
+        245
+      ]
+    },
+    {
+      "id": "knapsack-subset",
+      "name": "Knapsack & subset sums",
+      "questionIds": [
+        206,
+        207,
+        209,
+        214,
+        242
+      ]
+    },
+    {
+      "id": "string-alignment",
+      "name": "Two-string alignment",
+      "questionIds": [
+        217,
+        246,
+        237,
+        231,
+        232,
+        228,
+        223
+      ]
+    },
+    {
+      "id": "partition-interval",
+      "name": "Segmentation & interval DP",
+      "questionIds": [
+        215,
+        218,
+        219,
+        216,
+        230
+      ]
+    },
+    {
+      "id": "grid",
+      "name": "Grid DP",
+      "questionIds": [
+        224,
+        225,
+        239,
+        229,
+        227,
+        241,
+        233,
+        211,
+        234
+      ]
+    },
+    {
+      "id": "best-ending-here",
+      "name": "Best run ending here",
+      "questionIds": [
+        213,
+        236
+      ]
+    },
+    {
+      "id": "state-dimension",
+      "name": "Extra state dimension",
+      "questionIds": [
+        240,
+        243,
+        238,
+        244
+      ]
+    }
+  ],
+  "greedy": [
+    {
+      "id": "reach-frontier",
+      "name": "Reach & fuel frontier",
+      "questionIds": [
+        162,
+        168,
+        166,
+        164
+      ]
+    },
+    {
+      "id": "sort-then-match",
+      "name": "Sort then match extremes",
+      "questionIds": [
+        163,
+        174,
+        165,
+        170,
+        184
+      ]
+    },
+    {
+      "id": "digit-construction",
+      "name": "Digit-by-digit number building",
+      "questionIds": [
+        173,
+        171,
+        181,
+        182,
+        167,
+        185
+      ]
+    },
+    {
+      "id": "sweep-ledger",
+      "name": "Linear sweep with running ledger",
+      "questionIds": [
+        172,
+        179,
+        175,
+        176,
+        169
+      ]
+    }
+  ],
+  "graphs": [
+    {
+      "id": "weighted-shortest-path",
+      "name": "Weighted shortest path (Dijkstra / 0-1 BFS)",
+      "questionIds": [
+        324,
+        331,
+        337
+      ]
+    },
+    {
+      "id": "state-space-bfs",
+      "name": "BFS over augmented states",
+      "questionIds": [
+        339,
+        341,
+        328
+      ]
+    },
+    {
+      "id": "cycle-structure",
+      "name": "Cycle detection and measurement",
+      "questionIds": [
+        327,
+        338,
+        336
+      ]
+    },
+    {
+      "id": "degree-local-scan",
+      "name": "Degree and local counting",
+      "questionIds": [
+        334,
+        335,
+        330,
+        325
+      ]
+    },
+    {
+      "id": "traversal-reachability",
+      "name": "Traversal, orientation, and flood fill",
+      "questionIds": [
+        326,
+        329,
+        332,
+        333,
+        340
+      ]
+    }
+  ],
+  "topological-sort": [
+    {
+      "id": "dependency-resolution",
+      "name": "Prerequisite ordering (Kahn's algorithm)",
+      "questionIds": [
+        253,
+        257,
+        256,
+        258,
+        263
+      ]
+    },
+    {
+      "id": "order-inference",
+      "name": "Inferring an unknown order from constraints",
+      "questionIds": [
+        254,
+        255,
+        259
+      ]
+    },
+    {
+      "id": "dag-longest-path",
+      "name": "Longest path / critical chain in a DAG",
+      "questionIds": [
+        262,
+        261,
+        260
+      ]
+    }
+  ],
+  "union-find": [
+    {
+      "id": "connectivity-queries",
+      "name": "Connectivity and component reasoning",
+      "questionIds": [
+        458,
+        449,
+        456,
+        457
+      ]
+    },
+    {
+      "id": "grid-regions",
+      "name": "Grid cells as regions",
+      "questionIds": [
+        450,
+        454
+      ]
+    },
+    {
+      "id": "entity-grouping",
+      "name": "Grouping records by shared attributes",
+      "questionIds": [
+        455,
+        460,
+        451,
+        452
+      ]
+    },
+    {
+      "id": "incremental-time-reversal",
+      "name": "Incremental edges, time reversal, and Kruskal",
+      "questionIds": [
+        462,
+        453,
+        461
+      ]
+    }
+  ],
+  "trie": [
+    {
+      "id": "prefix-storage-lookup",
+      "name": "Prefix storage and per-node payloads",
+      "questionIds": [
+        378,
+        391,
+        385,
+        379,
+        390,
+        392
+      ]
+    },
+    {
+      "id": "multi-word-matching",
+      "name": "Matching many words at once",
+      "questionIds": [
+        382,
+        380,
+        386,
+        381
+      ]
+    },
+    {
+      "id": "lexicographic-enumeration",
+      "name": "Lexicographic enumeration via preorder",
+      "questionIds": [
+        384,
+        387,
+        383
+      ]
+    },
+    {
+      "id": "reversed-key-tries",
+      "name": "Reversed keys: suffix problems as prefixes",
+      "questionIds": [
+        388,
+        389
+      ]
+    }
+  ],
+  "tree-dfs": [
+    {
+      "id": "subtree-aggregation",
+      "name": "Subtree aggregation (post-order)",
+      "questionIds": [
+        355,
+        343,
+        346,
+        354,
+        358,
+        350,
+        361
+      ]
+    },
+    {
+      "id": "root-to-leaf-state",
+      "name": "Root-to-leaf carried state",
+      "questionIds": [
+        362,
+        349,
+        352
+      ]
+    },
+    {
+      "id": "bst-order-properties",
+      "name": "BST order properties",
+      "questionIds": [
+        351,
+        356,
+        353,
+        363
+      ]
+    },
+    {
+      "id": "construction-serialization",
+      "name": "Construction and serialization",
+      "questionIds": [
+        348,
+        344,
+        359,
+        347
+      ]
+    },
+    {
+      "id": "structural-rewiring",
+      "name": "Structural rewiring",
+      "questionIds": [
+        345,
+        342,
+        357
+      ]
+    }
+  ],
+  "tree-bfs": [
+    {
+      "id": "level-processing",
+      "name": "Level-by-level processing",
+      "questionIds": [
+        364,
+        365,
+        375,
+        367,
+        368,
+        374
+      ]
+    },
+    {
+      "id": "next-pointer-linking",
+      "name": "Linking nodes with next pointers",
+      "questionIds": [
+        366,
+        370
+      ]
+    },
+    {
+      "id": "shortest-path-state-bfs",
+      "name": "Fewest-steps BFS on states and grids",
+      "questionIds": [
+        369,
+        376,
+        377
+      ]
+    },
+    {
+      "id": "tree-distance-queries",
+      "name": "Distance queries on trees",
+      "questionIds": [
+        372,
+        373
+      ]
+    }
+  ],
+  "backtracking": [
+    {
+      "id": "grid-search",
+      "name": "Grid path search",
+      "questionIds": [
+        187,
+        190,
+        200
+      ]
+    },
+    {
+      "id": "constraint-placement",
+      "name": "Constraint placement",
+      "questionIds": [
+        201,
+        186,
+        192
+      ]
+    },
+    {
+      "id": "string-partitioning",
+      "name": "String partitioning",
+      "questionIds": [
+        189,
+        196,
+        205
+      ]
+    },
+    {
+      "id": "group-assignment",
+      "name": "Group assignment",
+      "questionIds": [
+        193,
+        195,
+        191
+      ]
+    },
+    {
+      "id": "path-enumeration",
+      "name": "Path enumeration",
+      "questionIds": [
+        197,
+        198,
+        203
+      ]
+    },
+    {
+      "id": "choose-k-enumeration",
+      "name": "Choose-k enumeration",
+      "questionIds": [
+        202,
+        194
+      ]
+    }
+  ],
+  "hash-maps": [
+    {
+      "id": "prefix-state-counting",
+      "name": "Prefix-state counting",
+      "questionIds": [
+        422,
+        415,
+        400,
+        404
+      ]
+    },
+    {
+      "id": "canonical-form-grouping",
+      "name": "Canonical-form grouping",
+      "questionIds": [
+        397,
+        412,
+        398,
+        405,
+        417
+      ]
+    },
+    {
+      "id": "set-membership-dedup",
+      "name": "Set membership & dedup",
+      "questionIds": [
+        411,
+        421,
+        416,
+        418,
+        419,
+        401,
+        413,
+        424,
+        423
+      ]
+    },
+    {
+      "id": "lookup-tables-and-joins",
+      "name": "Lookup tables & joins",
+      "questionIds": [
+        396,
+        414,
+        402,
+        406,
+        408,
+        420
+      ]
+    },
+    {
+      "id": "occurrence-position-memory",
+      "name": "Occurrence-position memory",
+      "questionIds": [
+        394,
+        395,
+        407,
+        410
+      ]
+    }
+  ],
+  "tracking": [
+    {
+      "id": "anagram-signatures",
+      "name": "Anagram signatures",
+      "questionIds": [
+        426,
+        433,
+        428,
+        431,
+        441,
+        442,
+        437
+      ]
+    },
+    {
+      "id": "pair-parity",
+      "name": "Pair & parity counting",
+      "questionIds": [
+        425,
+        432
+      ]
+    },
+    {
+      "id": "frequency-counter-tracking",
+      "name": "Frequency & counter tracking",
+      "questionIds": [
+        430,
+        436,
+        438,
+        427
+      ]
+    },
+    {
+      "id": "count-then-order",
+      "name": "Count, then order",
+      "questionIds": [
+        444,
+        435,
+        434,
+        429
+      ]
+    },
+    {
+      "id": "running-sums-and-runs",
+      "name": "Running sums & runs",
+      "questionIds": [
+        443,
+        439,
+        448,
+        447,
+        440
+      ]
+    }
+  ],
+  "matrices": [
+    {
+      "id": "in-place-transforms",
+      "name": "In-place transforms",
+      "questionIds": [
+        285,
+        293,
+        284,
+        301
+      ]
+    },
+    {
+      "id": "traversal-orders",
+      "name": "Traversal orders",
+      "questionIds": [
+        286,
+        290,
+        303,
+        289,
+        302
+      ]
+    },
+    {
+      "id": "grid-simulation",
+      "name": "Grid simulation",
+      "questionIds": [
+        287,
+        292,
+        295
+      ]
+    },
+    {
+      "id": "monotone-grid-search",
+      "name": "Monotone grid search",
+      "questionIds": [
+        294,
+        298,
+        296,
+        299
+      ]
+    }
+  ],
+  "bitwise-manipulation": [
+    {
+      "id": "xor-tricks",
+      "name": "XOR tricks",
+      "questionIds": [
+        482,
+        483,
+        479,
+        488,
+        486,
+        489
+      ]
+    },
+    {
+      "id": "bit-surgery",
+      "name": "Bit surgery and masks",
+      "questionIds": [
+        494,
+        485,
+        480,
+        495,
+        481
+      ]
+    },
+    {
+      "id": "flip-operations",
+      "name": "Flip operations",
+      "questionIds": [
+        491,
+        492
+      ]
+    },
+    {
+      "id": "binary-counting",
+      "name": "Counting with binary representations",
+      "questionIds": [
+        490,
+        496,
+        493
+      ]
+    }
+  ],
+  "math-geometry": [
+    {
+      "id": "digit-and-big-number-arithmetic",
+      "name": "Digit and big-number arithmetic",
+      "questionIds": [
+        516,
+        521,
+        522,
+        528,
+        532,
+        499,
+        518,
+        523,
+        534,
+        520,
+        535,
+        531
+      ]
+    },
+    {
+      "id": "points-lines-angles",
+      "name": "Points, lines, and angles",
+      "questionIds": [
+        503,
+        510,
+        500,
+        502,
+        514,
+        513,
+        511
+      ]
+    },
+    {
+      "id": "distances-and-shapes",
+      "name": "Distances, circles, and rectangles",
+      "questionIds": [
+        505,
+        506,
+        508,
+        497,
+        498,
+        509,
+        512,
+        507,
+        501
+      ]
+    },
+    {
+      "id": "number-theory",
+      "name": "Number theory and multiplicative structure",
+      "questionIds": [
+        529,
+        526,
+        515,
+        538,
+        533,
+        517,
+        537,
+        539
+      ]
+    },
+    {
+      "id": "invariants-and-games",
+      "name": "Invariants and game arguments",
+      "questionIds": [
+        524,
+        525,
+        527,
+        504,
+        530
+      ]
+    }
+  ]
+}

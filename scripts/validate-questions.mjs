@@ -73,6 +73,66 @@ for (const q of questions) {
   }
 }
 
+// --- Curriculum intelligence (families.json / subpatterns.json) ------------------------
+const families = JSON.parse(readFileSync(join(root, 'src', 'data', 'families.json'), 'utf8'));
+const subpatterns = JSON.parse(readFileSync(join(root, 'src', 'data', 'subpatterns.json'), 'utf8'));
+const qById = new Map(questions.map((q) => [q.id, q]));
+const FAMILY_ROLES = new Set(['canonical', 'warmup', 'standard', 'variant', 'stretch']);
+
+const familyIds = new Set();
+const questionToFamily = new Map();
+for (const f of families) {
+  if (familyIds.has(f.id)) fail(`family "${f.id}": duplicate id`);
+  familyIds.add(f.id);
+  if (!VALID_PATTERNS.has(f.pattern)) fail(`family "${f.id}": unknown pattern "${f.pattern}"`);
+  if (f.members.length < 3) fail(`family "${f.id}": fewer than 3 members`);
+  let canonicals = 0;
+  for (const m of f.members) {
+    if (!FAMILY_ROLES.has(m.role)) fail(`family "${f.id}": invalid role "${m.role}"`);
+    if (m.role === 'canonical') canonicals++;
+    const q = qById.get(m.questionId);
+    if (!q) fail(`family "${f.id}": member id ${m.questionId} not in questions.json`);
+    // Members may live in a sibling pattern (deliberate cross-pattern transfer links),
+    // but the back-reference must always hold.
+    else if (q.familyId !== f.id) fail(`family "${f.id}": #${q.id} carries familyId "${q.familyId}"`);
+    if (questionToFamily.has(m.questionId)) {
+      fail(`family "${f.id}": #${m.questionId} already in "${questionToFamily.get(m.questionId)}"`);
+    }
+    questionToFamily.set(m.questionId, f.id);
+  }
+  if (canonicals !== 1) fail(`family "${f.id}": needs exactly one canonical, found ${canonicals}`);
+}
+for (const q of questions) {
+  if (q.familyId !== undefined && questionToFamily.get(q.id) !== q.familyId) {
+    fail(`#${q.id}: familyId "${q.familyId}" not backed by families.json`);
+  }
+}
+
+const questionToSubpattern = new Map();
+for (const [patternId, groups] of Object.entries(subpatterns)) {
+  if (!VALID_PATTERNS.has(patternId)) fail(`subpatterns: unknown pattern "${patternId}"`);
+  const ids = new Set();
+  for (const g of groups) {
+    if (ids.has(g.id)) fail(`subpattern "${patternId}/${g.id}": duplicate id`);
+    ids.add(g.id);
+    for (const qid of g.questionIds) {
+      const q = qById.get(qid);
+      if (!q) fail(`subpattern "${patternId}/${g.id}": id ${qid} not in questions.json`);
+      else {
+        if (q.pattern !== patternId) fail(`subpattern "${patternId}/${g.id}": #${qid} is in pattern "${q.pattern}"`);
+        if (q.subpattern !== g.id) fail(`subpattern "${patternId}/${g.id}": #${qid} carries subpattern "${q.subpattern}"`);
+      }
+      if (questionToSubpattern.has(qid)) fail(`subpattern "${patternId}/${g.id}": #${qid} already grouped`);
+      questionToSubpattern.set(qid, g.id);
+    }
+  }
+}
+for (const q of questions) {
+  if (q.subpattern !== undefined && questionToSubpattern.get(q.id) !== q.subpattern) {
+    fail(`#${q.id}: subpattern "${q.subpattern}" not backed by subpatterns.json`);
+  }
+}
+
 // --- Report ----------------------------------------------------------------------------
 const unresolved = questions.filter((q) => q.url === undefined);
 console.log(`questions: ${questions.length}, leetcode-linked: ${linked}, unresolved: ${unresolved.length}`);

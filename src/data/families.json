@@ -1,0 +1,3201 @@
+[
+  {
+    "id": "two-pointers-converging-symmetry",
+    "pattern": "two-pointers",
+    "name": "Converging pointers over a symmetric string",
+    "idea": "One pointer starts at each end and they walk toward each other, checking or repairing a mirror relationship between the characters they stand on. The invariant: everything outside the current pointer pair already satisfies the symmetry.",
+    "signals": [
+      "asks whether a string reads the same forwards and backwards, possibly after limited edits",
+      "positions i and n-1-i are compared, swapped, or must correspond under some mapping",
+      "a small budget of deletions or moves to reach a palindrome-like state"
+    ],
+    "trap": "Building a reversed copy or checking substrings quadratically when one inward walk answers it — and in the 'one edit allowed' variants, greedily fixing only one side instead of trying both skip branches.",
+    "members": [
+      {
+        "questionId": 1,
+        "role": "canonical"
+      },
+      {
+        "questionId": 26,
+        "role": "warmup"
+      },
+      {
+        "questionId": 7,
+        "role": "variant"
+      },
+      {
+        "questionId": 9,
+        "role": "variant"
+      },
+      {
+        "questionId": 10,
+        "role": "stretch"
+      }
+    ]
+  },
+  {
+    "id": "two-pointers-lockstep-two-sequences",
+    "pattern": "two-pointers",
+    "name": "Lockstep walk over two sequences",
+    "idea": "Keep one index per sequence and advance them by simple local rules: on a match both move, on a mismatch exactly one moves. Because each pointer only ever moves forward, the whole comparison finishes in a single linear pass with no extra state.",
+    "signals": [
+      "two strings or arrays compared, matched, or interleaved without any extra data structure",
+      "statement uses words like subsequence, abbreviation, version parts, or alternating merge",
+      "each input only needs to be read once, in order"
+    ],
+    "trap": "Reaching for edit-distance DP or materializing fully expanded strings when a forward (or backward) index walk with skip rules already decides the answer.",
+    "members": [
+      {
+        "questionId": 27,
+        "role": "canonical"
+      },
+      {
+        "questionId": 28,
+        "role": "warmup"
+      },
+      {
+        "questionId": 16,
+        "role": "standard"
+      },
+      {
+        "questionId": 6,
+        "role": "variant"
+      },
+      {
+        "questionId": 29,
+        "role": "variant"
+      },
+      {
+        "questionId": 32,
+        "role": "stretch"
+      }
+    ]
+  },
+  {
+    "id": "two-pointers-reader-writer",
+    "pattern": "two-pointers",
+    "name": "Slow writer, fast reader compaction",
+    "idea": "A read pointer scans every element while a write pointer marks the boundary of finished output; elements worth keeping are copied down onto the write position. The invariant: everything left of the writer is exactly the final answer built so far.",
+    "signals": [
+      "'in place' plus remove, compact, dedupe, or move-to-front/back on an array",
+      "the answer is the same array with some elements dropped or shifted, plus a new length",
+      "O(1) extra space is demanded"
+    ],
+    "trap": "Deleting elements one at a time or building a second array, which turns one O(n) pass into O(n^2) time or O(n) space and misses the point of the writer boundary.",
+    "members": [
+      {
+        "questionId": 25,
+        "role": "canonical"
+      },
+      {
+        "questionId": 21,
+        "role": "warmup"
+      },
+      {
+        "questionId": 30,
+        "role": "standard"
+      },
+      {
+        "questionId": 22,
+        "role": "variant"
+      },
+      {
+        "questionId": 4,
+        "role": "variant"
+      },
+      {
+        "questionId": 34,
+        "role": "stretch"
+      }
+    ]
+  },
+  {
+    "id": "two-pointers-next-arrangement",
+    "pattern": "two-pointers",
+    "name": "Pivot, swap, reverse: the next arrangement",
+    "idea": "To produce the next-larger arrangement of the same elements, scan from the right for the first position that can still grow (the pivot), swap in the smallest larger candidate from the suffix, then reverse the suffix so the tail is as small as possible.",
+    "signals": [
+      "asks for the next bigger or smaller number/permutation using exactly the same digits or elements",
+      "rearrangement with a lexicographic ordering requirement",
+      "must be done in place, ruling out enumerating permutations"
+    ],
+    "trap": "Trying to enumerate or sort permutations — the answer is fully determined by the rightmost descent, and everything beyond that local repair is wasted work.",
+    "members": [
+      {
+        "questionId": 24,
+        "role": "canonical"
+      },
+      {
+        "questionId": 33,
+        "role": "standard"
+      },
+      {
+        "questionId": 11,
+        "role": "stretch"
+      }
+    ]
+  },
+  {
+    "id": "two-pointers-reversal-composition",
+    "pattern": "two-pointers",
+    "name": "Reordering by composing block reversals",
+    "idea": "A reversal keeps every element but flips a block's order, so the right sequence of block reversals produces rotations and word reorderings entirely in place: reverse the whole, then reverse each piece (or the other way around).",
+    "signals": [
+      "rotate or shift an array by k positions with O(1) extra space",
+      "reverse the order of words or segments while keeping their insides intact",
+      "output is a block-level rearrangement of the input"
+    ],
+    "trap": "Moving elements one step at a time k times, or splitting into temporary buffers, when two or three reversals achieve the same rearrangement in place.",
+    "members": [
+      {
+        "questionId": 23,
+        "role": "canonical"
+      },
+      {
+        "questionId": 18,
+        "role": "warmup"
+      },
+      {
+        "questionId": 5,
+        "role": "standard"
+      }
+    ]
+  },
+  {
+    "id": "two-pointers-gap-runners",
+    "pattern": "two-pointers",
+    "name": "Two runners separated by a controlled gap",
+    "idea": "Launch a second pointer at a fixed offset from the first, or route two pointers over paths of equal total length, so that when one reaches a known endpoint the other stands exactly on the target. Distance bookkeeping replaces a second pass.",
+    "signals": [
+      "kth-from-the-end of a singly linked structure with no length given",
+      "find the node where two chains or upward paths meet",
+      "only forward traversal exists and a one-pass solution is hinted at"
+    ],
+    "trap": "Measuring the length first and doing arithmetic in a second pass — correct, but misses the one-pass alignment; the classic bug is an off-by-one when setting up the gap.",
+    "members": [
+      {
+        "questionId": 3,
+        "role": "canonical"
+      },
+      {
+        "questionId": 19,
+        "role": "standard"
+      },
+      {
+        "questionId": 8,
+        "role": "variant"
+      }
+    ]
+  },
+  {
+    "id": "fast-slow-pointers-cycle-detection",
+    "pattern": "fast-slow-pointers",
+    "name": "Tortoise and hare cycle detection",
+    "idea": "Two pointers move at speeds one and two through a chain of 'next' steps; if the chain ever loops, the fast pointer must lap the slow one inside the loop, so a meeting proves a cycle. It works on any deterministic successor function, not just linked lists.",
+    "signals": [
+      "asks whether a process repeats forever or whether a structure contains a cycle",
+      "every state has exactly one successor: a next node, a digit function, or an index jump",
+      "O(1) space is required where a visited-set would be the obvious answer"
+    ],
+    "trap": "Reaching for a visited hash set — fine for correctness, but it spends O(n) space the problem exists to eliminate, and it breaks when states cannot be stored or the input must not be mutated.",
+    "members": [
+      {
+        "questionId": 36,
+        "role": "canonical"
+      },
+      {
+        "questionId": 41,
+        "role": "standard"
+      },
+      {
+        "questionId": 42,
+        "role": "standard"
+      },
+      {
+        "questionId": 35,
+        "role": "variant"
+      },
+      {
+        "questionId": 38,
+        "role": "variant"
+      },
+      {
+        "questionId": 39,
+        "role": "stretch"
+      }
+    ]
+  },
+  {
+    "id": "fast-slow-pointers-midpoint-split",
+    "pattern": "fast-slow-pointers",
+    "name": "Fast pointer finds the middle",
+    "idea": "While the fast pointer takes two steps for every one of the slow pointer's, the slow pointer lands on the midpoint the moment the fast one runs off the end — splitting a list of unknown length in one pass. Most members then reverse or rewire one of the halves.",
+    "signals": [
+      "middle of a linked list, or the first half compared against the second",
+      "pairs of nodes mirrored around the center, like i and n-1-i twins",
+      "splitting a list into halves when its length is not given"
+    ],
+    "trap": "Copying node values into an array to index freely — it works, but silently abandons the O(1)-space constraint that the half-and-reverse composition is designed to satisfy.",
+    "members": [
+      {
+        "questionId": 37,
+        "role": "canonical"
+      },
+      {
+        "questionId": 40,
+        "role": "standard"
+      },
+      {
+        "questionId": 43,
+        "role": "standard"
+      },
+      {
+        "questionId": 44,
+        "role": "variant"
+      }
+    ]
+  },
+  {
+    "id": "cyclic-sort-index-home",
+    "pattern": "cyclic-sort",
+    "name": "Every value has a home index",
+    "idea": "When values come from a bounded range like 1..n, index i can serve as the parking spot for value i: keep swapping each element toward its home slot until every position holds its own value or a proven stranger. Whatever ends up out of place is the answer — the missing, duplicated, or first-absent value.",
+    "signals": [
+      "an array of n numbers drawn from a bounded range such as 0..n or 1..n",
+      "asks for missing, duplicated, or first-absent values",
+      "O(n) time with O(1) extra space is demanded, ruling out sorting and hash sets"
+    ],
+    "trap": "Sorting or building a hash set — both pass, but both ignore that the value range itself is the index space the problem handed you for free.",
+    "members": [
+      {
+        "questionId": 252,
+        "role": "canonical"
+      },
+      {
+        "questionId": 247,
+        "role": "warmup"
+      },
+      {
+        "questionId": 249,
+        "role": "standard"
+      },
+      {
+        "questionId": 251,
+        "role": "variant"
+      },
+      {
+        "questionId": 250,
+        "role": "variant"
+      },
+      {
+        "questionId": 248,
+        "role": "stretch"
+      }
+    ]
+  },
+  {
+    "id": "linked-list-inplace-pointer-reversal",
+    "pattern": "linked-list-inplace",
+    "name": "Reversing links with a three-pointer walk",
+    "idea": "Walk the list carrying prev and curr, flipping each node's next backwards as you pass; windowed variants apply the same flip inside a bounded group and then stitch the group's ends to its neighbors. All the real difficulty lives in the stitching, because a reversed window's old head becomes its new tail.",
+    "signals": [
+      "reverse a whole linked list, a sublist between two positions, or every group of k nodes",
+      "in-place / O(1)-space requirement on a linked list",
+      "output order is the input order with some segments flipped"
+    ],
+    "trap": "Copying values into an array to reverse them, and in windowed versions, losing the boundary node that must reconnect the reversed group to the rest of the list.",
+    "members": [
+      {
+        "questionId": 79,
+        "role": "canonical"
+      },
+      {
+        "questionId": 81,
+        "role": "standard"
+      },
+      {
+        "questionId": 85,
+        "role": "variant"
+      },
+      {
+        "questionId": 80,
+        "role": "stretch"
+      },
+      {
+        "questionId": 84,
+        "role": "stretch"
+      }
+    ]
+  },
+  {
+    "id": "linked-list-inplace-unlink-deletion",
+    "pattern": "linked-list-inplace",
+    "name": "Deleting by rewiring past the node",
+    "idea": "Nothing is ever really deleted — the predecessor's next pointer is redirected to skip the unwanted node or run of nodes. A dummy node in front of the head makes the head deletable by the same rule as everything else.",
+    "signals": [
+      "remove every node matching a value or condition from a linked list",
+      "drop duplicates from an already-sorted list",
+      "keep-M-skip-N style retention patterns"
+    ],
+    "trap": "Forgetting the head itself can be removed (no dummy node), or advancing immediately after one unlink so a run of consecutive removals slips through.",
+    "members": [
+      {
+        "questionId": 87,
+        "role": "canonical"
+      },
+      {
+        "questionId": 89,
+        "role": "standard"
+      },
+      {
+        "questionId": 88,
+        "role": "variant"
+      }
+    ]
+  },
+  {
+    "id": "linked-list-inplace-segment-surgery",
+    "pattern": "linked-list-inplace",
+    "name": "Cutting and re-splicing whole segments",
+    "idea": "Rearrange the list by locating a few seam nodes, cutting there, and reconnecting entire chains with a constant number of pointer writes — no node is copied or moved, only next pointers are redirected. Closing the list into a ring first often turns 'rotate' into nothing more than 'choose where to cut'.",
+    "signals": [
+      "rotate, split, or regroup a linked list at the segment level rather than value level",
+      "output contains the same nodes re-blocked: odd/even positions, k parts, folded halves",
+      "circular lists, or an answer defined by a position like k mod n"
+    ],
+    "trap": "Simulating the movement node by node — rotating one step k times, or rebuilding with fresh nodes — when computing the seam position does the whole job with O(1) pointer changes.",
+    "members": [
+      {
+        "questionId": 91,
+        "role": "canonical"
+      },
+      {
+        "questionId": 92,
+        "role": "standard"
+      },
+      {
+        "questionId": 86,
+        "role": "standard"
+      },
+      {
+        "questionId": 90,
+        "role": "variant"
+      },
+      {
+        "questionId": 82,
+        "role": "stretch"
+      }
+    ]
+  },
+  {
+    "id": "sliding-window-longest-valid",
+    "pattern": "sliding-window",
+    "name": "Grow-and-shrink: longest valid window",
+    "idea": "Expand the right edge one step at a time; whenever the window breaks the constraint, advance the left edge just enough to restore it. Both edges only move forward, so the longest valid window falls out of one linear pass.",
+    "signals": [
+      "asks for the longest contiguous substring/subarray satisfying a constraint",
+      "adding elements can only break the constraint, removing can only repair it",
+      "phrases like 'at most k distinct', 'at most k flips', 'within a budget'"
+    ],
+    "trap": "If shrinking the window does not reliably repair the constraint (validity is not monotone in window size), the two-pointer shrink is unsound and a different tool is needed.",
+    "members": [
+      {
+        "questionId": 50,
+        "role": "canonical"
+      },
+      {
+        "questionId": 53,
+        "role": "warmup"
+      },
+      {
+        "questionId": 65,
+        "role": "standard"
+      },
+      {
+        "questionId": 48,
+        "role": "variant"
+      },
+      {
+        "questionId": 54,
+        "role": "variant"
+      },
+      {
+        "questionId": 66,
+        "role": "stretch"
+      }
+    ]
+  },
+  {
+    "id": "sliding-window-shortest-valid",
+    "pattern": "sliding-window",
+    "name": "Shrink-while-valid: shortest covering window",
+    "idea": "Grow the window until it satisfies the covering requirement, then shrink from the left for as long as it still does, recording the smallest valid size seen. Each left position is visited once, so the minimum window costs one pass.",
+    "signals": [
+      "asks for the minimum-length window that contains or covers something",
+      "requirement reads like 'contains all characters of t' or 'sum at least target'",
+      "adding elements only helps, removing only hurts"
+    ],
+    "trap": "When order inside the window matters (covering a subsequence, not a multiset), frequency counting silently fails - you need a forward-match then backward-shrink scan instead.",
+    "members": [
+      {
+        "questionId": 49,
+        "role": "canonical"
+      },
+      {
+        "questionId": 51,
+        "role": "warmup"
+      },
+      {
+        "questionId": 47,
+        "role": "stretch"
+      }
+    ]
+  },
+  {
+    "id": "sliding-window-fixed-size",
+    "pattern": "sliding-window",
+    "name": "Fixed-length window: slide and patch the summary",
+    "idea": "The problem dictates the window length, so slide it one position at a time and patch a running summary (sum, hash, frequency table) by subtracting the outgoing element and adding the incoming one, never recomputing from scratch.",
+    "signals": [
+      "the statement fixes the window length: 'of length k', 'k consecutive days', 'a permutation/anagram of p'",
+      "answer is the best, first, or all windows of exactly that size",
+      "the per-window quantity is rebuildable by removing one element and adding one"
+    ],
+    "trap": "Recomputing each window from scratch turns O(n) into O(n*k); and when the summary cannot be un-updated (like a max), a plain counter is not enough and a monotonic deque takes over.",
+    "members": [
+      {
+        "questionId": 55,
+        "role": "canonical"
+      },
+      {
+        "questionId": 56,
+        "role": "warmup"
+      },
+      {
+        "questionId": 45,
+        "role": "standard"
+      },
+      {
+        "questionId": 64,
+        "role": "standard"
+      },
+      {
+        "questionId": 62,
+        "role": "variant"
+      },
+      {
+        "questionId": 60,
+        "role": "stretch"
+      },
+      {
+        "questionId": 46,
+        "role": "stretch"
+      }
+    ]
+  },
+  {
+    "id": "sliding-window-count-subarrays",
+    "pattern": "sliding-window",
+    "name": "Counting windows: at-most and leftmost-valid",
+    "idea": "To count qualifying subarrays instead of finding one, note that every valid window ending at r contributes a whole run of left endpoints: sum window lengths to count 'at most K', get 'exactly K' as atMost(K) - atMost(K-1), and count 'at least' from the leftmost position where the window turns valid.",
+    "signals": [
+      "asks for the NUMBER of subarrays/substrings meeting a condition, not the best one",
+      "condition is phrased with 'exactly k', 'at most', 'less than', or 'contains at least'",
+      "the count can be huge, so you are summing per-right-endpoint contributions"
+    ],
+    "trap": "Sliding a single window and counting it once per position undercounts; 'exactly K' is not a monotone window condition and must be decomposed into two at-most passes or a leftmost-valid count.",
+    "members": [
+      {
+        "questionId": 57,
+        "role": "canonical"
+      },
+      {
+        "questionId": 67,
+        "role": "warmup"
+      },
+      {
+        "questionId": 61,
+        "role": "standard"
+      },
+      {
+        "questionId": 58,
+        "role": "standard"
+      },
+      {
+        "questionId": 63,
+        "role": "variant"
+      },
+      {
+        "questionId": 59,
+        "role": "variant"
+      }
+    ]
+  },
+  {
+    "id": "intervals-merge-coalesce",
+    "pattern": "intervals",
+    "name": "Sort by start, sweep, coalesce",
+    "idea": "Sort intervals by start and walk them once, comparing each new start against the running end: overlap extends the current merged block, a gap closes it. Unions, gaps, free time, and coverage are all read off this one sweep.",
+    "signals": [
+      "input is a list of [start, end] pairs and the question is about overlap, union, gaps, or coverage",
+      "words like 'merge', 'non-overlapping', 'covered', 'free time', 'days without meetings'",
+      "the answer is itself a set of disjoint intervals or a measure of what they leave uncovered"
+    ],
+    "trap": "Skipping the sort, or only comparing adjacent pairs, misses that one long interval can swallow several later ones - always compare against the running maximum end, not the previous interval.",
+    "members": [
+      {
+        "questionId": 68,
+        "role": "canonical"
+      },
+      {
+        "questionId": 69,
+        "role": "standard"
+      },
+      {
+        "questionId": 75,
+        "role": "standard"
+      },
+      {
+        "questionId": 70,
+        "role": "variant"
+      },
+      {
+        "questionId": 71,
+        "role": "variant"
+      },
+      {
+        "questionId": 74,
+        "role": "variant"
+      },
+      {
+        "questionId": 77,
+        "role": "stretch"
+      }
+    ]
+  },
+  {
+    "id": "intervals-active-sweep",
+    "pattern": "intervals",
+    "name": "Timeline sweep: how many are active now",
+    "idea": "Convert intervals into start and end events and sweep the timeline in order, maintaining the set or count of currently active intervals - typically a min-heap keyed by end time that pops everything already expired before each decision.",
+    "signals": [
+      "asks for the minimum number of rooms/vehicles/machines, or peak simultaneous load",
+      "wording like 'at any moment', 'simultaneously', 'can everyone fit'",
+      "queries ask about whichever intervals are alive at a given point in time"
+    ],
+    "trap": "Greedily binding each interval to a fixed resource up front gives wrong minima - the true answer is the peak count of simultaneously active intervals, which only the ordered sweep exposes.",
+    "members": [
+      {
+        "questionId": 73,
+        "role": "canonical"
+      },
+      {
+        "questionId": 76,
+        "role": "variant"
+      },
+      {
+        "questionId": 78,
+        "role": "stretch"
+      }
+    ]
+  },
+  {
+    "id": "two-heaps-median-partition",
+    "pattern": "two-heaps",
+    "name": "Two-heap partition: the needed element stays on top",
+    "idea": "Split the elements into two heaps chosen so the item you will need next is always a heap top - classically a max-heap of the lower half facing a min-heap of the upper half, rebalanced so their sizes differ by at most one, which makes the median an O(1) read.",
+    "signals": [
+      "asks for a running median, or repeated access to the boundary between the small half and the large half",
+      "elements arrive one at a time and every insertion must stay cheap",
+      "the pool splits into two classes and you always consume the best of a specific class"
+    ],
+    "trap": "One heap or a re-sort makes each query linear; and if elements can also leave (a sliding window), plain heaps are not enough - you need lazy deletion and careful rebalancing.",
+    "members": [
+      {
+        "questionId": 94,
+        "role": "canonical"
+      },
+      {
+        "questionId": 102,
+        "role": "warmup"
+      },
+      {
+        "questionId": 95,
+        "role": "stretch"
+      }
+    ]
+  },
+  {
+    "id": "two-heaps-threshold-release",
+    "pattern": "two-heaps",
+    "name": "Locked heap feeds available heap as the threshold advances",
+    "idea": "Hold items locked in one heap keyed by the requirement that unlocks them (capital needed, release time); as the budget or clock advances, migrate everything newly unlocked into a second heap keyed by desirability, then greedily take that heap's top.",
+    "signals": [
+      "each item has a prerequisite (cost, start time) plus a value, and you repeatedly pick the best currently-available one",
+      "resources free up over time and get reassigned (rooms, machines, chairs)",
+      "wording like 'maximize after k picks' or 'assign to the smallest free ...'"
+    ],
+    "trap": "Rescanning all items for the best affordable one each round is quadratic, and releasing only one unlocked item per step misses that a single advance of the threshold can unlock many at once.",
+    "members": [
+      {
+        "questionId": 93,
+        "role": "canonical"
+      },
+      {
+        "questionId": 101,
+        "role": "standard"
+      },
+      {
+        "questionId": 96,
+        "role": "standard"
+      },
+      {
+        "questionId": 103,
+        "role": "variant"
+      },
+      {
+        "questionId": 97,
+        "role": "stretch"
+      }
+    ]
+  },
+  {
+    "id": "two-heaps-pop-transform-push",
+    "pattern": "two-heaps",
+    "name": "Greedy loop: pop the extreme, transform, push back",
+    "idea": "A priority queue drives a greedy simulation: pop the current extreme element, apply the operation to it, and push the transformed result back until the process ends. Correctness rests on an exchange argument - acting on the extreme element first is always safe.",
+    "signals": [
+      "repeatedly combine or consume the smallest/largest elements of a shrinking-growing pool",
+      "each operation changes an element's key and the element re-enters the pool",
+      "asks for minimum total cost or the best arrangement after many rounds"
+    ],
+    "trap": "The greedy choice needs justification, and stepping the simulation forward one operation at a time can blow up - sometimes only running it backwards or batching steps with a modulo finishes in time.",
+    "members": [
+      {
+        "questionId": 98,
+        "role": "canonical"
+      },
+      {
+        "questionId": 99,
+        "role": "standard"
+      },
+      {
+        "questionId": 100,
+        "role": "standard"
+      },
+      {
+        "questionId": 104,
+        "role": "stretch"
+      }
+    ]
+  },
+  {
+    "id": "k-way-merge-frontier-heap",
+    "pattern": "k-way-merge",
+    "name": "Frontier heap over k sorted sources",
+    "idea": "Seed a min-heap with the first element of every sorted source; each pop yields the next-smallest element overall and pushes that same source's successor. The heap always holds exactly one frontier element per unfinished source, so total work is O(N log k).",
+    "signals": [
+      "input is several already-sorted lists, arrays, or matrix rows to combine",
+      "asks for the fully merged output, or just the kth smallest across all sources",
+      "k sources but you only ever need the global minimum of their fronts"
+    ],
+    "trap": "Concatenating everything and re-sorting throws away the given order (O(N log N) instead of O(N log k)), and pushing entire lists into the heap instead of one frontier element per source defeats the point.",
+    "members": [
+      {
+        "questionId": 108,
+        "role": "canonical"
+      },
+      {
+        "questionId": 105,
+        "role": "warmup"
+      },
+      {
+        "questionId": 106,
+        "role": "standard"
+      },
+      {
+        "questionId": 109,
+        "role": "variant"
+      }
+    ]
+  },
+  {
+    "id": "k-way-merge-virtual-lists",
+    "pattern": "k-way-merge",
+    "name": "Invisible sorted lists: merge a matrix you never build",
+    "idea": "The sorted sources are not handed to you - combinations (pair sums, fractions, prime multiples) form a virtual matrix whose rows are sorted. Merge it lazily: seed the heap with each row's first cell, and on every pop push that cell's successors, never materializing the grid.",
+    "signals": [
+      "asks for the k smallest sums, products, or fractions formed by combining sorted arrays",
+      "the full combination space is quadratic or infinite, but k is small",
+      "a sequence is defined by multiplying earlier answers by fixed factors"
+    ],
+    "trap": "Generating and sorting all combinations is O(n^2 log n) and times out; and without a visited set or dedup on pop, the same virtual cell enters the heap through multiple predecessors.",
+    "members": [
+      {
+        "questionId": 107,
+        "role": "canonical"
+      },
+      {
+        "questionId": 110,
+        "role": "standard"
+      },
+      {
+        "questionId": 111,
+        "role": "variant"
+      }
+    ]
+  },
+  {
+    "id": "modified-binary-search-boundary-index",
+    "pattern": "modified-binary-search",
+    "name": "Boundary search on sorted indexes",
+    "idea": "The array defines a yes/no test that is false up to some index and true from there on; binary search finds that flip point. Exact lookups, insert positions, and first/last occurrences are all the same flip-point question asked slightly differently.",
+    "signals": [
+      "sorted array with O(log n) expected",
+      "find the first or last position where a condition holds",
+      "an API or array answers a monotone yes/no question per index"
+    ],
+    "trap": "Off-by-one drift: returning mid the moment it satisfies the test instead of tightening toward the boundary, so equal runs or absent targets resolve to the wrong side.",
+    "members": [
+      {
+        "questionId": 130,
+        "role": "warmup"
+      },
+      {
+        "questionId": 132,
+        "role": "canonical"
+      },
+      {
+        "questionId": 147,
+        "role": "standard"
+      },
+      {
+        "questionId": 149,
+        "role": "standard"
+      },
+      {
+        "questionId": 153,
+        "role": "variant"
+      }
+    ]
+  },
+  {
+    "id": "modified-binary-search-structural-halving",
+    "pattern": "modified-binary-search",
+    "name": "Halving by structural test, not value comparison",
+    "idea": "The array is not plainly sorted, so comparing mid against a target proves nothing. Instead a structural check at mid — which half is sorted, which neighbor is larger, whether pair-parity is intact — proves which half must contain the answer, so you can still discard half each step.",
+    "signals": [
+      "sorted array rotated an unknown number of times",
+      "find a peak, minimum, or odd-one-out with no target value given",
+      "a local comparison at any index points toward the half holding the answer"
+    ],
+    "trap": "Duplicates can make both halves look identical at mid; then neither half can be safely discarded and the worst case degrades toward linear time.",
+    "members": [
+      {
+        "questionId": 131,
+        "role": "canonical"
+      },
+      {
+        "questionId": 148,
+        "role": "standard"
+      },
+      {
+        "questionId": 134,
+        "role": "standard"
+      },
+      {
+        "questionId": 138,
+        "role": "variant"
+      },
+      {
+        "questionId": 140,
+        "role": "stretch"
+      }
+    ]
+  },
+  {
+    "id": "modified-binary-search-answer-space",
+    "pattern": "modified-binary-search",
+    "name": "Binary search on the answer space",
+    "idea": "The unknown is a number — a speed, capacity, distance, or value — where feasibility is monotone: once one candidate works, everything on one side of it works too. Binary search the candidate range and write a greedy or counting check that tests a single guess.",
+    "signals": [
+      "minimize the maximum, or maximize the minimum",
+      "smallest speed, capacity, or time so a constraint still holds",
+      "k-th smallest value where counting items at most x is cheap",
+      "checking one candidate is easy but computing the best directly is hard"
+    ],
+    "trap": "Reaching for DP or greedy over the array itself; the monotone quantity is the answer, not the array, and the array is only ever scanned inside the feasibility check.",
+    "members": [
+      {
+        "questionId": 151,
+        "role": "warmup"
+      },
+      {
+        "questionId": 146,
+        "role": "canonical"
+      },
+      {
+        "questionId": 135,
+        "role": "standard"
+      },
+      {
+        "questionId": 143,
+        "role": "variant"
+      },
+      {
+        "questionId": 141,
+        "role": "variant"
+      },
+      {
+        "questionId": 137,
+        "role": "variant"
+      },
+      {
+        "questionId": 142,
+        "role": "stretch"
+      },
+      {
+        "questionId": 150,
+        "role": "stretch"
+      }
+    ]
+  },
+  {
+    "id": "modified-binary-search-sorted-counting",
+    "pattern": "modified-binary-search",
+    "name": "Counting through sorted positions",
+    "idea": "Once the data is sorted, 'how many satisfy the condition' stops being a scan and becomes a boundary lookup: the count is just an index. The final answer is small arithmetic over one or two such counts.",
+    "signals": [
+      "count elements, pairs, or rows meeting a threshold",
+      "many queries asked against the same static data",
+      "answer decomposes into counts, like things started minus things ended"
+    ],
+    "trap": "Answering every query with a fresh linear scan; the whole point is that one sort turns each count into an O(log n) position lookup.",
+    "members": [
+      {
+        "questionId": 139,
+        "role": "warmup"
+      },
+      {
+        "questionId": 136,
+        "role": "standard"
+      },
+      {
+        "questionId": 145,
+        "role": "canonical"
+      }
+    ]
+  },
+  {
+    "id": "sort-search-prefix-budget",
+    "pattern": "sort-search",
+    "name": "Sorted prefix sums answer budget queries",
+    "idea": "Sort the costs and precompute prefix sums; then any 'how much fits under this budget' or 'what does this choice cost in total' question collapses to one binary search plus O(1) prefix arithmetic.",
+    "signals": [
+      "maximize how many items fit under a sum limit",
+      "total cost of raising or lowering everything to a chosen value",
+      "many independent queries over the same collection of costs"
+    ],
+    "trap": "Recomputing sums from scratch per query or per candidate — without prefix sums the binary search saves nothing — and letting large prefix totals overflow.",
+    "members": [
+      {
+        "questionId": 273,
+        "role": "canonical"
+      },
+      {
+        "questionId": 272,
+        "role": "standard"
+      },
+      {
+        "questionId": 265,
+        "role": "variant"
+      },
+      {
+        "questionId": 268,
+        "role": "variant"
+      },
+      {
+        "questionId": 276,
+        "role": "stretch"
+      }
+    ]
+  },
+  {
+    "id": "sort-search-value-search-over-pairs",
+    "pattern": "sort-search",
+    "name": "Search the value, verify with a sweep",
+    "idea": "The candidates form a numeric range far too large to enumerate pair by pair, but sorted data lets one linear or two-pointer sweep test any single candidate. Binary search the value and use the sweep as the monotone yes/no oracle.",
+    "signals": [
+      "k-th smallest among O(n^2) implicit pairs or subarray sums",
+      "place or choose items to maximize the minimum spacing",
+      "candidate range is huge but any one candidate is cheap to test against sorted data"
+    ],
+    "trap": "Materializing all pairs or subarray sums up front — that O(n^2) enumeration is exactly the cost the value search exists to avoid.",
+    "members": [
+      {
+        "questionId": 267,
+        "role": "canonical"
+      },
+      {
+        "questionId": 275,
+        "role": "standard"
+      },
+      {
+        "questionId": 274,
+        "role": "stretch"
+      }
+    ]
+  },
+  {
+    "id": "sort-search-pair-range-counting",
+    "pattern": "sort-search",
+    "name": "Sort so valid partners form a contiguous range",
+    "idea": "When a pair condition depends only on the values, sorting makes every anchor's valid partners occupy one contiguous stretch of the array, so two pointers or a single binary search per anchor replaces checking every pair.",
+    "signals": [
+      "count or find pairs meeting a sum or difference threshold",
+      "the pair condition is symmetric in the two values, so original order is irrelevant",
+      "for each element, ask whether the other array holds a near or far enough neighbor"
+    ],
+    "trap": "Sorting anyway when the condition involves original indices — the positional information is destroyed and the count silently comes out wrong.",
+    "members": [
+      {
+        "questionId": 277,
+        "role": "warmup"
+      },
+      {
+        "questionId": 278,
+        "role": "canonical"
+      },
+      {
+        "questionId": 269,
+        "role": "standard"
+      },
+      {
+        "questionId": 279,
+        "role": "variant"
+      }
+    ]
+  },
+  {
+    "id": "top-k-elements-bounded-heap-selection",
+    "pattern": "top-k-elements",
+    "name": "Size-k heap: keep only the k best",
+    "idea": "Hold the k best items seen so far in a heap whose root is the weakest of them; each new item either loses to the root and is discarded, or replaces it. The heap never grows past k, so n items cost O(n log k) and the root is always the current k-th best.",
+    "signals": [
+      "asks for the k largest / smallest / closest, not a fully sorted output",
+      "k is much smaller than n, or elements arrive as a stream",
+      "only the k winners matter; order among the losers is irrelevant"
+    ],
+    "trap": "Reaching for a full O(n log n) sort, or a max-heap of all n items, when a min-heap capped at k (or quickselect for a one-shot query) does strictly less work.",
+    "members": [
+      {
+        "questionId": 116,
+        "role": "canonical"
+      },
+      {
+        "questionId": 112,
+        "role": "warmup"
+      },
+      {
+        "questionId": 119,
+        "role": "warmup"
+      },
+      {
+        "questionId": 114,
+        "role": "standard"
+      },
+      {
+        "questionId": 118,
+        "role": "standard"
+      },
+      {
+        "questionId": 120,
+        "role": "variant"
+      },
+      {
+        "questionId": 123,
+        "role": "stretch"
+      },
+      {
+        "questionId": 121,
+        "role": "stretch"
+      }
+    ]
+  },
+  {
+    "id": "top-k-elements-pop-mutate-push",
+    "pattern": "top-k-elements",
+    "name": "k rounds of pop, mutate, push back",
+    "idea": "When each of k operations should touch the current extreme element, a heap serves it in O(log n): pop the top, apply the operation, push the changed value back. The heap reorders itself, so the next round again sees the true extreme.",
+    "signals": [
+      "'perform k operations' where each operation changes exactly one element",
+      "the best move is always on the current maximum or minimum",
+      "a modified element stays in play and can be picked again later"
+    ],
+    "trap": "Sorting once up front breaks after the first mutation - the changed element may no longer belong where it was, and order must be restored after every step, which is exactly what the heap amortizes.",
+    "members": [
+      {
+        "questionId": 117,
+        "role": "canonical"
+      },
+      {
+        "questionId": 129,
+        "role": "warmup"
+      },
+      {
+        "questionId": 127,
+        "role": "standard"
+      }
+    ]
+  },
+  {
+    "id": "top-k-elements-frequency-ranking",
+    "pattern": "top-k-elements",
+    "name": "Count first, then rank by frequency",
+    "idea": "The values stop mattering once you tally them: build a count map, then run the usual top-k machinery (heap or buckets) over the counts. Every decision - keep, drop, schedule next - is made on frequency, never on the raw value.",
+    "signals": [
+      "'most frequent' or 'least frequent' language in the ask",
+      "keeping or removing elements is judged by how often they occur",
+      "the answer would survive relabeling all the actual values"
+    ],
+    "trap": "Working on the raw elements instead of their counts; and when deleting, missing that removing the rarest values first is what minimizes the distinct survivors.",
+    "members": [
+      {
+        "questionId": 115,
+        "role": "canonical"
+      },
+      {
+        "questionId": 128,
+        "role": "variant"
+      },
+      {
+        "questionId": 113,
+        "role": "stretch"
+      }
+    ]
+  },
+  {
+    "id": "top-k-elements-best-first-frontier",
+    "pattern": "top-k-elements",
+    "name": "Heap as a frontier over a huge candidate space",
+    "idea": "When the candidates (pairs, sums, positions across lists) are far too many to enumerate, keep a small heap holding just a frontier - a set guaranteed to contain the next-best candidate. Pop the best, then push only its immediate successors.",
+    "signals": [
+      "k-th best over combinations drawn from two or more arrays or lists",
+      "the candidate space is combinatorial (n^2 pairs, 2^n subsets) but only k answers are needed",
+      "each candidate has one or two natural successor candidates derived from it"
+    ],
+    "trap": "Materializing every combination first - all n^2 pair sums or all subset sums - when the frontier never needs to hold more than about O(k) or one entry per list at a time.",
+    "members": [
+      {
+        "questionId": 124,
+        "role": "canonical"
+      },
+      {
+        "questionId": 122,
+        "role": "variant"
+      },
+      {
+        "questionId": 126,
+        "role": "stretch"
+      }
+    ]
+  },
+  {
+    "id": "stacks-cancel-against-top",
+    "pattern": "stacks",
+    "name": "Cancel against the stack top",
+    "idea": "The stack holds the still-unresolved prefix, and each incoming symbol is checked against only the top, because in nested or adjacent structures the newest unresolved item is the only one it can legally close or erase. Match means pop; otherwise push and wait.",
+    "signals": [
+      "symbols that open and close in pairs, or adjacent equals that annihilate",
+      "each removal exposes a new adjacency that may cascade into further removals",
+      "validity or cleanup questions about brackets and repeated deletions"
+    ],
+    "trap": "Re-scanning the string to apply removals until nothing changes - quadratic - when one left-to-right pass with a stack absorbs every cascade automatically.",
+    "members": [
+      {
+        "questionId": 310,
+        "role": "canonical"
+      },
+      {
+        "questionId": 305,
+        "role": "warmup"
+      },
+      {
+        "questionId": 313,
+        "role": "standard"
+      },
+      {
+        "questionId": 322,
+        "role": "variant"
+      },
+      {
+        "questionId": 323,
+        "role": "variant"
+      },
+      {
+        "questionId": 306,
+        "role": "variant"
+      },
+      {
+        "questionId": 318,
+        "role": "stretch"
+      }
+    ]
+  },
+  {
+    "id": "stacks-monotonic-resolver",
+    "pattern": "stacks",
+    "name": "Monotonic stack: wait for your resolver",
+    "idea": "Keep the stack ordered so that every element on it is still waiting for the first future element that beats it. Each new arrival pops everything it resolves - recording an answer or an eviction at pop time - and then joins the queue of waiters. Every index is pushed and popped once, so the whole pass is linear.",
+    "signals": [
+      "'next / previous greater or smaller' phrasing, or a distance to it (days to wait, people seen)",
+      "each element's answer is decided by the first dominating element in one direction",
+      "counting or measuring spans that end at the nearest smaller or larger value"
+    ],
+    "trap": "Scanning forward from every element to find its resolver - O(n^2) on near-sorted input - instead of letting a single pass amortize all the waiting.",
+    "members": [
+      {
+        "questionId": 312,
+        "role": "canonical"
+      },
+      {
+        "questionId": 315,
+        "role": "standard"
+      },
+      {
+        "questionId": 320,
+        "role": "variant"
+      },
+      {
+        "questionId": 314,
+        "role": "variant"
+      },
+      {
+        "questionId": 319,
+        "role": "stretch"
+      },
+      {
+        "questionId": 317,
+        "role": "stretch"
+      }
+    ]
+  },
+  {
+    "id": "stacks-nested-frames",
+    "pattern": "stacks",
+    "name": "Frame stack: save context on open, merge on close",
+    "idea": "Nested input is evaluated with a stack of frames: on an opening token, push the partial result you were building and start fresh; on the matching close, pop the saved context and fold the inner result into it. It is recursion written by hand, with the call stack made explicit.",
+    "signals": [
+      "nesting that repeats or transforms its inner content (k[...], parenthesized sub-expressions)",
+      "evaluating or expanding a small expression grammar",
+      "an inner result must be combined with a suspended outer computation"
+    ],
+    "trap": "Splitting on delimiters found by string search - same-kind brackets nest, so naive matching pairs the wrong ones; the stack pairs each close with its nearest open for free.",
+    "members": [
+      {
+        "questionId": 311,
+        "role": "canonical"
+      },
+      {
+        "questionId": 321,
+        "role": "warmup"
+      },
+      {
+        "questionId": 304,
+        "role": "standard"
+      },
+      {
+        "questionId": 307,
+        "role": "variant"
+      },
+      {
+        "questionId": 308,
+        "role": "variant"
+      },
+      {
+        "questionId": 316,
+        "role": "stretch"
+      }
+    ]
+  },
+  {
+    "id": "custom-data-structures-composed-map-plus-order",
+    "pattern": "custom-data-structures",
+    "name": "Hash map plus order structure, kept in sync",
+    "idea": "No single container gives O(1) lookup and O(1) ordered maintenance at once, so compose two: a hash map to reach any entry instantly, and a second structure (array with swap-to-end, doubly linked list, frequency buckets) that owns the required ordering. Every operation updates both so neither goes stale.",
+    "signals": [
+      "several operations that must each run in O(1) on the same data",
+      "needs lookup by key AND an ordering notion - recency, frequency, randomness, maximum",
+      "'design a structure' with eviction rules or a get-the-extreme operation"
+    ],
+    "trap": "Serving every operation from one structure - a plain map makes evict-least-recent a full scan; the fix is a second synchronized structure, not a cleverer single one.",
+    "members": [
+      {
+        "questionId": 465,
+        "role": "canonical"
+      },
+      {
+        "questionId": 466,
+        "role": "warmup"
+      },
+      {
+        "questionId": 470,
+        "role": "variant"
+      },
+      {
+        "questionId": 477,
+        "role": "stretch"
+      },
+      {
+        "questionId": 475,
+        "role": "stretch"
+      }
+    ]
+  },
+  {
+    "id": "custom-data-structures-write-time-indexing",
+    "pattern": "custom-data-structures",
+    "name": "Organize at write time, look up at read time",
+    "idea": "Shift the work to writes: record each key's history or positions in the sorted order they naturally arrive in (timestamps, snapshot ids, word indices, prefix sums). Reads then never scan - they binary-search or directly index the prepared arrays.",
+    "signals": [
+      "queries reference a past version, a timestamp, or a fixed range",
+      "many reads against data that only appends or never changes",
+      "'get the value as of X' rather than only the latest value"
+    ],
+    "trap": "Copying the whole structure at every snapshot or version - memory and write cost explode - when appending one (version, value) pair per actual change is enough.",
+    "members": [
+      {
+        "questionId": 464,
+        "role": "canonical"
+      },
+      {
+        "questionId": 473,
+        "role": "warmup"
+      },
+      {
+        "questionId": 463,
+        "role": "standard"
+      },
+      {
+        "questionId": 469,
+        "role": "variant"
+      }
+    ]
+  },
+  {
+    "id": "custom-data-structures-running-aggregate",
+    "pattern": "custom-data-structures",
+    "name": "Carry the aggregate with every update",
+    "idea": "To answer an aggregate query (minimum, average, trimmed mean) in O(1), never compute it on demand - maintain it incrementally, adjusting stored state by exactly what each insertion or removal changes.",
+    "signals": [
+      "the structure must report min / average / sum instantly at any moment",
+      "elements both enter and leave (push and pop, a sliding window) between queries",
+      "each update changes the aggregate by a delta you can compute locally"
+    ],
+    "trap": "Keeping one global aggregate that cannot be rolled back when its contributing element leaves - the fix is per-entry or per-bucket state (min-so-far on each node, balanced multisets), not rescanning.",
+    "members": [
+      {
+        "questionId": 467,
+        "role": "canonical"
+      },
+      {
+        "questionId": 471,
+        "role": "warmup"
+      },
+      {
+        "questionId": 478,
+        "role": "stretch"
+      }
+    ]
+  },
+  {
+    "id": "dynamic-programming-1d-linear",
+    "pattern": "dynamic-programming",
+    "name": "1D recurrence: answer at i from a few earlier answers",
+    "idea": "Order positions 0..n and express the answer at each position purely from a small set of already-computed earlier positions (usually i-1 and i-2). The whole problem collapses to filling one array left to right.",
+    "signals": [
+      "count ways / min cost to reach step n taking small fixed moves",
+      "each state depends only on one or two immediately earlier states",
+      "input is a line of items and the choice at i only interacts with nearby indices"
+    ],
+    "trap": "Plain recursion without memoization explodes exponentially, and when the allowed move depends on how you arrived (Frog Jump), the index alone stops being a sufficient state.",
+    "members": [
+      {
+        "questionId": 221,
+        "role": "canonical"
+      },
+      {
+        "questionId": 208,
+        "role": "warmup"
+      },
+      {
+        "questionId": 235,
+        "role": "standard"
+      },
+      {
+        "questionId": 212,
+        "role": "variant"
+      },
+      {
+        "questionId": 210,
+        "role": "variant"
+      },
+      {
+        "questionId": 226,
+        "role": "stretch"
+      }
+    ]
+  },
+  {
+    "id": "dynamic-programming-knapsack",
+    "pattern": "dynamic-programming",
+    "name": "Knapsack: take-or-skip against a budget",
+    "idea": "State is (items considered so far, remaining budget or target); each item is either skipped or taken, which shrinks the budget. Whether an item may repeat only changes the loop order — the table shape stays the same.",
+    "signals": [
+      "pick a subset of items to hit or optimize an exact total or capacity",
+      "'can we make sum T' or 'fewest/most items making T'",
+      "each item usable once versus unlimited times"
+    ],
+    "trap": "Greedy by value or largest-coin-first fails on non-canonical inputs — coins {1,3,4} with target 6 break the largest-first instinct that works for real currency.",
+    "members": [
+      {
+        "questionId": 206,
+        "role": "canonical"
+      },
+      {
+        "questionId": 209,
+        "role": "standard"
+      },
+      {
+        "questionId": 207,
+        "role": "variant"
+      },
+      {
+        "questionId": 214,
+        "role": "variant"
+      },
+      {
+        "questionId": 242,
+        "role": "stretch"
+      }
+    ]
+  },
+  {
+    "id": "dynamic-programming-string-alignment",
+    "pattern": "dynamic-programming",
+    "name": "Two-string alignment over prefix pairs",
+    "idea": "dp[i][j] answers the question for the first i characters of one string versus the first j of the other; the transition compares the two current characters and steps one or both prefixes back. Every member is the same table with a different cell formula.",
+    "signals": [
+      "two strings compared as wholes: common subsequence, minimum edits, counted embeddings",
+      "answer for (i, j) built from (i-1, j), (i, j-1) and (i-1, j-1)",
+      "asked for a length, a distance, or a count over all interleavings of two sequences"
+    ],
+    "trap": "Two greedy pointers matching characters as early as possible looks right but is not optimal — a deferred match can preserve strictly more options later.",
+    "members": [
+      {
+        "questionId": 217,
+        "role": "canonical"
+      },
+      {
+        "questionId": 246,
+        "role": "standard"
+      },
+      {
+        "questionId": 231,
+        "role": "variant"
+      },
+      {
+        "questionId": 237,
+        "role": "stretch"
+      }
+    ]
+  },
+  {
+    "id": "dynamic-programming-prefix-matching",
+    "pattern": "dynamic-programming",
+    "name": "Boolean prefix-pair matching (wildcards and interleaving)",
+    "idea": "dp[i][j] holds a yes/no: can prefix i of the source satisfy prefix j of the pattern (or can prefixes of two sources weave into the target)? Special symbols like '*' make a single cell depend on several earlier cells at once.",
+    "signals": [
+      "does a string match a pattern containing * or ? semantics",
+      "can two sequences merge into a third while each keeps its internal order",
+      "a feasibility (true/false) answer over prefixes rather than an optimized quantity"
+    ],
+    "trap": "Backtracking over every '*' expansion blows up exponentially on adversarial inputs like long runs of a's; the prefix table caps the work at O(n*m).",
+    "members": [
+      {
+        "questionId": 228,
+        "role": "canonical"
+      },
+      {
+        "questionId": 180,
+        "role": "standard"
+      },
+      {
+        "questionId": 232,
+        "role": "variant"
+      }
+    ]
+  },
+  {
+    "id": "dynamic-programming-grid-paths",
+    "pattern": "dynamic-programming",
+    "name": "Grid DP: cell from its already-solved neighbors",
+    "idea": "Sweep the grid in an order where each cell's dependencies (above/left, or below/right) are already final, then combine them with the cell's own cost. Picking the sweep direction — and knowing when it must be reversed — is the whole trick.",
+    "signals": [
+      "path from one corner to another moving only right/down",
+      "each cell's best value is determined by adjacent cells' best values",
+      "triangle or pyramid rows where entry i is fed by entries i-1 and i of the row above"
+    ],
+    "trap": "Dungeon Game breaks the forward sweep: minimum starting health must be computed backwards from the exit, because a forward pass cannot know how much future rooms will demand.",
+    "members": [
+      {
+        "questionId": 224,
+        "role": "warmup"
+      },
+      {
+        "questionId": 239,
+        "role": "canonical"
+      },
+      {
+        "questionId": 225,
+        "role": "standard"
+      },
+      {
+        "questionId": 241,
+        "role": "variant"
+      },
+      {
+        "questionId": 229,
+        "role": "stretch"
+      },
+      {
+        "questionId": 227,
+        "role": "stretch"
+      }
+    ]
+  },
+  {
+    "id": "dynamic-programming-segmentation",
+    "pattern": "dynamic-programming",
+    "name": "Prefix segmentation: cut the sequence into valid chunks",
+    "idea": "dp[i] asks whether (or in how many ways) the first i characters split into valid pieces; the transition tries every legal last chunk ending at i. The only thing that changes between members is what counts as a valid chunk.",
+    "signals": [
+      "split a string into dictionary words or valid codes",
+      "count the decodings or segmentations of a sequence",
+      "the answer for a prefix is assembled from shorter prefixes plus one final chunk"
+    ],
+    "trap": "Enumerating all segmentations up front — feasibility (Word Break) is polynomial, but full reconstruction (Word Break II) can be exponential, so verify the dp says 'possible' before rebuilding paths.",
+    "members": [
+      {
+        "questionId": 215,
+        "role": "canonical"
+      },
+      {
+        "questionId": 219,
+        "role": "variant"
+      },
+      {
+        "questionId": 218,
+        "role": "stretch"
+      }
+    ]
+  },
+  {
+    "id": "dynamic-programming-best-ending-here",
+    "pattern": "dynamic-programming",
+    "name": "Best run ending at each position",
+    "idea": "Anchor the subproblem at the element that ends the run: for each position compute the best subarray or chain finishing exactly there, by extending an earlier run or starting fresh. The final answer is the best over all anchors.",
+    "signals": [
+      "best contiguous product/sum where optimal substructure only holds if you fix the last element",
+      "longest increasing chain, possibly with a count of how many achieve it",
+      "extend-or-restart choice at every element"
+    ],
+    "trap": "Tracking only the maximum ending here fails with negatives — a large negative product flips into the new maximum at the next negative number, so the minimum must ride along beside it.",
+    "members": [
+      {
+        "questionId": 213,
+        "role": "canonical"
+      },
+      {
+        "questionId": 236,
+        "role": "variant"
+      },
+      {
+        "questionId": 234,
+        "role": "stretch"
+      }
+    ]
+  },
+  {
+    "id": "greedy-farthest-reach",
+    "pattern": "greedy",
+    "name": "Farthest-reach frontier",
+    "idea": "Sweep left to right maintaining the farthest index currently reachable; you never commit to a specific path, only grow the frontier. Minimum steps falls out by counting how many times the frontier window rolls over.",
+    "signals": [
+      "array values are maximum step sizes and the question is reachability or fewest jumps",
+      "minimum boosts/refuels to cover a distance, choosing among options passed along the way"
+    ],
+    "trap": "Simulating concrete jump sequences or running DP over positions costs O(n^2); the frontier argument shows only the running maximum reach ever matters.",
+    "members": [
+      {
+        "questionId": 162,
+        "role": "canonical"
+      },
+      {
+        "questionId": 168,
+        "role": "variant"
+      },
+      {
+        "questionId": 166,
+        "role": "stretch"
+      }
+    ]
+  },
+  {
+    "id": "greedy-sort-and-pair",
+    "pattern": "greedy",
+    "name": "Sort, then match the extremes",
+    "idea": "Sort by the quantity that measures how much the choice matters, then pair or assign greedily from the ends; an exchange argument shows any optimal solution can be rewritten, swap by swap, into the sorted matching without getting worse.",
+    "signals": [
+      "pair items under a capacity: two per boat, smallest sufficient cookie per child",
+      "split items into two groups where the per-item cost difference is what matters",
+      "transfer or swap elements between two collections at minimum total cost"
+    ],
+    "trap": "Sorting by a raw value instead of the decision's delta — Two City Scheduling needs ordering by costA minus costB, not by either cost alone.",
+    "members": [
+      {
+        "questionId": 174,
+        "role": "warmup"
+      },
+      {
+        "questionId": 163,
+        "role": "canonical"
+      },
+      {
+        "questionId": 165,
+        "role": "variant"
+      },
+      {
+        "questionId": 170,
+        "role": "stretch"
+      }
+    ]
+  },
+  {
+    "id": "greedy-digit-construction",
+    "pattern": "greedy",
+    "name": "Build the extreme number, most significant digit first",
+    "idea": "An improvement at a more significant position beats any change made after it, so decide digits left to right: at each position keep or place the best digit available under the problem's constraint — a budget of deletions, a single swap, a palindrome mirror.",
+    "signals": [
+      "largest/smallest number after removing k digits or performing one swap",
+      "arrange or concatenate pieces so the resulting number is maximal",
+      "leading-zero and digit-count constraints on the constructed answer"
+    ],
+    "trap": "Comparing candidate pieces numerically — Largest Number requires the concatenation test (a+b versus b+a), and forgetting leading-zero rules corrupts an otherwise-correct greedy answer.",
+    "members": [
+      {
+        "questionId": 173,
+        "role": "warmup"
+      },
+      {
+        "questionId": 181,
+        "role": "canonical"
+      },
+      {
+        "questionId": 171,
+        "role": "standard"
+      },
+      {
+        "questionId": 182,
+        "role": "variant"
+      },
+      {
+        "questionId": 167,
+        "role": "stretch"
+      }
+    ]
+  },
+  {
+    "id": "greedy-running-ledger",
+    "pattern": "greedy",
+    "name": "One-pass sweep with a running ledger",
+    "idea": "Walk the array once keeping a tiny running ledger — fuel surplus, profit delta, eligibility of the current slot — and commit each local decision immediately; when the ledger goes negative it also tells you exactly where the next viable attempt begins.",
+    "signals": [
+      "circular route feasibility with a gain and a cost at every stop",
+      "total profit equals the sum of every upward move when you may transact freely",
+      "place or accept items subject only to immediate-neighbor conditions"
+    ],
+    "trap": "When the constraint looks both left and right (Candy), a single forward pass cannot satisfy it — you need a second sweep in the opposite direction and the max of both.",
+    "members": [
+      {
+        "questionId": 172,
+        "role": "warmup"
+      },
+      {
+        "questionId": 164,
+        "role": "canonical"
+      },
+      {
+        "questionId": 179,
+        "role": "standard"
+      },
+      {
+        "questionId": 175,
+        "role": "stretch"
+      }
+    ]
+  },
+  {
+    "id": "graphs-weighted-shortest-path",
+    "pattern": "graphs",
+    "name": "Cheapest path when edges have costs",
+    "idea": "When edges carry costs, plain BFS order lies: the frontier must expand in order of accumulated cost, settling each node the first time it is popped from a priority queue (Dijkstra).",
+    "signals": [
+      "edges have weights, times, costs, or probabilities",
+      "asks for minimum total cost / time (or maximum probability) to reach a target",
+      "moving between cells or nodes has non-uniform price"
+    ],
+    "trap": "BFS by hop count picks a path with fewer edges but higher total cost; conversely Dijkstra's settled-once guarantee breaks if anything behaves like a negative weight.",
+    "members": [
+      {
+        "questionId": 324,
+        "role": "canonical"
+      },
+      {
+        "questionId": 331,
+        "role": "variant"
+      },
+      {
+        "questionId": 337,
+        "role": "stretch"
+      }
+    ]
+  },
+  {
+    "id": "graphs-state-space-bfs",
+    "pattern": "graphs",
+    "name": "BFS over augmented states",
+    "idea": "The queue entry is not just a position but position plus extra memory (a visited bitmask, a remaining budget, the route you are riding); shortest path in that enlarged state graph answers questions a plain position-BFS cannot.",
+    "signals": [
+      "fewest steps, but position alone does not determine which moves are legal",
+      "a small budget, key set, or subset of targets must be tracked along the way",
+      "the same cell can be worth revisiting under different conditions"
+    ],
+    "trap": "Marking a bare cell or node as visited prunes states that differ only in the hidden component, silently discarding the optimal path.",
+    "members": [
+      {
+        "questionId": 339,
+        "role": "canonical"
+      },
+      {
+        "questionId": 341,
+        "role": "standard"
+      },
+      {
+        "questionId": 328,
+        "role": "variant"
+      }
+    ]
+  },
+  {
+    "id": "graphs-cycle-structure",
+    "pattern": "graphs",
+    "name": "Detecting and measuring cycles",
+    "idea": "A traversal that reaches an already-seen node has closed a cycle; whether you only need to notice this (tree check) or measure the loop (shortest or longest cycle) decides how much bookkeeping the visit stamps must carry.",
+    "signals": [
+      "is this graph a tree / connected with no loops",
+      "find the shortest or longest cycle in the graph",
+      "a repeated visit or extra edge is the anomaly being asked about"
+    ],
+    "trap": "In an undirected graph the edge straight back to your parent looks like a cycle; forgetting to exclude it reports loops that do not exist.",
+    "members": [
+      {
+        "questionId": 327,
+        "role": "canonical"
+      },
+      {
+        "questionId": 338,
+        "role": "variant"
+      },
+      {
+        "questionId": 336,
+        "role": "stretch"
+      }
+    ]
+  },
+  {
+    "id": "graphs-degree-counting",
+    "pattern": "graphs",
+    "name": "Answers from degrees, not traversal",
+    "idea": "Some graph questions never need a walk: one counting pass over the edge list or matrix (in/out degree, per-row or per-column aggregate) already identifies the special node, because the property asked about is local arithmetic.",
+    "signals": [
+      "find the node everyone points to but that points at nobody",
+      "the property is about counts of relationships, not about paths",
+      "a single pass over the pairs or the matrix feels like it should suffice"
+    ],
+    "trap": "Building adjacency lists and traversing works but hides the O(edges) counting solution and makes tie cases (two candidates) easier to get wrong.",
+    "members": [
+      {
+        "questionId": 334,
+        "role": "canonical"
+      },
+      {
+        "questionId": 335,
+        "role": "warmup"
+      },
+      {
+        "questionId": 330,
+        "role": "variant"
+      }
+    ]
+  },
+  {
+    "id": "topological-sort-dependency-order",
+    "pattern": "topological-sort",
+    "name": "Kahn's peeling of prerequisite DAGs",
+    "idea": "Items with unmet prerequisites wait; repeatedly emitting anything whose in-degree has dropped to zero produces a valid order, and finishing with items still waiting proves a circular dependency.",
+    "signals": [
+      "ordering constrained by prerequisites / dependency edges",
+      "asks 'can all tasks be finished' or 'return any valid order'",
+      "completing one item unlocks others"
+    ],
+    "trap": "Detecting the cycle with DFS but only a plain visited set: without an on-stack (three-color) mark, a cross edge to a finished node is mistaken for a cycle.",
+    "members": [
+      {
+        "questionId": 256,
+        "role": "canonical"
+      },
+      {
+        "questionId": 257,
+        "role": "warmup"
+      },
+      {
+        "questionId": 253,
+        "role": "standard"
+      },
+      {
+        "questionId": 258,
+        "role": "variant"
+      },
+      {
+        "questionId": 263,
+        "role": "stretch"
+      }
+    ]
+  },
+  {
+    "id": "topological-sort-order-inference",
+    "pattern": "topological-sort",
+    "name": "Recover an unknown ordering from evidence",
+    "idea": "The ordering itself is the unknown: each piece of evidence (a pair of adjacent sorted words, a pairwise condition) contributes one 'x before y' edge, and topologically sorting the constraint graph reconstructs a consistent arrangement or proves none exists.",
+    "signals": [
+      "a custom alphabet or hidden ranking must be deduced",
+      "the input is claimed to be sorted under unknown rules",
+      "many pairwise 'this before that' conditions must all hold at once"
+    ],
+    "trap": "Comparing whole words instead of only the first differing character, and missing the invalid case where a word appears after one of its own prefixes.",
+    "members": [
+      {
+        "questionId": 254,
+        "role": "canonical"
+      },
+      {
+        "questionId": 255,
+        "role": "warmup"
+      },
+      {
+        "questionId": 259,
+        "role": "variant"
+      }
+    ]
+  },
+  {
+    "id": "topological-sort-dag-longest-path",
+    "pattern": "topological-sort",
+    "name": "Longest chain through a DAG",
+    "idea": "With unlimited parallelism the minimum total time equals the longest dependency chain: process nodes in topological order and give each one the best value over its prerequisites plus its own cost.",
+    "signals": [
+      "minimum semesters / months when independent tasks can run in parallel",
+      "each item waits only for its own prerequisites to finish",
+      "asks for the longest path or chain through a dependency structure"
+    ],
+    "trap": "Counting BFS layers works only while every task takes equal time; with durations the answer follows the critical path, not the number of levels.",
+    "members": [
+      {
+        "questionId": 262,
+        "role": "canonical"
+      },
+      {
+        "questionId": 261,
+        "role": "variant"
+      },
+      {
+        "questionId": 260,
+        "role": "stretch"
+      }
+    ]
+  },
+  {
+    "id": "union-find-grid-regions",
+    "pattern": "union-find",
+    "name": "Grid cells as mergeable regions",
+    "idea": "Treat each cell (or cell fragment) as its own set and union neighbors that belong together; region counts and sizes then fall out of the merge bookkeeping instead of a fresh traversal per query.",
+    "signals": [
+      "count islands / regions / enclosed areas in a grid",
+      "cells connect to orthogonal neighbors of the same kind",
+      "the grid mutates over time and the count is needed after every change"
+    ],
+    "trap": "Re-flood-filling after every mutation is quadratic, and a newly added cell can join several existing regions at once: the count rises by one, then falls once per distinct neighbor root.",
+    "members": [
+      {
+        "questionId": 450,
+        "role": "canonical"
+      },
+      {
+        "questionId": 462,
+        "role": "variant"
+      },
+      {
+        "questionId": 454,
+        "role": "variant"
+      },
+      {
+        "questionId": 453,
+        "role": "stretch"
+      }
+    ]
+  },
+  {
+    "id": "union-find-entity-grouping",
+    "pattern": "union-find",
+    "name": "Merge records that share a key",
+    "idea": "Two records belong to one group whenever they share an attribute (an email, a row or column, a neighboring value, near-identical spelling); union on every shared attribute and the final components are exactly the groups.",
+    "signals": [
+      "merge accounts or group items that share any common element",
+      "same row / same column / consecutive value connects two items",
+      "the answer is the number of groups or the size of the largest one"
+    ],
+    "trap": "Comparing all record pairs to find shared keys is O(n^2); map each attribute to its first owner and union newcomers against that owner instead.",
+    "members": [
+      {
+        "questionId": 455,
+        "role": "canonical"
+      },
+      {
+        "questionId": 460,
+        "role": "standard"
+      },
+      {
+        "questionId": 451,
+        "role": "variant"
+      },
+      {
+        "questionId": 452,
+        "role": "variant"
+      }
+    ]
+  },
+  {
+    "id": "union-find-edge-cycle-gate",
+    "pattern": "union-find",
+    "name": "Edge-at-a-time cycle gate",
+    "idea": "Feed edges through one at a time: if both endpoints already share a root the edge would close a cycle (reject or report it), otherwise union them. Sorting the edges by cost turns the very same gate into Kruskal's minimum spanning tree.",
+    "signals": [
+      "find the edge whose removal turns the graph back into a tree",
+      "just asks whether two nodes are connected",
+      "connect everything at minimum total cost"
+    ],
+    "trap": "Without union by size and path compression the find chains degrade to O(n); and cost problems with a build-your-own option need a virtual node so self-supply becomes an ordinary edge.",
+    "members": [
+      {
+        "questionId": 449,
+        "role": "canonical"
+      },
+      {
+        "questionId": 458,
+        "role": "warmup"
+      },
+      {
+        "questionId": 461,
+        "role": "stretch"
+      }
+    ]
+  },
+  {
+    "id": "trie-prefix-path",
+    "pattern": "trie",
+    "name": "Shared-prefix paths with per-node payload",
+    "idea": "Every root-to-node path is a prefix shared by all words below it, so walking a query letter by letter visits exactly its prefixes; the whole design decision is what to cache at each node (end flags, counts, sums, best suggestions).",
+    "signals": [
+      "many words with repeated prefix lookups",
+      "autocomplete or suggestions after each typed character",
+      "sum or count over all stored keys starting with a given prefix"
+    ],
+    "trap": "A node being reachable is not the same as a word ending there; dropping the end-of-word flag conflates prefixes with actual members.",
+    "members": [
+      {
+        "questionId": 378,
+        "role": "canonical"
+      },
+      {
+        "questionId": 385,
+        "role": "warmup"
+      },
+      {
+        "questionId": 391,
+        "role": "warmup"
+      },
+      {
+        "questionId": 379,
+        "role": "standard"
+      },
+      {
+        "questionId": 390,
+        "role": "variant"
+      },
+      {
+        "questionId": 392,
+        "role": "variant"
+      }
+    ]
+  },
+  {
+    "id": "trie-multi-pattern-matching",
+    "pattern": "trie",
+    "name": "One trie matches many words at once",
+    "idea": "Load the whole dictionary into a trie so a single walk over the text, grid, or query advances through every candidate word simultaneously; a mismatch at one node prunes all words below it in a single step.",
+    "signals": [
+      "find which of many dictionary words occur in a text or letter grid",
+      "replace tokens with their shortest dictionary root",
+      "lookups must support wildcards against a stored word set"
+    ],
+    "trap": "Scanning the text once per dictionary word multiplies the work by the word count; and in grid search, forgetting to remove found words re-reports duplicates and destroys the pruning.",
+    "members": [
+      {
+        "questionId": 382,
+        "role": "canonical"
+      },
+      {
+        "questionId": 386,
+        "role": "warmup"
+      },
+      {
+        "questionId": 380,
+        "role": "standard"
+      },
+      {
+        "questionId": 381,
+        "role": "variant"
+      },
+      {
+        "questionId": 388,
+        "role": "stretch"
+      }
+    ]
+  },
+  {
+    "id": "trie-lexicographic-order",
+    "pattern": "trie",
+    "name": "Preorder walk equals sorted order",
+    "idea": "If a trie's children are visited in key order, its preorder traversal enumerates all stored keys lexicographically; decimal numbers form an implicit 10-way trie, so dictionary order over a numeric range needs no explicit tree at all.",
+    "signals": [
+      "output required in lexicographical / dictionary order",
+      "k-th smallest in dictionary order over a numeric range",
+      "ties among equal items broken alphabetically"
+    ],
+    "trap": "Materializing and sorting every candidate as strings cannot skip anything; k-th queries need subtree-size counting to leap over whole prefixes instead of stepping item by item.",
+    "members": [
+      {
+        "questionId": 384,
+        "role": "canonical"
+      },
+      {
+        "questionId": 383,
+        "role": "variant"
+      },
+      {
+        "questionId": 387,
+        "role": "stretch"
+      }
+    ]
+  },
+  {
+    "id": "tree-dfs-subtree-aggregation",
+    "pattern": "tree-dfs",
+    "name": "Post-order aggregation with a global best",
+    "idea": "Each call returns a compact summary of its subtree (usually a height or best downward value); the parent combines the two child summaries, and any answer that bends through a node is recorded in a variable outside the recursion. The value you return is deliberately not the value you are optimizing.",
+    "signals": [
+      "asks for a longest path, largest sum, or widest span measured anywhere in the tree, not just from the root",
+      "the best answer may pass through a node, joining its left and right sides",
+      "the answer at a node can be written using only numbers computed from its children"
+    ],
+    "trap": "Returning the through-node answer to the parent — a path that already bends through both children cannot be extended upward, so the recursion must hand back the one-sided value only.",
+    "members": [
+      {
+        "questionId": 355,
+        "role": "warmup"
+      },
+      {
+        "questionId": 343,
+        "role": "canonical"
+      },
+      {
+        "questionId": 346,
+        "role": "stretch"
+      },
+      {
+        "questionId": 354,
+        "role": "stretch"
+      }
+    ]
+  },
+  {
+    "id": "tree-dfs-bst-sorted-order",
+    "pattern": "tree-dfs",
+    "name": "BST ordering as a sorted stream",
+    "idea": "An in-order walk of a BST visits keys in ascending order, so questions about ranks, neighbors, or ordering validity become questions about a sorted sequence you can stream one node at a time — or answer by pruning to the single child that could contain the target.",
+    "signals": [
+      "the tree is a BST and the statement mentions kth, closest, successor, or checking the ordering itself",
+      "comparing each visited value to the previously visited one would settle the question",
+      "at every node, one comparison against the node's value rules out an entire subtree"
+    ],
+    "trap": "Validating each node only against its immediate children — a node deep in the left subtree must still be smaller than the root, so the constraint is a running range (or the previous in-order value), not a local parent-child check.",
+    "members": [
+      {
+        "questionId": 363,
+        "role": "warmup"
+      },
+      {
+        "questionId": 351,
+        "role": "canonical"
+      },
+      {
+        "questionId": 356,
+        "role": "standard"
+      },
+      {
+        "questionId": 353,
+        "role": "variant"
+      }
+    ]
+  },
+  {
+    "id": "tree-dfs-rebuild-from-traversal",
+    "pattern": "tree-dfs",
+    "name": "Rebuilding a tree from traversal order",
+    "idea": "One traversal sequence plus one extra piece of structure — null markers, an in-order companion, explicit depths, or a sortedness guarantee — pins the tree down uniquely. Consume the sequence left to right with a shared cursor: the current element becomes the root, and recursion claims the run of elements belonging to each subtree.",
+    "signals": [
+      "input is a flat sequence (array or string) and output is a tree, or the reverse",
+      "the statement names a traversal order: preorder, inorder, or sorted",
+      "each recursive call naturally owns one contiguous run of the sequence"
+    ],
+    "trap": "Recomputing subtree boundaries by slicing or scanning at every level — a single advancing index, plus a lookup or depth check to know when to stop, rebuilds the tree in one pass.",
+    "members": [
+      {
+        "questionId": 347,
+        "role": "warmup"
+      },
+      {
+        "questionId": 348,
+        "role": "canonical"
+      },
+      {
+        "questionId": 344,
+        "role": "standard"
+      },
+      {
+        "questionId": 359,
+        "role": "stretch"
+      }
+    ]
+  },
+  {
+    "id": "tree-dfs-rewire-and-return",
+    "pattern": "tree-dfs",
+    "name": "Return the rewritten subtree",
+    "idea": "The recursion's return value is a transformed (possibly deleted) subtree, and the parent finishes its own transformation by reattaching whatever came back. Working bottom-up means every child is already in final form when the parent rewires its pointers.",
+    "signals": [
+      "the task changes the tree's shape: mirror it, flatten it, or remove nodes from it",
+      "a node's new children can be written as an expression over its transformed old children",
+      "the natural function signature is node in, node out"
+    ],
+    "trap": "Overwriting child pointers before recursing into them — transform (or save) the original left and right first, otherwise you walk pointers you have already redirected.",
+    "members": [
+      {
+        "questionId": 345,
+        "role": "warmup"
+      },
+      {
+        "questionId": 342,
+        "role": "canonical"
+      },
+      {
+        "questionId": 357,
+        "role": "variant"
+      }
+    ]
+  },
+  {
+    "id": "tree-dfs-carry-down-state",
+    "pattern": "tree-dfs",
+    "name": "Accumulator threaded down the path",
+    "idea": "State that depends only on the root-to-current-node path — a remaining total, the current depth — travels downward as an argument, and decisions fire at leaves or on first arrival at a depth. Nothing needs to flow back up except the final answer.",
+    "signals": [
+      "the question is about root-to-leaf paths, or about the first or deepest node at some depth",
+      "what matters at a node depends on its ancestors, never on its siblings",
+      "depth or a running total appears naturally as one extra parameter"
+    ],
+    "trap": "Testing the target at internal nodes — a root-to-leaf condition may only be checked where both children are absent, or nodes with a single child produce false positives.",
+    "members": [
+      {
+        "questionId": 362,
+        "role": "canonical"
+      },
+      {
+        "questionId": 349,
+        "role": "standard"
+      },
+      {
+        "questionId": 352,
+        "role": "variant"
+      }
+    ]
+  },
+  {
+    "id": "tree-bfs-level-snapshot",
+    "pattern": "tree-bfs",
+    "name": "Drain the queue one level at a time",
+    "idea": "Freeze the queue's size before the inner loop and you process exactly one level per outer iteration; each level can then be aggregated, reversed, or linked as a unit before its children are enqueued. Recording the queue length at loop start is the entire trick.",
+    "signals": [
+      "output is organized by depth: a list per level, one value per level, or alternating direction",
+      "phrases like each level, level averages, zigzag, or next pointers between neighbors",
+      "a node needs to know its horizontal neighbor at the same depth"
+    ],
+    "trap": "Popping until the queue is empty mixes parents with freshly pushed children — the level boundary only exists if you capture the queue size before draining it.",
+    "members": [
+      {
+        "questionId": 375,
+        "role": "warmup"
+      },
+      {
+        "questionId": 364,
+        "role": "canonical"
+      },
+      {
+        "questionId": 365,
+        "role": "standard"
+      },
+      {
+        "questionId": 366,
+        "role": "variant"
+      },
+      {
+        "questionId": 370,
+        "role": "variant"
+      }
+    ]
+  },
+  {
+    "id": "tree-bfs-fewest-steps",
+    "pattern": "tree-bfs",
+    "name": "BFS layers count minimum moves",
+    "idea": "When every move costs the same, breadth-first exploration visits states in order of distance from the start, so the layer where a state first appears is its minimum number of moves. The graph is often implicit: neighbors are generated on the fly and a visited set prevents re-expansion.",
+    "signals": [
+      "asks for the minimum number of steps or transformations to reach a target",
+      "each state has a small set of one-step neighbors you can generate: change one letter, turn one wheel, step to an adjacent cell",
+      "every move is equally expensive — no weights anywhere in the statement"
+    ],
+    "trap": "Reaching for DFS — depth-first finds a path but not the shortest one, and forgetting to mark states visited at enqueue time floods the frontier with duplicates.",
+    "members": [
+      {
+        "questionId": 369,
+        "role": "canonical"
+      },
+      {
+        "questionId": 376,
+        "role": "standard"
+      },
+      {
+        "questionId": 377,
+        "role": "variant"
+      }
+    ]
+  },
+  {
+    "id": "backtracking-constraint-placement",
+    "pattern": "backtracking",
+    "name": "Place, check, undo on a constrained board",
+    "idea": "Fill positions one at a time, testing each candidate against constraints created by earlier placements; on a dead end, erase the last placement and try the next candidate. Constant-time constraint checks — per-column, per-diagonal, per-box occupancy sets — are what make the search feasible.",
+    "signals": [
+      "place items on a board so that no two conflict",
+      "conflicts run along rows, columns, diagonals, or boxes",
+      "the answer is a completed arrangement, all arrangements, or a count of them"
+    ],
+    "trap": "Re-scanning the board to test each candidate — without O(1) occupancy sets the check cost multiplies into the exponential search instead of staying outside it.",
+    "members": [
+      {
+        "questionId": 201,
+        "role": "canonical"
+      },
+      {
+        "questionId": 186,
+        "role": "standard"
+      },
+      {
+        "questionId": 192,
+        "role": "variant"
+      }
+    ]
+  },
+  {
+    "id": "backtracking-grid-walk",
+    "pattern": "backtracking",
+    "name": "Grid DFS with mark and unmark",
+    "idea": "Explore neighboring cells recursively, marking a cell on entry so one path never reuses it. If different candidate paths may need the same cell, the mark must be undone on the way out; if membership is permanent, as in filling a region, it must not be.",
+    "signals": [
+      "trace a path or region through a 2D grid",
+      "moves go to orthogonally adjacent cells",
+      "a cell can belong to one candidate path but not another"
+    ],
+    "trap": "Confusing the two marking regimes — region-filling without a permanent mark recurses forever, while path-search without an undo wrongly blocks cells for sibling branches.",
+    "members": [
+      {
+        "questionId": 190,
+        "role": "warmup"
+      },
+      {
+        "questionId": 187,
+        "role": "canonical"
+      },
+      {
+        "questionId": 200,
+        "role": "stretch"
+      }
+    ]
+  },
+  {
+    "id": "backtracking-string-segmentation",
+    "pattern": "backtracking",
+    "name": "Cut a string into valid segments",
+    "idea": "Choose where the next cut goes: try each feasible prefix length, validate that segment, and recurse on the remaining suffix, retracting the cut when the suffix cannot be completed. Validity may depend on the segment alone or on segments already committed.",
+    "signals": [
+      "split or partition a string so that every piece satisfies a rule",
+      "a piece's validity can depend on earlier pieces: uniqueness, an arithmetic relation, a count limit",
+      "segment lengths are small and bounded, which keeps the branching factor tiny"
+    ],
+    "trap": "Leading zeros and missing bounds — a numeric segment like 05 passes a naive parse, and ignoring the small maximum segment length turns a tight search into a slow one.",
+    "members": [
+      {
+        "questionId": 189,
+        "role": "canonical"
+      },
+      {
+        "questionId": 196,
+        "role": "standard"
+      },
+      {
+        "questionId": 205,
+        "role": "variant"
+      }
+    ]
+  },
+  {
+    "id": "backtracking-bucket-assignment",
+    "pattern": "backtracking",
+    "name": "Assign items to groups under a target",
+    "idea": "Try each item in every group it could join, recursing after each tentative assignment and taking it back on failure. Pruning is the real content: sort items so large ones fail early, skip groups whose partial totals are identical, and cut the branch the moment a group overshoots.",
+    "signals": [
+      "divide items into a fixed number of groups with equal or bounded totals",
+      "n is tiny, fifteen or so — a strong hint that exponential assignment search is intended",
+      "the goal is feasibility or a minimum number of operations, not listing every arrangement"
+    ],
+    "trap": "Trying an item in several currently-identical groups — without skipping equal-total buckets the search repeats the same partition once per group ordering.",
+    "members": [
+      {
+        "questionId": 193,
+        "role": "canonical"
+      },
+      {
+        "questionId": 191,
+        "role": "variant"
+      },
+      {
+        "questionId": 195,
+        "role": "stretch"
+      }
+    ]
+  },
+  {
+    "id": "backtracking-all-paths-enumeration",
+    "pattern": "backtracking",
+    "name": "Collect every source-to-target path",
+    "idea": "Grow one shared path buffer while descending: append the current node, recurse into each neighbor, snapshot the buffer whenever the target or a leaf is reached, then pop on the way back so sibling branches start clean. Every complete path is emitted, not just one.",
+    "signals": [
+      "the output is all paths or all sequences, so the answer is a list of lists",
+      "the structure is a tree or an acyclic graph, so no visited set is needed",
+      "each result is a copy of the current root-to-here trail"
+    ],
+    "trap": "Appending the live buffer to the results — without copying at emission time, every collected path later mutates into whatever the buffer ends as.",
+    "members": [
+      {
+        "questionId": 197,
+        "role": "warmup"
+      },
+      {
+        "questionId": 198,
+        "role": "canonical"
+      },
+      {
+        "questionId": 203,
+        "role": "stretch"
+      }
+    ]
+  },
+  {
+    "id": "subsets-membership-decision",
+    "pattern": "subsets",
+    "name": "Include-or-exclude per element",
+    "idea": "Walk the elements once; at each one, branch into take-it and leave-it, so the leaves of the recursion tree enumerate every subset exactly once. Extra requirements — a sum target, duplicate elements, a per-character toggle — layer onto the same two-way decision as filters or branch skips.",
+    "signals": [
+      "asks for all subsets or combinations, where order inside a pick does not matter",
+      "each element is used at most once, independently of the others",
+      "duplicates in the input mean identical outputs must be reported only once"
+    ],
+    "trap": "Handling duplicates by deduplicating finished results — sorting the input and skipping a repeated value at the same decision level prunes the doubled work instead of doing it and discarding it.",
+    "members": [
+      {
+        "questionId": 154,
+        "role": "canonical"
+      },
+      {
+        "questionId": 161,
+        "role": "variant"
+      },
+      {
+        "questionId": 158,
+        "role": "standard"
+      },
+      {
+        "questionId": 159,
+        "role": "variant"
+      }
+    ]
+  },
+  {
+    "id": "subsets-slot-construction",
+    "pattern": "subsets",
+    "name": "Build the output one slot at a time",
+    "idea": "The output has positions, and recursion fills them left to right; the candidate set for each position comes from a rule — the letters mapped to the current digit, the unused remainder of a pool, or a balance condition. Each recursion level commits one position and undoes it after exploring.",
+    "signals": [
+      "asks for all orderings or sequences, so the same elements in a different order count separately",
+      "the options at each position depend on what was already placed",
+      "a validity rule such as balance or remaining counts can reject a partial prefix early"
+    ],
+    "trap": "Pruning only at full length — an already-impossible prefix should be cut immediately, and duplicate letters need per-value counts rather than per-index used flags, or the same output is produced many times.",
+    "members": [
+      {
+        "questionId": 156,
+        "role": "warmup"
+      },
+      {
+        "questionId": 155,
+        "role": "canonical"
+      },
+      {
+        "questionId": 157,
+        "role": "variant"
+      },
+      {
+        "questionId": 160,
+        "role": "stretch"
+      }
+    ]
+  },
+  {
+    "id": "hash-maps-prefix-state-counting",
+    "pattern": "hash-maps",
+    "name": "Prefix state + hash of earlier states",
+    "idea": "Any subarray condition that can be rewritten as prefix[j] minus prefix[i] hitting a target becomes a single left-to-right pass: carry a running prefix state and a map of states already seen, and at each step ask how many times (or how early) a matching earlier state occurred.",
+    "signals": [
+      "count subarrays whose sum hits an exact target",
+      "longest subarray with a zero or equal balance after remapping values",
+      "subarray sum divisible by k, or a parity condition over the prefix",
+      "the condition is about a contiguous range but values can be negative or non-monotone"
+    ],
+    "trap": "Reaching for a sliding window — negatives, zero-remapping, and parity states destroy the monotonicity a window needs; and forgetting to seed the map with the empty prefix (state 0 before index 0) silently drops every subarray that starts at the beginning.",
+    "members": [
+      {
+        "questionId": 422,
+        "role": "canonical"
+      },
+      {
+        "questionId": 415,
+        "role": "variant"
+      },
+      {
+        "questionId": 400,
+        "role": "variant"
+      },
+      {
+        "questionId": 404,
+        "role": "stretch"
+      }
+    ]
+  },
+  {
+    "id": "hash-maps-canonical-form-key",
+    "pattern": "hash-maps",
+    "name": "Canonical form as hash key",
+    "idea": "Design a normalization that erases exactly the differences the problem declares irrelevant — letter identity, absolute position, precise spelling — so every equivalent object collapses to the same key, and testing equivalence or grouping becomes plain hash lookup.",
+    "signals": [
+      "are two things 'the same' up to renaming or translation",
+      "group or count distinct shapes, files, or structures",
+      "match queries against a dictionary under increasingly forgiving rules"
+    ],
+    "trap": "A signature that is not truly canonical — mapping consistently in one direction while two different characters collide in the other, or recording a shape by raw coordinates instead of anchoring it to a fixed origin cell.",
+    "members": [
+      {
+        "questionId": 397,
+        "role": "canonical"
+      },
+      {
+        "questionId": 412,
+        "role": "standard"
+      },
+      {
+        "questionId": 398,
+        "role": "standard"
+      },
+      {
+        "questionId": 405,
+        "role": "variant"
+      },
+      {
+        "questionId": 417,
+        "role": "stretch"
+      }
+    ]
+  },
+  {
+    "id": "hash-maps-membership-oracle",
+    "pattern": "hash-maps",
+    "name": "Hash set as O(1) membership oracle",
+    "idea": "Load one collection into a set (or count map) so 'have I seen this?' costs O(1); then scan the other collection — or generate candidates — and test each against it, getting deduplication and intersection for free.",
+    "signals": [
+      "which elements appear in both collections",
+      "does some element exist, repeat, or stand out",
+      "enumerate candidate values and report only the distinct ones"
+    ],
+    "trap": "Using a plain set when multiplicity matters — duplicates silently collapse and intersection counts come out wrong; a count map you decrement per match is the multiset version of the same oracle.",
+    "members": [
+      {
+        "questionId": 411,
+        "role": "canonical"
+      },
+      {
+        "questionId": 416,
+        "role": "warmup"
+      },
+      {
+        "questionId": 418,
+        "role": "warmup"
+      },
+      {
+        "questionId": 421,
+        "role": "variant"
+      },
+      {
+        "questionId": 419,
+        "role": "variant"
+      }
+    ]
+  },
+  {
+    "id": "hash-maps-precomputed-lookup",
+    "pattern": "hash-maps",
+    "name": "Index once, answer queries by lookup",
+    "idea": "Split the work into two phases: one pass builds a key-to-answer (or rank, or bucket) table from the reference data, then the main loop resolves each item with a single lookup instead of rescanning the reference — turning O(n times q) into O(n plus q).",
+    "signals": [
+      "queries asked against a fixed reference array or string",
+      "a custom ordering or priority defined by another sequence",
+      "sparse data where only the stored entries matter",
+      "records must be joined on a shared key field"
+    ],
+    "trap": "Re-scanning the reference for every query because the loop reads naturally that way — the map exists precisely to delete that inner scan; for sparse structures, iterating the full logical length instead of only the stored keys throws the savings away.",
+    "members": [
+      {
+        "questionId": 396,
+        "role": "canonical"
+      },
+      {
+        "questionId": 414,
+        "role": "warmup"
+      },
+      {
+        "questionId": 402,
+        "role": "standard"
+      },
+      {
+        "questionId": 406,
+        "role": "standard"
+      },
+      {
+        "questionId": 408,
+        "role": "variant"
+      },
+      {
+        "questionId": 420,
+        "role": "variant"
+      }
+    ]
+  },
+  {
+    "id": "hash-maps-first-seen-position",
+    "pattern": "hash-maps",
+    "name": "Per-key position memory",
+    "idea": "Store, for each key, the position or time it was first (or last) seen; comparing the current index against that remembered position is what detects a cycle, enforces a cooldown, or measures a per-key gap — a boolean 'seen' flag cannot answer any of those.",
+    "signals": [
+      "a decimal or state sequence eventually repeats and you must locate where the cycle starts",
+      "suppress or allow events per key within a time window",
+      "each element's contribution depends on how far back the same key last appeared"
+    ],
+    "trap": "Storing that a key was seen instead of where — you can detect that a repeat happened but you cannot mark the cycle start or compute the gap the answer actually needs.",
+    "members": [
+      {
+        "questionId": 394,
+        "role": "canonical"
+      },
+      {
+        "questionId": 395,
+        "role": "warmup"
+      },
+      {
+        "questionId": 407,
+        "role": "stretch"
+      },
+      {
+        "questionId": 410,
+        "role": "stretch"
+      }
+    ]
+  },
+  {
+    "id": "tracking-multiset-equality",
+    "pattern": "tracking",
+    "name": "Frequency vector as the object",
+    "idea": "When order is irrelevant, a string or collection is fully described by its count vector; equality, containment, grouping, and even permutation counting all become cheap operations on those small fixed-size vectors instead of on the data itself.",
+    "signals": [
+      "is one string a rearrangement of another",
+      "can you build X from the letters of Y",
+      "group words that are rearrangements of each other",
+      "find every window that is a rearrangement of a pattern"
+    ],
+    "trap": "Sorting the strings for every comparison — O(n log n) where a 26-slot count array is O(n); and in windowed versions, rebuilding counts for each window instead of updating one character in and one character out.",
+    "members": [
+      {
+        "questionId": 426,
+        "role": "canonical"
+      },
+      {
+        "questionId": 433,
+        "role": "warmup"
+      },
+      {
+        "questionId": 441,
+        "role": "warmup"
+      },
+      {
+        "questionId": 428,
+        "role": "standard"
+      },
+      {
+        "questionId": 431,
+        "role": "variant"
+      },
+      {
+        "questionId": 442,
+        "role": "variant"
+      },
+      {
+        "questionId": 437,
+        "role": "stretch"
+      }
+    ]
+  },
+  {
+    "id": "tracking-palindrome-pair-parity",
+    "pattern": "tracking",
+    "name": "Palindromes from paired counts",
+    "idea": "A palindrome is mirrored pairs around at most one unpaired center, so you never construct one — count each unit, greedily take complete pairs, and reserve the single allowed odd (or self-mirrored) unit for the middle.",
+    "signals": [
+      "can these letters be rearranged into a palindrome",
+      "longest palindrome buildable from given letters or words",
+      "the answer depends only on how many matching pairs you can form"
+    ],
+    "trap": "Trying to build or enumerate actual palindromes; or forgetting the one legal center — at most one odd count is allowed, and a self-reversed unit can occupy the middle only once.",
+    "members": [
+      {
+        "questionId": 425,
+        "role": "canonical"
+      },
+      {
+        "questionId": 399,
+        "role": "standard"
+      },
+      {
+        "questionId": 432,
+        "role": "stretch"
+      }
+    ]
+  },
+  {
+    "id": "tracking-running-aggregate",
+    "pattern": "tracking",
+    "name": "One sweep, O(1) running summary",
+    "idea": "Instead of re-scanning everything behind you at each index, maintain a constant-size running summary — left total, current run length, count of currently active operations — and each position's answer falls out of comparing that summary to a global total or to the previous run.",
+    "signals": [
+      "a point where the left side balances the right side",
+      "longest streak of equal or qualifying values",
+      "count blocks formed where adjacent runs meet",
+      "many range updates applied before a single final read"
+    ],
+    "trap": "Recomputing a sum or streak from scratch at every index for O(n^2), or applying each range update element by element when a difference array plus one running sweep handles all of them in O(n + q).",
+    "members": [
+      {
+        "questionId": 443,
+        "role": "canonical"
+      },
+      {
+        "questionId": 439,
+        "role": "warmup"
+      },
+      {
+        "questionId": 448,
+        "role": "variant"
+      },
+      {
+        "questionId": 447,
+        "role": "variant"
+      }
+    ]
+  },
+  {
+    "id": "tracking-frequency-driven-order",
+    "pattern": "tracking",
+    "name": "Counts decide the order",
+    "idea": "Count first, then let the counts — not the values — drive everything downstream: sort keys by their frequency, hand the cheapest slots to the most frequent items, or compare whole per-position tally vectors lexicographically.",
+    "signals": [
+      "sort or rank by how often things occur",
+      "minimize total cost when frequent items should claim the cheap slots",
+      "rank candidates by votes tallied per position",
+      "most frequent element wins, with an explicit tiebreak rule"
+    ],
+    "trap": "Sorting by value and patching frequency in afterwards — the sort key must be built from the finished count table with the tiebreak encoded explicitly, or the greedy quietly hands a cheap slot to a rare item.",
+    "members": [
+      {
+        "questionId": 444,
+        "role": "canonical"
+      },
+      {
+        "questionId": 434,
+        "role": "standard"
+      },
+      {
+        "questionId": 435,
+        "role": "variant"
+      },
+      {
+        "questionId": 429,
+        "role": "stretch"
+      }
+    ]
+  },
+  {
+    "id": "tracking-count-table-answer",
+    "pattern": "tracking",
+    "name": "The answer lives in the count table",
+    "idea": "One counting pass compresses the input into a small frequency table, and the question is then answered by reading the table itself — the first key with count one, whether the count values are pairwise distinct, or the overlap between two tables — rather than the original data.",
+    "signals": [
+      "first or any element that appears exactly once",
+      "compare how often things occur across two inputs",
+      "a property of the frequencies themselves, not of the elements"
+    ],
+    "trap": "Trying to answer during the counting pass — the table is not trustworthy until the whole input is consumed, so the second pass (over the data or over the table) is not waste, it is the algorithm.",
+    "members": [
+      {
+        "questionId": 430,
+        "role": "canonical"
+      },
+      {
+        "questionId": 401,
+        "role": "standard"
+      },
+      {
+        "questionId": 403,
+        "role": "variant"
+      }
+    ]
+  },
+  {
+    "id": "matrices-in-place-transforms",
+    "pattern": "matrices",
+    "name": "In-place transforms: don't clobber unread cells",
+    "idea": "Rewriting a matrix in place means some cells are input and output at once. Either move values along closed swap cycles, or temporarily pack old and new state into the same cell and decode it in a second pass.",
+    "signals": [
+      "'in place' or O(1) extra space demanded for a matrix rewrite",
+      "a cell's new value depends on neighbors' OLD values",
+      "the transform permutes positions (rotate, transpose, reflect)"
+    ],
+    "trap": "Copying into a second matrix works but fails the space constraint, while naive in-place writing destroys values you still need to read.",
+    "members": [
+      {
+        "questionId": 285,
+        "role": "canonical"
+      },
+      {
+        "questionId": 293,
+        "role": "warmup"
+      },
+      {
+        "questionId": 284,
+        "role": "standard"
+      },
+      {
+        "questionId": 301,
+        "role": "variant"
+      }
+    ]
+  },
+  {
+    "id": "matrices-traversal-orders",
+    "pattern": "matrices",
+    "name": "Traversal orders as index bijections",
+    "idea": "Any visiting order over a grid is a bijection between step number and (row, col). Implement it either as closed-form index arithmetic or as a walk with direction state plus boundary and turn rules.",
+    "signals": [
+      "output is the grid's elements in an unusual order (spiral, diagonal, zigzag)",
+      "converting between a flat index and 2D coordinates",
+      "'fill the grid in this order' with nothing to optimize"
+    ],
+    "trap": "Writing four near-identical loops without shrinking the boundaries correctly - the last partial ring of an odd-sized or non-square grid is where these break.",
+    "members": [
+      {
+        "questionId": 286,
+        "role": "canonical"
+      },
+      {
+        "questionId": 289,
+        "role": "warmup"
+      },
+      {
+        "questionId": 290,
+        "role": "standard"
+      },
+      {
+        "questionId": 303,
+        "role": "variant"
+      }
+    ]
+  },
+  {
+    "id": "matrices-grid-simulation",
+    "pattern": "matrices",
+    "name": "Step-by-step grid simulation",
+    "idea": "The grid encodes local movement rules, so you advance the state one tick at a time: track position and direction, check the blocking condition before each move, and stop on exit or on a repeated state.",
+    "signals": [
+      "an object moves through a grid under stated local rules (falls, turns on walls, spreads)",
+      "asked where it ends up or how long it takes, not an optimum over choices",
+      "the environment itself can change while the object moves"
+    ],
+    "trap": "Hunting for a closed-form shortcut - the rules interact (a diverted ball, a spreading flood), so only faithful tick-by-tick simulation, sometimes interleaved with BFS, stays correct.",
+    "members": [
+      {
+        "questionId": 287,
+        "role": "canonical"
+      },
+      {
+        "questionId": 292,
+        "role": "standard"
+      },
+      {
+        "questionId": 295,
+        "role": "stretch"
+      }
+    ]
+  },
+  {
+    "id": "matrices-monotone-grid-search",
+    "pattern": "matrices",
+    "name": "Monotone grids: search the answer, not the cells",
+    "idea": "When rows and columns are sorted, or a yes/no property is monotone in some threshold, you can binary-search that threshold (or staircase-walk the boundary) and pay only a linear count or check per probe instead of enumerating every cell.",
+    "signals": [
+      "rows and columns are sorted, or cell values grow with the index product",
+      "asked for a kth value, a boundary, or a minimum feasible threshold",
+      "the grid is too large to materialize or fully scan"
+    ],
+    "trap": "Flattening or heapifying the whole grid costs O(mn log mn) when a monotone predicate answers the same question in O((m+n) log range).",
+    "members": [
+      {
+        "questionId": 298,
+        "role": "canonical"
+      },
+      {
+        "questionId": 294,
+        "role": "warmup"
+      },
+      {
+        "questionId": 296,
+        "role": "variant"
+      },
+      {
+        "questionId": 299,
+        "role": "stretch"
+      }
+    ]
+  },
+  {
+    "id": "bitwise-manipulation-xor-cancellation",
+    "pattern": "bitwise-manipulation",
+    "name": "XOR cancellation: pairs annihilate",
+    "idea": "Because x ^ x = 0 and XOR ignores order, anything contributing an even number of times vanishes from a running XOR. Equal prefix XORs mean the whole range between them cancels to zero, which turns range questions into pair-matching on prefixes.",
+    "signals": [
+      "'every element appears twice except one' phrasing",
+      "subarrays or ranges whose XOR must be zero or equal on both sides",
+      "tracking even/odd counts of a small alphabet through a stream"
+    ],
+    "trap": "The trick dies the moment duplicates come in threes or any other count - then you need per-bit counting modulo k, not one running XOR.",
+    "members": [
+      {
+        "questionId": 482,
+        "role": "canonical"
+      },
+      {
+        "questionId": 479,
+        "role": "warmup"
+      },
+      {
+        "questionId": 483,
+        "role": "variant"
+      },
+      {
+        "questionId": 488,
+        "role": "variant"
+      },
+      {
+        "questionId": 486,
+        "role": "stretch"
+      }
+    ]
+  },
+  {
+    "id": "bitwise-manipulation-bit-surgery",
+    "pattern": "bitwise-manipulation",
+    "name": "Bit surgery: isolate, clear, rebuild",
+    "idea": "An integer is an array of bits you edit with shifts and masks: n & (n-1) deletes the lowest set bit, an all-ones mask of the right width flips a whole number, and shifting one bit at a time rebuilds a value in any order you choose.",
+    "signals": [
+      "asked about the count, position, or pattern of set bits",
+      "'power of two' or 'exactly one bit set' phrasing",
+      "produce a complement, reversal, or mirror of a number's bits"
+    ],
+    "trap": "Width and sign bite: arithmetic shift on negatives, hidden 32-bit assumptions, and the n = 0 edge case all break naive mask code.",
+    "members": [
+      {
+        "questionId": 494,
+        "role": "canonical"
+      },
+      {
+        "questionId": 495,
+        "role": "warmup"
+      },
+      {
+        "questionId": 480,
+        "role": "standard"
+      },
+      {
+        "questionId": 485,
+        "role": "standard"
+      }
+    ]
+  },
+  {
+    "id": "bitwise-manipulation-flip-parity",
+    "pattern": "bitwise-manipulation",
+    "name": "Flips are involutions: only parity matters",
+    "idea": "A flip undoes itself, so each position's final state depends only on the parity of flips covering it, never on their order. Track that parity with a running counter or difference array instead of physically re-flipping anything.",
+    "signals": [
+      "operations that toggle or invert bits, cells, or ranges",
+      "asked for the minimum number of operations to reach a target state",
+      "applying the same operation twice visibly cancels it"
+    ],
+    "trap": "Physically applying every flip costs O(nk); also greedy left-to-right is only valid because a position, once passed, can never be fixed by any later flip.",
+    "members": [
+      {
+        "questionId": 491,
+        "role": "canonical"
+      },
+      {
+        "questionId": 481,
+        "role": "warmup"
+      },
+      {
+        "questionId": 492,
+        "role": "stretch"
+      }
+    ]
+  },
+  {
+    "id": "bitwise-manipulation-binary-encoding",
+    "pattern": "bitwise-manipulation",
+    "name": "Binary expansions as combinatorial addresses",
+    "idea": "Map each object to a binary string so ranking, counting, and feasibility become arithmetic on bits: the kth object of a two-symbol language is (roughly) k written in binary, and popcount lower-bounds how many powers of two a sum needs.",
+    "signals": [
+      "objects built from exactly two symbols or two choices per position",
+      "'find the kth such number' over a set that doubles per length",
+      "targets that must decompose into a given count of powers of two"
+    ],
+    "trap": "Generating and sorting the objects explicitly explodes exponentially - the binary index jumps straight to the answer without building the set.",
+    "members": [
+      {
+        "questionId": 490,
+        "role": "canonical"
+      },
+      {
+        "questionId": 489,
+        "role": "standard"
+      },
+      {
+        "questionId": 496,
+        "role": "variant"
+      }
+    ]
+  },
+  {
+    "id": "math-geometry-carry-arithmetic",
+    "pattern": "math-geometry",
+    "name": "Schoolbook addition with an explicit carry",
+    "idea": "Big numbers arrive as digit containers (strings, arrays, linked lists) precisely because they overflow native integers. Walk the digits from the least significant end while maintaining a carry, and remember the leftover carry can mint a brand-new leading digit.",
+    "signals": [
+      "numbers given as strings, digit arrays, or linked lists of digits",
+      "lengths in the thousands, or 'do not convert to integer' wording",
+      "add or increment semantics, possibly in an unusual base"
+    ],
+    "trap": "Parsing into a built-in integer overflows or is outright banned, and dropping the final carry after the loop silently loses the most significant digit.",
+    "members": [
+      {
+        "questionId": 516,
+        "role": "canonical"
+      },
+      {
+        "questionId": 522,
+        "role": "warmup"
+      },
+      {
+        "questionId": 521,
+        "role": "standard"
+      },
+      {
+        "questionId": 528,
+        "role": "standard"
+      },
+      {
+        "questionId": 532,
+        "role": "stretch"
+      }
+    ]
+  },
+  {
+    "id": "math-geometry-divmod-digit-loop",
+    "pattern": "math-geometry",
+    "name": "The divmod loop: digits via % and /",
+    "idea": "Repeated (n % base, n / base) peels digits off any integer, and the mirrored multiply-and-add rebuilds them. Reversal, palindrome tests, digit remapping, and base conversion are all the same loop with different bookkeeping.",
+    "signals": [
+      "asked about a number's digits: their order, mirror image, or remapped shape",
+      "conversion to another base",
+      "'without converting to a string' hints"
+    ],
+    "trap": "The rebuilt number can overflow the integer type even when the input fits - guard before appending each digit, or only ever reverse half.",
+    "members": [
+      {
+        "questionId": 499,
+        "role": "canonical"
+      },
+      {
+        "questionId": 534,
+        "role": "warmup"
+      },
+      {
+        "questionId": 518,
+        "role": "standard"
+      },
+      {
+        "questionId": 523,
+        "role": "variant"
+      },
+      {
+        "questionId": 535,
+        "role": "stretch"
+      }
+    ]
+  },
+  {
+    "id": "math-geometry-cross-product",
+    "pattern": "math-geometry",
+    "name": "Cross product: one primitive for turns and lines",
+    "idea": "For vectors AB and AC, the sign of the 2D cross product tells whether C lies left of, right of, or exactly on line AB. That single integer test powers collinearity checks, convexity scans, and hull construction with no slopes and no division.",
+    "signals": [
+      "'straight line' or 'same line' questions over integer points",
+      "convexity, turn direction, or fence/boundary phrasing",
+      "grouping many points by the line passing through them"
+    ],
+    "trap": "Computing slopes as dy/dx invites division-by-zero and float-precision bugs - vertical lines and duplicate points are exactly where slope-based code fails.",
+    "members": [
+      {
+        "questionId": 510,
+        "role": "canonical"
+      },
+      {
+        "questionId": 503,
+        "role": "warmup"
+      },
+      {
+        "questionId": 502,
+        "role": "standard"
+      },
+      {
+        "questionId": 500,
+        "role": "variant"
+      },
+      {
+        "questionId": 514,
+        "role": "stretch"
+      }
+    ]
+  },
+  {
+    "id": "math-geometry-axis-aligned-rectangles",
+    "pattern": "math-geometry",
+    "name": "Axis-aligned rectangles: x and y are independent",
+    "idea": "An axis-parallel rectangle is just two independent intervals, one per axis. Overlap is per-axis interval overlap, union area is inclusion-exclusion of those overlaps, and a rectangle exists in a point set exactly when its four corner coordinates co-occur.",
+    "signals": [
+      "'sides parallel to the axes' in the statement",
+      "overlap or union area of two rectangles",
+      "choosing points from a set to form a rectangle"
+    ],
+    "trap": "Treating edge-touching as overlap (or the reverse) - the strict-versus-non-strict inequality on each axis is the entire bug surface.",
+    "members": [
+      {
+        "questionId": 508,
+        "role": "canonical"
+      },
+      {
+        "questionId": 506,
+        "role": "warmup"
+      },
+      {
+        "questionId": 497,
+        "role": "variant"
+      },
+      {
+        "questionId": 498,
+        "role": "stretch"
+      }
+    ]
+  },
+  {
+    "id": "math-geometry-distance-metrics",
+    "pattern": "math-geometry",
+    "name": "Pick the metric, stay in integers",
+    "idea": "The movement or shape rule dictates the distance formula: squared Euclidean for circles (never take the root), Chebyshev max(|dx|, |dy|) when diagonal steps are allowed, Manhattan for axis-only steps. Each choice keeps every comparison in exact integer arithmetic.",
+    "signals": [
+      "points inside a circle or within a radius",
+      "movement allowing diagonal steps, asked for travel time",
+      "maximize or minimize pairwise distances between grid points"
+    ],
+    "trap": "Calling sqrt introduces floating error and is never needed for comparisons; using Euclidean distance when movement is 8-directional overestimates travel time.",
+    "members": [
+      {
+        "questionId": 505,
+        "role": "canonical"
+      },
+      {
+        "questionId": 509,
+        "role": "warmup"
+      },
+      {
+        "questionId": 507,
+        "role": "standard"
+      },
+      {
+        "questionId": 512,
+        "role": "variant"
+      },
+      {
+        "questionId": 501,
+        "role": "stretch"
+      }
+    ]
+  },
+  {
+    "id": "math-geometry-gcd-structure",
+    "pattern": "math-geometry",
+    "name": "gcd governs what is reachable",
+    "idea": "Combining whole copies of two quantities by adding and subtracting can only ever produce multiples of their gcd (Bezout), and two repeating patterns align again at their lcm. Reachability and 'nth multiple of either' questions are gcd/lcm arithmetic, not search.",
+    "signals": [
+      "two containers, strings, or step sizes combined by repetition",
+      "'can you measure exactly z' phrasing",
+      "nth number divisible by a or b, with n far too large to iterate"
+    ],
+    "trap": "State-space BFS passes the small cases, but the binding constraint is divisibility - if the target is not a multiple of the gcd, no sequence of moves will ever reach it.",
+    "members": [
+      {
+        "questionId": 526,
+        "role": "canonical"
+      },
+      {
+        "questionId": 529,
+        "role": "standard"
+      },
+      {
+        "questionId": 515,
+        "role": "stretch"
+      }
+    ]
+  },
+  {
+    "id": "math-geometry-closed-form-invariant",
+    "pattern": "math-geometry",
+    "name": "Don't simulate: find the invariant",
+    "idea": "The statement stages a long process - rounds of toggles, alternating turns, batches of tests - but a pairing or invariant argument collapses it to a closed form: divisors pair up, positions modulo k decide the game, and information capacity bounds what tests can distinguish.",
+    "signals": [
+      "n up to 10^9 or beyond, yet the process reads step-by-step",
+      "repeated rounds, turns, or passes over the same objects",
+      "the answer is a single number with no construction requested"
+    ],
+    "trap": "Simulation times out by design; the real trap is not noticing the answer has a formula - count the process's fixed points instead of running it.",
+    "members": [
+      {
+        "questionId": 525,
+        "role": "canonical"
+      },
+      {
+        "questionId": 524,
+        "role": "warmup"
+      },
+      {
+        "questionId": 504,
+        "role": "standard"
+      },
+      {
+        "questionId": 530,
+        "role": "standard"
+      },
+      {
+        "questionId": 537,
+        "role": "standard"
+      },
+      {
+        "questionId": 527,
+        "role": "stretch"
+      }
+    ]
+  }
+]

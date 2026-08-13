@@ -14,6 +14,7 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { patternById } from '@/data/patterns';
+import { SUBPATTERNS } from '@/data/curriculum';
 import questionsData from '@/data/questions.json';
 import { useAppDispatch, useAppSelector } from '@/store/hooks';
 import { activeQuestionSet } from '@/store/slices/uiSlice';
@@ -103,6 +104,21 @@ export default function PatternDetailPage() {
     () => filterPatternQuestions(patternQuestions, progressById, { status, difficulty }, today),
     [patternQuestions, progressById, status, difficulty, today],
   );
+
+  // Sub-pattern sections over the *filtered* list; questions outside any group gather at the
+  // end. Patterns without a curated subdivision fall back to the flat grid below.
+  const sections = useMemo(() => {
+    const groups = (patternId && SUBPATTERNS[patternId]) || [];
+    if (groups.length === 0) return [];
+    const bySubpattern = groups.map((g) => ({
+      id: g.id,
+      name: g.name,
+      items: filtered.filter((q) => q.subpattern === g.id),
+    }));
+    const rest = filtered.filter((q) => q.subpattern === undefined);
+    if (rest.length > 0) bySubpattern.push({ id: 'other', name: 'More problems', items: rest });
+    return bySubpattern.filter((s) => s.items.length > 0);
+  }, [patternId, filtered]);
 
   if (!patternId || !isPatternId(patternId)) {
     return (
@@ -206,6 +222,29 @@ export default function PatternDetailPage() {
 
       {filtered.length === 0 ? (
         <EmptyState icon={SearchX} title="No questions match these filters" />
+      ) : sections.length > 0 ? (
+        // Sub-pattern sections: the taxonomy layer that turns "20 stack problems" into
+        // "matching, monotonic, parsing..." — recognition starts with the grouping.
+        <div className="flex flex-col gap-6">
+          {sections.map(({ id, name, items }) => (
+            <section key={id} aria-label={name}>
+              <h2 className="mb-3 text-base font-semibold">
+                {name} <span className="figures text-sm font-normal text-muted-foreground">· {items.length}</span>
+              </h2>
+              <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-3">
+                {items.map((q) => (
+                  <QuestionCard
+                    key={q.id}
+                    question={q}
+                    progress={progressById[q.id] ?? initialProgress()}
+                    context="browse"
+                    onOpenDetail={openQuestion}
+                  />
+                ))}
+              </div>
+            </section>
+          ))}
+        </div>
       ) : (
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-3">
           {filtered.map((q) => (

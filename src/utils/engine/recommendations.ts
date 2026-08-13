@@ -1,4 +1,5 @@
 import type { PatternId, Question, QuestionProgress } from '@/types';
+import { hashSeed, mulberry32 } from '@/utils/engine/prng';
 import type { PatternStat } from '@/utils/engine/stats';
 
 export interface WeakPattern {
@@ -119,29 +120,6 @@ export class HeuristicRecommender implements Recommender {
 // ---------------------------------------------------------------------------
 // seededRandomQuestion: deterministic "surprise me" picker.
 // ---------------------------------------------------------------------------
-
-// Cheap FNV-1a-style string hash: folds `seed` into a deterministic 32-bit fingerprint,
-// used only to seed the PRNG below (not for any security-sensitive purpose).
-function hashSeed(seed: string): number {
-  let hash = 0x811c9dc5; // FNV offset basis
-  for (let i = 0; i < seed.length; i++) {
-    hash ^= seed.charCodeAt(i);
-    hash = Math.imul(hash, 0x01000193); // FNV prime
-  }
-  return hash >>> 0;
-}
-
-// mulberry32: tiny, fast, deterministic PRNG seeded by a 32-bit integer.
-// Public-domain algorithm (see https://github.com/bryc/code/blob/master/jshash/PRNGs.md).
-function mulberry32(seed: number): () => number {
-  let a = seed >>> 0;
-  return () => {
-    a = (a + 0x6d2b79f5) | 0;
-    let t = Math.imul(a ^ (a >>> 15), 1 | a);
-    t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t;
-    return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
-  };
-}
 
 export function seededRandomQuestion(all: Question[], seed: string): Question {
   const random = mulberry32(hashSeed(seed));

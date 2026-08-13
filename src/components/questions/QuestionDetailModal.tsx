@@ -9,7 +9,9 @@ import { PatternChip } from '@/components/questions/PatternChip';
 import { RevisionStagePips } from '@/components/questions/RevisionStagePips';
 import { ConfidenceRating } from '@/components/questions/ConfidenceRating';
 import { NotesEditor } from '@/components/questions/NotesEditor';
+import { FamilyPanel } from '@/components/questions/FamilyPanel';
 import { STATUS_LABEL } from '@/components/questions/QuestionCard';
+import { familyById } from '@/data/curriculum';
 import { useAppDispatch, useAppSelector } from '@/store/hooks';
 import { setConfidence, toggleBookmark } from '@/store/actions';
 import { activeQuestionSet } from '@/store/slices/uiSlice';
@@ -93,6 +95,10 @@ export function QuestionDetailModal() {
               {progress.bookmarked ? 'Bookmarked' : 'Bookmark'}
             </Button>
           </div>
+
+          {question.familyId && familyById[question.familyId] && (
+            <FamilyPanel family={familyById[question.familyId]!} currentQuestionId={question.id} />
+          )}
 
           <div>
             <p className="mb-1 text-sm font-medium">Confidence</p>

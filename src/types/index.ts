@@ -17,12 +17,38 @@ export interface Question {
   pattern: PatternId;
   difficulty: Difficulty;
   estimatedTime: number; // minutes
+  // Curriculum intelligence (hand-verified in scripts/data/curriculum.json, emitted by the
+  // generator): the sub-pattern group within the pattern, and the problem family sharing
+  // one underlying idea. Both optional — only assigned where they genuinely aid learning.
+  subpattern?: string;
+  familyId?: string;
   // Verified external identity, present on the 528 questions with an exact LeetCode
   // counterpart (resolved against the committed catalog snapshot by the generator —
   // see scripts/generate-questions.mjs). Absent for Educative/Grokking originals.
   url?: string;
   leetcodeId?: number;
   premium?: boolean; // LeetCode paywalled problem — link works, content needs a subscription
+}
+
+// One underlying algorithmic idea shared by several questions. `canonical` is the reference
+// problem; `warmup`/`standard`/`variant`/`stretch` grade the on-ramp. `signals` are the
+// statement-level cues that should trigger recognition; `trap` is the tempting wrong turn.
+export type FamilyRole = 'canonical' | 'warmup' | 'standard' | 'variant' | 'stretch';
+
+export interface ProblemFamily {
+  id: string;
+  pattern: PatternId;
+  name: string;
+  idea: string;
+  signals: string[];
+  trap: string;
+  members: { questionId: number; role: FamilyRole }[];
+}
+
+export interface SubpatternGroup {
+  id: string;
+  name: string;
+  questionIds: number[];
 }
 
 export interface RevisionEvent { date: string; passed: boolean }

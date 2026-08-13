@@ -1,6 +1,5 @@
 import type { PatternId, Question, QuestionProgress } from '@/types';
 import { hashSeed, mulberry32 } from '@/utils/engine/prng';
-import type { PatternStat } from '@/utils/engine/stats';
 
 export interface WeakPattern {
   pattern: PatternId;
@@ -9,26 +8,16 @@ export interface WeakPattern {
 
 const MAX_WEAK_PATTERN_QUESTIONS = 3;
 
-/**
- * Eligibility note: `PatternStat` does not expose a raw "revision attempts" count — only
- * `revisionPassRate`, which is `null` iff zero revision attempts have ever been recorded for
- * the pattern. An attempts total therefore cannot be reconstructed from `PatternStat` alone,
- * so `minAttempts` is reinterpreted as a threshold on `solved` count (a proxy for "enough
- * solves to trust the score"): a pattern qualifies when `solved >= minAttempts`, OR it has at
- * least one recorded revision attempt (`revisionPassRate !== null`).
- */
-export function weakestPatterns(stats: PatternStat[], minAttempts = 3): WeakPattern[] {
-  return stats
-    .filter((s) => s.solved >= minAttempts || s.revisionPassRate !== null)
-    .map((s) => ({
-      pattern: s.pattern,
-      score: 0.4 * (s.revisionPassRate ?? 1) + 0.4 * ((s.avgConfidence ?? 3) / 5) + 0.2 * (s.pct / 100),
-    }))
-    .sort((a, b) => {
-      if (a.score !== b.score) return a.score - b.score;
-      return a.pattern < b.pattern ? -1 : a.pattern > b.pattern ? 1 : 0;
-    });
-}
+// `weakestPatterns(stats)` lived here: a 0.4·passRate + 0.4·confidence + 0.2·coverage blend. It
+// is DELETED, not deprecated, because it was the product's second opinion about the same learner
+// and the two could disagree on screen at the same time. Two properties made it actively wrong
+// rather than merely redundant: it imputed `passRate ?? 1` and `avgConfidence ?? 3`, so a pattern
+// that had never been tested scored as though it had been; and it counted low coverage as
+// weakness, so a pattern the learner simply had not reached yet — or had finished 100% of — could
+// be named their weakest area.
+//
+// `engine/weakness.ts` is the one weakness model (recency decay, repeated evidence, no dominant
+// signal, unmeasured-is-absent). Reach it through `selectPatternWeakness`.
 
 export interface Recommendation {
   kind: 'revision' | 'weak-pattern' | 'new' | 'course-review' | 'course-session';

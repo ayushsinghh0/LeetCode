@@ -10,7 +10,8 @@ import type { Company } from '@/data/companies';
 import { patternById } from '@/data/patterns';
 import { useAppDispatch, useAppSelector } from '@/store/hooks';
 import { activeQuestionSet } from '@/store/slices/uiSlice';
-import { selectPatternStats, selectQuestions, selectWeakestPatterns } from '@/store/selectors';
+import { selectPatternStats, selectPatternWeakness, selectQuestions } from '@/store/selectors';
+import { useToday } from '@/hooks/useToday';
 import {
   STRONG_PCT,
   WEAK_PCT,
@@ -445,7 +446,8 @@ function NoMappingSection({ company }: { company: Company }) {
 
 /** Roadmap advice, said as roadmap advice — the fallback when there is no company-specific target. */
 function BroadPracticeSection() {
-  const weakest = useAppSelector(selectWeakestPatterns).slice(0, 3);
+  const today = useToday();
+  const weakest = useAppSelector((s) => selectPatternWeakness(s, today)).slice(0, 3);
 
   return (
     <Section
@@ -464,19 +466,17 @@ function BroadPracticeSection() {
       ) : (
         <>
           <RuledList aria-label="Your weakest patterns">
-            {weakest.map(({ pattern }) => (
-              <RuledItem key={pattern} className="py-0">
-                <Link to={`/patterns/${pattern}`} className={ROW_LINK}>
-                  <span className="min-w-0 truncate text-sm font-medium">
-                    {patternById[pattern].name}
-                  </span>
+            {weakest.map(({ id, name }) => (
+              <RuledItem key={id} className="py-0">
+                <Link to={`/patterns/${id}`} className={ROW_LINK}>
+                  <span className="min-w-0 truncate text-sm font-medium">{name}</span>
                 </Link>
               </RuledItem>
             ))}
           </RuledList>
           <p className="max-w-prose text-xs leading-relaxed text-muted-foreground">
-            Ranked from your own review pass rate, confidence and completion. This is roadmap
-            advice, not company advice — nothing on their page points at any of it.
+            Ranked from repeated negative evidence — failed recalls, drill misses, slow solves.
+            This is roadmap advice, not company advice — nothing on their page points at any of it.
           </p>
         </>
       )}

@@ -5,7 +5,7 @@ import { ThemeProvider } from '@/contexts/ThemeContext';
 import { TooltipProvider } from '@/components/ui/tooltip';
 import { makeStore } from '@/store/store';
 import CompaniesPage from '@/pages/CompaniesPage';
-import { solveQuestion } from '@/store/actions';
+import { reviseQuestion, solveQuestion } from '@/store/actions';
 import { COMPANIES, EVIDENCE_LABEL, EVIDENCE_MEANING } from '@/data/companies';
 import type { AppStore } from '@/store/store';
 
@@ -185,10 +185,18 @@ describe('CompaniesPage — companies without mapped patterns', () => {
 
   test('a categories-only company still offers somewhere to put the time, labelled as roadmap advice', () => {
     const store = makeStore();
-    // Three solves in one pattern is what makes a pattern rankable at all (weakestPatterns).
+    // Weakness needs repeated NEGATIVE evidence, not merely activity: solving three questions
+    // says nothing about what is failing. Two failed recalls on the same question are what make a
+    // pattern nameable. (This fixture used to be three plain solves, which ranked under the old
+    // coverage blend — the formula that could call a 100%-solved pattern "weakest".)
     store.dispatch(solveQuestion(1));
     store.dispatch(solveQuestion(2));
     store.dispatch(solveQuestion(3));
+    vi.setSystemTime(new Date('2026-07-31T12:00:00'));
+    store.dispatch(reviseQuestion(1, false));
+    vi.setSystemTime(new Date('2026-08-01T12:00:00'));
+    store.dispatch(reviseQuestion(1, false));
+    vi.setSystemTime(new Date('2026-08-02T12:00:00'));
     renderAt('/companies/amazon', store);
 
     const where = screen.getByRole('region', { name: 'Where to put the time' });
@@ -196,8 +204,13 @@ describe('CompaniesPage — companies without mapped patterns', () => {
     expect(within(where).getByText(/roadmap advice, not company advice/)).toBeInTheDocument();
   });
 
-  test('with no practice history the fallback says so instead of ranking nothing', () => {
-    renderAt('/companies/amazon');
+  test('with no negative evidence the fallback says so instead of ranking nothing', () => {
+    const store = makeStore();
+    // Solves alone must NOT produce a weakness ranking — unmeasured is not weak.
+    store.dispatch(solveQuestion(1));
+    store.dispatch(solveQuestion(2));
+    store.dispatch(solveQuestion(3));
+    renderAt('/companies/amazon', store);
     const where = screen.getByRole('region', { name: 'Where to put the time' });
     expect(within(where).getByText(/Not enough practice yet to rank your patterns/)).toBeInTheDocument();
   });

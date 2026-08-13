@@ -50,7 +50,6 @@ import { computeStreaks, hasActivity } from '@/utils/engine/streak';
 import { levelProgress } from '@/utils/engine/xp';
 import { difficultyStats, patternStats, productivityScore } from '@/utils/engine/stats';
 import { buildAchievementCtx } from '@/utils/engine/achievements';
-import { weakestPatterns } from '@/utils/engine/recommendations';
 import { combinedRevisionLoadForecast } from '@/utils/engine/predictor';
 import { weeklyTopUp } from '@/utils/engine/weeklyRevision';
 import { COURSE_WEEKS } from '@/data/aimlCourse';
@@ -199,9 +198,13 @@ export const selectProductivityScore = createSelector(
   (dayLogs, byId, perDay, today) => productivityScore(dayLogs, byId, perDay, today),
 );
 
-export const selectWeakestPatterns = createSelector([selectPatternStats], (stats) =>
-  weakestPatterns(stats),
-);
+// NOTE: `selectWeakestPatterns` (engine/recommendations.weakestPatterns) was deleted here. It was
+// the second weakness formula — a pass-rate/confidence/coverage blend that imputed `passRate ?? 1`
+// and `avgConfidence ?? 3`, i.e. scored UNMEASURED patterns as if they had been tested. Dashboard,
+// Companies and Patterns read it while Analytics, Revision and the session engine read
+// `selectPatternWeakness`, so the product held two contradictory opinions about the same learner
+// (one of them capable of calling a 100%-solved pattern "weakest"). Weakness is claimed in exactly
+// one place: `selectPatternWeakness`.
 
 // Course weeks climb the same 1/3/7/15/30 ladder as questions, so the load forecast counts
 // both tracks in one series.

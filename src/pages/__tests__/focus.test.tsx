@@ -139,7 +139,7 @@ describe('FocusPage: course-session source (no DSA work left)', () => {
     return makeStore({ progress: { byId: dsaExhaustedById(), dayLogs: {}, startDate: '2026-01-01' } });
   }
 
-  test('shows the next course session with a "Session done" action, and completing it advances the plan', () => {
+  test('shows the next course session, and one session done is the day done — it does not roll straight into the next', () => {
     const store = courseSessionStore();
     renderWithStore(<FocusPage />, store);
 
@@ -150,13 +150,14 @@ describe('FocusPage: course-session source (no DSA work left)', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Session done' }));
     expect(store.getState().course.byWeekId['w00']!.day1DoneOn).toBe(TODAY);
 
-    // Same week, day 2 comes up next — still Orientation, now labelled Practice.
-    expect(screen.getByRole('heading', { name: 'Orientation' })).toBeInTheDocument();
-    expect(screen.getByText(/Day 2 — Practice/)).toBeInTheDocument();
-
-    fireEvent.click(screen.getByRole('button', { name: 'Session done' }));
-    expect(store.getState().course.byWeekId['w00']!.day2DoneOn).toBe(TODAY);
-    expect(screen.getByRole('heading', { name: 'Fast-tracking the Course of AI' })).toBeInTheDocument();
+    // This test previously asserted that day 2 appeared immediately, and then the NEXT WEEK after
+    // that — i.e. it pinned the defect. Focus built its own queue straight off
+    // selectCourseNextSession, with none of the ranker's gates, so the whole 52-session course
+    // was clearable in one sitting (2340 XP) and the day had no completion moment. Focus now
+    // reads selectRankedWork, which withholds the session once one is done today, so finishing
+    // the day's session finishes the day.
+    expect(screen.queryByRole('button', { name: 'Session done' })).not.toBeInTheDocument();
+    expect(store.getState().course.byWeekId['w00']!.day2DoneOn).toBeNull();
   });
 });
 

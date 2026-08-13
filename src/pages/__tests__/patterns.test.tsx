@@ -6,7 +6,6 @@ import PatternsPage, { sortStats } from '@/pages/PatternsPage';
 import PatternDetailPage, { filterPatternQuestions } from '@/pages/PatternDetailPage';
 import { solveQuestion } from '@/store/actions';
 import { PATTERNS } from '@/data/patterns';
-import { weakestPatterns } from '@/utils/engine/recommendations';
 import questionsData from '@/data/questions.json';
 import type { Question, QuestionProgress, PatternId } from '@/types';
 import type { PatternStat } from '@/utils/engine/stats';
@@ -235,18 +234,27 @@ describe('sortStats', () => {
     ]);
   });
 
-  test('"weakest": eligible patterns in weakestPatterns() order, then ineligible patterns appended in course order', () => {
-    const weakest = weakestPatterns(stats);
-    // Sanity check on the fixture itself: greedy/two-pointers/intervals are eligible (in that
-    // ascending-score order), sliding-window/fast-slow-pointers are not.
-    expect(weakest.map((w) => w.pattern)).toEqual(['greedy', 'two-pointers', 'intervals']);
+  test('"weakest": the weakness model\'s order first, then every unscored pattern in course order', () => {
+    // The order now comes from `selectPatternWeakness` (engine/weakness.ts) and is passed in, so
+    // the page cannot hold a second opinion about which patterns are weak. Patterns the model did
+    // not score are UNMEASURED, not strong — they keep their course order at the end rather than
+    // being ranked as though they had been tested.
+    const weakestFirst: PatternId[] = ['greedy', 'two-pointers', 'intervals'];
 
-    const result = sortStats(stats, 'weakest');
+    const result = sortStats(stats, 'weakest', weakestFirst);
 
     expect(result.map((s) => s.pattern)).toEqual([
-      ...weakest.map((w) => w.pattern),   // eligible, ascending score (weakest first)
-      'sliding-window', 'fast-slow-pointers', // ineligible, appended in course (input) order
+      ...weakestFirst,
+      'sliding-window', 'fast-slow-pointers', // unscored, appended in course (input) order
     ]);
+  });
+
+  test('"weakest" with no scored patterns leaves the course order untouched', () => {
+    // A learner with no negative evidence yet: the model returns nothing, and the sort must not
+    // invent a ranking from coverage the way the deleted formula did.
+    expect(sortStats(stats, 'weakest', []).map((s) => s.pattern)).toEqual(
+      stats.map((s) => s.pattern),
+    );
   });
 });
 

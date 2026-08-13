@@ -5,7 +5,6 @@ import { initialProgress } from '@/utils/engine/spacedRepetition';
 import { patternStats, difficultyStats, productivityScore } from '@/utils/engine/stats';
 import { computeStreaks } from '@/utils/engine/streak';
 import { levelProgress } from '@/utils/engine/xp';
-import { weakestPatterns } from '@/utils/engine/recommendations';
 import { combinedRevisionLoadForecast, revisionLoadForecast } from '@/utils/engine/predictor';
 import { COURSE_WEEKS } from '@/data/aimlCourse';
 import { weeklyTopUp } from '@/utils/engine/weeklyRevision';
@@ -36,7 +35,6 @@ import {
   selectTodayLog,
   selectTodaysNewQuestions,
   selectTotalDays,
-  selectWeakestPatterns,
   selectWeeklyTopUpIds,
 } from '@/store/selectors';
 
@@ -246,7 +244,7 @@ test('selectAchievementCtx delegates to buildAchievementCtx', () => {
   );
 });
 
-test('selectEstimatedFinish/selectProductivityScore/selectWeakestPatterns/selectForecast delegate correctly', () => {
+test('selectEstimatedFinish/selectProductivityScore/selectForecast delegate correctly', () => {
   const store = makeStore();
   importFixture(store, {
     1: progressFixture({ status: 'solved', completedAt: '2026-07-01', nextRevision: '2026-07-29', confidence: 3 }),
@@ -261,8 +259,6 @@ test('selectEstimatedFinish/selectProductivityScore/selectWeakestPatterns/select
   expect(selectProductivityScore(state, TODAY)).toBe(
     productivityScore(state.progress.dayLogs, state.progress.byId, selectPerDay(state), TODAY),
   );
-
-  expect(selectWeakestPatterns(state)).toEqual(weakestPatterns(patternStats(questions, state.progress.byId)));
 
   // With no course progress, the merged forecast collapses to the question-only series.
   expect(selectForecast(state, TODAY)).toEqual(revisionLoadForecast(state.progress.byId, TODAY));

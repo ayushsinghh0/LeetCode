@@ -22,7 +22,6 @@ import {
   selectEstimatedFinish,
   selectHeatmapData,
   selectLevelInfo,
-  selectPatternStats,
   selectPerDay,
   selectProductivityScore,
   selectQuestions,
@@ -33,7 +32,7 @@ import {
   selectTodayLog,
   selectTodaysNewQuestions,
   selectTotalDays,
-  selectWeakestPatterns,
+  selectPatternWeakness,
 } from '@/store/selectors';
 import { courseWeekById } from '@/data/aimlCourse';
 import { seededRandomQuestion } from '@/utils/engine/recommendations';
@@ -70,8 +69,7 @@ export default function DashboardPage() {
   const heatmapData = useAppSelector((s) => selectHeatmapData(s, today));
   const estFinish = useAppSelector((s) => selectEstimatedFinish(s, today));
   const productivity = useAppSelector((s) => selectProductivityScore(s, today));
-  const weakest = useAppSelector(selectWeakestPatterns);
-  const patternStats = useAppSelector(selectPatternStats);
+  const weakest = useAppSelector((s) => selectPatternWeakness(s, today));
   const revisionQueueIds = useAppSelector((s) => selectRevisionQueueIds(s, today));
   const todayLog = useAppSelector((s) => selectTodayLog(s, today));
   const courseStats = useAppSelector(selectCourseStats);
@@ -98,7 +96,6 @@ export default function DashboardPage() {
   const solvedToday = todayLog ? todayLog.solvedIds.length : 0;
 
   const weakestEntry = weakest[0] ?? null;
-  const weakestStat = weakestEntry ? patternStats.find((s) => s.pattern === weakestEntry.pattern) : undefined;
 
   const dueTotal = revisionQueueIds.length + courseDueReviews.length;
   const courseNextWeek = courseNext ? courseWeekById.get(courseNext.weekId) : undefined;
@@ -236,29 +233,28 @@ export default function DashboardPage() {
 
       <Section
         title="Weakest pattern"
-        support="Ranked by recall, confidence and coverage — a pattern needs a few solves before it can be scored."
+        support="Measured from recall, drills and pace — a pattern needs repeated negative evidence before it is named at all."
         action={
           weakestEntry ? (
             <Button asChild size="sm" variant="ghost">
-              <Link to={`/patterns/${weakestEntry.pattern}`}>Practice this</Link>
+              <Link to={`/patterns/${weakestEntry.id}`}>Practice this</Link>
             </Button>
           ) : undefined
         }
       >
-        {weakestEntry && weakestStat ? (
+        {weakestEntry ? (
           <div className="flex flex-col gap-1">
-            <p className="text-base font-medium">{patternById[weakestEntry.pattern].name}</p>
-            <Meta
-              items={[
-                <span className="figures">{weakestStat.pct}% solved</span>,
-                <span className="figures">
-                  {weakestStat.solved} of {weakestStat.total}
-                </span>,
-              ]}
-            />
+            <p className="text-base font-medium">{weakestEntry.name}</p>
+            {/* The model's own because-clause, not a coverage figure. Low coverage is not
+                weakness: an unstarted pattern is unmeasured, and saying otherwise sent learners
+                to practise the thing they had simply not reached yet. */}
+            <p className="max-w-prose text-sm text-muted-foreground">{weakestEntry.summary}</p>
           </div>
         ) : (
-          <p className="text-sm text-muted-foreground">Not enough data yet.</p>
+          <p className="text-sm text-muted-foreground">
+            Nothing has enough evidence against it yet. Recall failures, drill misses and slow
+            solves are what score a pattern here.
+          </p>
         )}
       </Section>
 

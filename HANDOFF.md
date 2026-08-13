@@ -1,113 +1,93 @@
-# HANDOFF — GOD MODE V5.1, paused 2026-08-13
+# HANDOFF — GOD MODE V5.1, updated 2026-08-13 (session 2)
 
 Read this first when resuming. `CLAUDE.md` (architecture + invariants), `DESIGN.md` (§ Composition
-is new and mandatory) and `PRODUCT.md` (product truth) are all up to date and are the real
-reference — this file only records **where the work stopped and what is left**.
+is mandatory) and `PRODUCT.md` (product truth) are the real reference — this file records **where
+the work stopped and what is left**.
 
-## State at pause: GREEN
+## State: GREEN, and pushed
 
 ```
 npx tsc --noEmit        clean
-npm run validate:data   OK — 539 questions, 528 linked, 17 companies (5 enumerating topics)
-npx vitest run          747 passed (65 files)      ← 542 at session start
-npm run build           succeeds
-npm run audit:companies 9 verified · 8 unverifiable (reported, with reasons) · 0 failures
+npm run validate:data   OK — 539 questions, 17 companies
+npx vitest run          761 passed (66 files)      ← 747 at session-2 start
+npm run build           succeeds — main chunk 256.94 kB
 ```
 
-Everything is committed. The tree is safe to leave and safe to resume from.
+`origin/main` is at `6851662`. Working tree clean. Push uses the credential override recorded in
+project memory (plain `git push` authenticates as the wrong account).
 
-## The two P0s from the directive are done
+## What session 2 closed
 
-**1. UI composition.** `src/components/layout/Page.tsx` is the vocabulary (`Page`, `PageHeader`,
-`Section`, `Lead`, `Plate`, `Rule`, `RuledList`, `RuledItem`, `Ledger`, `Meta`) and
-**DESIGN.md § Composition** is the contract. The rule: a plate must earn itself — one `Lead` per
-page, `Plate` only for something genuinely liftable, dialogs; everything else is an open
-`Section`. Counted facts go in `Ledger`, not a grid of `StatCard`s. Related facts go on one `Meta`
-line. Three vertical steps and no others.
+**1. The bundle regression is beaten, not just recovered.** Main chunk 339.83 kB → 256.94 kB,
+~45 kB *below* the 301 kB the directive asked to preserve, with contest mode added on top. Found
+by per-module chunk attribution (a temporary Rollup reporter, since deleted):
 
-Recomposed: Dashboard (12 plates → 0), Roadmap (70 → 0), Patterns (29 → 0), PatternDetail,
-Achievements (60 → 0), Settings (3 → 0), Bookmarks, Calendar (3 → 0), Drills (6 → 1), Companies
-(both views → 0), Analytics, AI/ML, Today, the question sheet, and the shell chrome.
+- `SearchDialog` is `lazy()` behind an AppShell latch — it dragged the Radix select + filter-row
+  stack into main for a dialog that only opens on demand. Its Ctrl/Cmd+K hotkey moved to the
+  eager `useSearchHotkey` hook, because a lazy component cannot own the shortcut that summons it.
+- `date-fns` left the eager graph: `utils/dates.ts` hand-rolls its day-level ISO math and
+  `engine/insights.ts` hand-rolls its one display date. Reviewer-verified equivalent, including
+  DST behaviour.
+- `canvas-confetti` dynamic-imports on the first celebration.
 
-**2. Context-aware revision.** `src/utils/engine/session.ts` + the rebuilt `RevisionPage`. Time
-chooses *depth*, not count; cognitive load is capped separately from minutes; the session has an
-arc; overflow is "waiting", never a headline. The plan is **frozen at start** so it cannot
-reshuffle mid-sitting.
+**2. Contest mode is shipped and wired** — `ContestPage`, `/contest` route, nav entry beside
+Drills and Interview, two selectors, 7 page tests. PRODUCT.md carries the contest truth now.
 
-## Defects found and fixed (not just features added)
+**3. Browser QA finally happened.** The in-app Browser pane works where the Chrome extension's
+OAuth mismatch blocked two prior sessions: `preview_start` with the `dsa-roadmap-dev` config.
+Verified all 15 routes at 375px and desktop — zero horizontal overflow anywhere, every `h1`
+present, mobile nav/sidebar swapping correctly, both themes painting from tokens, the pomodoro
+clearing the shell's bottom padding, the full contest lifecycle, the lazy palette loading on
+Ctrl+K, and the type-to-confirm reset actually clearing state.
 
-- **`Card` vs `.glass` cascade bug.** `Card` applied Tailwind's `shadow` utility while `.glass`
-  set `box-shadow` from `@layer components`, so every `QuestionCard` — the most repeated surface
-  in the app — silently rendered the wrong shadow. Fixed at the primitive: `Card` *is* `.glass`.
-- **A shipped paraphrase**, caught by `audit:companies` on its first run. Databricks' page says
-  "**Know** common data structures…"; the dataset had reworded it to "review…". That is exactly
-  what got Atlassian and Shopify deleted.
-- **Session scorer explained itself wrongly**: "only at step 0 of the ladder" outranked a
-  genuinely-overdue item's reason. Ladder fragility is now score-only, never an explanation.
-- **The floating pomodoro covered the last ~18px of every page on phones** (AppShell reserved
-  144px; the widget reached 162px). Widget shrunk, shell padding raised, toast restacked.
+**4. Adversarial pass 1 ran and found real defects** — including a **P0 data-loss bug**: tapping
+the "15m" capacity chip persisted a value `validatePersisted` rejected, so the next load
+quarantined the learner's entire state and booted the app empty. Also a double-graded revision
+ladder (Undo → re-grade moved the ladder twice and paid XP twice), a Settings toggle the Revision
+page ignored, a session that could defer due work while pulling forward not-due work, and four
+surfaces stating things the data did not support. All fixed in `6851662` with regression tests.
 
-## The company-evidence result is a negative one, and it is final
-
-The per-problem premise was re-tested across 17 companies. Google's Tech Dev Guide — historically
-the one first-party page naming concrete practice problems — **is retired** and 302s to a generic
-careers page. Exactly one source names any problem at all (LinkedIn, 2016, one specialist role,
-explicitly the phone screen's warm-up tier), recorded verbatim in `namedProblems` and never mapped
-to a roadmap question. **The absence of a per-problem field is a finding, not a gap to fill.**
+**5. A load-time defect nobody had reported:** the Suspense boundary sat *above* `AppShell`, so
+every cold load replaced the whole application — sidebar, nav, brand — with one pulsing plate
+until the first route chunk resolved. Moved inside the shell; a synchronous test pins it.
 
 ## What is NOT done — pick up here
 
-1. **Contest mode is 70% built and NOT wired up.** `src/utils/engine/contest.ts` (12 tests),
-   `src/store/slices/contestSlice.ts` (15 tests) and the thunks in `actions.ts` all exist and pass.
-   Missing: `src/pages/ContestPage.tsx`, the lazy route in `src/App.tsx`, and a `mobile: 'more'`
-   entry in `src/components/layout/navItems.ts` (there is room for exactly five `primary` tabs —
-   do not add a sixth). The engine's design notes are in its header comment; `analyzeContest` is
-   deliberately conservative (no score, no rank, and an abandoned contest is declared
-   inconclusive rather than mined for weaknesses).
+1. **Adversarial pass 2 was running when this was written.** Its findings are the next work item.
+   Check whether its report was acted on before doing anything else.
 
-2. **Main bundle regressed 301.65 kB → 339.83 kB (+38 kB).** The directive says preserve ~301 kB,
-   so this is a genuine miss. Likely causes: the new engine modules (`session`, `weakness`,
-   `contest`, `interview`) reach the main chunk via `selectors.ts` / `store.ts`, which are not
-   lazy. Worth an audit before adding anything else. `data-ml` (188 kB) and `data-curriculum`
-   (386 kB) are correctly pinned as separate immutable chunks; `AnalyticsPage` (411 kB, recharts)
-   is lazy and unchanged.
+2. **`engine/weakness.ts` test coverage** — an agent was writing
+   `src/utils/engine/__tests__/weakness.test.ts` when session 2 was wrapping up. Verify whether
+   that file exists and is green; the module is the most arithmetic-dense one shipped and every
+   UI weakness claim rests on it.
 
-3. **The two adversarial passes (§58–59) never ran.** This is the biggest outstanding item. The
-   plan was: an independent reviewer told "assume the product is still mediocre, prove it", fix
-   the legitimate findings, then a second pass asking "what did the first reviewer miss?" Prior
-   sessions found real defects this way, so do not skip it.
+3. **Contest results still evaporate.** `analyzeContest` returns `patternGaps` so a contest can
+   feed the shared weakness signal, but nothing consumes them and the contest slice is not
+   persisted — a stall informs the post-contest screen and then vanishes. The module header now
+   says so honestly instead of claiming the wiring exists. Wiring it means persisting stalls
+   somewhere `patternWeakness` can read.
 
-4. **Browser QA is still unavailable.** The Chrome extension reports an OAuth account mismatch
-   with the CLI login, and agents also could not reach the local dev server. **No visual
-   verification has happened this session** — everything is verified through jsdom and reasoning
-   only. `src/__tests__/routes.test.tsx` proves every `NAV_ITEMS` route mounts through the real
-   lazy boundaries; it does not prove anything looks right at 375px.
-
-5. **Smaller items reported by agents, deliberately not actioned:**
-   - `engine/nextAction.ts` could expose `nextAfterSolve(questionId, byId)` — the post-solve
-     recommendation is currently business logic living inside `PostSolvePanel`.
+4. **Smaller items, deliberately not actioned:**
+   - `engine/nextAction.ts` could expose `nextAfterSolve(questionId, byId)` — that recommendation
+     is business logic living inside `PostSolvePanel`.
    - `data/curriculum.ts` should own `FAMILY_ROLE_MEANING` (it sits locally in `FamilyPanel.tsx`).
    - `hints.ts` could derive an orientation rung for the 101 family-less questions, but that
-     renumbers the rungs `hintLevelUsed` is persisted against — it needs a migration decision,
-     not a UI decision.
-   - The `/paraphras/i` guard in `insights.test.ts` is a substring check on prose, so it trips on
-     any note that *describes* a paraphrase defect. It cost two rewordings this session. Kept
-     deliberately — it is blunt but it works, and loosening it weakens a real safety net.
+     renumbers the rungs `hintLevelUsed` is persisted against — a migration decision.
+   - `selectors.ts` gives a solved-but-never-reviewed question `daysSinceSeen: 0`, suppressing its
+     staleness tiebreak; the field's own doc says "days since the learner last touched it".
 
-## Four agents were killed mid-flight by a session limit
+## Rules that bit — do not relearn them the hard way
 
-Interview mode, analytics + weakness model, the Today surface, and ML shipping all had their
-agents terminated by an account usage cap. **Their work was recovered and completed** — the suite
-is green and their surfaces are finished. The only thing that needed repair was
-`analytics.test.tsx`, whose page had been rebuilt but whose tests had not been updated; those were
-rewritten against the new five-question structure rather than loosened.
-
-## Rules that bit this session — do not relearn them the hard way
-
+- **Commit messages go through a file** (`git commit -F <path>`), not a PowerShell here-string:
+  long messages containing quotes get tokenized and the commit fails messily.
 - UI copy is asserted in tests. Changing a user-facing string is a behaviour change: update the
-  owning test deliberately, **never weaken an assertion to make a styling change pass.**
-- Tests must pin the clock (`vi.useFakeTimers()` + `vi.setSystemTime(new Date('2026-07-30T12:00:00'))`).
+  owning test deliberately, **never weaken an assertion to make a change pass.**
+- Tests must pin the clock (`vi.useFakeTimers()` + `vi.setSystemTime(...)`).
 - `progress.byId`, `course.byWeekId` and `tasks.byId` are sparse — every read needs a fallback.
 - Never hand-edit `src/data/*.json`; run `node scripts/generate-questions.mjs`.
-- PowerShell here does not support `&&`; use `;`. Multi-line strings need heredocs, not
-  here-strings.
+- PowerShell here: `;` not `&&`.
+- **A validator stricter than the UI is a data-loss bug.** Any persisted field with a range check
+  must admit every value the product's own controls can write, and a test must round-trip them.
+- When a suite goes faster, old timeouts start failing: that is contention arriving all at once,
+  not flakiness to paper over. `vitest.testTimeout` must sit above every per-query `findBy`
+  window, or the kill ceiling silently truncates the wait the query asked for.

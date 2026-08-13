@@ -48,25 +48,16 @@ function renderApp(initialEntries: string[] = ['/']) {
 }
 
 describe('AppShell routing', () => {
-  test('renders the Dashboard page and all 15 sidebar nav labels at "/"', async () => {
+  test('renders all 15 sidebar nav labels at "/"', () => {
     renderApp(['/']);
 
-    // This is the very first render of the whole tree, gated on DashboardPage's lazy chunk
-    // (React.lazy in src/App.tsx) resolving through the top-level Suspense boundary — no router
-    // transition or AnimatePresence cycle is involved (PageTransition's `initial={false}` skips
-    // animating the first mount), so in isolation this resolves in well under 500ms. But that
-    // dynamic import still has to actually complete, and under a full-suite run (many Vitest
-    // worker threads contending for the same CPU cores) even that can occasionally take longer
-    // than Testing Library's default 1000ms findBy window — observed directly during diagnosis
-    // of this file's flake history (this exact query timed out on one full-suite run, at ~1.96s,
-    // while passing in isolation every time). See the longer note in the next test for the fuller
-    // mechanism; the fix here is the same: a generous per-query timeout, not a global bump.
-    // 8000 matches routes.test.tsx's CHUNK_TIMEOUT: once the eager graph slimmed down (fewer
-    // transform steps before workers start testing), every worker's first shell mount lands at
-    // the same contended instant and >5s was observed repeatedly. The suite-level testTimeout in
-    // vite.config.ts is raised above this window so the kill ceiling can't silently truncate it.
-    await screen.findByRole('heading', { name: 'Dashboard' }, { timeout: 8000 });
-
+    // Synchronous, and deliberately so. This assertion is about the SHELL's nav registry, which
+    // renders eagerly — it used to await DashboardPage's lazy chunk first, purely because the
+    // Suspense boundary sat above the shell and nothing at all painted until that chunk landed.
+    // With the boundary moved inside AppShell the wait is not just unnecessary, it was the
+    // slowest thing in the suite: ~1.7s in isolation and >8s under full-worker contention, for a
+    // chunk this test never asserts on. That the Dashboard route itself mounts is covered by
+    // routes.test.tsx, which mounts every NAV_ITEMS route through the real lazy boundaries.
     const sidebarNav = screen.getByRole('navigation', { name: /sidebar navigation/i });
     for (const label of SIDEBAR_LABELS) {
       expect(within(sidebarNav).getByText(label)).toBeInTheDocument();

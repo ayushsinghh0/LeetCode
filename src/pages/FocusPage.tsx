@@ -1,4 +1,4 @@
-import { useEffect } from 'react';
+import { useEffect, useMemo } from 'react';
 import { Link } from 'react-router-dom';
 import { CheckCircle2, ExternalLink, GraduationCap, RotateCcw, SkipForward, X, XCircle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -22,22 +22,28 @@ import {
 } from '@/store/actions';
 import { focusQuestionSet } from '@/store/slices/uiSlice';
 import {
-  selectCourseDueReviewIds,
   selectCourseNextSession,
   selectQuestionById,
-  selectRevisionQueueIds,
-  selectTodaysNewQuestions,
+  selectRankedWork,
 } from '@/store/selectors';
 import { initialProgress } from '@/utils/engine/spacedRepetition';
 import { initialCourseProgress, type CourseDay } from '@/utils/engine/aimlCourse';
 import type { Question } from '@/types';
 
-// One studyable unit at a time — the whole point of focus mode. Sources drain in the same order
-// each track presents its own work (new before revision, session before review), DSA first:
-//   1. today's next unsolved (and unskipped) question
-//   2. the first due question revision
-//   3. the next AI/ML course session
-//   4. the first due course week review
+// One studyable unit at a time — the whole point of focus mode. WHICH unit is not this page's
+// decision: it is `selectRankedWork`, the product's one prioritizer, exactly as Today's hero and
+// session plan use it. This page used to assemble its own queue (today's questions → revisions →
+// course session → course review), which broke three separate contracts at once:
+//
+//   - it inverted the ranking principle (retention outranks acquisition), so Today's hero could
+//     say "revise this" while the Focus button directly beneath it opened an unsolved question;
+//   - it read `selectTodaysNewQuestions` raw, without the `perDay - solvedToday` cap, so
+//     finishing the day advanced `currentDay` and Focus immediately served question 9, then 10,
+//     forever — the treadmill with no completion moment that cap exists to close;
+//   - it read `selectCourseNextSession` without the done-today gate, so "Session done" re-rendered
+//     the NEXT session instantly and all 52 sessions could be cleared in one sitting for 2340 XP.
+//
+// Deriving from the ranker fixes all three by construction and keeps them fixed.
 type FocusItem =
   | { kind: 'new-question'; question: Question }
   | { kind: 'question-revision'; question: Question }
@@ -51,39 +57,53 @@ export default function FocusPage() {
   useRouteTitle('Focus');
   const today = useToday();
 
-  const todaysQuestions = useAppSelector(selectTodaysNewQuestions);
   const progressById = useAppSelector((s) => s.progress.byId);
   const courseByWeekId = useAppSelector((s) => s.course.byWeekId);
-  const revisionIds = useAppSelector((s) => selectRevisionQueueIds(s, today));
+  const ranked = useAppSelector((s) => selectRankedWork(s, today));
   const courseNext = useAppSelector(selectCourseNextSession);
-  const courseDueReviewIds = useAppSelector((s) => selectCourseDueReviewIds(s, today));
 
-  // 'skipped' is excluded (unlike the Today grid, which shows every card): Skip here must
-  // visibly advance to the next item, not re-present the same question forever.
-  const currentNew = todaysQuestions.find((q) => {
-    const status = progressById[q.id]?.status ?? 'unsolved';
-    return status !== 'solved' && status !== 'skipped';
-  });
-  const dueRevision = revisionIds.length > 0 ? selectQuestionById(revisionIds[0]!) : undefined;
-  const nextSessionWeek = courseNext ? courseWeekById.get(courseNext.weekId) : undefined;
-  const dueReviewWeek = courseDueReviewIds.length > 0 ? courseWeekById.get(courseDueReviewIds[0]!) : undefined;
+  // The ranker's order, filtered to what this page can actually render. A drill is its own
+  // surface and a task is the learner's own note — neither is a studyable unit here, so they are
+  // stepped over rather than allowed to block the queue.
+  const next = ranked.find(
+    (work) =>
+      work.kind === 'new-question' ||
+      work.kind === 'revision' ||
+      work.kind === 'course-session' ||
+      work.kind === 'course-review',
+  );
 
-  const item: FocusItem | null = currentNew
-    ? { kind: 'new-question', question: currentNew }
-    : dueRevision
-      ? { kind: 'question-revision', question: dueRevision }
-      : courseNext && nextSessionWeek
-        ? { kind: 'course-session', week: nextSessionWeek, day: courseNext.day }
-        : dueReviewWeek
-          ? { kind: 'course-review', week: dueReviewWeek }
-          : null;
+  const item: FocusItem | null = useMemo(() => {
+    if (!next) return null;
+    if (next.kind === 'new-question' || next.kind === 'revision') {
+      const question = next.questionId !== undefined ? selectQuestionById(next.questionId) : undefined;
+      if (!question) return null;
+      return next.kind === 'new-question'
+        ? { kind: 'new-question', question }
+        : { kind: 'question-revision', question };
+    }
+    const week = next.weekId !== undefined ? courseWeekById.get(next.weekId) : undefined;
+    if (!week) return null;
+    if (next.kind === 'course-review') return { kind: 'course-review', week };
+    // The ranker decided a session is due today; `courseNext` supplies which day of the week it
+    // is (the ranker carries the week, not the day). They agree by construction — the ranker's
+    // own session entry is built from this same selector — but the guard keeps the page honest
+    // if that ever changes.
+    return courseNext && courseNext.weekId === week.id
+      ? { kind: 'course-session', week, day: courseNext.day }
+      : null;
+  }, [next, courseNext]);
 
-  // Keep ui.focusQuestionId pointing at the question on screen (null for course items and on
-  // exit) so a completing pomodoro phase attributes its minutes to the right place — see
-  // logFocusSession in store/actions.ts for the attribution model.
+  // Keep ui.focusQuestionId pointing at the question on screen so a completing pomodoro phase
+  // attributes its minutes to the right place — see logFocusSession in store/actions.ts.
+  //
+  // NEW questions only. `timeSpentMin` is the measurement `engine/timeEstimate.ts` reads as pace
+  // against the authored FIRST-ATTEMPT estimate; crediting revision minutes to it inflated the
+  // ratio without bound (a 15-minute question revised twice under the timer read 75 minutes) and
+  // the app then quoted that number back as "your pace on this pattern". Total time is unaffected
+  // — DayLog.focusMinutes still counts every minute, which is the ledger that owns them.
   const dispatch = useAppDispatch();
-  const focusQuestionId =
-    item && (item.kind === 'new-question' || item.kind === 'question-revision') ? item.question.id : null;
+  const focusQuestionId = item && item.kind === 'new-question' ? item.question.id : null;
   useEffect(() => {
     dispatch(focusQuestionSet(focusQuestionId));
     return () => {

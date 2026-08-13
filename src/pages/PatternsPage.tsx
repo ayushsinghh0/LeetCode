@@ -7,9 +7,15 @@ import { Progress } from '@/components/ui/progress';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { patternById } from '@/data/patterns';
 import { useAppSelector } from '@/store/hooks';
-import { selectPatternStats, selectQuestions, selectSolvedNewCount } from '@/store/selectors';
-import { weakestPatterns } from '@/utils/engine/recommendations';
+import {
+  selectPatternStats,
+  selectPatternWeakness,
+  selectQuestions,
+  selectSolvedNewCount,
+} from '@/store/selectors';
+import { useToday } from '@/hooks/useToday';
 import type { PatternStat } from '@/utils/engine/stats';
+import type { PatternId } from '@/types';
 
 type SortMode = 'course' | 'completion' | 'weakest';
 
@@ -20,17 +26,27 @@ const SORT_LABEL: Record<SortMode, string> = {
 };
 
 // Pure sort over the (already course-ordered, since patternStats maps PATTERNS in order) stats
-// array. "weakest" places weakestPatterns()'s ascending-score order first, then appends any
-// pattern that function excluded as ineligible (< 3 solved and no revision attempts yet) —
-// those keep the stats array's original course order relative to each other.
+// array. "weakest" places the weakness model's order first, then appends every pattern the model
+// did not score — those are UNMEASURED, not strong (engine/weakness.ts rule 4) — and those keep
+// the stats array's original course order relative to each other.
+//
+// `weakestFirst` is passed in rather than computed here: weakness is claimed in exactly one place
+// (`selectPatternWeakness`), and this page used to run a second, contradictory formula that
+// imputed a perfect pass rate and neutral confidence for unmeasured patterns, i.e. ranked them as
+// if they had been tested and found wanting.
+//
 // Exported (rather than kept module-private) so it's directly unit-testable: it's a pure,
 // dependency-free function, and nothing about verifying it is blocked by jsdom's lack of
 // pointer-capture support (unlike driving the sort-mode Select open via the DOM).
-export function sortStats(stats: PatternStat[], mode: SortMode): PatternStat[] {
+export function sortStats(
+  stats: PatternStat[],
+  mode: SortMode,
+  weakestFirst: PatternId[] = [],
+): PatternStat[] {
   if (mode === 'course') return stats;
   if (mode === 'completion') return [...stats].sort((a, b) => b.pct - a.pct);
 
-  const weakOrder = new Map(weakestPatterns(stats).map((w, i) => [w.pattern, i]));
+  const weakOrder = new Map(weakestFirst.map((id, i) => [id, i]));
   const eligible = stats
     .filter((s) => weakOrder.has(s.pattern))
     .sort((a, b) => weakOrder.get(a.pattern)! - weakOrder.get(b.pattern)!);
@@ -85,9 +101,15 @@ export default function PatternsPage() {
   const questions = selectQuestions();
   const solvedCount = useAppSelector(selectSolvedNewCount);
   const stats = useAppSelector(selectPatternStats);
+  const today = useToday();
+  const weakness = useAppSelector((s) => selectPatternWeakness(s, today));
   const [sortMode, setSortMode] = useState<SortMode>('course');
 
-  const sortedStats = useMemo(() => sortStats(stats, sortMode), [stats, sortMode]);
+  const weakestFirst = useMemo(() => weakness.map((w) => w.id), [weakness]);
+  const sortedStats = useMemo(
+    () => sortStats(stats, sortMode, weakestFirst),
+    [stats, sortMode, weakestFirst],
+  );
 
   return (
     <Page>

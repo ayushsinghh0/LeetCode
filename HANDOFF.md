@@ -9,15 +9,12 @@ the work stopped and what is left**.
 ```
 npx tsc --noEmit        clean
 npm run validate:data   OK — 539 questions, 17 companies
-npx vitest run          758 passed (66 files)      ← 747 at session-2 start
-npm run build           succeeds — main chunk 256.54 kB
+npx vitest run          788 passed (66 files)      ← 747 at session-2 start
+npm run build           succeeds — main chunk 257.61 kB
 ```
 
-`origin/main` is at `ba97ba1`. Working tree clean. Push uses the credential override recorded in
+`origin/main` is at `19dbecc`. Working tree clean. Push uses the credential override recorded in
 project memory (plain `git push` authenticates as the wrong account).
-
-(The count dips from 761 because pass 2's fixes deleted the second weakness model's tests along
-with the model, and merged one redundant shell assertion — not because coverage was dropped.)
 
 ## What session 2 closed
 
@@ -67,53 +64,57 @@ Both passes are done. Pass 2's severe findings are fixed in `ba97ba1`:
   the learner's weakest. Deleted; `selectPatternWeakness` is the only one now.
 - **Revision minutes were poisoning the pace estimate** (`timeSpentMin` is first-attempt pace).
 
-### Pass 2 findings NOT yet actioned — this is the next work item
+### The pass-2 backlog is CLEARED (commit `19dbecc`)
 
-Ranked by the reviewer's severity. Each has file:line evidence in its report; re-derive if needed:
+All fourteen actioned: the Settings/chip capacity mismatch (the unfinished half of the P0
+data-loss fix — bounds now shared from `engine/planner.ts` so the write guard and the persistence
+validator cannot drift again), same-day grade buttons that silently no-op'd, `CourseTodayCard`
+contradicting the plan above it, the est-finish divisor and its year-dropping format, the Revision
+footer's shortfall, weekly top-ups reported as "due" in notifications and the ledger, the contest
+clock running while away, "reviews passing" on never-reviewed patterns, pass rates without
+denominators (pattern page *and* the Analytics difficulty ledger), PostSolvePanel's intended-vs-
+achieved complexity, the achievements count, Calendar's session/review conflation and its
+definition of "active", the direct slice dispatch, `courseRecall.json`'s chunk, and the
+hint-ladder leak.
 
-1. **Settings' capacity options don't match the chips** (`SettingsPage` `CAPACITY_OPTIONS` starts
-   at 60; `SESSION_PRESETS`/`SESSION_BUDGETS` start at 15). Tap "15m" then open Settings: the
-   Select renders **empty**. Pick "5 hours" there: no chip is checked on Today. This is the
-   unfinished half of pass 1's data-loss fix.
-2. **Grade buttons stay live after a same-day grade** and silently no-op (the thunk guard landed;
-   `QuestionDetailModal`, `QuestionCard` and `FocusPage` still offer the action).
-3. **`CourseTodayCard` contradicts Today within one screen** — no done-today gate, so the card
-   offers the next session while the plan above it has correctly dropped it.
-4. **Est. finish is wrong by ~10 months for the first two weeks** — `solvePace` divides by a fixed
-   14-day window regardless of how long the learner has existed; also formats `'MMM d'`, so a date
-   over a year out reads as one already past.
-5. **The Revision footer's shortfall counts only questions**, never unplaced course reviews — and
-   at 15- and 30-minute budgets a course review can never be placed at all.
-6. **Notifications and the Dashboard ledger call weekly top-ups "due"** — they are pulled forward
-   and by construction not due. `selectDueRevisionIds` is the honest number and is unused there.
-7. **Contest keeps the clock running when you navigate away**, then can declare a 40-minute
-   "stall" and name a pattern weakness from it.
-8. Then: Settings' finish-time claim ignores solved count (#13), Companies claims "reviews
-   passing" for never-reviewed patterns (#14), PostSolvePanel presents intended complexity as
-   achieved (#15), pass rate shown with no denominator (#16), achievements count can exceed rows
-   rendered (#17), Calendar counts reviews as sessions and disagrees with itself on "active"
-   (#18), `SettingsPage` dispatches a slice action directly (#19), `courseRecall.json` is not in
-   `manualChunks` (#22), hint-ladder disclosure leaks between questions (#23).
+**A build-config defect found while fixing them, which invalidated some of this session's own
+measurements:** `tsc -b` emitted `vite.config.js`/`.d.ts` beside their source (`composite: true`,
+no `outDir`), and both Vite and Vitest resolve `.js` before `.ts`. Any `npx vite build` or
+`npx vitest run` not preceded by `tsc -b` therefore used a **stale compiled config** — chunk-policy
+edits silently became no-ops and `testTimeout` changes never applied, which is a large part of why
+this session kept chasing "flaky" timeouts. Emit now goes to `node_modules/.tmp/vite-config`.
+`.gitignore` was hiding the artifacts rather than preventing them.
+
+Two tests that pinned defects as intended behaviour were rewritten deliberately: Focus clearing
+session after session in one sitting, and the AI/ML card rolling straight to the next session.
 
 Pass 2 confirmed these came up **clean**: engine purity, sparse-map fallbacks, time
 double-counting in display, course-activity derivation, the ladder/XP/bonus spec, hint-use
 neutrality, persistence and quarantine, day rollover, NaN/divide-by-zero, plate composition,
 `usePomodoro`, and the route registry.
 
-## Also not done
+## What is left — pick up here
 
-1. **`engine/weakness.ts` test coverage** — an agent was writing
-   `src/utils/engine/__tests__/weakness.test.ts` when session 2 was wrapping up. Verify whether
-   that file exists and is green; the module is the most arithmetic-dense one shipped and every
-   UI weakness claim rests on it. Pass 2 independently flagged its absence.
+1. **`engine/weakness.ts` still has no test file.** It is the most arithmetic-dense module in the
+   product (seven signals, 30-day half-life decay, `MIN_OBSERVATIONS`, `MIN_EVIDENCE_WEIGHT`,
+   `DRILL_SATURATION`, generated summary prose) and — since pass 2's fixes routed Dashboard,
+   Companies and Patterns onto it — *every* UI weakness claim now rests on it. An agent was
+   writing `src/utils/engine/__tests__/weakness.test.ts` and did not land it. This is the largest
+   remaining risk in the repo.
+2. **`selectEstimatedFinish` has no UI consumer** (only its own test) now that `DashboardPage`
+   reads `finishProjection` directly — it cannot express the basis or the complete-suppression.
+   Delete it or widen it to return the projection.
+3. **`tsconfig.node.json` fix wants a check on other machines.** Emit was redirected to
+   `node_modules/.tmp/vite-config`; if a stale `vite.config.js` exists in another clone it will
+   still shadow the source until deleted.
 
-2. **Contest results still evaporate.** `analyzeContest` returns `patternGaps` so a contest can
+4. **Contest results still evaporate.** `analyzeContest` returns `patternGaps` so a contest can
    feed the shared weakness signal, but nothing consumes them and the contest slice is not
    persisted — a stall informs the post-contest screen and then vanishes. The module header now
    says so honestly instead of claiming the wiring exists. Wiring it means persisting stalls
    somewhere `patternWeakness` can read.
 
-3. **Smaller items, deliberately not actioned:**
+5. **Smaller items, deliberately not actioned:**
    - `engine/nextAction.ts` could expose `nextAfterSolve(questionId, byId)` — that recommendation
      is business logic living inside `PostSolvePanel`.
    - `data/curriculum.ts` should own `FAMILY_ROLE_MEANING` (it sits locally in `FamilyPanel.tsx`).
@@ -130,6 +131,13 @@ neutrality, persistence and quarantine, day rollover, NaN/divide-by-zero, plate 
   ANSI codepage, so a round trip turns every em dash into `â€"` mojibake — 38 of them in one
   sweep this session, caught only because a course-review test failed to match its own title.
   Use the Edit tool.
+- **A "flaky" suite deserves a root cause before a bigger timeout.** Three separate timeout
+  chases this session had three real causes: a `testTimeout` below the per-query windows it was
+  supposed to contain, a Suspense boundary above the shell making tests wait on chunks they never
+  asserted on, and a stale compiled config meaning the timeout edits were not running at all.
+  None of them were flakiness.
+- **Don't run the dev server while running the suite.** It roughly tripled full-suite wall time
+  (35s → 98s) and manufactured exactly the timeouts above.
 - UI copy is asserted in tests. Changing a user-facing string is a behaviour change: update the
   owning test deliberately, **never weaken an assertion to make a change pass.**
 - Tests must pin the clock (`vi.useFakeTimers()` + `vi.setSystemTime(...)`).

@@ -6,8 +6,10 @@ import { patternById } from '@/data/patterns';
 import { Button } from '@/components/ui/button';
 import { DifficultyBadge } from '@/components/questions/DifficultyBadge';
 import { EmptyState } from '@/components/shared/EmptyState';
-import { useAppDispatch } from '@/store/hooks';
+import { useAppDispatch, useAppSelector } from '@/store/hooks';
 import { activeQuestionSet } from '@/store/slices/uiSlice';
+import { selectMissCounts, selectMostMissedPatterns } from '@/store/slices/drillsSlice';
+import { logDrillResult } from '@/store/actions';
 import { useToday } from '@/hooks/useToday';
 import { buildDrill } from '@/utils/engine/drills';
 import { cn } from '@/utils/cn';
@@ -23,12 +25,20 @@ const DRILL_SIZE = 8;
 export default function DrillsPage() {
   const dispatch = useAppDispatch();
   const today = useToday();
+  // Weights exclude today so recording today's attempt can't reshuffle today's own drill.
+  const missWeights = useAppSelector((s) => selectMissCounts(s, today));
+  const recordedToday = useAppSelector((s) => s.drills.byDate[today]);
+  const mostMissed = useAppSelector(selectMostMissedPatterns);
 
-  const items = useMemo(() => buildDrill(FAMILIES, questionById, today, DRILL_SIZE), [today]);
+  const items = useMemo(
+    () => buildDrill(FAMILIES, questionById, today, DRILL_SIZE, missWeights),
+    [today, missWeights],
+  );
 
   const [index, setIndex] = useState(0);
   const [picked, setPicked] = useState<PatternId | null>(null);
   const [correctCount, setCorrectCount] = useState(0);
+  const [missed, setMissed] = useState<PatternId[]>([]);
   const [finished, setFinished] = useState(false);
 
   const item = items[index];
@@ -39,10 +49,13 @@ export default function DrillsPage() {
     if (picked !== null || !item) return;
     setPicked(option);
     if (option === item.pattern) setCorrectCount((c) => c + 1);
+    else setMissed((m) => [...m, item.pattern]);
   }
 
   function next() {
     if (index + 1 >= items.length) {
+      // The slice keeps only the first attempt per date — rerun dispatches are no-ops there.
+      dispatch(logDrillResult(correctCount, items.length, missed));
       setFinished(true);
     } else {
       setIndex((i) => i + 1);
@@ -54,6 +67,7 @@ export default function DrillsPage() {
     setIndex(0);
     setPicked(null);
     setCorrectCount(0);
+    setMissed([]);
     setFinished(false);
   }
 
@@ -83,6 +97,21 @@ export default function DrillsPage() {
               ? 'Every technique named correctly. Tomorrow brings a new set.'
               : 'Missed ones are worth a second look — open the problem and read its recognition cues.'}
           </p>
+          {recordedToday && (
+            <p className="figures text-sm text-muted-foreground">
+              Recorded for today: {recordedToday.correct}/{recordedToday.total} — the first run of a day is
+              what counts; reruns are practice.
+            </p>
+          )}
+          {mostMissed.length > 0 && (
+            <p className="text-sm text-muted-foreground">
+              Most-missed patterns so far:{' '}
+              {mostMissed
+                .map(({ pattern, count }) => `${patternById[pattern as PatternId]?.name ?? pattern} (${count})`)
+                .join(', ')}
+              . Tomorrow's drill leans toward them.
+            </p>
+          )}
           <Button size="sm" variant="outline" onClick={restart}>
             <RotateCcw /> Run it again
           </Button>

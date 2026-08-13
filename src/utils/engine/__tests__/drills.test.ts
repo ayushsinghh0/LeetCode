@@ -75,4 +75,10 @@ describe('buildDrill', () => {
   test('returns empty for no families', () => {
     expect(buildDrill([], QUESTIONS, '2026-07-30')).toEqual([]);
   });
+
+  test('miss weights front-load weak patterns without breaking determinism', () => {
+    const weighted = buildDrill(FAMILIES, QUESTIONS, '2026-07-30', 2, { graphs: 3 });
+    expect(weighted[0]!.pattern).toBe('graphs'); // weakest pattern drawn first when count is tight
+    expect(buildDrill(FAMILIES, QUESTIONS, '2026-07-30', 2, { graphs: 3 })).toEqual(weighted);
+  });
 });

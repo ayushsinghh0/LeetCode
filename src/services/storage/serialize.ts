@@ -21,6 +21,7 @@ import { MASTERED_STAGE } from '@/utils/engine/spacedRepetition';
 export function selectPersistedState(root: RootState): PersistedStateV1 {
   const courseByWeekId = root.course.byWeekId;
   const tasksById = root.tasks.byId;
+  const drillDates = root.drills.byDate;
   return {
     version: 1,
     progress: {
@@ -34,6 +35,7 @@ export function selectPersistedState(root: RootState): PersistedStateV1 {
     // Same written-only-once-touched rule as `course`: payloads from users who never created a
     // task stay byte-identical to pre-tasks ones.
     ...(Object.keys(tasksById).length > 0 ? { tasks: { byId: tasksById } } : {}),
+    ...(Object.keys(drillDates).length > 0 ? { drills: { byDate: drillDates } } : {}),
   };
 }
 
@@ -262,6 +264,30 @@ export function validatePersisted(raw: unknown): PersistedStateV1 | null {
     tasks = { byId };
   }
 
+  // `drills` is optional (absent before recognition drills recorded results) — reject-wholesale
+  // when malformed: date keys must be real ISO dates, counters real non-negative integers with
+  // correct <= total, and missedPatterns a string array (it feeds weakness ranking, and its
+  // length can't exceed the misses that actually happened).
+  let drills: PersistedStateV1['drills'];
+  if ('drills' in raw && raw.drills !== undefined) {
+    const rawDrills = raw.drills;
+    if (!isPlainObject(rawDrills)) return null;
+    if (!isPlainObject(rawDrills.byDate)) return null;
+    const byDate: Record<string, { correct: number; total: number; missedPatterns: string[] }> = {};
+    for (const [date, entry] of Object.entries(rawDrills.byDate)) {
+      if (!isIsoDate(date)) return null;
+      if (!isPlainObject(entry)) return null;
+      const { correct, total, missedPatterns } = entry;
+      if (typeof correct !== 'number' || !Number.isInteger(correct) || correct < 0) return null;
+      if (typeof total !== 'number' || !Number.isInteger(total) || total < 1) return null;
+      if (correct > total) return null;
+      if (!Array.isArray(missedPatterns) || missedPatterns.some((p) => typeof p !== 'string' || p === '')) return null;
+      if (missedPatterns.length > total - correct) return null;
+      byDate[date] = { correct, total, missedPatterns: [...missedPatterns] };
+    }
+    drills = { byDate };
+  }
+
   // `course` is optional (absent in pre-course payloads) — but when present it must be fully
   // well-formed, same reject-wholesale rule as every other section.
   let course: PersistedStateV1['course'];
@@ -322,6 +348,7 @@ export function validatePersisted(raw: unknown): PersistedStateV1 | null {
     },
     ...(course ? { course } : {}),
     ...(tasks ? { tasks } : {}),
+    ...(drills ? { drills } : {}),
   };
 }
 

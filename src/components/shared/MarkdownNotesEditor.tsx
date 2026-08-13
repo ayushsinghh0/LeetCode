@@ -1,9 +1,12 @@
+import { lazy, Suspense } from 'react';
 import { useForm } from 'react-hook-form';
-import ReactMarkdown from 'react-markdown';
-import remarkGfm from 'remark-gfm';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Textarea } from '@/components/ui/textarea';
 import { Button } from '@/components/ui/button';
+
+// Radix Tabs keep inactive content unmounted, so the markdown pipeline is fetched the first
+// time a Preview tab actually shows content — never on initial page load.
+const MarkdownPreview = lazy(() => import('@/components/shared/MarkdownPreview'));
 
 export interface MarkdownNotesEditorProps {
   initialNotes: string;
@@ -68,7 +71,9 @@ export function MarkdownNotesEditor({ initialNotes, placeholder, onSave }: Markd
             {notes.trim() === '' ? (
               <p className="text-muted-foreground">Nothing to preview yet.</p>
             ) : (
-              <ReactMarkdown remarkPlugins={[remarkGfm]}>{notes}</ReactMarkdown>
+              <Suspense fallback={<p className="text-muted-foreground">Loading preview…</p>}>
+                <MarkdownPreview markdown={notes} />
+              </Suspense>
             )}
           </div>
         </TabsContent>

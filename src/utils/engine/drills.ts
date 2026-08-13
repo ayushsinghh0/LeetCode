@@ -18,25 +18,33 @@ export interface DrillItem {
  * discrimination between look-alike patterns is the point, not repetition of one.
  * Distractor options are other patterns that appear in `families`, so every option is a
  * technique the learner is actually studying.
+ *
+ * `missWeights` (misses per pattern from PAST days — callers must exclude today, or recording
+ * today's attempt would reshuffle today's own drill) front-loads families of missed patterns:
+ * the shuffle still varies day to day, but weak patterns are drawn first when count is tight.
  */
 export function buildDrill(
   families: ProblemFamily[],
   questionById: ReadonlyMap<number, Question>,
   seed: string,
   count = 8,
+  missWeights: Record<string, number> = {},
 ): DrillItem[] {
   if (families.length === 0) return [];
   const random = mulberry32(hashSeed(`drill:${seed}`));
 
   // Cross-pattern family members are excluded: the drill's "correct" option must agree with
   // the question's own pattern label, or a right answer would be graded wrong.
-  const shuffledFamilies = seededShuffle(families, random).map((f) => ({
-    family: f,
-    members: seededShuffle(
-      f.members.filter((m) => questionById.get(m.questionId)?.pattern === f.pattern),
-      random,
-    ),
-  }));
+  // The sort is stable, so families with equal weight keep their shuffled order.
+  const shuffledFamilies = seededShuffle(families, random)
+    .sort((a, b) => (missWeights[b.pattern] ?? 0) - (missWeights[a.pattern] ?? 0))
+    .map((f) => ({
+      family: f,
+      members: seededShuffle(
+        f.members.filter((m) => questionById.get(m.questionId)?.pattern === f.pattern),
+        random,
+      ),
+    }));
 
   const drillPatterns = [...new Set(families.map((f) => f.pattern))];
 

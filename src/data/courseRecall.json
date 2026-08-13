@@ -1,0 +1,912 @@
+[
+  {
+    "id": "w00-r1",
+    "weekId": "w00",
+    "prompt": "In one sentence, what is a large language model actually trained to do — and why does that single objective end up producing such broad capabilities?",
+    "answer": "At heart, an LLM is a next-token predictor: it learns to guess a plausible continuation of text. Predicting the next token well across an enormous corpus forces the model to absorb grammar, facts, styles, and reasoning patterns, because all of them help reduce prediction error. Chat, code, and summarization are all the same machinery — predict the continuation — steered by what you put in the context.",
+    "depth": "core"
+  },
+  {
+    "id": "w00-r2",
+    "weekId": "w00",
+    "prompt": "What is the difference between pretraining and inference, and why is one vastly more expensive than the other?",
+    "answer": "Pretraining is learning; inference is using what was learned. During pretraining the model reads huge amounts of text and repeatedly adjusts its weights to shrink its prediction error, which takes enormous compute over weeks or months. At inference the weights are frozen: your prompt just flows forward through the network to produce tokens, which is why answering a question costs a tiny fraction of what training did.",
+    "depth": "core"
+  },
+  {
+    "id": "w00-r3",
+    "weekId": "w00",
+    "prompt": "What is a token, and why don't language models simply operate on whole words or on single characters?",
+    "answer": "A token is the unit of text a model actually reads and emits — often a piece of a word rather than a whole one. Whole-word vocabularies explode in size and have no way to represent words never seen in training, while character-level input makes sequences very long and forces the model to spend capacity on spelling before meaning. Subword tokens are the compromise: a modest, fixed vocabulary that can still compose any string.",
+    "depth": "core"
+  },
+  {
+    "id": "w00-r4",
+    "weekId": "w00",
+    "prompt": "When you 'teach' a model something in your prompt versus when developers fine-tune it, what actually changes in each case?",
+    "answer": "A prompt changes only the input; fine-tuning changes the model itself. Prompting leaves every weight untouched — the model merely conditions its next-token predictions on the extra context, and that influence vanishes when the context does. Fine-tuning runs more training and actually updates the weights, so the new behavior persists across all future conversations without needing to be restated.",
+    "depth": "core"
+  },
+  {
+    "id": "w00-r5",
+    "weekId": "w00",
+    "prompt": "Why did GPUs — hardware built for rendering graphics — become the essential hardware for training and running neural networks?",
+    "answer": "Graphics and neural networks share the same workload shape: massive numbers of simple arithmetic operations that don't depend on each other. A GPU packs thousands of small cores that perform those multiply-adds in parallel, which is exactly what the big matrix multiplications at the heart of every network layer need. A CPU's few powerful cores are built for fast sequential logic instead, so they are far slower at this kind of bulk parallel math.",
+    "depth": "stretch"
+  },
+  {
+    "id": "w01-r1",
+    "weekId": "w01",
+    "prompt": "Trace, at a high level, what happens between pressing enter on a prompt and the model's reply appearing on screen.",
+    "answer": "Generation is a loop of next-token predictions, not one big answer computed at once. The prompt is split into tokens, each token becomes a vector, the network's layers transform those vectors, and the final layer yields a probability distribution over the vocabulary. One token is chosen from that distribution, appended to the input, and the whole forward pass repeats — the reply you see is that loop's output stitched back into text.",
+    "depth": "core"
+  },
+  {
+    "id": "w01-r2",
+    "weekId": "w01",
+    "prompt": "Where does a model's knowledge physically live, and why does every model have a training cutoff?",
+    "answer": "Its knowledge is baked into the weights during training — like memories that stop forming on a fixed date. Pretraining sets the weights from a snapshot of text, and inference never updates them, so events after the data was collected simply are not in the model. Anything newer can only reach it through the prompt (pasted documents, retrieved search results), never from the weights themselves.",
+    "depth": "core"
+  },
+  {
+    "id": "w01-r3",
+    "weekId": "w01",
+    "prompt": "Why can a cleverly written jailbreak get a model to produce content it was trained to refuse?",
+    "answer": "Refusal is learned behavior, not a hard-coded filter — and learned behavior can be steered like any other. Safety training makes refusing the most probable continuation for harmful requests, but the underlying next-token predictor still contains the capability. A jailbreak constructs a context — roleplay, encodings, fictional framing — in which complying becomes the statistically natural continuation, so the prompt effectively outvotes the safety training's learned pattern.",
+    "depth": "core"
+  },
+  {
+    "id": "w01-r4",
+    "weekId": "w01",
+    "prompt": "Why can the same prompt produce different answers on different runs, and what does the temperature setting actually control?",
+    "answer": "The model outputs probabilities, not a single answer, and generation usually rolls dice over them. At every step the model produces a distribution over possible next tokens and the system samples from it rather than always taking the top choice, so runs diverge. Temperature reshapes that distribution before sampling: low temperature concentrates probability on the likeliest tokens (more deterministic, more repetitive), while high temperature flattens it (more varied, more error-prone).",
+    "depth": "core"
+  },
+  {
+    "id": "w01-r5",
+    "weekId": "w01",
+    "prompt": "A model states a false 'fact' fluently and confidently. Explain why hallucination is a natural consequence of how these models work rather than a software bug.",
+    "answer": "The model is trained to produce plausible continuations, not verified truths. Training rewards text that looks like what a knowledgeable writer would say next; when the real answer isn't reliably encoded in the weights, the most plausible-sounding completion still gets generated with the same fluent confidence. Nothing in the architecture separates 'recalled from training' from 'statistically improvised', which is why the fabrications read exactly like the facts.",
+    "depth": "stretch"
+  },
+  {
+    "id": "w02-r1",
+    "weekId": "w02",
+    "prompt": "What computation does a single artificial neuron perform, and what role does each part — weights, bias, activation — play?",
+    "answer": "A neuron is a tiny weighted vote followed by a squish. It multiplies each input by a learned weight (how much that input matters), sums the results, adds a bias (which shifts the threshold at which the neuron responds), and passes the total through a nonlinear activation function. The weights and bias are the learnable knobs; the activation decides how strongly the neuron 'fires' for a given total.",
+    "depth": "core"
+  },
+  {
+    "id": "w02-r2",
+    "weekId": "w02",
+    "prompt": "Why does a deep network with no activation functions collapse into something no more expressive than a single layer?",
+    "answer": "Stacking linear steps only ever produces another linear step. Without activations, each layer is just a matrix multiply plus a shift, and composing several of those algebraically reduces to one combined matrix multiply plus a shift — a function that can only draw straight decision boundaries. The nonlinearity inserted between layers is precisely what lets depth compose simple pieces into curved, complex functions.",
+    "depth": "core"
+  },
+  {
+    "id": "w02-r3",
+    "weekId": "w02",
+    "prompt": "What is a loss function, and why can training not happen without one?",
+    "answer": "The loss is the single number that tells the network how wrong it currently is. It compares predictions against true targets and condenses the mismatch into one scalar — squared error for regression, cross-entropy for classification. Training needs it because gradient descent works by asking 'which tiny change to each weight would shrink this number?'; with no loss there is no direction in which to improve.",
+    "depth": "core"
+  },
+  {
+    "id": "w02-r4",
+    "weekId": "w02",
+    "prompt": "Explain gradient descent with the foggy-hillside picture. What does the learning rate control, and what goes wrong at each extreme?",
+    "answer": "You can't see the valley through the fog, but you can feel the slope underfoot — so you repeatedly step downhill. The gradient of the loss with respect to each weight is that local slope, and every update nudges each weight a small step against its gradient. The learning rate is the step size: too small and training crawls, too large and you leap across the valley — the loss oscillates or blows up instead of settling.",
+    "depth": "core"
+  },
+  {
+    "id": "w02-r5",
+    "weekId": "w02",
+    "prompt": "Why is backpropagation 'just the chain rule', and why is it computed backwards from the loss instead of forwards from the inputs?",
+    "answer": "Backprop answers 'how much is each weight to blame for the final error?' by passing blame backwards through the network. Since the network is a composition of functions, the chain rule gives any weight's gradient by multiplying the local derivatives along the path from that weight to the loss. Starting at the loss and going backwards lets every layer reuse the gradient already computed for the layer after it, so all gradients emerge in roughly one extra pass instead of one costly traversal per weight.",
+    "depth": "stretch"
+  },
+  {
+    "id": "w03-r1",
+    "weekId": "w03",
+    "prompt": "In self-attention, every token produces a query, a key, and a value vector. Using a lookup or library analogy, what does each one do?",
+    "answer": "Attention is a soft lookup: each token asks a question and receives a blended answer from all the tokens. The query is what a token is looking for, each key advertises what a token contains, and the dot product of a query with each key scores how relevant that token is. The scores are turned into weights, and the output is the weighted average of the value vectors — the values are the actual content that gets passed along.",
+    "depth": "core"
+  },
+  {
+    "id": "w03-r2",
+    "weekId": "w03",
+    "prompt": "Why are attention scores passed through a softmax before being used, and what would break if raw dot products were used as weights directly?",
+    "answer": "Softmax turns arbitrary scores into a well-behaved recipe for mixing. It maps the raw dot products to positive weights that sum to one, so the output is a genuine weighted average of the value vectors, with the largest scores dominating smoothly. Raw dot products can be negative or arbitrarily large, so mixing with them directly would produce unstable, meaningless combinations rather than a controlled blend.",
+    "depth": "core"
+  },
+  {
+    "id": "w03-r3",
+    "weekId": "w03",
+    "prompt": "Why did attention displace recurrent networks for language modeling? Name the two decisive advantages.",
+    "answer": "An RNN squeezes the whole past through a single hidden state, one step at a time; attention lets every token look directly at every other token. That wins twice: long-range dependencies survive because any two tokens are one attention hop apart instead of being relayed through many lossy steps, and training parallelizes because all positions are processed at once rather than sequentially. The second advantage is what made training on web-scale data practical.",
+    "depth": "core"
+  },
+  {
+    "id": "w03-r4",
+    "weekId": "w03",
+    "prompt": "What is an embedding, and in what sense does the embedding space capture 'meaning'?",
+    "answer": "An embedding turns a discrete token id into a point in a continuous space where distance reflects usage. Each token maps to a learned vector, and training nudges tokens that occur in similar contexts toward similar vectors, so 'meaning' emerges as geometry. This matters because networks can only compute with numbers, and continuous vectors let the model generalize smoothly across related tokens instead of treating every id as unrelated to every other.",
+    "depth": "core"
+  },
+  {
+    "id": "w03-r5",
+    "weekId": "w03",
+    "prompt": "Attention uses scaled dot products — the scores are divided by the square root of the key dimension. What problem does that scaling prevent?",
+    "answer": "It stops the softmax from saturating as vectors get wider. Dot products of high-dimensional random-ish vectors naturally grow in magnitude with dimension, so unscaled scores would push the softmax into a regime where it outputs a nearly one-hot distribution. In that regime gradients through the softmax become vanishingly small and attention stops learning; dividing by the square root of the key dimension keeps score variance roughly constant so the weights stay soft and trainable.",
+    "depth": "stretch"
+  },
+  {
+    "id": "w04-r1",
+    "weekId": "w04",
+    "prompt": "Why use multi-head attention instead of a single attention computation over the full model dimension?",
+    "answer": "One attention pattern is one way of relating tokens; multiple heads let a layer look at the sequence in several ways simultaneously. Each head projects queries, keys, and values into its own smaller subspace and runs attention independently, so different heads can specialize in different relationships; the head outputs are concatenated and mixed by a final projection. A single head would have to average all those competing relational patterns into one set of weights and lose the specialization.",
+    "depth": "core"
+  },
+  {
+    "id": "w04-r2",
+    "weekId": "w04",
+    "prompt": "Self-attention by itself treats its input as an unordered set. Why does a transformer need positional information, and what fails without it?",
+    "answer": "Attention scores depend only on the content of the query and key vectors, not on where tokens sit, so the mechanism alone cannot tell 'dog bites man' from 'man bites dog'. Positional information is injected into the token representations so that the same word at different positions gets a distinguishable vector, which lets attention learn order-sensitive patterns. Without it the model sees language as a bag of words — word order, and therefore most of syntax, becomes invisible.",
+    "depth": "core"
+  },
+  {
+    "id": "w04-r3",
+    "weekId": "w04",
+    "prompt": "What is causal (masked) attention, and why is it essential both at training time and at generation time?",
+    "answer": "A text generator must never peek at words it hasn't produced yet. Causal masking blocks each position from attending to any later position (masked positions' scores are set to negative infinity before the softmax, so they receive zero attention weight after it), so every token is predicted only from its past. This keeps training honest — the model learns to predict token t from tokens before t, exactly the situation it faces during generation — and it lets a single training pass supervise the prediction at every position of the sequence at once.",
+    "depth": "core"
+  },
+  {
+    "id": "w04-r4",
+    "weekId": "w04",
+    "prompt": "What do residual connections and layer normalization each contribute to making deep transformer stacks trainable?",
+    "answer": "Residuals give gradients a highway; normalization keeps signals well-scaled. A residual connection adds a block's input to its output, so each block only learns a correction and the gradient can flow backwards through the identity path without vanishing across dozens of blocks. Layer normalization rescales each token's vector to a stable range, stopping activations from drifting or exploding as depth increases — together they are why transformers can be stacked so deep.",
+    "depth": "core"
+  },
+  {
+    "id": "w04-r5",
+    "weekId": "w04",
+    "prompt": "Attention already mixes information across tokens — so what is the feed-forward (MLP) block in each transformer layer actually for?",
+    "answer": "Attention moves information between tokens; the MLP transforms it within each token. The feed-forward block applies the same small network independently at every position — expanding to a wider hidden dimension, applying a nonlinearity, then projecting back — and it holds a large share of the model's parameters and stored associations. Without it, a transformer would be mostly weighted averaging, with very little nonlinear computation done on each token's representation.",
+    "depth": "stretch"
+  },
+  {
+    "id": "w05-r1",
+    "weekId": "w05",
+    "prompt": "What is a tensor, and why is essentially everything in deep learning — data, weights, activations — expressed as tensor operations?",
+    "answer": "A tensor is just an n-dimensional grid of numbers: a scalar, a vector, a matrix, or higher-dimensional stacks of them. Deep learning packs data and parameters into tensors — a batch of token embeddings, for instance, is a 3-D tensor of batch by sequence by features — so that all computation becomes bulk arithmetic over regular grids. That regularity is exactly what lets GPUs parallelize the work and what lets frameworks differentiate through it automatically.",
+    "depth": "core"
+  },
+  {
+    "id": "w05-r2",
+    "weekId": "w05",
+    "prompt": "State the broadcasting rule: when can two tensors of different shapes be combined elementwise, and what is the right mental model for what happens?",
+    "answer": "Broadcasting virtually stretches the smaller tensor so the shapes line up, without copying any data. Shapes are compared from the trailing (rightmost) dimension backwards: each pair must be equal, or one side must be 1 or missing, in which case that side is treated as if repeated along the dimension. This is why adding a bias of shape (features,) to activations of shape (batch, features) just works — the bias is implicitly reused across every row.",
+    "depth": "core"
+  },
+  {
+    "id": "w05-r3",
+    "weekId": "w05",
+    "prompt": "What does autograd actually do between your forward computation and calling backward on the loss?",
+    "answer": "Autograd is bookkeeping that runs the chain rule for you. As the forward code executes, the framework records every operation on gradient-tracking tensors into a computation graph; calling backward walks that graph in reverse, applying each operation's local derivative and depositing results into each parameter's stored gradient. You only ever write the forward pass — the derivatives are derived mechanically, which is why models can be arbitrary code rather than fixed formulas.",
+    "depth": "core"
+  },
+  {
+    "id": "w05-r4",
+    "weekId": "w05",
+    "prompt": "Why must gradients be zeroed between training steps in PyTorch, and what silently goes wrong if you forget?",
+    "answer": "Because backward accumulates: each call adds the newly computed gradients onto whatever is already stored on the parameters, rather than overwriting it. That is a deliberate design — it enables tricks like accumulating gradients over several mini-batches to simulate a larger batch. But it means a loop that never zeros gradients mixes stale gradients from earlier batches into every update, so training quietly degrades with no error message to point at the cause.",
+    "depth": "core"
+  },
+  {
+    "id": "w05-r5",
+    "weekId": "w05",
+    "prompt": "Why must tensors and models be explicitly moved to the GPU, and why can frequent CPU-GPU transfers erase the GPU's speed advantage?",
+    "answer": "A GPU computes only on data in its own memory, so weights and inputs must be placed there, and an operation needs all its operands on the same device. Transfers between CPU and GPU memory cross a comparatively slow link, so a loop that keeps shuttling tensors back and forth — or pulls values back to print every step — can spend more time moving data than computing. The winning pattern is move once, keep the whole computation on-device, and bring results back rarely.",
+    "depth": "stretch"
+  },
+  {
+    "id": "w06-r1",
+    "weekId": "w06",
+    "prompt": "What is the KV cache, and why does it make autoregressive generation dramatically cheaper per token?",
+    "answer": "Generation reuses the past instead of recomputing it. To produce token t, attention needs the keys and values of every earlier token — and those never change once computed, so they are stored in a cache. Each new step then computes query, key, and value only for the newest token and attends against the cached keys and values, turning what would be a full re-encoding of the whole sequence at every step into a single-token update.",
+    "depth": "core"
+  },
+  {
+    "id": "w06-r2",
+    "weekId": "w06",
+    "prompt": "What problem do multi-query attention (MQA) and grouped-query attention (GQA) solve, and how does GQA position itself between standard multi-head attention and MQA?",
+    "answer": "The KV cache is a memory hog: standard multi-head attention stores separate keys and values for every head, for every token, and that grows with sequence length and batch size until memory — not compute — limits serving. MQA attacks this by making all query heads share one key/value head, a large memory and bandwidth win that costs some quality. GQA is the compromise: query heads are split into groups that each share one K/V head, recovering most of full multi-head quality while keeping the cache several times smaller.",
+    "depth": "core"
+  },
+  {
+    "id": "w06-r3",
+    "weekId": "w06",
+    "prompt": "How does rotary positional embedding (RoPE) differ from the original approach of adding position vectors to token embeddings, and why is encoding relative position the better fit for language?",
+    "answer": "Instead of adding a position signal into each embedding, RoPE rotates the query and key vectors by an angle determined by their position. Since attention scores come from dot products, and the dot product of two rotated vectors depends on the difference between their rotation angles, the score naturally depends on how far apart two tokens are rather than on their absolute slots. That relative structure matches language — what matters is distance between words, not their index in the sequence — and RoPE became the standard choice in modern open models.",
+    "depth": "core"
+  },
+  {
+    "id": "w06-r4",
+    "weekId": "w06",
+    "prompt": "Why did transformer blocks move from the original post-norm arrangement to pre-norm?",
+    "answer": "Pre-norm makes very deep transformers trainable without fragile tricks. The 2017 block normalized after adding the residual (post-norm), which places normalization inside the gradient's main path and makes deep stacks unstable early in training, historically requiring careful learning-rate warm-up. Pre-norm normalizes before the attention or MLP sublayer instead, leaving the residual stream as a clean identity path from the loss back to the earliest layers, so gradients stay healthy and training is far more stable at depth.",
+    "depth": "core"
+  },
+  {
+    "id": "w06-r5",
+    "weekId": "w06",
+    "prompt": "Very little of the core attention idea changed after 2017, yet models improved enormously. Characterize what kind of changes the modern architecture updates actually are, and what pressure drove them.",
+    "answer": "The recipe stayed; the engineering matured under the pressure of scale. The changes are mostly efficiency and stability refinements: decoder-only architectures won for generation, pre-norm stabilized deep training, RoPE replaced added positional vectors, gated activations in the MLP replaced simple ReLU, and KV-cache reductions like GQA tamed inference memory. The lesson is that progress came from making the same core mechanism cheaper to train and serve at enormous size — plus more data and compute — not from replacing attention itself.",
+    "depth": "stretch"
+  },
+  {
+    "id": "w07-r1",
+    "weekId": "w07",
+    "prompt": "Why do we train on mini-batches instead of computing the loss over the entire dataset for every update?",
+    "answer": "Batches let the model learn from a cheap, noisy estimate of the true gradient instead of an expensive exact one. Computing loss over the full dataset gives one very accurate gradient per pass, but it is slow and memory-hungry; a mini-batch gives a rough gradient in a fraction of the time, so you get many more updates per epoch. The noise from small batches even helps a little, nudging the model out of sharp, brittle minima.",
+    "depth": "core"
+  },
+  {
+    "id": "w07-r2",
+    "weekId": "w07",
+    "prompt": "During training, your training loss keeps falling but your validation loss starts rising. What is happening and why does the split you made at the start let you detect it?",
+    "answer": "The model has stopped learning general patterns and started memorizing the training set — this is overfitting. Training loss falls because memorization always fits the data you optimize on, but the validation set was held out and never used for updates, so it acts as a proxy for unseen data. When performance on it degrades while training loss improves, the gap tells you the model is fitting noise, not signal — your cue to stop early, regularize, or get more data.",
+    "depth": "core"
+  },
+  {
+    "id": "w07-r3",
+    "weekId": "w07",
+    "prompt": "What actually happens in one iteration of the training loop, from feeding a batch to updating the weights?",
+    "answer": "One iteration is: guess, measure, blame, adjust. The batch flows forward through the model to produce predictions; the loss function scores how wrong those predictions are as a single number; backpropagation then computes, for every weight, how much a small change in that weight would change the loss (the gradient); finally the optimizer moves each weight a small step against its gradient, scaled by the learning rate. Repeat over all batches to complete an epoch.",
+    "depth": "core"
+  },
+  {
+    "id": "w07-r4",
+    "weekId": "w07",
+    "prompt": "What goes wrong if the learning rate is set too high, and what goes wrong if it is set too low?",
+    "answer": "The learning rate is the step size downhill — too big and you leap over the valley, too small and you crawl. Too high, each update overshoots the minimum, so the loss oscillates or explodes and training diverges. Too low, updates barely move the weights, so the loss creeps down painfully slowly and can stall in a poor region before you run out of compute. That is why it is the single most important knob to tune first.",
+    "depth": "core"
+  },
+  {
+    "id": "w07-r5",
+    "weekId": "w07",
+    "prompt": "Why is it a mistake to tune hyperparameters against your test set, even though it is technically held-out data?",
+    "answer": "Every time you peek at a dataset to make a decision, you leak information from it into the model. If you pick learning rates or stopping points based on test performance, the test set has effectively become a second training signal, and its score becomes an optimistic lie about real-world performance. That is the reason for three splits: train to fit weights, validation to make tuning choices, and test touched exactly once at the end as an honest final measurement.",
+    "depth": "stretch"
+  },
+  {
+    "id": "w08-r1",
+    "weekId": "w08",
+    "prompt": "A raw LLM API call is stateless. What does that mean in practice, and what must your application do because of it?",
+    "answer": "The model remembers nothing between calls — every request starts from a blank slate. 'Chat memory' is an illusion the application maintains: on each turn your code must resend the relevant prior messages (or a summary of them) inside the new request, and the model re-reads that history to produce a coherent reply. Managing what goes into that context — and what gets dropped as it grows — is the application's responsibility; some provider APIs now offer server-side conversation storage as a convenience layer, but the model itself is still stateless, so someone must always replay the history.",
+    "depth": "core"
+  },
+  {
+    "id": "w08-r2",
+    "weekId": "w08",
+    "prompt": "What is the essential difference between calling an LLM API once and running an agent?",
+    "answer": "A single API call is a question and an answer; an agent is a loop that keeps going until a goal is met. In the agent loop the model observes the current state, thinks about what to do next, and acts — typically by requesting a tool call — then the result of that action is fed back in as a new observation, and the cycle repeats. The model becomes a decision-maker driving a process rather than a one-shot text generator.",
+    "depth": "core"
+  },
+  {
+    "id": "w08-r3",
+    "weekId": "w08",
+    "prompt": "In function calling, does the model actually execute the tool? Walk through what really happens when an LLM 'uses' a tool.",
+    "answer": "No — the model only writes a request; your code does the work. You describe available tools (name, purpose, parameters) in the request, and when the model decides one is needed it outputs a structured message naming the tool and its arguments instead of a normal reply. Your application executes the real function, then sends the result back into the conversation, and the model reads it to continue reasoning or compose its final answer. The model never touches the outside world directly.",
+    "depth": "core"
+  },
+  {
+    "id": "w08-r4",
+    "weekId": "w08",
+    "prompt": "Why do tools matter so much for LLMs — what fundamental limitations of a bare model do they fix?",
+    "answer": "A bare model can only emit text from frozen training knowledge — it cannot know today's weather, query your database, or reliably do arithmetic. Tools give it hands and senses: fresh information (search, APIs, databases), precise computation (calculators, code execution), and real side effects (sending an email, writing a file). The model contributes judgment — deciding which tool to call, with what arguments, and what the result means — while the tools contribute accuracy and access.",
+    "depth": "core"
+  },
+  {
+    "id": "w08-r5",
+    "weekId": "w08",
+    "prompt": "What role does the system prompt play compared to user messages, and why do agent builders lean on it so heavily?",
+    "answer": "The system prompt is the standing job description; user messages are the incoming requests. It sets identity, rules, tone, and constraints that should hold across the entire conversation, and models are trained to weight it as the governing instruction rather than just another turn. Agent builders lean on it because agents run for many steps without human review — the system prompt is where you pin down the loop's behavior, tool-use policy, and hard boundaries so one odd user message can't redefine the agent.",
+    "depth": "stretch"
+  },
+  {
+    "id": "w09-r1",
+    "weekId": "w09",
+    "prompt": "Why is retrieval a better strategy than stuffing all your documents into the prompt, even when the context window is large enough to fit them?",
+    "answer": "More context is not free — it costs money, time, and attention. Every stuffed token is billed and slows the response, and models demonstrably get worse at using facts buried in huge contexts, especially in the middle. Retrieval flips the approach: store documents outside the model, and per question fetch only the handful of passages that matter, so the model reasons over a small, dense, relevant context. It also scales to corpora far beyond any window and lets knowledge update without touching the model.",
+    "depth": "core"
+  },
+  {
+    "id": "w09-r2",
+    "weekId": "w09",
+    "prompt": "What is an embedding, and what property makes embeddings the engine of semantic search?",
+    "answer": "An embedding is a list of numbers that encodes the meaning of a piece of text as a point in high-dimensional space. The key property: texts with similar meaning land near each other, even when they share no words — 'How do I reset my password?' sits close to 'steps to recover account access'. That turns 'find relevant documents' into geometry: embed everything once, embed the query at ask-time, and return the stored vectors closest to it.",
+    "depth": "core"
+  },
+  {
+    "id": "w09-r3",
+    "weekId": "w09",
+    "prompt": "Walk through the two phases of a basic RAG pipeline: what happens at indexing time versus at query time.",
+    "answer": "Do the heavy reading once up front; do a fast lookup on every question. At indexing time you split documents into chunks, embed each chunk into a vector, and store vectors alongside their text in a vector store. At query time you embed the user's question with the same embedding model, find the nearest stored vectors by similarity, and paste the winning chunks into the prompt so the model answers grounded in retrieved text rather than only its trained memory.",
+    "depth": "core"
+  },
+  {
+    "id": "w09-r4",
+    "weekId": "w09",
+    "prompt": "Why must documents be chunked before embedding, and what is the core tradeoff between small and large chunks?",
+    "answer": "One vector must summarize its whole chunk, so chunk size decides what a vector can 'mean'. Embed an entire document and every topic inside it blurs into one averaged point that matches queries poorly; that is why we split first. Small chunks give sharp, precise matching but may cut off the surrounding context the model needs to actually answer; large chunks preserve context but dilute the embedding and drag irrelevant text into the prompt. Good chunking respects natural boundaries — paragraphs, sections — and often overlaps neighbors so ideas straddling a cut survive.",
+    "depth": "core"
+  },
+  {
+    "id": "w09-r5",
+    "weekId": "w09",
+    "prompt": "Cosine similarity between embeddings is the standard relevance measure in vector search. What is it actually comparing, and why is it preferred over raw distance between vectors?",
+    "answer": "Cosine similarity compares the direction two vectors point, ignoring how long they are. Direction is where embedding models encode meaning, while vector length can vary with incidental things like text length, so comparing angles asks 'do these mean the same thing?' rather than 'are these numerically close?'. Higher scores mean more aligned, but the usable range is model-specific — unrelated pairs can still score high, so compare rankings, not absolute values. With vectors normalized to unit length, ranking by cosine and by Euclidean distance agree — which is why stores often normalize and use either interchangeably.",
+    "depth": "stretch"
+  },
+  {
+    "id": "w10-r1",
+    "weekId": "w10",
+    "prompt": "Why add a reranker after vector retrieval instead of just trusting the similarity scores and taking the top-k?",
+    "answer": "Vector search is a fast filter, not a careful judge. Embeddings compress each chunk into one vector before the query ever arrives, so similarity scores capture rough topical closeness but miss fine distinctions. A reranker (typically a cross-encoder) reads the query and each candidate chunk together, token by token, producing a much sharper relevance score — but it is too slow to run on the whole corpus. So the pattern is two-stage: retrieve a generous candidate set cheaply, then rerank that shortlist precisely and keep the best few.",
+    "depth": "core"
+  },
+  {
+    "id": "w10-r2",
+    "weekId": "w10",
+    "prompt": "A RAG system retrieves a chunk that mentions the right entity, but the model's answer is still wrong because the chunk lacks the sentence that actually resolves the question. Describe this failure mode and what causes it.",
+    "answer": "The chunk is about the topic but does not contain the answer — topical relevance without answer-bearingness. It happens because embeddings score topical similarity, not whether a passage actually resolves the question — a chunk can be saturated with the right keywords and entities while the decisive fact lives in a neighboring chunk that scored lower. Bad chunk boundaries make it worse by splitting a claim from its qualifier or a pronoun from its referent. Fixes include boundary-aware chunking with overlap, retrieving neighbors of a hit, and reranking on the actual question.",
+    "depth": "core"
+  },
+  {
+    "id": "w10-r3",
+    "weekId": "w10",
+    "prompt": "Your RAG system answers fluently but wrongly. How do you diagnose whether the fault is in retrieval or in generation, and why does the distinction matter?",
+    "answer": "Look at what was retrieved before blaming the model. If the fetched chunks do not contain the answer, the failure is retrieval — better chunking, embeddings, query handling, or reranking is needed, and no prompt tweak will conjure missing facts. If the right passage was retrieved but the answer ignores or contradicts it, the failure is generation — grounding instructions, context ordering, or model choice. The distinction matters because the two failure types have disjoint fixes; debugging RAG means inspecting the intermediate retrieval, not just the final answer.",
+    "depth": "core"
+  },
+  {
+    "id": "w10-r4",
+    "weekId": "w10",
+    "prompt": "Why do purely semantic (embedding-based) retrievers stumble on queries containing exact identifiers like error codes, product SKUs, or rare names — and what is the standard remedy?",
+    "answer": "Embeddings blur text into meaning, and exact identifiers have almost no 'meaning' to preserve. A rare token like 'ERR_4092' or a specific part number may embed close to unrelated codes, so the semantically fuzzy match wins over the exact one. The standard remedy is hybrid search: run a keyword/lexical match (exact-term scoring) alongside vector search and merge the ranked lists, so precise-token queries are caught lexically while paraphrased conceptual queries are caught semantically.",
+    "depth": "core"
+  },
+  {
+    "id": "w10-r5",
+    "weekId": "w10",
+    "prompt": "The user's raw chat message is often a poor retrieval query. Give two reasons why, and describe the query-transformation step that addresses them.",
+    "answer": "Users write for a conversation, not for a search engine. First, follow-up messages depend on earlier turns — 'what about the second one?' embeds to almost nothing useful on its own. Second, a single message may pack several distinct questions, or phrase a need in words that do not resemble how documents state the answer. The fix is to have an LLM rewrite before retrieving: resolve references into a self-contained question, split multi-part asks into separate queries, or expand phrasing — then retrieve with the transformed query or queries instead of the raw message.",
+    "depth": "stretch"
+  },
+  {
+    "id": "w11-r1",
+    "weekId": "w11",
+    "prompt": "What is the core idea of using a language model recursively, and what limitation of a single call does it overcome?",
+    "answer": "Instead of one giant call solving everything, a model breaks a problem into pieces, calls itself (or another model) on each piece, and combines the results. A single call is capped by the context window and by attention degrading over very long inputs — one pass over a huge task produces shallow, error-prone output. Recursion turns size into structure: each sub-call sees a small, focused input it can handle well, and the parent call only has to integrate the sub-answers.",
+    "depth": "core"
+  },
+  {
+    "id": "w11-r2",
+    "weekId": "w11",
+    "prompt": "Describe the map-reduce pattern for summarizing a document far larger than the context window.",
+    "answer": "Summarize the pieces, then summarize the summaries. Map step: split the document into window-sized parts and run the same summarization prompt over each independently — these calls are parallelizable since they don't depend on each other. Reduce step: concatenate the partial summaries and summarize that; if even the combined summaries exceed the window, reduce again in another layer. The hierarchy lets a fixed-window model process unbounded input, at the cost of each level compressing away some detail.",
+    "depth": "core"
+  },
+  {
+    "id": "w11-r3",
+    "weekId": "w11",
+    "prompt": "In a recursive or hierarchical LM setup, what do errors do as results flow up the hierarchy, and how do you defend against it?",
+    "answer": "Errors compound: a fact garbled at a leaf gets baked into every level above it, and the top-level model cannot recover information a lower level destroyed — it never saw the original text. Defenses target this directly: make sub-calls extract or quote rather than freely paraphrase, carry source references upward so claims stay checkable, add verification passes that spot-check intermediate outputs against the source, and keep the hierarchy as shallow as the window allows since each extra level is another chance to corrupt.",
+    "depth": "core"
+  },
+  {
+    "id": "w11-r4",
+    "weekId": "w11",
+    "prompt": "When is recursive decomposition the wrong tool — what kinds of tasks does splitting actively damage?",
+    "answer": "Splitting only works when the pieces are meaningfully independent. Tasks that hinge on global, cross-cutting structure suffer: resolving a pronoun whose referent sits three chunks earlier, detecting a contradiction between distant sections, or reasoning where every step depends on the previous one's full detail. Each sub-call sees only its fragment, so relationships spanning fragments are invisible by construction. For such tasks you fit the whole input in one context, restructure the split around the dependency, or explicitly pass the needed cross-chunk state between calls.",
+    "depth": "stretch"
+  },
+  {
+    "id": "w11-r5",
+    "weekId": "w11",
+    "prompt": "How does an orchestrator-plus-subcall architecture differ from one model doing everything in a single long context, in terms of cost and quality?",
+    "answer": "It trades one expensive, overloaded call for many cheap, focused ones. An orchestrator model plans and delegates: subtasks go to calls with short, targeted contexts — often to smaller, cheaper models, since a well-scoped subtask needs less capability — and only conclusions return to the planner. Quality improves because each call's context contains only what its job needs, avoiding the long-context attention dilution of one massive prompt; cost falls because tokens are spent on relevant text. The price is orchestration complexity, added latency from sequential rounds, and information loss at the summarization boundaries between levels.",
+    "depth": "stretch"
+  },
+  {
+    "id": "w12-r1",
+    "weekId": "w12",
+    "prompt": "When should you reach for fine-tuning instead of RAG or better prompting — what kind of problem is each actually suited to?",
+    "answer": "Prompting changes instructions, RAG changes what the model knows right now, fine-tuning changes what the model is. Try prompting first — it is instant and free to iterate. Use RAG when the gap is knowledge: facts that are private, vast, or changing, because retrieved text updates without retraining and can be cited. Fine-tune when the gap is behavior: a style, format, domain dialect, or task skill the model should exhibit by default without lengthy instructions. Teaching fresh facts is the weakest use of fine-tuning — weights encode tendencies far more reliably than lookup-able knowledge.",
+    "depth": "core"
+  },
+  {
+    "id": "w12-r2",
+    "weekId": "w12",
+    "prompt": "How does LoRA make fine-tuning affordable, and why does freezing the original weights work at all?",
+    "answer": "LoRA freezes the entire pretrained model and learns only small low-rank matrices whose product is added to selected weight matrices — training a tiny fraction of the parameter count, which slashes optimizer memory and lets big models fine-tune on modest GPUs. It works because adapting a well-pretrained model to a task usually requires only a small, structured nudge to its behavior, and that nudge can be expressed in far fewer dimensions than the full weight space. Bonus: the base model stays intact, so adapters are swappable and the original capabilities remain untouched underneath.",
+    "depth": "core"
+  },
+  {
+    "id": "w12-r3",
+    "weekId": "w12",
+    "prompt": "Why do a few hundred excellent training examples routinely beat tens of thousands of mediocre ones when fine-tuning an LLM?",
+    "answer": "Fine-tuning does not teach the model to think — it teaches the model to imitate your examples, flaws included. Every inconsistency, error, or sloppy formatting in the data becomes a behavior the model learns to reproduce, and scale amplifies rather than averages out systematic noise. A small set of carefully written, consistent, diverse demonstrations gives a clean target to imitate, and pretrained models need surprisingly few examples to lock onto a pattern. Effort spent auditing and de-duplicating data usually pays more than effort spent collecting it.",
+    "depth": "core"
+  },
+  {
+    "id": "w12-r4",
+    "weekId": "w12",
+    "prompt": "What is catastrophic forgetting in fine-tuning, and what practices reduce the risk?",
+    "answer": "While learning your narrow task, the model can overwrite the weights that stored its general abilities — it gets better at your thing and quietly worse at everything else. It happens because gradient updates optimize only the fine-tuning objective, with nothing anchoring the capabilities that objective doesn't exercise. Mitigations: use small learning rates and few epochs, prefer parameter-efficient methods like LoRA that leave the base weights frozen, mix some general-purpose data into the training set, and evaluate on broad benchmarks — not just your task — before shipping.",
+    "depth": "core"
+  },
+  {
+    "id": "w12-r5",
+    "weekId": "w12",
+    "prompt": "Fine-tuning a chat model starts from an instruction-tuned checkpoint, not a raw base model — and the loss is often computed only on response tokens. Why both choices?",
+    "answer": "Start from the checkpoint that already has the skills you want to keep. An instruction-tuned model already follows directions and converses, so your data only needs to teach the delta — your style or task — instead of re-teaching helpfulness from a raw next-token predictor, which would demand vastly more data. Masking the loss to response tokens means the model is only graded on producing good answers, not on predicting the user's prompt text; the prompt still conditions the response, but no gradient is wasted learning to imitate users.",
+    "depth": "stretch"
+  },
+  {
+    "id": "w13-r1",
+    "weekId": "w13",
+    "prompt": "Why can you fine-tune a multi-billion-parameter model with LoRA while training only a tiny fraction of new weights?",
+    "answer": "The change a fine-tune needs to make to the weights is far simpler than the weights themselves, so it can be compressed. LoRA freezes the base weight matrix W and learns the update as a product of two thin matrices B·A with a small inner dimension r. Because the useful adaptation has low intrinsic rank, a small r captures most of it while the trainable parameter count stays a sliver of the full model.",
+    "depth": "core"
+  },
+  {
+    "id": "w13-r2",
+    "weekId": "w13",
+    "prompt": "In LoRA, what does the rank r actually control, and what trade do you make when you raise or lower it?",
+    "answer": "r is the capacity dial of the adapter. It is the inner dimension of the two small matrices whose product forms the weight update, so it caps how expressive the learned change can be. A small r means fewer trainable parameters, less memory, and less overfitting risk but can underfit a hard adaptation; a larger r buys expressiveness at higher cost, with diminishing returns once r exceeds the true complexity of the change you need.",
+    "depth": "core"
+  },
+  {
+    "id": "w13-r3",
+    "weekId": "w13",
+    "prompt": "After training, why can a LoRA adapter be merged into the base model with zero extra inference cost?",
+    "answer": "The adapter is just an additive correction to existing matrices, so you can bake it in. The adapted layer computes W·x + B·A·x, so you can precompute W' = W + B·A once and serve W' as an ordinary dense matrix — architecture and latency are unchanged. Keeping adapters unmerged is also useful: many task-specific adapters can be hot-swapped over one shared frozen base.",
+    "depth": "core"
+  },
+  {
+    "id": "w13-r4",
+    "weekId": "w13",
+    "prompt": "What is the key idea that lets QLoRA fine-tune a large model on a single modest GPU?",
+    "answer": "Keep the huge frozen part cheap and spend precision only on the small part you train. QLoRA stores the frozen base weights in 4-bit quantized form — they are only read during forward and backward passes — while the LoRA adapter weights, their gradients, and optimizer state stay in higher precision. Since no gradients or optimizer state are kept for the full model, memory drops dramatically with quality close to ordinary LoRA.",
+    "depth": "core"
+  },
+  {
+    "id": "w13-r5",
+    "weekId": "w13",
+    "prompt": "Why does full fine-tuning risk catastrophic forgetting more than LoRA-style adaptation, and what breaks when it happens?",
+    "answer": "Full fine-tuning lets every weight drift, so a narrow new task can overwrite broad old knowledge. When all parameters update on a small specialized dataset, the model moves far from its pretrained region and general abilities like instruction following and world knowledge degrade. LoRA confines the update to a low-rank correction on a frozen base, limiting how far the model can drift — and removing the adapter recovers the original model exactly.",
+    "depth": "stretch"
+  },
+  {
+    "id": "w14-r1",
+    "weekId": "w14",
+    "prompt": "What different jobs do supervised fine-tuning (SFT) and preference tuning do when turning a base model into an assistant?",
+    "answer": "SFT teaches the model what a good answer looks like; preference tuning teaches it which of several plausible answers people actually prefer. SFT imitates demonstration data token by token, installing format and instruction-following. Preference tuning (RLHF or DPO) learns from comparisons between responses, shaping qualities like helpfulness and tone that are much easier for humans to rank than to write out as perfect demonstrations.",
+    "depth": "core"
+  },
+  {
+    "id": "w14-r2",
+    "weekId": "w14",
+    "prompt": "In the RL framing behind RLHF, what plays the role of agent, action, state, and reward when the 'environment' is just a conversation?",
+    "answer": "The language model is an agent whose moves are the tokens it emits. The policy is the LLM; each generated token (or the whole response) is an action; the state is the prompt plus everything generated so far; the reward arrives at the end from a reward model trained on human preference comparisons. RL then shifts the policy toward responses that score higher, rather than imitating fixed target text.",
+    "depth": "core"
+  },
+  {
+    "id": "w14-r3",
+    "weekId": "w14",
+    "prompt": "Why does RLHF train a separate reward model instead of having humans score outputs inside the training loop?",
+    "answer": "Human labels are too slow and expensive to sit inside the loop, so you distill human judgment into a model once and query it endlessly. Humans rank a limited set of response pairs; a reward model learns to predict those preferences; RL then asks that model for scores millions of times at negligible cost. The price is that the reward model is an imperfect proxy, and the policy will look for ways to exploit its blind spots.",
+    "depth": "core"
+  },
+  {
+    "id": "w14-r4",
+    "weekId": "w14",
+    "prompt": "What is the core simplification DPO makes compared to classic RLHF?",
+    "answer": "DPO cuts out the middlemen — no separate reward model and no RL loop. It rests on a derivation showing the RLHF objective's optimum can be reached with a simple classification-style loss applied directly to preference pairs: push up the likelihood of the chosen response relative to the rejected one, anchored to a reference model so the policy cannot drift arbitrarily far. Preference tuning then runs with the simplicity and stability of supervised training.",
+    "depth": "core"
+  },
+  {
+    "id": "w14-r5",
+    "weekId": "w14",
+    "prompt": "In RLHF, why is the KL penalty against the reference model necessary — what goes wrong without it?",
+    "answer": "An unconstrained optimizer will find strange text that scores well with the reward model but reads terribly to humans. The reward model is only trustworthy near the distribution it was trained on; without a KL term tethering the policy to the SFT reference, the policy wanders into regions where the proxy reward is high but real quality collapses into degenerate, repetitive, or sycophantic output. The penalty deliberately trades some measured reward for staying where the proxy's judgment is valid.",
+    "depth": "stretch"
+  },
+  {
+    "id": "w15-r1",
+    "weekId": "w15",
+    "prompt": "What makes a reward 'verifiable' in RLVR, and why does that matter so much for training reasoning models?",
+    "answer": "A verifiable reward is one a program can check, so it cannot be sweet-talked the way a learned reward model can. In RLVR the signal comes from ground-truth checkers — the math answer matches, the unit tests pass, the output satisfies a format — instead of a neural proxy for human preference. With no proxy to game, you can apply heavy optimization pressure at scale, and score gains reflect genuinely correct outputs rather than merely persuasive-looking ones.",
+    "depth": "core"
+  },
+  {
+    "id": "w15-r2",
+    "weekId": "w15",
+    "prompt": "How did DeepSeek-R1's training demonstrate that long chain-of-thought reasoning can emerge from RL rather than being imitated from data?",
+    "answer": "Given only the signal 'was the final answer right', the model discovered by itself that thinking longer pays. R1-Zero was trained with RL on verifiable tasks starting from a base model, with no supervised reasoning demonstrations, and behaviors like long chains of thought, self-verification, and revisiting earlier steps emerged because they raised the chance of a correct final answer. The reward never described how to reason — only whether the outcome checked out.",
+    "depth": "core"
+  },
+  {
+    "id": "w15-r3",
+    "weekId": "w15",
+    "prompt": "What is reward hacking, and why does RLVR reduce it without eliminating it?",
+    "answer": "Reward hacking is scoring high on the measured signal without doing the task the signal was meant to measure. Learned reward models are easy victims because policies can find text that flatters the proxy. Verifiable rewards shrink the gap since the checker inspects the actual outcome, but hacks survive at the edges of its coverage — weak unit tests that can be special-cased, guessable answer formats, or shortcuts the verifier never anticipated. The reward is only ever as good as the verifier.",
+    "depth": "core"
+  },
+  {
+    "id": "w15-r4",
+    "weekId": "w15",
+    "prompt": "OpenAI's learning-to-reason work surfaced a new scaling axis besides model size and pretraining data. What is it, and what's the intuition?",
+    "answer": "You can buy accuracy at inference time by letting the model think longer, not only by training a bigger model. Reasoning models trained with RL improve as test-time compute grows — a longer chain of thought gives room to explore, verify, and self-correct before committing to an answer — and they also improve as RL training compute grows. 'How long to think' becomes a dial that trades latency and cost for quality on hard problems.",
+    "depth": "core"
+  },
+  {
+    "id": "w15-r5",
+    "weekId": "w15",
+    "prompt": "Why wasn't the pure-RL R1-Zero model shipped directly, and what did the full DeepSeek-R1 pipeline add?",
+    "answer": "Optimizing only for correct answers produces capable but unpolished behavior. R1-Zero's outputs had readability problems, such as mixing languages mid-reasoning, because nothing in its reward cared about presentation. The full R1 recipe added a small curated 'cold-start' set of long-form reasoning examples for SFT before RL, then further rounds of SFT and preference-style alignment — keeping the reasoning gains while making outputs readable and broadly helpful.",
+    "depth": "stretch"
+  },
+  {
+    "id": "w16-r1",
+    "weekId": "w16",
+    "prompt": "What are the essential ingredients of an RL environment for LLMs? Map them onto a concrete example like a coding-agent task.",
+    "answer": "An environment is a task, a way to act, and a way to score. It supplies the observation (an issue description and repo state), an action interface for the model (edit files, run commands), and a verifier that returns reward (the test suite passes or fails). Episode boundaries and resets make runs repeatable, so the same policy can be trained or evaluated over many independent rollouts of the same tasks.",
+    "depth": "core"
+  },
+  {
+    "id": "w16-r2",
+    "weekId": "w16",
+    "prompt": "How does training in an environment differ from training on a static dataset, and why do agentic skills specifically need the former?",
+    "answer": "A dataset shows the model what someone else did; an environment lets the model act and get graded on its own actions. Supervised data can only teach imitation of fixed trajectories, while an environment scores the model's own multi-step behavior — including recovering from its own mistakes, a situation that never appears in clean demonstration data. That interactive feedback loop is what actually teaches tool use, error recovery, and long-horizon planning.",
+    "depth": "core"
+  },
+  {
+    "id": "w16-r3",
+    "weekId": "w16",
+    "prompt": "Why is the verifier the most safety-critical part of an RL environment — what happens downstream if it's sloppy?",
+    "answer": "RL optimizes what the verifier actually rewards, never what its author intended. Any gap becomes the policy's target: if tests can be passed by hardcoding outputs, the model learns to hardcode; if a grader accepts empty answers, the model learns to answer emptily. Because thousands of rollouts apply relentless optimization pressure, loopholes a human reviewer would never stumble into get found and exploited systematically.",
+    "depth": "core"
+  },
+  {
+    "id": "w16-r4",
+    "weekId": "w16",
+    "prompt": "What makes an environment's difficulty 'right' for RL training, and what breaks at either extreme?",
+    "answer": "Learning needs a spread of outcomes — some rollouts must succeed and some must fail. If tasks are so hard the model almost never earns reward, there is nothing to reinforce and training stalls; if they are so easy nearly every rollout succeeds, reward stops distinguishing better behavior from worse. Good environments sit where the current model sometimes succeeds, and ramp difficulty as a curriculum while the policy improves.",
+    "depth": "core"
+  },
+  {
+    "id": "w16-r5",
+    "weekId": "w16",
+    "prompt": "Why are shared hubs of RL environments (like Prime Intellect's) valuable — why not have every lab build private ones?",
+    "answer": "Environments are becoming the training data of the RL era, and good ones are expensive to build. A standard interface lets one environment be reused across many models for both training and evaluation, so results are comparable, and a community hub supplies a diversity of tasks and domains no single team would author alone. That diversity matters because a policy trained on a narrow task set overfits its quirks instead of learning transferable skills.",
+    "depth": "stretch"
+  },
+  {
+    "id": "w17-r1",
+    "weekId": "w17",
+    "prompt": "What does an agent 'harness' consist of, and why can the same model perform very differently inside two different harnesses?",
+    "answer": "The harness is everything wrapped around the model: the loop, the tools, and what gets put in the prompt. It decides which tools the model may call, how results are fed back, what enters the context window each turn, and when the loop stops. Since the model only ever sees what the harness shows it, better context assembly and tool design can make identical weights dramatically more capable — a large share of 'agent quality' is harness quality.",
+    "depth": "core"
+  },
+  {
+    "id": "w17-r2",
+    "weekId": "w17",
+    "prompt": "Why is context management the central bottleneck for long-running agents, even as context windows keep growing?",
+    "answer": "An agent's working memory fills with tool outputs and history faster than any window grows, and models use crowded windows badly. Every turn appends observations; long sessions overflow the window or bury the key facts in noise, degrading recall while inflating cost and latency. So the harness must actively curate — truncate or summarize old turns, keep only relevant files, park details in external storage — constantly choosing what the model sees now versus what it can retrieve later.",
+    "depth": "core"
+  },
+  {
+    "id": "w17-r3",
+    "weekId": "w17",
+    "prompt": "What does it mean for agent development to be 'eval-driven', and what goes wrong without it?",
+    "answer": "Without a repeatable score, you are tuning by anecdote. Eval-driven means maintaining a fixed suite of representative tasks with automatic grading and re-running it after every prompt, tool, or harness change, so improvement is measured rather than felt. Without it, a change that fixes one demo silently regresses other cases, and you cannot attribute a behavior shift to the model, the prompt, or the harness.",
+    "depth": "core"
+  },
+  {
+    "id": "w17-r4",
+    "weekId": "w17",
+    "prompt": "Agent evals usually grade final outcomes rather than each intermediate step. Why, and what is the tradeoff?",
+    "answer": "There are many valid routes to a correct result, so grading steps punishes legitimate strategy diversity. Outcome grading — tests pass, the answer is correct, the end state is reached — is objective and robust to how the agent got there. The tradeoff is diagnosis: an outcome-only score says the agent failed but not where, so you still read trajectories to see whether planning, a tool call, or lost context caused it, and to catch lucky passes.",
+    "depth": "core"
+  },
+  {
+    "id": "w17-r5",
+    "weekId": "w17",
+    "prompt": "Why can adding more tools or more instructions to an agent make it worse instead of better?",
+    "answer": "Everything you add competes for the model's limited attention. Each tool definition and instruction consumes context and adds a decision point; overlapping tools make selection ambiguous, and long instruction lists dilute the rules that actually matter. Harness design is subtractive as much as additive — a few well-named tools with crisp descriptions and a short, prioritized system prompt usually beat a kitchen-sink configuration.",
+    "depth": "stretch"
+  },
+  {
+    "id": "w18-r1",
+    "weekId": "w18",
+    "prompt": "Why do agents need a memory system at all when they already have a context window?",
+    "answer": "The context window is RAM, not a hard drive — small, expensive, and wiped between sessions. The model's weights don't update from conversations, so anything not re-included in the next prompt is simply gone. A memory system persists facts, preferences, and past outcomes outside the model and re-injects the relevant subset into future contexts, providing continuity the raw model cannot.",
+    "depth": "core"
+  },
+  {
+    "id": "w18-r2",
+    "weekId": "w18",
+    "prompt": "Contrast short-term and long-term memory in an agent: where does each live, and how is each accessed?",
+    "answer": "Short-term memory is what's in front of the model right now; long-term memory is what's filed away for later. Short-term memory is the current context — recent turns, working notes, tool results — available at zero lookup cost but limited and transient. Long-term memory lives in external storage such as files, databases, or vector indexes, survives across sessions, and must be explicitly retrieved: searched for relevance and injected into context when needed.",
+    "depth": "core"
+  },
+  {
+    "id": "w18-r3",
+    "weekId": "w18",
+    "prompt": "How does retrieval-backed memory decide what to bring into context, and why is that better than replaying the whole history?",
+    "answer": "Fetch only what's relevant to the present moment, because most history is noise for the current question. Memories are stored as chunks, often with embeddings; at query time the current task is used to search for the most relevant entries, and only those few are placed into the prompt. Replaying everything would blow the window, raise cost, and bury the useful facts — selective retrieval keeps context small and on-topic.",
+    "depth": "core"
+  },
+  {
+    "id": "w18-r4",
+    "weekId": "w18",
+    "prompt": "What do you gain and what do you lose when you compress old conversation into a running summary?",
+    "answer": "Summarization is lossy compression — it trades detail for space. You gain room in the window and a distilled record of decisions and facts that would otherwise scroll away. You lose whatever the summarizer judged unimportant — exact wording, edge cases, context that only later turns out to matter — and summary errors compound, since future summaries and decisions build on them. That is why summaries are often paired with retrieval over the raw log.",
+    "depth": "core"
+  },
+  {
+    "id": "w18-r5",
+    "weekId": "w18",
+    "prompt": "Why is deciding what to WRITE into long-term memory as important as deciding what to retrieve — what breaks with a write-everything policy?",
+    "answer": "A memory stuffed with junk makes every future search worse. If everything is stored, retrieval must fish relevant items out of an ocean of near-duplicates and trivia, dropping precision and injecting stale or contradictory facts — an outdated preference can outrank the current one. Good memory systems filter and consolidate at write time: store durable, novel, useful facts and update or expire outdated ones, so the store stays small and trustworthy.",
+    "depth": "stretch"
+  },
+  {
+    "id": "w20-r1",
+    "weekId": "w20",
+    "prompt": "Why do experienced readers take multiple passes over a paper (abstract → figures → intro/conclusion → method) instead of reading it linearly?",
+    "answer": "Most papers don't deserve a full read, so you spend attention in proportion to relevance. A first pass over the abstract, figures, and conclusion answers 'what is claimed and does it matter to me' in minutes; only papers that survive earn a deep pass through method and experiments. Figures come early because a paper's core result and setup are usually compressed into one or two key plots and tables.",
+    "depth": "core"
+  },
+  {
+    "id": "w20-r2",
+    "weekId": "w20",
+    "prompt": "When reading results, what's the difference between a paper's claims and its evidence, and how do you check one against the other?",
+    "answer": "The abstract sells; the tables tell. A claim is the general statement ('our method improves reasoning'); evidence is the specific measured result — which benchmarks, against which baselines, by what margin, under what conditions. Check whether the experiments actually cover the scope of the claim: a sweeping claim backed by one benchmark, weak baselines, or favorable settings is a claim outrunning its evidence.",
+    "depth": "core"
+  },
+  {
+    "id": "w20-r3",
+    "weekId": "w20",
+    "prompt": "Why do baselines make or break an empirical paper — what specifically should you inspect about them?",
+    "answer": "A method only looks good relative to what it's compared against, so weak comparisons manufacture wins. Check that the baselines are strong and current, tuned with effort, compute, and data comparable to the proposed method, and evaluated under identical conditions. A classic failure mode is a carefully tuned new method versus default-configured baselines — the reported gap then measures tuning effort, not the idea.",
+    "depth": "core"
+  },
+  {
+    "id": "w20-r4",
+    "weekId": "w20",
+    "prompt": "What question does an ablation study answer that the headline result cannot?",
+    "answer": "Ablations tell you which part of the system actually does the work. The headline number only shows the full package beats baselines, but the package bundles many changes; an ablation removes or varies one component at a time to attribute the gain. If deleting the 'key contribution' barely hurts while some incidental detail — data, scale, a training trick — drives everything, the paper's story and its mechanism disagree, which changes what you should take away and reuse.",
+    "depth": "core"
+  },
+  {
+    "id": "w20-r5",
+    "weekId": "w20",
+    "prompt": "Why does trying to reproduce a result teach you more than reading alone, and what does a failed reproduction actually signal?",
+    "answer": "Implementation forces contact with every detail the prose glossed over. Reproducing exposes unstated hyperparameters, data-processing choices, and fragile steps — the gap between understanding a method's idea and understanding what makes it work. A failed reproduction isn't automatically misconduct: it often means the result depends on undocumented specifics or narrow conditions, which is itself vital information about how robust the claim is.",
+    "depth": "stretch"
+  },
+  {
+    "id": "w21-r1",
+    "weekId": "w21",
+    "prompt": "Why model an agent's control flow as an explicit graph of nodes and edges instead of one big loop that asks the LLM what to do next?",
+    "answer": "A graph makes the agent's possible paths visible and enforceable instead of leaving them implicit in a prompt. Each node is a unit of work (an LLM call, a tool call, a routing decision), edges declare which transitions are allowed, and a shared state object flows between them. That structure lets you add branching, parallel steps, retries, and pause points deliberately, and lets you debug by inspecting exactly which path a run took.",
+    "depth": "core"
+  },
+  {
+    "id": "w21-r2",
+    "weekId": "w21",
+    "prompt": "In a graph-based agent, what is the shared state, and how do nodes interact with it?",
+    "answer": "State is the single evolving record of the run that every node reads from and writes to — the graph's memory. A node receives the current state, does its work, and returns an update that gets merged back in, while conditional edges inspect the updated state to pick the next node. Because all communication goes through state rather than direct node-to-node calls, nodes stay decoupled and any point in the run can be snapshotted or replayed.",
+    "depth": "core"
+  },
+  {
+    "id": "w21-r3",
+    "weekId": "w21",
+    "prompt": "Data pipelines are usually DAGs, but agent graphs allow cycles. Why do agents need cycles, and what new failure mode do cycles introduce?",
+    "answer": "Agents iterate: act, observe the result, and decide whether to try again — and 'loop back until the answer is good enough' is a cycle by definition, which a DAG cannot express. The price is that a cycle can spin forever if the termination condition never fires, for example a model that keeps calling the same failing tool. So cyclic agent graphs need an explicit exit condition plus a hard step or recursion limit as a backstop.",
+    "depth": "core"
+  },
+  {
+    "id": "w21-r4",
+    "weekId": "w21",
+    "prompt": "What does checkpointing the graph's state after every node make possible, and why is human-in-the-loop approval nearly impossible without it?",
+    "answer": "Checkpointing turns a running agent into something you can pause, resume, and rewind, because the full state is saved at every step. That enables crash recovery, replaying a run from any point for debugging, and long-lived conversations that survive restarts. Human-in-the-loop depends on it: a human might take hours to approve a sensitive action, and without persisted state you would have to keep the process alive and frozen that whole time — with checkpoints, the run simply stops at an interrupt, gets stored, and resumes later from the saved state, even on a different machine.",
+    "depth": "core"
+  },
+  {
+    "id": "w21-r5",
+    "weekId": "w21",
+    "prompt": "When should routing be encoded as a conditional edge in the graph versus delegated to the LLM choosing among tools?",
+    "answer": "Encode it in the graph when the decision must be guaranteed; let the model choose when the decision needs judgment. A conditional edge is deterministic code inspecting state, so rules like 'always run validation before writing' or 'stop after three failures' cannot be skipped by a confused model. LLM-driven routing is flexible for open-ended situations but only probabilistic — so the practical pattern is model freedom inside the nodes, hard structural guarantees on the edges.",
+    "depth": "stretch"
+  },
+  {
+    "id": "w22-r1",
+    "weekId": "w22",
+    "prompt": "Why must a workflow orchestration engine persist each step's status to durable storage instead of tracking the run in memory?",
+    "answer": "A workflow can outlive the process running it, so its progress must live somewhere a crash cannot erase. If the engine records each step's status (pending, running, done, failed) in a database, a restarted worker can look up the last completed step and resume from exactly there instead of rerunning the whole workflow or losing it entirely. In-memory tracking makes every deploy, crash, or scale-down event destroy in-flight work.",
+    "depth": "core"
+  },
+  {
+    "id": "w22-r2",
+    "weekId": "w22",
+    "prompt": "What does putting a task queue between 'workflow triggered' and 'step executed' buy you, compared to executing steps directly in the request handler?",
+    "answer": "The queue decouples accepting work from doing work, so bursts and slow steps stop hurting the caller. Producers enqueue tasks and return immediately; a pool of workers pulls tasks at its own pace, which gives you buffering under load, horizontal scaling by adding workers, and fault tolerance — if a worker dies mid-task, the unacknowledged task is redelivered to another worker instead of vanishing.",
+    "depth": "core"
+  },
+  {
+    "id": "w22-r3",
+    "weekId": "w22",
+    "prompt": "Why must workflow steps be idempotent, and what concretely goes wrong when they are not?",
+    "answer": "Because retries and queue redeliveries mean any step can execute more than once, a step must produce the same end result whether it runs once or five times. A non-idempotent step turns a harmless retry into a double charge, a duplicate email, or a counter incremented twice. The standard fixes are an idempotency key checked before doing the work, a unique constraint that rejects the duplicate write, or making the operation naturally repeat-safe like 'set status to sent' instead of 'append to sent list'.",
+    "depth": "core"
+  },
+  {
+    "id": "w22-r4",
+    "weekId": "w22",
+    "prompt": "How should an engine treat a transiently failing step differently from a permanently failing one?",
+    "answer": "Transient failures deserve patience; permanent ones deserve surrender. For transient errors like timeouts or rate limits, retry with exponential backoff plus jitter so a struggling downstream service gets breathing room instead of a synchronized retry stampede. After a bounded number of attempts — or immediately for clearly permanent errors like invalid input — stop retrying, mark the step failed, and park it in a dead-letter queue for inspection, so one poisoned task cannot burn resources forever.",
+    "depth": "core"
+  },
+  {
+    "id": "w22-r5",
+    "weekId": "w22",
+    "prompt": "Why is true exactly-once execution essentially unachievable in a distributed workflow engine, and what do real systems do instead?",
+    "answer": "Because a worker can crash after doing the work but before acknowledging it, the engine can never be certain whether the work happened — so it must choose between maybe-never (at-most-once) and maybe-twice (at-least-once). Real systems pick at-least-once delivery and make the duplicate harmless: workers acknowledge only after completing a task, and every handler is idempotent. The combination yields effectively-once results, which is the practical substitute for the exactly-once guarantee the network cannot provide.",
+    "depth": "stretch"
+  },
+  {
+    "id": "w23-r1",
+    "weekId": "w23",
+    "prompt": "What is the Hugging Face Hub conceptually, and what three kinds of artifacts does it host?",
+    "answer": "It is a shared, versioned registry for machine learning — think 'GitHub for ML artifacts'. It hosts models (weights plus configuration and a model card describing intended use and limitations), datasets, and Spaces, which are hosted demo apps for trying models in a browser. Because every repo is version-controlled, you can pin an exact revision of a model the same way you pin a dependency.",
+    "depth": "core"
+  },
+  {
+    "id": "w23-r2",
+    "weekId": "w23",
+    "prompt": "What does the pipeline abstraction do that calling the tokenizer and model manually does not, and when should you drop to the manual path?",
+    "answer": "A pipeline packages the whole task — preprocessing, model forward pass, and postprocessing — behind one call, so 'text in, answer out' just works for a named task like sentiment analysis or summarization. You drop to the manual tokenizer-plus-model path when you need what the wrapper hides: raw logits or embeddings, custom batching and decoding, fine-tuning, or performance tuning. Pipelines are for using a model; the manual path is for controlling or training one.",
+    "depth": "core"
+  },
+  {
+    "id": "w23-r3",
+    "weekId": "w23",
+    "prompt": "Why must a model be used with the exact tokenizer it was trained with, rather than any tokenizer that produces valid token IDs?",
+    "answer": "Token IDs are only meaningful relative to one specific vocabulary — the same integer means completely different text pieces under different tokenizers. The model's embedding table was learned assuming its own tokenizer's mapping, so feeding IDs from a different tokenizer gives tensors that are technically valid but semantically scrambled, and the model produces confident garbage with no error raised. This is why model repos ship the tokenizer files alongside the weights.",
+    "depth": "core"
+  },
+  {
+    "id": "w23-r4",
+    "weekId": "w23",
+    "prompt": "When does it make sense to pull a pretrained open model and run it yourself instead of calling a hosted LLM API?",
+    "answer": "Self-host when you need control; call an API when you need capability without infrastructure. Running an open model wins when data cannot leave your environment, when steady high volume makes per-token pricing expensive, when you need to fine-tune or modify the model, or when you need offline or latency-controlled inference. A hosted API wins for frontier-level quality, spiky or low volume, and fast iteration with zero GPU operations — and many products mix both, routing easy tasks to a cheap self-hosted model and hard ones to an API.",
+    "depth": "core"
+  },
+  {
+    "id": "w23-r5",
+    "weekId": "w23",
+    "prompt": "When you load a pretrained model from the Hub, what is actually in the repo that makes this work — beyond just the weights?",
+    "answer": "A model repo separates 'which architecture' from 'which numbers': it contains the weights, a config file describing the architecture and its hyperparameters, and the tokenizer files. The library reads the config first to instantiate the right model class with the right shapes, then loads the weights into it, then pairs it with the shipped tokenizer. That decoupling of code from parameters is what lets thousands of differently-sized models load through one generic mechanism.",
+    "depth": "stretch"
+  },
+  {
+    "id": "w24-r1",
+    "weekId": "w24",
+    "prompt": "Why is traditional monitoring — status codes, error rates, latency — not enough to tell you an LLM application is healthy?",
+    "answer": "Because an LLM app can fail while every request returns 200 OK: the failure lives in the content of the answer, not in the transport. A hallucinated fact, an ignored instruction, or a subtly wrong summary is invisible to infrastructure metrics. LLM observability therefore has to capture the prompts, completions, tool calls, and quality signals themselves, so you can ask 'was this answer good?' and not just 'did the request succeed?'.",
+    "depth": "core"
+  },
+  {
+    "id": "w24-r2",
+    "weekId": "w24",
+    "prompt": "What is a trace of a multi-step agent run, and why do you need per-step spans rather than just the final input and output?",
+    "answer": "A trace is the full tree of one request's execution — every LLM call, retrieval, and tool call recorded as a span with its inputs, outputs, latency, and token counts. You need that granularity because in a multi-step run the final answer being wrong tells you almost nothing about where it went wrong: the retrieval may have fetched the wrong documents, a tool may have returned an error the model papered over, or one prompt in the chain may be broken. With spans you walk the tree to the exact failing step; without them, debugging is guesswork.",
+    "depth": "core"
+  },
+  {
+    "id": "w24-r3",
+    "weekId": "w24",
+    "prompt": "Why track token counts on every LLM call, and how do tokens tie together cost, latency, and quality?",
+    "answer": "Tokens are the shared currency behind all three of an LLM app's tradeoffs, so they are the single most informative number to record. Cost is billed per token; latency grows with output length because tokens are generated one at a time; and overstuffed context raises both while often diluting quality, since the relevant information gets buried. Per-call token tracking is what lets you find which step of a pipeline is burning the budget and whether a prompt change quietly doubled your spend.",
+    "depth": "core"
+  },
+  {
+    "id": "w24-r4",
+    "weekId": "w24",
+    "prompt": "Your LLM app's quality is degrading in production but no one changed any code. What kinds of drift can cause this?",
+    "answer": "The world around your frozen prompts keeps moving, so quality can rot with zero commits. Users drift — real inputs shift toward topics and phrasings your prompts and eval set never covered; the model can drift — a provider update changes behavior on your exact prompts; and your data can drift — a RAG index goes stale or ingests malformed content. The defense is continuous measurement: score sampled production traffic over time and alarm on trend changes, because a launch-day evaluation only certifies launch day.",
+    "depth": "core"
+  },
+  {
+    "id": "w24-r5",
+    "weekId": "w24",
+    "prompt": "Why sample and automatically score production traces instead of relying on user feedback to find quality problems?",
+    "answer": "Because users mostly do not tell you when the model is wrong — they just trust it, or quietly leave. Explicit feedback like thumbs-down is sparse and biased toward extremes, so it badly undercounts routine failures. Continuously sampling live traces and scoring them with automated evaluators gives a dense quality signal on the real input distribution, free of the selection bias of user feedback (though the evaluator itself must be calibrated), catching regressions and drift days before they would surface through complaints or churn.",
+    "depth": "stretch"
+  },
+  {
+    "id": "w25-r1",
+    "weekId": "w25",
+    "prompt": "Describe the core loop of a computer-use agent, and explain why it must re-observe the screen after every action.",
+    "answer": "It is a perception–action loop: capture a screenshot, have the model interpret the screen against the goal, emit one action like a click, keystroke, or scroll, execute it, then screenshot again and repeat until done. Fresh observation after every action is mandatory because the screen is not under the agent's control — pages load slowly, dialogs pop up, and clicks land unexpectedly — so acting on a stale mental picture means clicking on a UI that no longer exists.",
+    "depth": "core"
+  },
+  {
+    "id": "w25-r2",
+    "weekId": "w25",
+    "prompt": "What does 'grounding' mean for a computer-use agent, and why is turning 'click the Submit button' into an actual click genuinely hard?",
+    "answer": "Grounding is translating an intent into precise screen coordinates — knowing not just what to click but exactly where it is in pixels. It is hard because the model must localize an element inside a screenshot where being off by a small margin hits the wrong control, and layouts shift with scrolling, window size, and dynamic content. Where a DOM or accessibility tree is available, agents can ground against named elements instead of raw pixels, which is far more reliable — pure-vision grounding is the fallback for arbitrary screens.",
+    "depth": "core"
+  },
+  {
+    "id": "w25-r3",
+    "weekId": "w25",
+    "prompt": "Why are computer-use agents so much more brittle than agents that call APIs as tools?",
+    "answer": "Because a GUI is an interface built for human eyes, not for programs — there is no schema, no typed parameters, and no structured error when something goes wrong. A redesign, an unexpected popup, or a slow-loading page silently breaks the agent's assumptions, whereas an API change at least fails loudly. And since a real task is a long chain of steps, per-step error compounds: even a high per-action success rate multiplies into frequent failures across a many-step task, which is why long autonomous GUI runs remain unreliable.",
+    "depth": "core"
+  },
+  {
+    "id": "w25-r4",
+    "weekId": "w25",
+    "prompt": "Why do computer-use agents need hard safety constraints, and what do those constraints look like in practice?",
+    "answer": "A computer-use agent wields the user's full authority in real interfaces where mistakes are irreversible — a mis-click can send an email, delete data, or spend money. Practical guardrails include requiring human confirmation before irreversible actions, hard-blocking whole categories like payments and credentials, restricting which sites and apps the agent may touch, and running inside a sandboxed environment so the blast radius of an error is bounded. The design stance is that the model's judgment is a suggestion; the hard limits are the guarantee.",
+    "depth": "core"
+  },
+  {
+    "id": "w25-r5",
+    "weekId": "w25",
+    "prompt": "Why is a computer-use agent unusually exposed to prompt injection, and what is the core defensive principle?",
+    "answer": "Everything the agent sees on screen flows into the model's context, and the model cannot inherently tell the user's instructions apart from text that merely appears on a webpage. A hostile page can therefore embed text addressed to the agent — 'ignore your instructions and go to this site' — and steer its actions, effectively letting the environment write prompts. The defensive principle is to treat all observed content as untrusted data rather than commands, and to require out-of-band user confirmation for any consequential action so a poisoned screen cannot authorize anything by itself.",
+    "depth": "stretch"
+  },
+  {
+    "id": "w26-r1",
+    "weekId": "w26",
+    "prompt": "Why does 'I tried a few prompts and the outputs looked good' fail as a quality strategy for an LLM application?",
+    "answer": "Vibes are a tiny, biased, unrecorded sample — they cannot tell you what your change broke. Manual spot checks cover a handful of cases the developer happened to think of, and because nothing is written down, there is no baseline to compare against after the next prompt or model change. LLM changes routinely improve some inputs while silently regressing others, so without a fixed test set and recorded scores, every edit is a blind trade you cannot detect, reproduce, or roll back on evidence.",
+    "depth": "core"
+  },
+  {
+    "id": "w26-r2",
+    "weekId": "w26",
+    "prompt": "What is a golden set, and what separates a good one from a useless one?",
+    "answer": "A golden set is a fixed collection of representative inputs paired with known-correct outputs or explicit grading criteria — the ground truth your system is measured against. A good one mirrors real usage rather than easy demo cases, includes edge cases and every interesting failure you have seen in production, and is large enough that score changes reflect real quality shifts rather than noise. Keep two tiers, mirroring the train/validation/test discipline: a dev eval set you rerun freely while iterating on prompts, and a held-out golden set used only as a shipping gate — iterate against the held-out set and you overfit, and its score stops predicting real-world performance.",
+    "depth": "core"
+  },
+  {
+    "id": "w26-r3",
+    "weekId": "w26",
+    "prompt": "What is LLM-as-judge, when is it the right evaluation tool, and what are its known failure modes?",
+    "answer": "LLM-as-judge uses a strong model to grade outputs against a rubric, standing in for a human reviewer. It is the right tool when quality is open-ended — helpfulness, tone, faithfulness to a source — where exact-match scoring is impossible and human grading does not scale. Its known biases: it favors longer answers regardless of substance, favors whichever answer appears first in pairwise comparisons, and tends to prefer text resembling its own style. Mitigations include tight rubrics, swapping answer order and averaging, and periodically calibrating the judge's scores against human labels.",
+    "depth": "core"
+  },
+  {
+    "id": "w26-r4",
+    "weekId": "w26",
+    "prompt": "How do evals serve as regression tests for prompts, and why should a prompt edit be treated like a code change?",
+    "answer": "A prompt is load-bearing logic whose effects are non-local: one edited sentence can fix the case in front of you while breaking five cases you are not looking at. Treating prompts like code means every change reruns the full eval suite and its scores are compared against the previous baseline before shipping — exactly how unit tests gate a refactor. Without that gate, prompt tuning becomes whack-a-mole where each fix silently introduces regressions no one notices until users do.",
+    "depth": "core"
+  },
+  {
+    "id": "w26-r5",
+    "weekId": "w26",
+    "prompt": "Offline evals versus online evals — what does each catch that the other cannot, and why do mature teams run both?",
+    "answer": "Offline evals catch problems before users see them; online evals catch the problems you failed to anticipate. Offline runs score a candidate change against a golden set pre-ship — controlled and repeatable, but blind to inputs outside the set. Online evaluation scores sampled real traffic and compares variants on live usage, surfacing distribution shift and unforeseen input types, but only after users are exposed. Mature teams close the loop: online monitoring discovers new failures, which get added to the offline golden set so the next regression is caught before shipping.",
+    "depth": "stretch"
+  }
+]

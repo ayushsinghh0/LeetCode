@@ -34,6 +34,7 @@ import {
   taskRescheduled,
   taskToggled,
 } from '@/store/slices/tasksSlice';
+import { drillRecorded } from '@/store/slices/drillsSlice';
 import { courseWeekById } from '@/data/aimlCourse';
 import {
   COURSE_REVIEW_XP,
@@ -98,6 +99,16 @@ export const setConfidence = (id: number, confidence: Confidence): AppThunk => (
 // when the Focus screen has a question up (ui.focusQuestionId, maintained by FocusPage), the
 // same minutes are ALSO attributed to that question's timeSpentMin — a breakdown of the total,
 // not an addition to it, so analytics must never sum the two dimensions together.
+// Records a finished recognition drill. The drills slice enforces first-attempt-of-the-day
+// semantics itself; this thunk only supplies the date. `missedPatterns` lists the correct
+// pattern of every wrongly answered item (duplicates allowed — two misses in one family's
+// pattern are two pieces of evidence).
+export const logDrillResult =
+  (correct: number, total: number, missedPatterns: string[]): AppThunk =>
+  (dispatch) => {
+    dispatch(drillRecorded({ date: todayISO(), correct, total, missedPatterns }));
+  };
+
 export const logFocusSession = (minutes: number): AppThunk => (dispatch, getState) => {
   const date = todayISO();
   dispatch(focusMinutesAdded({ date, minutes }));

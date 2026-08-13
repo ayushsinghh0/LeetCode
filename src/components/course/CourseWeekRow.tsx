@@ -1,7 +1,8 @@
 import { format, parseISO } from 'date-fns';
-import { CheckCircle2, Circle, NotebookPen, Sparkles } from 'lucide-react';
+import { BookOpenCheck, CheckCircle2, Circle, NotebookPen, Sparkles } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { CourseResourceChips } from '@/components/course/CourseResourceChips';
+import { recallByWeekId } from '@/data/courseRecall';
 import { cn } from '@/utils/cn';
 import { useAppDispatch } from '@/store/hooks';
 import { completeCourseSession } from '@/store/actions';
@@ -25,6 +26,7 @@ export interface CourseWeekRowProps {
   /** True when this row holds the plan's next session. */
   isCurrent?: boolean;
   onOpenNotes: (week: CourseWeek) => void;
+  onOpenRecall: (week: CourseWeek) => void;
 }
 
 function SessionControl({ week, day, progress }: { week: CourseWeek; day: CourseDay; progress: CourseWeekProgress }) {
@@ -57,8 +59,9 @@ function SessionControl({ week, day, progress }: { week: CourseWeek; day: Course
 
 // One syllabus line: chapter numeral, title + meta + resource chips, session controls, notes.
 // Rows stack inside a single plate and rule themselves off with a hairline top border.
-export function CourseWeekRow({ week, progress, planned, isCurrent, onOpenNotes }: CourseWeekRowProps) {
+export function CourseWeekRow({ week, progress, planned, isCurrent, onOpenNotes, onOpenRecall }: CourseWeekRowProps) {
   const done = isWeekDone(week, progress);
+  const hasRecall = (recallByWeekId[week.id] ?? []).length > 0;
 
   const plannedLabel = (() => {
     if (done) return null;
@@ -116,6 +119,16 @@ export function CourseWeekRow({ week, progress, planned, isCurrent, onOpenNotes 
       <div className="flex shrink-0 flex-wrap items-center gap-1.5">
         <SessionControl week={week} day={1} progress={progress} />
         {sessionCount(week) === 2 && <SessionControl week={week} day={2} progress={progress} />}
+        {hasRecall && (
+          <Button
+            variant="ghost"
+            size="sm"
+            aria-label={`Check yourself on ${week.optional ? week.title : `Week ${week.week}`}`}
+            onClick={() => onOpenRecall(week)}
+          >
+            <BookOpenCheck className="h-4 w-4 text-muted-foreground" aria-hidden="true" />
+          </Button>
+        )}
         <Button
           variant="ghost"
           size="sm"

@@ -5,6 +5,7 @@ import settingsReducer from '@/store/slices/settingsSlice';
 import gamificationReducer from '@/store/slices/gamificationSlice';
 import courseReducer from '@/store/slices/courseSlice';
 import tasksReducer from '@/store/slices/tasksSlice';
+import drillsReducer from '@/store/slices/drillsSlice';
 import uiReducer from '@/store/slices/uiSlice';
 
 const rootReducer = combineReducers({
@@ -13,6 +14,7 @@ const rootReducer = combineReducers({
   gamification: gamificationReducer,
   course: courseReducer,
   tasks: tasksReducer,
+  drills: drillsReducer,
   ui: uiReducer,
 });
 

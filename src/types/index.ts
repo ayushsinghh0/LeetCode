@@ -130,6 +130,19 @@ export interface CourseState {
   byWeekId: Record<string, CourseWeekProgress>; // sparse — only touched weeks exist
 }
 
+// Recognition-drill signal: one recorded (first) attempt per calendar date. Each entry carries
+// the patterns of its wrongly answered items, so every aggregate (miss ledger, weakness ranking,
+// drill weighting) is derived — and can exclude "today" to keep the day's drill stable.
+export interface DrillDayResult {
+  correct: number;
+  total: number;
+  missedPatterns: string[];
+}
+
+export interface DrillsState {
+  byDate: Record<string, DrillDayResult>;
+}
+
 export interface PersistedStateV1 {
   version: 1;
   progress: {
@@ -153,4 +166,6 @@ export interface PersistedStateV1 {
   course?: CourseState;
   // Optional for the same reason — payloads saved before the daily execution layer shipped.
   tasks?: TasksState;
+  // Optional for the same reason — payloads saved before recognition drills recorded results.
+  drills?: DrillsState;
 }

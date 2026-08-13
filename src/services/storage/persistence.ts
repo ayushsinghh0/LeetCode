@@ -116,5 +116,7 @@ export function loadInitialState(adapter: StorageAdapter): Partial<RootState> | 
       : {}),
     // Absent in pre-daily-plan payloads — omit so the tasks slice's own initialState applies.
     ...(persisted.tasks ? { tasks: { byId: persisted.tasks.byId } } : {}),
+    // Absent before recognition drills recorded results — same omit-and-default rule.
+    ...(persisted.drills ? { drills: { byDate: persisted.drills.byDate } } : {}),
   };
 }

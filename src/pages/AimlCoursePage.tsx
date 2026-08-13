@@ -16,6 +16,8 @@ import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } f
 import { StatCard } from '@/components/shared/StatCard';
 import { CourseResourceChips } from '@/components/course/CourseResourceChips';
 import { CourseNotesEditor } from '@/components/course/CourseNotesEditor';
+import { CourseRecallList } from '@/components/course/CourseRecallList';
+import { recallByWeekId } from '@/data/courseRecall';
 import { CourseReviewList } from '@/components/course/CourseReviewList';
 import { CourseWeekRow } from '@/components/course/CourseWeekRow';
 import { useToday } from '@/hooks/useToday';
@@ -59,9 +61,11 @@ export default function AimlCoursePage() {
   const byWeekId = useAppSelector((s) => s.course.byWeekId);
 
   const [notesWeek, setNotesWeek] = useState<CourseWeek | null>(null);
+  const [recallWeek, setRecallWeek] = useState<CourseWeek | null>(null);
 
   const nextWeek = next ? courseWeekById.get(next.weekId) : undefined;
   const notesProgress = notesWeek ? (byWeekId[notesWeek.id] ?? initialCourseProgress()) : null;
+  const recallPrompts = recallWeek ? (recallByWeekId[recallWeek.id] ?? []) : [];
 
   return (
     <motion.div className="flex flex-col gap-6" variants={pageVariants} initial="hidden" animate="show">
@@ -174,6 +178,7 @@ export default function AimlCoursePage() {
               planned={schedule[week.id]}
               isCurrent={next?.weekId === week.id}
               onOpenNotes={setNotesWeek}
+              onOpenRecall={setRecallWeek}
             />
           ))}
         </ul>
@@ -191,6 +196,7 @@ export default function AimlCoursePage() {
               week={week}
               progress={byWeekId[week.id] ?? initialCourseProgress()}
               onOpenNotes={setNotesWeek}
+              onOpenRecall={setRecallWeek}
             />
           ))}
         </ul>
@@ -206,6 +212,22 @@ export default function AimlCoursePage() {
               <DialogDescription>Markdown notes for this module, saved with your progress.</DialogDescription>
             </DialogHeader>
             <CourseNotesEditor key={notesWeek.id} weekId={notesWeek.id} initialNotes={notesProgress.notes} />
+          </DialogContent>
+        )}
+      </Dialog>
+
+      <Dialog open={recallWeek !== null} onOpenChange={(open) => !open && setRecallWeek(null)}>
+        {recallWeek && recallPrompts.length > 0 && (
+          <DialogContent className="glass max-h-[85vh] overflow-y-auto sm:max-w-lg">
+            <DialogHeader>
+              <DialogTitle>
+                Check yourself — {recallWeek.optional ? recallWeek.title : `Week ${recallWeek.week}: ${recallWeek.title}`}
+              </DialogTitle>
+              <DialogDescription>
+                {recallPrompts.length} recall questions on this module's ideas.
+              </DialogDescription>
+            </DialogHeader>
+            <CourseRecallList key={recallWeek.id} prompts={recallPrompts} />
           </DialogContent>
         )}
       </Dialog>

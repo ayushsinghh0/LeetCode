@@ -4,9 +4,10 @@ import { LocalStorageAdapter } from '@/services/storage/LocalStorageAdapter';
 import { selectPersistedState, validatePersisted, exportAsJson } from '@/services/storage/serialize';
 import { createPersistenceMiddleware, loadInitialState } from '@/services/storage/persistence';
 import { makeStore } from '@/store/store';
-import { solveQuestion } from '@/store/actions';
+import { logDrillResult, solveQuestion } from '@/store/actions';
 import { stateImported, progressReset } from '@/store/sharedActions';
 import { settingsUpdated } from '@/store/slices/settingsSlice';
+import { todayISO } from '@/utils/dates';
 
 const STORAGE_KEY = 'dsa-roadmap:v1';
 
@@ -592,5 +593,27 @@ describe('round trip: makeStore -> persist -> reload into a fresh store', () => 
     expect(store2.getState().gamification.xp).toBe(store1.getState().gamification.xp);
     expect(store2.getState().settings).toEqual(store1.getState().settings);
     expect(store2.getState().settings.questionsPerDay).toBe(5);
+  });
+
+  test('a recorded drill result survives reload; drill-free payloads stay drill-free', () => {
+    const adapter1 = new LocalStorageAdapter();
+    const store1 = makeStore(undefined, [createPersistenceMiddleware(adapter1)]);
+
+    // Untouched drills must not appear in the payload (written-only-once-touched rule).
+    store1.dispatch(solveQuestion(1));
+    vi.advanceTimersByTime(500);
+    expect(adapter1.load()?.drills).toBeUndefined();
+
+    store1.dispatch(logDrillResult(6, 8, ['graphs', 'stacks']));
+    vi.advanceTimersByTime(500);
+
+    const preloaded = loadInitialState(new LocalStorageAdapter());
+    const store2 = makeStore(preloaded);
+    const today = todayISO();
+    expect(store2.getState().drills.byDate[today]).toEqual({
+      correct: 6,
+      total: 8,
+      missedPatterns: ['graphs', 'stacks'],
+    });
   });
 });

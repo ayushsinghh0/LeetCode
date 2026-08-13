@@ -1,25 +1,21 @@
 import { useState } from 'react';
-import { motion } from 'framer-motion';
 import { format, parseISO } from 'date-fns';
-import {
-  BookOpenCheck,
-  CalendarClock,
-  ExternalLink,
-  GraduationCap,
-  ListChecks,
-  Sparkles,
-} from 'lucide-react';
+import { ExternalLink, GraduationCap } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Progress } from '@/components/ui/progress';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog';
-import { StatCard } from '@/components/shared/StatCard';
+import { Lead, Ledger, Meta, Page, PageHeader, Section } from '@/components/layout/Page';
 import { CourseResourceChips } from '@/components/course/CourseResourceChips';
 import { CourseNotesEditor } from '@/components/course/CourseNotesEditor';
 import { CourseRecallList } from '@/components/course/CourseRecallList';
 import { recallByWeekId } from '@/data/courseRecall';
 import { CourseReviewList } from '@/components/course/CourseReviewList';
 import { CourseWeekRow } from '@/components/course/CourseWeekRow';
+import { MlProjectRow } from '@/components/course/MlProjectRow';
+import { MlTrackRow } from '@/components/course/MlTrackRow';
+import { ML_PROJECTS_IN_ORDER, totalProjectHours } from '@/data/mlProjects';
+import { ML_TRACKS, totalFailureModes, totalTrackMinutes } from '@/data/mlTracks';
 import { useToday } from '@/hooks/useToday';
 import { useAppDispatch, useAppSelector } from '@/store/hooks';
 import { completeCourseSession } from '@/store/actions';
@@ -32,21 +28,20 @@ import {
 } from '@/store/selectors';
 import { AIML_COURSE_URL, CORE_WEEKS, EXTRA_WEEKS, courseWeekById, lectureUrl, type CourseWeek } from '@/data/aimlCourse';
 import { initialCourseProgress } from '@/utils/engine/aimlCourse';
+import { formatMinutes } from '@/utils/engine/planner';
 
 const monthDay = (iso: string): string => format(parseISO(iso), 'MMM d');
 
-// Same staggered entrance vocabulary as TodayPage/DashboardPage (150ms states, 12px rise);
-// MotionConfig reducedMotion="user" in App.tsx already zeroes this for reduced-motion users.
-const pageVariants = {
-  hidden: {},
-  show: { transition: { staggerChildren: 0.05 } },
-};
-
-const blockVariants = {
-  hidden: { opacity: 0, y: 12 },
-  show: { opacity: 1, y: 0 },
-};
-
+/**
+ * The AI/ML track: the 100xDevs syllabus, plus the two things a lecture course cannot give you —
+ * implementing the algorithms yourself, and shipping projects against a stated baseline.
+ *
+ * Composition note: this page used to open with a plated header, four StatCards restating the two
+ * numbers printed one line above them, and a `p-6` plate wrapped around two lines of text. It is
+ * now `PageHeader` + one `Ledger` + open `Section`s, with exactly one plate — the `Lead` on "Up
+ * next", the one thing the page wants you to do. The syllabus keeps its rows-in-one-plate list,
+ * which was already the right idiom, and the two ML lists reuse it.
+ */
 export default function AimlCoursePage() {
   const today = useToday();
   const dispatch = useAppDispatch();
@@ -68,107 +63,112 @@ export default function AimlCoursePage() {
   const recallPrompts = recallWeek ? (recallByWeekId[recallWeek.id] ?? []) : [];
 
   return (
-    <motion.div className="flex flex-col gap-6" variants={pageVariants} initial="hidden" animate="show">
-      <motion.header variants={blockVariants} className="glass flex flex-col gap-4 p-6">
-        <div className="flex flex-wrap items-start justify-between gap-3">
-          <div>
-            <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
-              100xDevs cohort · two-day sprints
-            </p>
-            <h1 className="mt-1 text-2xl font-bold text-gradient">AI &amp; ML</h1>
-            <p className="mt-1 text-sm text-muted-foreground">
-              One week-module every two days — lecture first, practice the day after.
-            </p>
-          </div>
-          <Button asChild variant="outline">
-            <a href={AIML_COURSE_URL} target="_blank" rel="noreferrer">
-              100xDevs <ExternalLink />
-            </a>
-          </Button>
-        </div>
-        <Progress value={stats.pct} aria-label="Course completion" />
-        <p className="figures text-xs text-muted-foreground">
-          {stats.sessionsDone} of {stats.sessionsTotal} sessions · {stats.weeksDone} of {stats.weeksTotal} weeks
-        </p>
-      </motion.header>
-
-      <motion.div variants={blockVariants} className="grid grid-cols-2 gap-4 md:grid-cols-4">
-        <StatCard label="Sessions" value={`${stats.sessionsDone} / ${stats.sessionsTotal}`} icon={ListChecks} />
-        <StatCard label="Weeks cleared" value={`${stats.weeksDone} / ${stats.weeksTotal}`} icon={BookOpenCheck} />
-        <StatCard
-          label="Projected finish"
-          value={finish ? monthDay(finish) : 'Done'}
-          icon={CalendarClock}
-          accent={finish !== null}
+    <Page>
+      <div className="flex flex-col gap-6">
+        <PageHeader
+          eyebrow="100xDevs cohort · two-day sprints"
+          title="AI & ML"
+          support="One week-module every two days — lecture first, practice the day after."
+          action={
+            <Button asChild variant="outline">
+              <a href={AIML_COURSE_URL} target="_blank" rel="noreferrer">
+                100xDevs <ExternalLink />
+              </a>
+            </Button>
+          }
+          rule={false}
         />
-        <StatCard label="Extras" value={`${stats.extrasDone} / ${stats.extrasTotal}`} icon={Sparkles} />
-      </motion.div>
+        <Progress value={stats.pct} aria-label="Course completion" />
+        <Ledger
+          columns={4}
+          items={[
+            {
+              label: 'Sessions',
+              value: `${stats.sessionsDone} / ${stats.sessionsTotal}`,
+              sub: 'lecture + practice per week',
+            },
+            {
+              label: 'Weeks cleared',
+              value: `${stats.weeksDone} / ${stats.weeksTotal}`,
+              sub: 'both sessions done',
+            },
+            {
+              label: 'Projected finish',
+              value: finish ? monthDay(finish) : 'Done',
+              sub: finish ? 'at one week every two days' : 'all sessions logged',
+            },
+            {
+              label: 'Extras',
+              value: `${stats.extrasDone} / ${stats.extrasTotal}`,
+              sub: 'optional, outside the plan',
+            },
+          ]}
+        />
+      </div>
 
-      <motion.section variants={blockVariants} className="glass flex flex-col gap-4 p-6">
-        <h2 className="text-lg font-semibold">Up next</h2>
-        {next && nextWeek ? (
-          <>
-            <div>
-              <p className="font-serif text-2xl font-semibold tracking-tight">
-                Week {nextWeek.week} — {nextWeek.title}
-              </p>
-              <div className="mt-2 flex flex-wrap items-center gap-2">
-                <Badge variant="secondary">{next.day === 1 ? 'Day 1 · Lecture' : 'Day 2 · Practice'}</Badge>
-                {finish && (
-                  <span className="figures text-xs text-muted-foreground">
-                    planned today · finish {monthDay(finish)}
-                  </span>
-                )}
+      <Section title="Up next">
+        <Lead className="flex flex-col gap-4">
+          {next && nextWeek ? (
+            <>
+              <div>
+                <p className="font-serif text-2xl font-semibold tracking-tight">
+                  Week {nextWeek.week} — {nextWeek.title}
+                </p>
+                <div className="mt-2 flex flex-wrap items-center gap-2">
+                  <Badge variant="secondary">
+                    {next.day === 1 ? 'Day 1 · Lecture' : 'Day 2 · Practice'}
+                  </Badge>
+                  {finish && (
+                    <span className="figures text-xs text-muted-foreground">
+                      planned today · finish {monthDay(finish)}
+                    </span>
+                  )}
+                </div>
+                <p className="mt-2 max-w-prose text-sm text-muted-foreground">
+                  {next.day === 1
+                    ? 'Watch the lecture end to end, then skim the slides once.'
+                    : 'Work the notebook and resources, then write down what stuck.'}
+                </p>
               </div>
-              <p className="mt-2 max-w-prose text-sm text-muted-foreground">
-                {next.day === 1
-                  ? 'Watch the lecture end to end, then skim the slides once.'
-                  : 'Work the notebook and resources, then write down what stuck.'}
+              <CourseResourceChips resources={nextWeek.resources} />
+              <div className="flex flex-wrap gap-2">
+                <Button onClick={() => dispatch(completeCourseSession(next.weekId, next.day))}>
+                  Mark session done
+                </Button>
+                <Button asChild variant="outline">
+                  <a href={lectureUrl(nextWeek)} target="_blank" rel="noreferrer">
+                    Open lecture <ExternalLink />
+                  </a>
+                </Button>
+              </div>
+            </>
+          ) : (
+            <div className="flex flex-col items-start gap-2">
+              <p className="flex items-center gap-2 text-lg font-semibold">
+                <GraduationCap className="h-5 w-5 text-primary" aria-hidden="true" />
+                Course complete — all {stats.sessionsTotal} sessions logged.
               </p>
+              {stats.extrasDone < stats.extrasTotal && (
+                <p className="text-sm text-muted-foreground">
+                  The optional extras below are still open whenever you want them.
+                </p>
+              )}
             </div>
-            <CourseResourceChips resources={nextWeek.resources} />
-            <div className="flex flex-wrap gap-2">
-              <Button onClick={() => dispatch(completeCourseSession(next.weekId, next.day))}>
-                Mark session done
-              </Button>
-              <Button asChild variant="outline">
-                <a href={lectureUrl(nextWeek)} target="_blank" rel="noreferrer">
-                  Open lecture <ExternalLink />
-                </a>
-              </Button>
-            </div>
-          </>
-        ) : (
-          <div className="flex flex-col items-start gap-2">
-            <p className="flex items-center gap-2 text-lg font-semibold">
-              <GraduationCap className="h-5 w-5 text-primary" aria-hidden="true" />
-              Course complete — all {stats.sessionsTotal} sessions logged.
-            </p>
-            {stats.extrasDone < stats.extrasTotal && (
-              <p className="text-sm text-muted-foreground">
-                The optional extras below are still open whenever you want them.
-              </p>
-            )}
-          </div>
-        )}
-      </motion.section>
+          )}
+        </Lead>
+      </Section>
 
       {dueReviewIds.length > 0 && (
-        <motion.section variants={blockVariants} className="glass flex flex-col gap-3 p-6">
-          <div className="flex items-center gap-2">
-            <h2 className="text-lg font-semibold">Review due</h2>
-            <Badge variant="secondary">{dueReviewIds.length}</Badge>
-          </div>
-          <p className="text-sm text-muted-foreground">
-            Re-derive each week from its slides and your notes, then grade yourself — a fail
-            restarts its ladder.
-          </p>
+        <Section
+          title="Review due"
+          support="Re-derive each week from its slides and your notes, then grade yourself — a fail restarts its ladder."
+          action={<Badge variant="secondary">{dueReviewIds.length}</Badge>}
+        >
           <CourseReviewList weekIds={dueReviewIds} byWeekId={byWeekId} />
-        </motion.section>
+        </Section>
       )}
 
-      <motion.section variants={blockVariants}>
-        <h2 className="mb-3 text-lg font-semibold">Syllabus</h2>
+      <Section title="Syllabus">
         <ul className="glass list-none">
           {CORE_WEEKS.map((week) => (
             <CourseWeekRow
@@ -182,13 +182,9 @@ export default function AimlCoursePage() {
             />
           ))}
         </ul>
-      </motion.section>
+      </Section>
 
-      <motion.section variants={blockVariants}>
-        <div className="mb-3 flex items-center gap-2">
-          <h2 className="text-lg font-semibold">Extra sessions</h2>
-          <Badge variant="secondary">optional</Badge>
-        </div>
+      <Section title="Extra sessions" action={<Badge variant="secondary">optional</Badge>}>
         <ul className="glass list-none">
           {EXTRA_WEEKS.map((week) => (
             <CourseWeekRow
@@ -200,7 +196,58 @@ export default function AimlCoursePage() {
             />
           ))}
         </ul>
-      </motion.section>
+      </Section>
+
+      <Section
+        title="Implement it from scratch"
+        support="Each track runs the same five rungs — derive it, write it in numpy, meet the library that already does it, run the two against each other, then learn the ways it breaks. Every figure in an experiment was measured on a real run (numpy 2.5.2, scikit-learn 1.9.0, PyTorch 2.13), so a disagreement with your number means one of you has a bug."
+        action={
+          <Meta
+            className="text-xs"
+            items={[
+              <span className="figures">{formatMinutes(totalTrackMinutes())}</span>,
+              <span className="figures">{totalFailureModes()} failure modes</span>,
+            ]}
+          />
+        }
+      >
+        <ul className="glass list-none">
+          {ML_TRACKS.map((track) => (
+            <MlTrackRow key={track.id} track={track} />
+          ))}
+        </ul>
+        <p className="max-w-prose text-sm leading-relaxed text-muted-foreground">
+          The failure rung never collapses. It is where the numbers were hardest to get — a
+          divergence at exactly 2/L, a float32 gradient check failing at relative error 1.0, a
+          missing causal mask leaking the future — and it is the part you need at 1am, which is not
+          a moment for a second click.
+        </p>
+      </Section>
+
+      <Section
+        title="Ship something measurable"
+        support="A project ladder, not a tutorial list: seven tiers, cumulative on purpose, each project leading with the dumb model you have to beat and the reason its metric is the right one. A project without a stated baseline cannot tell you whether anything you built helped."
+        action={
+          <Meta
+            className="text-xs"
+            items={[
+              <span className="figures">{ML_PROJECTS_IN_ORDER.length} projects</span>,
+              <span className="figures">~{totalProjectHours()}h</span>,
+            ]}
+          />
+        }
+      >
+        <ul className="glass list-none">
+          {ML_PROJECTS_IN_ORDER.map((project) => (
+            <MlProjectRow key={project.id} project={project} />
+          ))}
+        </ul>
+        <p className="max-w-prose text-sm leading-relaxed text-muted-foreground">
+          Two baselines are deliberately blank. Where the number is a property of your own system —
+          a constant judge's base rate, an unoptimised endpoint's p95 — no honest figure exists to
+          print, so the row names who has to measure it instead of inventing one.
+        </p>
+      </Section>
 
       <Dialog open={notesWeek !== null} onOpenChange={(open) => !open && setNotesWeek(null)}>
         {notesWeek && notesProgress && (
@@ -231,6 +278,6 @@ export default function AimlCoursePage() {
           </DialogContent>
         )}
       </Dialog>
-    </motion.div>
+    </Page>
   );
 }

@@ -26,11 +26,12 @@ export const CHART_COLORS = {
   surface: 'hsl(var(--card))',
 } as const;
 
-// Status colors for the one genuinely pass/fail (good/critical) encoding in this dashboard
-// (RevisionRateChart). Per the dataviz skill's collision rule, a series that *means* good/bad
-// wears status tokens, never the categorical ink/ochre pair — these reference the same
-// per-theme easy/hard difficulty inks the rest of the app uses for that semantic
-// (DifficultyBadge, the pass/fail icons in CalendarPage's day-detail dialog).
+// Status colors for a genuinely pass/fail (good/critical) encoding. Per the dataviz skill's
+// collision rule, a series that *means* good/bad wears status tokens, never the categorical
+// ink/ochre pair — these reference the same per-theme easy/hard difficulty inks the rest of the
+// app uses for that semantic (DifficultyBadge, the pass/fail icons in CalendarPage's day-detail
+// dialog). No chart currently encodes pass/fail: the analytics pass rate is a figure in a ledger,
+// because one stacked bar of two numbers is a chart library doing a sentence's job.
 export const STATUS_COLORS = {
   good: 'hsl(var(--easy))',
   critical: 'hsl(var(--hard))',

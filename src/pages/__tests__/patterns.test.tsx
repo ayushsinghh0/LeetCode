@@ -41,34 +41,43 @@ afterEach(() => {
   vi.useRealTimers();
 });
 
+// A pattern row carries one progression, not four: an icon, the name, one bar and one
+// solved/total figure. The old four-column micro-table (solved / in revision / mastered /
+// remaining) moved to the pattern's own page, so these assertions moved with it — see the
+// "breakdown" test in the PatternDetailPage block below, which pins the same four numbers there.
 describe('PatternsPage', () => {
-  test('renders 28 pattern cards, and the two-pointers card shows "34 Questions"', () => {
+  test('renders one row per pattern, and the two-pointers row accounts for all 34 of its questions', () => {
     renderWithStore(<PatternsPage />, makeStore(), '/patterns');
 
-    const links = screen.getAllByRole('link');
-    expect(links).toHaveLength(TOTAL_PATTERNS);
+    const rows = screen.getAllByRole('link');
+    expect(rows).toHaveLength(TOTAL_PATTERNS);
 
-    const card = screen.getByText('Two Pointers').closest('a')!;
-    expect(within(card).getByText('34 Questions')).toBeInTheDocument();
+    const row = screen.getByText('Two Pointers').closest('a')!;
+    expect(within(row).getByText('0/34')).toBeInTheDocument();
   });
 
-  test('fresh store: every card shows 0%', () => {
+  test('fresh store: every row shows none of its questions solved', () => {
     renderWithStore(<PatternsPage />, makeStore(), '/patterns');
 
-    expect(screen.getAllByText('0%')).toHaveLength(TOTAL_PATTERNS);
+    const rows = screen.getAllByRole('link');
+    expect(rows).toHaveLength(TOTAL_PATTERNS);
+    // Per row rather than a global count of "0%" strings: this also proves each row carries its
+    // own figure, which a page-wide tally does not.
+    for (const row of rows) {
+      expect(within(row).getByText(/^0\/\d+$/)).toBeInTheDocument();
+    }
   });
 
-  test('after solving ids 1-3 (all two-pointers), the two-pointers card shows 3 solved', () => {
+  test('after solving ids 1-3 (all two-pointers), the two-pointers row shows 3 of 34 solved', () => {
     const store = makeStore();
     store.dispatch(solveQuestion(1));
     store.dispatch(solveQuestion(2));
     store.dispatch(solveQuestion(3));
     renderWithStore(<PatternsPage />, store, '/patterns');
 
-    // The stat is plain visible text now (number + word), not a dead aria-label on a div.
-    const card = screen.getByText('Two Pointers').closest('a')!;
-    const solvedFigure = within(card).getByText('solved').previousElementSibling!;
-    expect(solvedFigure).toHaveTextContent('3');
+    const row = screen.getByText('Two Pointers').closest('a')!;
+    expect(within(row).getByText('3/34')).toBeInTheDocument();
+    expect(within(row).getByLabelText('Two Pointers completion')).toHaveAttribute('aria-valuenow', '9');
   });
 });
 
@@ -80,6 +89,20 @@ describe('PatternDetailPage', () => {
     // so counting buttons counts rendered cards.
     expect(screen.getAllByRole('button')).toHaveLength(twoPointersQuestions.length);
     expect(screen.getByText(twoPointersQuestions[0]!.title)).toBeInTheDocument();
+  });
+
+  test('the progress region carries the breakdown the list rows dropped', () => {
+    const store = makeStore();
+    store.dispatch(solveQuestion(1)); // a two-pointers question
+    renderDetail('two-pointers', store);
+
+    // Scoped to the region: "Solved" is also a QuestionCard status label further down the page.
+    const progress = screen.getByRole('region', { name: 'Progress' });
+    for (const label of ['Solved', 'Mastered', 'In revision', 'Pass rate']) {
+      expect(within(progress).getByText(label)).toBeInTheDocument();
+    }
+    expect(within(progress).getByText('1/34')).toBeInTheDocument();
+    expect(within(progress).getByText('no reviews yet')).toBeInTheDocument();
   });
 
   test('invalid patternId shows a "Pattern not found" empty state with a link back to /patterns', () => {

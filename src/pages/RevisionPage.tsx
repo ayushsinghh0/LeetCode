@@ -1,92 +1,90 @@
-import { useMemo } from 'react';
-import { motion } from 'framer-motion';
+import { useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { format, parseISO } from 'date-fns';
-import { Award, CheckCircle2, Clock, GraduationCap, Sparkles, TrendingUp } from 'lucide-react';
-import { Badge } from '@/components/ui/badge';
-import { StatCard } from '@/components/shared/StatCard';
+import { Check, GraduationCap, RotateCcw } from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import { Progress } from '@/components/ui/progress';
 import { EmptyState } from '@/components/shared/EmptyState';
-import { WeeklyRevisionBanner } from '@/components/shared/WeeklyRevisionBanner';
-import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
-import { QuestionCard } from '@/components/questions/QuestionCard';
-import { PatternChip } from '@/components/questions/PatternChip';
-import { CourseReviewList } from '@/components/course/CourseReviewList';
+import { Page, PageHeader, Section, Lead, Rule, RuledList, RuledItem, Ledger, Meta } from '@/components/layout/Page';
 import { patternById } from '@/data/patterns';
 import { CORE_WEEKS } from '@/data/aimlCourse';
 import { useToday } from '@/hooks/useToday';
 import { useAppDispatch, useAppSelector } from '@/store/hooks';
 import { activeQuestionSet } from '@/store/slices/uiSlice';
 import {
+  clearRevisionSession,
+  completeSessionActivity,
+  finishRevisionSession,
+  reviseCourseWeek,
+  reviseQuestion,
+  setDailyCapacity,
+  startRevisionSession,
+  uncompleteSessionActivity,
+} from '@/store/actions';
+import {
   selectCourseDueReviewIds,
   selectForecast,
-  selectIsWeeklyDay,
   selectQuestionById,
-  selectRevisionQueueIds,
+  selectRevisionSession,
+  selectTodayLog,
 } from '@/store/selectors';
-import { overallRevisionPassRate } from '@/utils/engine/stats';
-import { initialProgress, isMastered } from '@/utils/engine/spacedRepetition';
-import { courseLadderItems, initialCourseProgress, isWeekRetained } from '@/utils/engine/aimlCourse';
-import { upcomingByDate } from '@/utils/engine/predictor';
-import { addDays, diffDays } from '@/utils/dates';
-import { overdueLabel } from '@/utils/overdueLabel';
+import { initialCourseProgress, isWeekRetained } from '@/utils/engine/aimlCourse';
+import { isMastered } from '@/utils/engine/spacedRepetition';
+import { formatMinutes } from '@/utils/engine/planner';
+import {
+  DEPTH_LABEL,
+  SESSION_BUDGETS,
+  sessionProgress,
+  shapeFor,
+  type SessionActivity,
+} from '@/utils/engine/session';
 import type { Question } from '@/types';
 
-const gridVariants = {
-  hidden: {},
-  show: { transition: { staggerChildren: 0.05 } },
-};
-
-const cardVariants = {
-  hidden: { opacity: 0, y: 12 },
-  show: { opacity: 1, y: 0 },
-};
-
-const PASSED_THIS_WEEK_DAYS = 7;
-const UPCOMING_HORIZON_DAYS = 30;
-
+/**
+ * Revision — "give me thirty minutes and I'll tell you what is worth revising".
+ *
+ * The page this replaces answered a different question: "what is due?" It showed the queue, and
+ * on a bad week the queue was thirty-seven items and the honest response to it was to close the
+ * tab. A list of everything owed is a debt notice, and debt notices are not a study plan.
+ *
+ * So the learner states the one thing only they know — how much time they have — and the session
+ * engine composes the best use of it. Everything else on this page is subordinate to that: the
+ * overdue count is never the headline, and work that does not fit is described as waiting rather
+ * than as owed. See engine/session.ts for how depth, load and the session arc are chosen.
+ */
 export default function RevisionPage() {
   const today = useToday();
   const dispatch = useAppDispatch();
 
-  const isWeeklyDay = useAppSelector(selectIsWeeklyDay);
-  const revisionIds = useAppSelector((state) => selectRevisionQueueIds(state, today));
-  const courseDueIds = useAppSelector((state) => selectCourseDueReviewIds(state, today));
-  const forecast = useAppSelector((state) => selectForecast(state, today));
-  // Single subscription to the whole byId map — every derived list below reads its own entries
-  // out of it, instead of each row mounting its own useAppSelector (same pattern as TodayPage).
+  const planned = useAppSelector((state) => selectRevisionSession(state, today));
+  const { activities: frozen, doneIds, startedOn, completedOn } = useAppSelector((state) => state.session);
+  const budgetMin = useAppSelector((state) => state.settings.dailyCapacityMin);
   const progressById = useAppSelector((state) => state.progress.byId);
   const courseByWeekId = useAppSelector((state) => state.course.byWeekId);
-  const dayLogs = useAppSelector((state) => state.progress.dayLogs);
+  const courseDueIds = useAppSelector((state) => selectCourseDueReviewIds(state, today));
+  const forecast = useAppSelector((state) => selectForecast(state, today));
+  const todayLog = useAppSelector((state) => selectTodayLog(state, today));
 
-  const openDetail = (id: number) => dispatch(activeQuestionSet(id));
+  const [showMastered, setShowMastered] = useState(false);
 
-  const revisionQuestions = revisionIds
-    .map((id) => selectQuestionById(id))
-    .filter((q): q is Question => q !== undefined);
+  const running = startedOn !== null && completedOn === null;
+  const finished = completedOn !== null;
 
-  const dueCount = revisionIds.length + courseDueIds.length;
-
-  // Question revisions come from the day ledger; course review grades from week histories.
-  const passedThisWeek = useMemo(() => {
-    let count = 0;
-    const windowStart = addDays(today, -(PASSED_THIS_WEEK_DAYS - 1));
-    for (let i = 0; i < PASSED_THIS_WEEK_DAYS; i++) {
-      const log = dayLogs[addDays(today, -i)];
-      if (log) count += log.revisionsPassed.length;
-    }
-    for (const progress of Object.values(courseByWeekId)) {
-      for (const review of progress.revisionHistory) {
-        if (review.passed && review.date >= windowStart && review.date <= today) count++;
-      }
-    }
-    return count;
-  }, [dayLogs, courseByWeekId, today]);
-
-  const passRate = overallRevisionPassRate([
-    ...Object.values(progressById),
-    ...Object.values(courseByWeekId),
-  ]);
-  const passRateLabel = passRate === null ? '—' : `${Math.round(passRate * 100)}%`;
+  // While a session is live the page reads the frozen plan, not the live one. Everything else
+  // about the session — its shape, why these items were chosen — is a property of that plan, so
+  // the totals are recomputed from the frozen list rather than taken from the live selector.
+  const session = useMemo(
+    () =>
+      startedOn === null
+        ? planned
+        : {
+            ...planned,
+            activities: frozen,
+            totalMinutes: frozen.reduce((sum, a) => sum + a.minutes, 0),
+          },
+    [planned, frozen, startedOn],
+  );
+  const progress = sessionProgress(session, doneIds);
 
   const masteredQuestions = useMemo(
     () =>
@@ -103,189 +101,452 @@ export default function RevisionPage() {
     [courseByWeekId],
   );
 
-  // Cleared, unretained weeks whose review lands strictly after today, within the horizon —
-  // the same eligibility (courseLadderItems) and date window (upcomingByDate) the engine uses.
-  const upcomingCourseByDate = useMemo(
-    () => upcomingByDate(courseLadderItems(CORE_WEEKS, courseByWeekId), today, UPCOMING_HORIZON_DAYS),
-    [courseByWeekId, today],
-  );
+  const upcoming = useMemo(() => forecast.filter((d) => d.count > 0).slice(0, 7), [forecast]);
+  const dueCount = session.rationale.due + session.rationale.overdue + courseDueIds.length;
 
-  // Actual currently-scheduled questions per date, for solved-not-mastered items whose
-  // nextRevision falls strictly after today and within the forecast horizon. The forecast
-  // (selectForecast) simulates hypothetical future passes too, so its per-day counts can exceed
-  // the number of actual titles found here for the same date — both are shown side by side.
-  const upcomingQuestionsByDate = useMemo(() => {
-    const solved = Object.entries(progressById)
-      .filter(([, p]) => p.status === 'solved')
-      .map(([id, p]) => ({ ...p, id: Number(id) }));
-    const grouped = upcomingByDate(solved, today, UPCOMING_HORIZON_DAYS);
-    for (const items of grouped.values()) items.sort((a, b) => a.id - b.id);
-    return grouped;
-  }, [progressById, today]);
+  function openActivity(activity: SessionActivity) {
+    if (activity.questionId !== undefined) dispatch(activeQuestionSet(activity.questionId));
+  }
 
-  const forecastByDate = useMemo(() => new Map(forecast.map((d) => [d.date, d.count])), [forecast]);
-  // The forecast counts both tracks, so any date with actual scheduled items has count > 0 —
-  // no separate merge of course dates needed.
-  const upcomingDates = useMemo(
-    () => forecast.filter((d) => d.count > 0).map((d) => d.date),
-    [forecast],
+  // Grading and ticking are one gesture: a graded review is by definition done, and asking the
+  // learner to both answer "did you recall it" and then tick a box is bookkeeping, not learning.
+  function gradeActivity(activity: SessionActivity, passed: boolean) {
+    if (activity.questionId !== undefined) dispatch(reviseQuestion(activity.questionId, passed));
+    else if (activity.weekId !== undefined) dispatch(reviseCourseWeek(activity.weekId, passed));
+    dispatch(completeSessionActivity(activity.id));
+  }
+
+  return (
+    <Page>
+      <PageHeader
+        eyebrow={format(parseISO(today), 'EEEE, MMMM d')}
+        title="Revision"
+        support="Tell it how long you have. It works out what is worth doing in that time — and what can wait."
+      />
+
+      {session.activities.length === 0 ? (
+        <EmptyState
+          icon={Check}
+          title="Nothing to revise right now"
+          hint="Future you says thanks. Solve something new and it will come back around the ladder."
+        />
+      ) : finished ? (
+        <SessionComplete
+          session={session}
+          doneIds={doneIds}
+          passedToday={todayLog?.revisionsPassed ?? []}
+          failedToday={todayLog?.revisionsFailed ?? []}
+          onRestart={() => dispatch(clearRevisionSession())}
+        />
+      ) : running ? (
+        <SessionRun
+          session={session}
+          doneIds={doneIds}
+          progress={progress}
+          onToggle={(id, done) =>
+            dispatch(done ? uncompleteSessionActivity(id) : completeSessionActivity(id))
+          }
+          onGrade={gradeActivity}
+          onOpen={openActivity}
+          onFinish={() => dispatch(finishRevisionSession())}
+          onAbandon={() => dispatch(clearRevisionSession())}
+        />
+      ) : (
+        <SessionPreview
+          session={session}
+          budgetMin={budgetMin}
+          onBudget={(min) => dispatch(setDailyCapacity(min))}
+          onStart={() => dispatch(startRevisionSession())}
+        />
+      )}
+
+      {/* Everything below is reference, deliberately quieter than the session above it. */}
+      {upcoming.length > 0 && (
+        <Section
+          title="Coming up"
+          support="What the ladder has scheduled next. Nothing here needs doing today."
+          divider
+        >
+          <RuledList>
+            {upcoming.map((day) => (
+              <RuledItem key={day.date} className="flex items-baseline justify-between gap-4">
+                <span className="text-sm">{format(parseISO(day.date), 'EEEE, MMM d')}</span>
+                <span className="figures text-sm text-muted-foreground">
+                  {day.count} {day.count === 1 ? 'review' : 'reviews'}
+                </span>
+              </RuledItem>
+            ))}
+          </RuledList>
+        </Section>
+      )}
+
+      {(masteredQuestions.length > 0 || retainedWeeks.length > 0) && (
+        <Section
+          title="Mastered"
+          support="Cleared the full 1/3/7/15/30 ladder. These no longer come back."
+          action={
+            <Button variant="ghost" size="sm" onClick={() => setShowMastered((v) => !v)} aria-expanded={showMastered}>
+              {showMastered ? 'Hide' : 'Show'} list
+            </Button>
+          }
+        >
+          <p className="figures text-sm text-muted-foreground">
+            {masteredQuestions.length} {masteredQuestions.length === 1 ? 'question' : 'questions'}
+            {retainedWeeks.length > 0 && ` · ${retainedWeeks.length} course ${retainedWeeks.length === 1 ? 'week' : 'weeks'}`}
+          </p>
+          {showMastered && (
+            <RuledList>
+              {masteredQuestions.map((question) => (
+                <RuledItem key={question.id} padded={false}>
+                  <button
+                    type="button"
+                    className="w-full px-1 py-3 text-left text-sm transition-colors duration-150 ease-swift hover:bg-muted"
+                    onClick={() => dispatch(activeQuestionSet(question.id))}
+                  >
+                    {question.title}
+                  </button>
+                </RuledItem>
+              ))}
+              {retainedWeeks.map((week) => (
+                <RuledItem key={week.id} padded={false}>
+                  <Link
+                    to="/aiml"
+                    className="flex w-full items-center gap-2 px-1 py-3 text-sm transition-colors duration-150 ease-swift hover:bg-muted"
+                  >
+                    <GraduationCap className="h-3.5 w-3.5 text-muted-foreground" aria-hidden="true" />
+                    Week {week.week} — {week.title}
+                  </Link>
+                </RuledItem>
+              ))}
+            </RuledList>
+          )}
+        </Section>
+      )}
+
+      {dueCount > 0 && !running && !finished && (
+        <p className="text-sm text-muted-foreground">
+          {dueCount} {dueCount === 1 ? 'item is' : 'items are'} due in total. The ladder does not
+          penalise a late review — anything the session leaves is simply waiting.
+        </p>
+      )}
+    </Page>
   );
+}
+
+/* ------------------------------------------------------------------------------------------- */
+
+function SessionPreview({
+  session,
+  budgetMin,
+  onBudget,
+  onStart,
+}: {
+  session: ReturnType<typeof selectRevisionSession>;
+  budgetMin: number;
+  onBudget: (min: number) => void;
+  onStart: () => void;
+}) {
+  const focusNames = session.focus.map((id) => patternById[id]?.name ?? id);
+  const { due, overdue, weakness, retention, transfer } = session.rationale;
+
+  // "2 due + 1 weak pattern + 2 retention checks" — the composition, in the learner's terms.
+  const because = [
+    overdue > 0 && `${overdue} overdue`,
+    due > 0 && `${due} due today`,
+    weakness > 0 && `${weakness} from a weak pattern`,
+    retention > 0 && `${retention} course ${retention === 1 ? 'recall' : 'recalls'}`,
+    transfer > 0 && `${transfer} unfamiliar ${transfer === 1 ? 'problem' : 'problems'}`,
+  ].filter((x): x is string => Boolean(x));
 
   return (
     <div className="flex flex-col gap-6">
-      <header className="glass flex flex-col gap-4 p-6">
-        <h1 className="text-2xl font-bold text-gradient">Revision</h1>
-        <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
-          <StatCard label="Due now" value={dueCount} icon={Clock} />
-          <StatCard label="Passed this week" value={passedThisWeek} icon={CheckCircle2} />
-          <StatCard label="Overall pass rate" value={passRateLabel} icon={TrendingUp} />
-          <StatCard label="Mastered" value={masteredQuestions.length + retainedWeeks.length} icon={Award} />
+      <fieldset className="flex flex-col gap-3">
+        <legend className="text-xs font-medium tracking-wide text-muted-foreground">
+          How long have you got?
+        </legend>
+        <div className="flex flex-wrap gap-2">
+          {SESSION_BUDGETS.map((min) => {
+            const active = min === budgetMin;
+            return (
+              <button
+                key={min}
+                type="button"
+                aria-pressed={active}
+                onClick={() => onBudget(min)}
+                className={
+                  'figures rounded-sm border px-2.5 py-1 text-xs transition-colors duration-150 ease-swift ' +
+                  (active
+                    ? 'border-primary bg-primary text-primary-foreground'
+                    : 'border-border hover:border-primary/40')
+                }
+              >
+                {formatMinutes(min)}
+              </button>
+            );
+          })}
         </div>
-      </header>
+      </fieldset>
 
-      {isWeeklyDay && <WeeklyRevisionBanner count={revisionIds.length} />}
+      <Lead className="flex flex-col gap-5">
+        <div className="flex flex-col gap-1">
+          <p className="figures text-xs uppercase tracking-[0.14em] text-muted-foreground">
+            {formatMinutes(session.budgetMin)} session
+          </p>
+          <h2 className="text-2xl font-semibold">{session.shape.label}</h2>
+          <p className="max-w-prose text-sm text-muted-foreground">{session.shape.blurb}</p>
+        </div>
 
-      <Tabs defaultValue="due">
-        <TabsList>
-          <TabsTrigger value="due">Due Today ({dueCount})</TabsTrigger>
-          <TabsTrigger value="upcoming">Upcoming</TabsTrigger>
-          <TabsTrigger value="mastered">Mastered</TabsTrigger>
-        </TabsList>
+        <Rule />
 
-        <TabsContent value="due">
-          {revisionQuestions.length === 0 && courseDueIds.length === 0 ? (
-            <EmptyState icon={CheckCircle2} title="Nothing due — future you says thanks" />
-          ) : (
-            <div className="flex flex-col gap-4">
-              {revisionQuestions.length > 0 && (
-                <motion.div
-                  className="grid grid-cols-1 gap-4 xl:grid-cols-2"
-                  variants={gridVariants}
-                  initial="hidden"
-                  animate="show"
-                >
-                  {revisionQuestions.map((question) => {
-                    const progress = progressById[question.id] ?? initialProgress();
-                    const overdueDays = progress.nextRevision ? diffDays(today, progress.nextRevision) : 0;
-                    return (
-                      <motion.div key={question.id} variants={cardVariants} className="relative">
-                        {overdueDays > 0 && (
-                          <Badge
-                            variant="outline"
-                            className="absolute right-3 top-3 z-10 border-medium bg-medium/15 text-medium"
-                          >
-                            {overdueLabel(overdueDays)}
-                          </Badge>
-                        )}
-                        <QuestionCard question={question} progress={progress} context="revision" onOpenDetail={openDetail} />
-                      </motion.div>
-                    );
-                  })}
-                </motion.div>
-              )}
+        <Ledger
+          columns={3}
+          items={[
+            { label: 'Activities', value: session.activities.length },
+            { label: 'Planned', value: formatMinutes(session.totalMinutes) },
+            {
+              label: 'Focus',
+              value: focusNames.length > 0 ? focusNames.length : '—',
+              sub: focusNames.length > 0 ? focusNames.join(' · ') : 'mixed',
+            },
+          ]}
+        />
 
-              {courseDueIds.length > 0 && (
-                <section className="glass flex flex-col gap-3 p-4" aria-label="Course reviews">
-                  <div className="flex items-center gap-2">
-                    <h2 className="text-lg font-semibold">Course reviews</h2>
-                    <Badge variant="secondary">{courseDueIds.length}</Badge>
-                  </div>
-                  <CourseReviewList weekIds={courseDueIds} byWeekId={courseByWeekId} />
-                </section>
-              )}
-            </div>
-          )}
-        </TabsContent>
+        {because.length > 0 && (
+          <p className="max-w-prose text-sm text-muted-foreground">
+            <span className="text-foreground">Why these:</span> {because.join(' · ')}.
+          </p>
+        )}
 
-        <TabsContent value="upcoming">
-          {upcomingDates.length === 0 ? (
-            <EmptyState icon={Sparkles} title="Nothing on the horizon" hint="No revisions forecast in the next 30 days" />
-          ) : (
-            <div className="flex flex-col gap-3">
-              {upcomingDates.map((date) => {
-                const questionItems = upcomingQuestionsByDate.get(date) ?? [];
-                const courseItems = upcomingCourseByDate.get(date) ?? [];
-                const count = forecastByDate.get(date) ?? 0;
-                const dateLabel = format(parseISO(date), 'EEE, MMM d');
-                return (
-                  <div key={date} role="group" aria-label={dateLabel} className="glass flex flex-col gap-2 p-4">
-                    <div className="flex items-center justify-between">
-                      <span className="font-medium">{dateLabel}</span>
-                      <Badge variant="secondary">{count} due</Badge>
-                    </div>
-                    {(questionItems.length > 0 || courseItems.length > 0) && (
-                      <div className="flex flex-wrap gap-2">
-                        {questionItems.map((item) => {
-                          const question = selectQuestionById(item.id);
-                          if (!question) return null;
-                          return (
-                            <button
-                              key={item.id}
-                              type="button"
-                              className="rounded-md border px-2.5 py-1 text-left text-sm hover:bg-muted"
-                              onClick={() => openDetail(item.id)}
-                            >
-                              {question.title}
-                            </button>
-                          );
-                        })}
-                        {courseItems.map((item) => (
-                          <Link
-                            key={item.week.id}
-                            to="/aiml"
-                            className="flex items-center gap-1.5 rounded-md border px-2.5 py-1 text-left text-sm hover:bg-muted"
-                          >
-                            <GraduationCap className="h-3.5 w-3.5 text-muted-foreground" aria-hidden="true" />
-                            Week {item.week.week} — {item.week.title}
-                          </Link>
-                        ))}
-                      </div>
-                    )}
-                  </div>
-                );
-              })}
-            </div>
-          )}
-        </TabsContent>
-
-        <TabsContent value="mastered">
-          {masteredQuestions.length === 0 && retainedWeeks.length === 0 ? (
-            <EmptyState icon={Award} title="Nothing mastered yet — pass the 30-day review to master one" />
-          ) : (
-            <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-3">
-              {masteredQuestions.map((question) => {
-                const pattern = patternById[question.pattern];
-                return (
-                  <div key={question.id} className="glass flex items-center gap-3 p-3">
-                    <Award className="h-5 w-5 shrink-0 text-medium" aria-hidden="true" />
-                    <div className="flex flex-1 flex-col items-start gap-1">
-                      <button
-                        type="button"
-                        className="text-left font-medium hover:underline"
-                        onClick={() => openDetail(question.id)}
-                      >
-                        {question.title}
-                      </button>
-                      <PatternChip pattern={pattern} />
-                    </div>
-                  </div>
-                );
-              })}
-              {retainedWeeks.map((week) => (
-                <div key={week.id} className="glass flex items-center gap-3 p-3">
-                  <GraduationCap className="h-5 w-5 shrink-0 text-medium" aria-hidden="true" />
-                  <div className="flex flex-1 flex-col items-start gap-1">
-                    <Link to="/aiml" className="text-left font-medium hover:underline">
-                      Week {week.week} — {week.title}
-                    </Link>
-                    <span className="text-xs text-muted-foreground">Course week · retained</span>
-                  </div>
-                </div>
-              ))}
-            </div>
-          )}
-        </TabsContent>
-      </Tabs>
+        <div className="flex flex-wrap items-center gap-3">
+          <Button onClick={onStart}>Start session</Button>
+          <span className="figures text-xs text-muted-foreground">
+            ~{formatMinutes(session.totalMinutes)}
+          </span>
+        </div>
+      </Lead>
     </div>
   );
 }
+
+/* ------------------------------------------------------------------------------------------- */
+
+/**
+ * Which activities move the ladder. A transfer problem is a new solve, not a review; a drill and
+ * the closing reflection are not graded at all — so only these three depths take a verdict.
+ */
+const GRADABLE_KINDS = new Set(['recall', 'review', 'deep', 'course-review']);
+
+function isGradable(activity: SessionActivity): boolean {
+  return (
+    GRADABLE_KINDS.has(activity.kind) &&
+    (activity.questionId !== undefined || activity.weekId !== undefined)
+  );
+}
+
+function SessionRun({
+  session,
+  doneIds,
+  progress,
+  onToggle,
+  onGrade,
+  onOpen,
+  onFinish,
+  onAbandon,
+}: {
+  session: ReturnType<typeof selectRevisionSession>;
+  doneIds: string[];
+  progress: ReturnType<typeof sessionProgress>;
+  onToggle: (id: string, done: boolean) => void;
+  onGrade: (activity: SessionActivity, passed: boolean) => void;
+  onOpen: (activity: SessionActivity) => void;
+  onFinish: () => void;
+  onAbandon: () => void;
+}) {
+  const done = new Set(doneIds);
+  const pct = progress.totalMinutes === 0 ? 0 : Math.round((progress.doneMinutes / progress.totalMinutes) * 100);
+
+  return (
+    <div className="flex flex-col gap-6">
+      <Lead className="flex flex-col gap-4">
+        <div className="flex flex-wrap items-baseline justify-between gap-x-4 gap-y-1">
+          <h2 className="text-2xl font-semibold">{session.shape.label}</h2>
+          {/* Minutes AND activities: "3 of 10" says nothing about whether the evening is nearly
+              over, which is the thing someone mid-session actually wants to know. */}
+          <p className="figures text-sm text-muted-foreground">
+            {formatMinutes(progress.doneMinutes)} of {formatMinutes(progress.totalMinutes)} &middot;{' '}
+            {progress.doneCount} of {progress.totalCount} activities
+          </p>
+        </div>
+        <Progress value={pct} aria-label="Session progress" />
+      </Lead>
+
+      <RuledList aria-label="Session activities">
+        {session.activities.map((activity) => {
+          const isDone = done.has(activity.id);
+          return (
+            <RuledItem key={activity.id} className="flex flex-col gap-2">
+              <div className="flex items-start justify-between gap-3">
+                <div className="flex min-w-0 flex-col gap-1">
+                  <Meta
+                    items={[
+                      <span key="kind" className="text-xs uppercase tracking-[0.12em]">
+                        {activity.kind === 'drill'
+                          ? 'Drill'
+                          : activity.kind === 'course-review'
+                            ? 'Course recall'
+                            : activity.kind === 'reflect'
+                              ? 'Close'
+                              : DEPTH_LABEL[activity.kind]}
+                      </span>,
+                      <span key="min" className="figures text-xs">
+                        ~{formatMinutes(activity.minutes)}
+                      </span>,
+                      activity.pattern ? patternById[activity.pattern]?.name : null,
+                    ]}
+                  />
+                  <p className={'font-medium ' + (isDone ? 'text-muted-foreground line-through' : '')}>
+                    {activity.title}
+                  </p>
+                  <p className="max-w-prose text-sm text-muted-foreground">{activity.prompt}</p>
+                  <p className="max-w-prose text-xs text-muted-foreground/80">{activity.why}</p>
+                </div>
+                <div className="flex shrink-0 flex-col items-end gap-2">
+                  {/* A revision activity is graded here, not merely ticked. Ticking records that
+                      the learner did the thing; only a grade moves the ladder — and the completion
+                      summary's "held / needs another pass" reads the graded result, so without
+                      this the session could never report how recall actually went. */}
+                  {isGradable(activity) ? (
+                    isDone ? (
+                      <Button variant="ghost" size="sm" onClick={() => onToggle(activity.id, true)}>
+                        Undo
+                      </Button>
+                    ) : (
+                      <div className="flex gap-2">
+                        <Button variant="outline" size="sm" onClick={() => onGrade(activity, true)}>
+                          Recalled it
+                        </Button>
+                        <Button variant="ghost" size="sm" onClick={() => onGrade(activity, false)}>
+                          Not yet
+                        </Button>
+                      </div>
+                    )
+                  ) : (
+                    <Button
+                      variant={isDone ? 'ghost' : 'outline'}
+                      size="sm"
+                      onClick={() => onToggle(activity.id, isDone)}
+                      aria-pressed={isDone}
+                    >
+                      {isDone ? 'Undo' : 'Done'}
+                    </Button>
+                  )}
+                  {activity.questionId !== undefined && (
+                    <Button variant="ghost" size="sm" onClick={() => onOpen(activity)}>
+                      Open
+                    </Button>
+                  )}
+                  {activity.questionId === undefined && activity.href !== '/revision' && (
+                    <Button asChild variant="ghost" size="sm">
+                      <Link to={activity.href}>Open</Link>
+                    </Button>
+                  )}
+                </div>
+              </div>
+            </RuledItem>
+          );
+        })}
+      </RuledList>
+
+      <div className="flex flex-wrap items-center gap-3">
+        <Button onClick={onFinish}>Finish session</Button>
+        <Button variant="ghost" onClick={onAbandon}>
+          Stop here
+        </Button>
+      </div>
+    </div>
+  );
+}
+
+/* ------------------------------------------------------------------------------------------- */
+
+function SessionComplete({
+  session,
+  doneIds,
+  passedToday,
+  failedToday,
+  onRestart,
+}: {
+  session: ReturnType<typeof selectRevisionSession>;
+  doneIds: string[];
+  passedToday: number[];
+  failedToday: number[];
+  onRestart: () => void;
+}) {
+  const progress = sessionProgress(session, doneIds);
+  // Held / needs another pass come from today's actual graded reviews, not from which rows were
+  // ticked. Ticking a row says "I did this"; only a graded review says how it went, and inventing
+  // a verdict from the former would be the page telling the learner something it does not know.
+  const held = passedToday.map((id) => selectQuestionById(id)).filter((q): q is Question => q !== undefined);
+  const shaky = failedToday.map((id) => selectQuestionById(id)).filter((q): q is Question => q !== undefined);
+  const nextUp = session.activities.find((a) => !doneIds.includes(a.id)) ?? session.deferred[0]?.question;
+
+  return (
+    <Lead className="flex flex-col gap-5">
+      <div className="flex flex-col gap-1">
+        <p className="figures text-xs uppercase tracking-[0.14em] text-muted-foreground">Session complete</p>
+        <h2 className="text-2xl font-semibold">
+          {formatMinutes(progress.doneMinutes)} of revision
+        </h2>
+        <p className="figures text-sm text-muted-foreground">
+          {progress.doneCount} of {progress.totalCount} activities &middot; {session.shape.label}
+        </p>
+      </div>
+
+      <Rule />
+
+      {held.length > 0 && (
+        <div className="flex flex-col gap-1.5">
+          <p className="text-xs font-medium tracking-wide text-muted-foreground">Held</p>
+          <p className="text-sm">{held.map((q) => q.title).join(', ')}</p>
+        </div>
+      )}
+
+      {shaky.length > 0 && (
+        <div className="flex flex-col gap-1.5">
+          <p className="text-xs font-medium tracking-wide text-muted-foreground">Needs another pass</p>
+          <p className="text-sm">{shaky.map((q) => q.title).join(', ')}</p>
+          <p className="text-xs text-muted-foreground">
+            Back on the ladder tomorrow — a missed review resets the interval, which is the point of it.
+          </p>
+        </div>
+      )}
+
+      {held.length === 0 && shaky.length === 0 && (
+        <p className="max-w-prose text-sm text-muted-foreground">
+          Nothing was graded this sitting, so there is no recall verdict to report — only what you
+          worked through.
+        </p>
+      )}
+
+      {nextUp && (
+        <div className="flex flex-col gap-1.5">
+          <p className="text-xs font-medium tracking-wide text-muted-foreground">Next</p>
+          <p className="text-sm">{'title' in nextUp ? nextUp.title : ''}</p>
+        </div>
+      )}
+
+      <div className="flex flex-wrap items-center gap-3">
+        <Button onClick={onRestart}>
+          <RotateCcw className="mr-2 h-4 w-4" aria-hidden="true" />
+          Plan another session
+        </Button>
+        <Button asChild variant="ghost">
+          <Link to="/today">Back to today</Link>
+        </Button>
+      </div>
+    </Lead>
+  );
+}
+
+// Re-exported for the tests that assert the session length labels stay in step with the engine.
+export { shapeFor };

@@ -1,6 +1,7 @@
 import { useMemo, useState } from 'react';
 import { Bookmark, SearchX } from 'lucide-react';
 import { EmptyState } from '@/components/shared/EmptyState';
+import { Page, PageHeader, Section } from '@/components/layout/Page';
 import { QuestionCard } from '@/components/questions/QuestionCard';
 import {
   QuestionFilterRow,
@@ -59,39 +60,43 @@ export default function BookmarksPage() {
     dispatch(activeQuestionSet(id));
   }
 
-  return (
-    <div className="flex flex-col gap-6">
-      <header className="glass p-6">
-        <h1 className="text-2xl font-bold text-gradient">Bookmarks</h1>
-        <p className="text-sm text-muted-foreground">
-          {bookmarkedQuestions.length} bookmarked question{bookmarkedQuestions.length === 1 ? '' : 's'}
-        </p>
-      </header>
+  const count = bookmarkedQuestions.length;
 
-      {bookmarkedQuestions.length === 0 ? (
+  return (
+    <Page>
+      <PageHeader
+        eyebrow={`${count} bookmarked question${count === 1 ? '' : 's'}`}
+        title="Bookmarks"
+        support="Questions you flagged to come back to. Narrow the list, then open one to work on it."
+      />
+
+      {count === 0 ? (
         <EmptyState
           icon={Bookmark}
           title="No bookmarks yet"
           hint="Bookmark a question from its detail view to save it here for quick access."
         />
       ) : (
-        <>
-          <div className="glass p-4">
-            <QuestionFilterRow
-              difficulty={difficulty}
-              onDifficultyChange={setDifficulty}
-              status={status}
-              onStatusChange={setStatus}
-              statusOptions={STATUS_OPTIONS}
-              pattern={pattern}
-              onPatternChange={setPattern}
-            />
-          </div>
+        // The filter row is chrome for the list below it, so it sits on the page ground directly
+        // under the masthead rule. It draws its own boundary out of chips and a select; wrapping
+        // that in a plate was a second outline around something already outlined.
+        <Section aria-label="Bookmarked questions">
+          <QuestionFilterRow
+            difficulty={difficulty}
+            onDifficultyChange={setDifficulty}
+            status={status}
+            onStatusChange={setStatus}
+            statusOptions={STATUS_OPTIONS}
+            pattern={pattern}
+            onPatternChange={setPattern}
+          />
 
           {filtered.length === 0 ? (
             <EmptyState icon={SearchX} title="No bookmarks match these filters" />
           ) : (
-            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-3">
+            // Two columns at the 60rem measure, not three: a question card carries a title, a
+            // pattern, a difficulty and an estimate, and none of that reads at 320px wide.
+            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
               {filtered.map((q) => (
                 <QuestionCard
                   key={q.id}
@@ -103,8 +108,8 @@ export default function BookmarksPage() {
               ))}
             </div>
           )}
-        </>
+        </Section>
       )}
-    </div>
+    </Page>
   );
 }

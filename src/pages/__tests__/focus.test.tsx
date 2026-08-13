@@ -16,6 +16,16 @@ afterEach(() => {
   vi.useRealTimers();
 });
 
+describe('FocusPage: chrome', () => {
+  // /focus is routed outside AppShell, so nothing upstream supplies a landmark — the page has to
+  // carry its own or a screen-reader user lands in an unlabelled soup of divs.
+  test('names its own main landmark, since it renders outside the shell', () => {
+    renderWithStore(<FocusPage />);
+
+    expect(screen.getByRole('main')).toBeInTheDocument();
+  });
+});
+
 describe('FocusPage: new-question source (today\'s slice has an unsolved item)', () => {
   test('fresh store: shows the first unsolved question with Solved / Need Revision / Skip buttons', () => {
     renderWithStore(<FocusPage />);
@@ -194,5 +204,37 @@ describe('FocusPage: course-review source (course complete, one week review due)
 
     expect(store.getState().course.byWeekId['w00']!.revisionStage).toBe(0);
     expect(store.getState().course.byWeekId['w00']!.nextRevision).toBe('2026-07-31');
+  });
+});
+
+describe('FocusPage: nothing queued on either track', () => {
+  test('the "all caught up" state is quiet ground, not a plate', () => {
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date(`${TODAY}T12:00:00`));
+
+    // Both tracks exhausted: every question solved with a far-future revision, every course week
+    // finished with a far-future review.
+    const byWeekId: Record<string, CourseWeekProgress> = {};
+    for (const week of COURSE_WEEKS) {
+      byWeekId[week.id] = {
+        ...initialCourseProgress(),
+        day1DoneOn: '2026-07-01',
+        day2DoneOn: '2026-07-02',
+        revisionStage: 1,
+        nextRevision: '2026-08-15',
+        lastReviewed: '2026-07-02',
+      };
+    }
+    const store = makeStore({
+      progress: { byId: dsaExhaustedById(), dayLogs: {}, startDate: '2026-01-01' },
+      course: { byWeekId },
+    });
+
+    renderWithStore(<FocusPage />, store);
+
+    const message = screen.getByText('All caught up — nothing queued for focus right now.');
+    // A plate must earn itself: one icon and one sentence do not, and boxing them drew a
+    // near-full-viewport outline on a phone. `.glass` is the project's plate class.
+    expect(message.closest('.glass')).toBeNull();
   });
 });

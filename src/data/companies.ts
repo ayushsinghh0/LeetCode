@@ -20,16 +20,26 @@ export type CompanyEvidence =
 export interface Company {
   id: string;
   name: string;
-  /** First-party page, fetched and quoted on `checkedAt`. */
+  /** The specific page being quoted — a citation, not a brand. */
+  sourceLabel: string;
+  /** First-party page, fetched and quoted on `checkedAt`. Re-checkable via `audit:companies`. */
   url: string;
   checkedAt: string;
   evidence: CompanyEvidence;
-  /** Verbatim excerpt from that page. */
+  /** Verbatim excerpt from that page. An ellipsis marks elision; the audit checks each fragment. */
   quote: string;
   /** The topics the page literally names, in its own words. */
   namedTopics: string[];
   /** OUR mapping of THEIR named topics onto this roadmap's patterns. Empty unless 'topics'. */
   patterns: PatternId[];
+  /**
+   * Problems a first-party page names, VERBATIM as that page phrases them — never mapped to a
+   * question in this roadmap, and never presented as "what they ask". Exactly one company in a
+   * seventeen-company sweep had anything here, which is itself the finding.
+   */
+  namedProblems?: string[];
+  /** Mandatory whenever `namedProblems` is populated: the scope and limits of that claim. */
+  namedProblemsNote?: string;
   note?: string;
 }
 

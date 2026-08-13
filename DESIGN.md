@@ -116,6 +116,70 @@ Canonical source is src/index.css: raw HSL triplets consumed as `hsl(var(--token
 
 One centered content column: `max-w-6xl` (72rem), `px-4 py-6 pb-28` on mobile (bottom-nav clearance) and `md:px-8 md:py-10` on desktop (AppShell.tsx). Pages stack sections at `space-y-6` (24px); plates sit in `gap-4` (16px) grids, `gap-6` inside the hero plate. Spacing is the stock Tailwind 4px scale — no custom steps. Sidebar on desktop, bottom nav on phones (see PRODUCT.md). Density is calm: one plate per concern, hairline `.rule` dividers inside a plate instead of nested cards.
 
+## Composition
+
+The tokens above were always being followed. The *composition* was not: the app had become a stack of `.glass` plates, one per fact, so a page read as a pile of components rather than a designed document. Borders were doing work that whitespace, alignment and type hierarchy should have done. The vocabulary in **src/components/layout/Page.tsx** is the fix, and it is mandatory for new surfaces.
+
+### The plate rule
+
+**A plate must earn itself.** The default surface is the page ground. Spend a plate on exactly three things:
+
+1. **`Lead`** — the one thing the page wants you to do. `p-6 md:p-8`. **One per page, ever.** Nothing else may match its padding; that size difference *is* the hierarchy.
+2. **`Plate`** — a surface that is genuinely liftable: a row you click, a thing you can act on. `p-5`, or `p-3.5` for list rows.
+3. Dialogs and overlays, which must detach from the ground to be legible.
+
+Everything else is **`Section`** — a heading, an optional support line, and its content, separated from its neighbours by space. No border, no background, no padding. A section does **not** get an outline because it contains information.
+
+Corollaries, each of which was a real defect:
+- A page title never sits in a box. Use `PageHeader`.
+- A list does not become plates. Use `RuledList`/`RuledItem`, or hairline-divided rows — 68 bordered rectangles on a timeline fight the rail that is already grouping them.
+- A chart, a filter row, and a progress bar already have their own visual boundary. Wrapping them adds a second one.
+- Never nest a plate inside a plate. Interior structure is `.rule` hairlines (this was already the rule at *Layout*; it is now enforceable).
+
+### Figures, not stat cards
+
+Four `StatCard`s in a grid is four bordered rectangles each holding one word and one number — the single loudest source of the box problem. Counted facts go in **`Ledger`**: one open row of label-over-figure pairs, hairline-separated, no per-item border or icon. The serif stat voice (1.75rem, 600) is unchanged. `StatCard` survives only where a single figure genuinely stands alone.
+
+### Related facts look like one fact
+
+Pattern · difficulty · estimate · relevance describe *one object*, so they render as one line — **`Meta`**, interpunct-separated — not as four chips in four plates.
+
+### The measure
+
+`AppShell` supplies the 72rem ceiling and the gutter; `Page` chooses this page's column inside it, because a reading surface and a data grid do not want the same line length.
+
+- **`reading`** (46rem) — prose-dominant: a question, a family, an insight, a form.
+- **`default`** (60rem) — most pages.
+- **`wide`** — grids and calendars that genuinely use the full shell.
+
+Prose inside any width stays at `max-w-prose`. A page that alternates between a 65-character paragraph and a 1152px heading has no measure at all.
+
+### The rhythm
+
+Three vertical steps, and no others:
+
+| Step | Value | Where |
+|---|---|---|
+| Between sections | `gap-10 md:gap-12` | `Page` supplies it — pages do not set their own |
+| Heading → content, and inside a group | `gap-4` | `Section` supplies it |
+| Between sibling rows | `gap-2`, or `0` with a hairline | lists |
+
+Plate padding is `p-6 md:p-8` (Lead), `p-5` (Plate), `p-3.5` (row). There is no `p-2`, `p-3`, `p-8` standalone, or `p-10`.
+
+### The type ladder
+
+Five registers, in order. If a section's parts are not distinguishable at a glance, it is using the wrong ones — not a missing border.
+
+| Register | Class | Voice |
+|---|---|---|
+| Eyebrow | `text-xs uppercase tracking-[0.14em] text-muted-foreground` + `.figures` | context: a date, a count, a chapter |
+| Page title | `text-3xl md:text-4xl font-semibold` | serif, one per page |
+| Section title | `text-xl font-semibold` (h2) / `text-base` (h3) | serif |
+| Support | `text-sm text-muted-foreground max-w-prose` | why this section matters |
+| Primary content | `text-sm` body, `.figures` for anything counted | the thing itself |
+
+A section title must never be smaller or quieter than the body copy beneath it.
+
 ## Elevation & Depth
 
 Hybrid, and quiet: every plate is a hairline border plus a warm two-part offset shadow; interior depth comes from tonal `muted` fills and `.rule` hairlines, never blur or glow. Overlays (popover, tooltip, dialog) add only `shadow-md`. The single backdrop layer is the paper grain — `body::before`, a fixed SVG fractal-noise tile at opacity 0.045 (dark) / 0.06 (light) — which replaced the old gradient backdrop entirely.
@@ -157,6 +221,12 @@ Small `rounded-sm` bordered toggles in `.figures`, `aria-pressed` for state; the
 ### Insight card (src/components/shared/InsightPanel.tsx) — the reading
 Three fixed bands: a tone icon plus headline, then evidence on a `border-l-2 border-border` rail in `.figures`, then the recommendation and a single `outline` button. Tone colors ride the difficulty inks (`medium` for attention, `easy` for strength) on the icon only — never on the headline text.
 
+### Revision session (src/pages/RevisionPage.tsx) — the three states
+
+One surface, three states, and exactly one `Lead` in each: **preview** (length chips → shape name, a 3-column `Ledger` of activities/planned/focus, a "Why these:" line, one `Start session` button), **run** (shape name with minutes-and-activities progress on the same baseline, a `Progress` bar, then the activities as a `RuledList` — never as cards), and **complete** (what was worked through, then held / needs-another-pass read from the day's *graded* reviews). The length chips reuse the capacity-chip idiom exactly; they write the same `settings.dailyCapacityMin`.
+
+The register is factual throughout. An activity states its depth, its cost, its instruction, and why it was chosen — in that order, at descending weight. Deferred work is one quiet sentence at the foot of the page, never a badge and never a headline.
+
 ### Hint ladder (src/components/questions/HintLadder.tsx) — the escalation rail
 Each revealed rung is a `border-l-2 border-primary/40 pl-3` block with an xs uppercase label. Revealed rungs stack; exactly one button offers the next. The ink rail is the one accent — no badges, no counters, no cost indicator of any kind.
 
@@ -185,8 +255,8 @@ Three class names survive from the previous violet/cyan glass identity but rende
 
 ## Adding a New Surface
 
-1. Page content goes in the AppShell column; stack sections `space-y-6`, grid plates `gap-4`.
-2. Each card = `.glass` + `p-4` (or `p-6` for a hero); interior dividers are `.rule`.
+1. Wrap the page in `Page` and open it with `PageHeader`. `Page` supplies the measure and the section rhythm — never set your own top-level gap or max-width.
+2. Default to `Section`. Reach for `Lead` once, for `Plate` only when the thing is genuinely liftable, and never nest one inside another; interior dividers are `.rule`.
 3. Titles are h1–h3 (serif comes free); numbers get `.figures`; UI text runs `text-sm`.
 4. Spend the ink budget once: primary action, active state, data fill, focus — nothing else.
 5. Difficulty → `easy/medium/hard` tokens; pattern identity → PatternChip or icon-only ink.

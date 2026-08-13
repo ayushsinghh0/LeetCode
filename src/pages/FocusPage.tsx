@@ -92,7 +92,10 @@ export default function FocusPage() {
   }, [dispatch, focusQuestionId]);
 
   return (
-    <div className="mx-auto flex min-h-screen w-full max-w-3xl flex-col gap-6 p-6">
+    // /focus has no AppShell, so it carries its own `main` landmark — otherwise the page has no
+    // landmark at all. p-4 on phones, not p-6: with the card's own p-6 that is 40px of chrome per
+    // side rather than 56px, which is 295px of title measure at 375px instead of 263px.
+    <main className="mx-auto flex min-h-screen w-full max-w-3xl flex-col gap-6 p-4 md:p-6">
       <div className="flex justify-end">
         <Button asChild variant="ghost">
           <Link to="/today">
@@ -102,7 +105,9 @@ export default function FocusPage() {
       </div>
 
       {item === null ? (
-        <div className="glass flex flex-1 flex-col items-center justify-center gap-3 p-10 text-center text-muted-foreground">
+        // No plate: "nothing to do" is not a liftable surface, and boxing it drew a near
+        // full-viewport outline around one icon and one sentence (DESIGN.md § Composition).
+        <div className="flex flex-1 flex-col items-center justify-center gap-3 py-16 text-center text-muted-foreground">
           <CheckCircle2 className="h-7 w-7 text-muted-foreground/50" aria-hidden="true" />
           <p className="font-serif text-base text-foreground">All caught up — nothing queued for focus right now.</p>
         </div>
@@ -123,7 +128,7 @@ export default function FocusPage() {
       <div className="flex justify-center py-4">
         <PomodoroWidget variant="inline" />
       </div>
-    </div>
+    </main>
   );
 }
 
@@ -140,13 +145,16 @@ function QuestionFocus({
   const pattern = patternById[question.pattern];
 
   return (
-    <div className="glass flex flex-1 flex-col items-center justify-center gap-6 p-8 text-center md:p-12">
+    // This is the page's `Lead` — p-6 md:p-8, the one plate padding reserved for it.
+    <div className="glass flex flex-1 flex-col items-center justify-center gap-6 p-6 text-center md:p-8">
       <div className="flex flex-wrap items-center justify-center gap-2">
         <DifficultyBadge difficulty={question.difficulty} />
         {pattern && <PatternChip pattern={pattern} />}
       </div>
 
-      <h1 className="max-w-2xl font-serif text-4xl font-semibold leading-tight tracking-tight md:text-5xl">
+      {/* The page-title register (DESIGN.md § Composition), not the 2.25/3rem display size: at
+          375px the measure here is 295px, and the longest title in the dataset is 57 characters. */}
+      <h1 className="max-w-2xl font-serif text-3xl font-semibold leading-tight tracking-tight md:text-4xl">
         {question.title}
       </h1>
 
@@ -208,7 +216,7 @@ function CourseFocus({ week, day, notes }: { week: CourseWeek; day: CourseDay | 
   const isReview = day === null;
 
   return (
-    <div className="glass flex flex-1 flex-col items-center justify-center gap-6 p-8 text-center md:p-12">
+    <div className="glass flex flex-1 flex-col items-center justify-center gap-6 p-6 text-center md:p-8">
       <div className="flex flex-wrap items-center justify-center gap-2 text-xs font-medium uppercase tracking-wide text-muted-foreground">
         <GraduationCap className="h-4 w-4" aria-hidden="true" />
         <span>
@@ -218,7 +226,7 @@ function CourseFocus({ week, day, notes }: { week: CourseWeek; day: CourseDay | 
         </span>
       </div>
 
-      <h1 className="max-w-2xl font-serif text-4xl font-semibold leading-tight tracking-tight md:text-5xl">
+      <h1 className="max-w-2xl font-serif text-3xl font-semibold leading-tight tracking-tight md:text-4xl">
         {week.title}
       </h1>
 

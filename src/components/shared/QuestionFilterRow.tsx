@@ -32,6 +32,16 @@ export interface QuestionFilterRowProps {
   onPatternChange: (value: PatternFilterValue) => void;
 }
 
+// The group headings are visual only below sm. At 375px "Difficulty" + "Status" + "Pattern" cost
+// ~150px of a ~343px line — enough to push the row from three wrapped lines to five before any
+// content is visible — while saying nothing the chips ("Easy", "Solved") do not already say.
+// They come back at sm, where there is room. Nothing is lost for assistive tech: each group is a
+// labelled `role="group"` (which the loose <span> next to the chips never was), so the heading is
+// announced whether or not it is painted, and it is aria-hidden when visible to avoid saying it
+// twice. The container plate, if any, belongs to the calling page.
+const GROUP_CLASS = 'flex flex-wrap items-center gap-1.5 sm:gap-2';
+const GROUP_LABEL_CLASS = 'hidden text-sm text-muted-foreground sm:inline';
+
 // Shared difficulty-chips + status-chips + pattern-select filter row, used by both SearchDialog
 // and BookmarksPage so a label/styling/behavior change only has to be made in one place. Chips
 // are single-select-with-clear: clicking the already-selected chip resets that field to "all"
@@ -54,9 +64,11 @@ export function QuestionFilterRow({
   }
 
   return (
-    <div className="flex flex-wrap items-center gap-4">
-      <div className="flex flex-wrap items-center gap-2">
-        <span className="text-sm text-muted-foreground">Difficulty</span>
+    <div className="flex flex-wrap items-center gap-x-4 gap-y-2">
+      <div role="group" aria-label="Difficulty" className={GROUP_CLASS}>
+        <span aria-hidden="true" className={GROUP_LABEL_CLASS}>
+          Difficulty
+        </span>
         {DIFFICULTY_OPTIONS.map((d) => (
           <Button
             key={d}
@@ -71,8 +83,10 @@ export function QuestionFilterRow({
         ))}
       </div>
 
-      <div className="flex flex-wrap items-center gap-2">
-        <span className="text-sm text-muted-foreground">Status</span>
+      <div role="group" aria-label="Status" className={GROUP_CLASS}>
+        <span aria-hidden="true" className={GROUP_LABEL_CLASS}>
+          Status
+        </span>
         {statusOptions.map((s) => (
           <Button
             key={s}
@@ -87,8 +101,11 @@ export function QuestionFilterRow({
         ))}
       </div>
 
-      <div className="flex items-center gap-2">
-        <span className="text-sm text-muted-foreground">Pattern</span>
+      {/* Full width on phones so the select gets its own line rather than overflowing one. */}
+      <div className="flex w-full items-center gap-2 sm:w-auto">
+        <span aria-hidden="true" className={GROUP_LABEL_CLASS}>
+          Pattern
+        </span>
         <Select value={pattern} onValueChange={(v) => onPatternChange(v as PatternFilterValue)}>
           <SelectTrigger aria-label="Filter by pattern" className="w-full sm:w-48">
             <SelectValue />

@@ -37,6 +37,22 @@ import {
   taskToggled,
 } from '@/store/slices/tasksSlice';
 import { drillRecorded } from '@/store/slices/drillsSlice';
+import { buildContest } from '@/utils/engine/contest';
+import {
+  contestCleared,
+  contestFinished,
+  contestProblemBlurred,
+  contestProblemFocused,
+  contestProblemSolved,
+  contestStarted,
+} from '@/store/slices/contestSlice';
+import {
+  activityCompleted,
+  activityUncompleted,
+  sessionCleared,
+  sessionFinished,
+  sessionStarted,
+} from '@/store/slices/sessionSlice';
 import { settingsUpdated } from '@/store/slices/settingsSlice';
 import { courseWeekById } from '@/data/aimlCourse';
 import {
@@ -60,7 +76,12 @@ import { isMastered } from '@/utils/engine/spacedRepetition';
 import { MAX_HINT_LEVEL } from '@/utils/engine/hints';
 import { celebrationShown, toastPushed } from '@/store/slices/uiSlice';
 import { progressReset, stateImported } from '@/store/sharedActions';
-import { selectAchievementCtx, selectRevisionQueueIds, selectSolvedNewCount } from '@/store/selectors';
+import {
+  selectAchievementCtx,
+  selectRevisionQueueIds,
+  selectRevisionSession,
+  selectSolvedNewCount,
+} from '@/store/selectors';
 
 const questions = questionsData as Question[];
 const questionById = new Map(questions.map((q) => [q.id, q]));
@@ -362,6 +383,86 @@ export const deferTaskToTomorrow = (id: string): AppThunk => (dispatch) => {
 export const setDailyCapacity = (minutes: number): AppThunk => (dispatch) => {
   if (!Number.isInteger(minutes) || minutes < 15 || minutes > 960) return;
   dispatch(settingsUpdated({ dailyCapacityMin: minutes }));
+};
+
+// --- Revision sessions -----------------------------------------------------------------------
+// The session slice holds a sitting in progress. Dates arrive from here, never from the reducer,
+// which is the same rule every other slice follows.
+
+export const startRevisionSession = (): AppThunk => (dispatch, getState) => {
+  const today = todayISO();
+  // The plan is snapshotted here, not read live by the page — see SessionState.activities.
+  const { activities } = selectRevisionSession(getState(), today);
+  if (activities.length === 0) return;
+  dispatch(sessionStarted({ date: today, activities }));
+};
+
+export const completeSessionActivity = (activityId: string): AppThunk => (dispatch) => {
+  dispatch(activityCompleted({ activityId }));
+};
+
+export const uncompleteSessionActivity = (activityId: string): AppThunk => (dispatch) => {
+  dispatch(activityUncompleted({ activityId }));
+};
+
+export const finishRevisionSession = (): AppThunk => (dispatch) => {
+  dispatch(sessionFinished({ date: todayISO() }));
+};
+
+export const clearRevisionSession = (): AppThunk => (dispatch) => {
+  dispatch(sessionCleared());
+};
+
+// --- Contests --------------------------------------------------------------------------------
+// The clock lives here, not in the reducer: every timestamp arrives in a payload, so the slice
+// stays a dumb writer and the tests stay deterministic.
+
+export const startContest = (): AppThunk => (dispatch, getState) => {
+  const state = getState();
+  const contest = buildContest({
+    all: questions,
+    byId: state.progress.byId,
+    // Seeded by the date so a reload rebuilds the same set rather than reshuffling it.
+    seed: todayISO(),
+  });
+  if (contest.problems.length === 0) return;
+
+  dispatch(
+    contestStarted({
+      seed: contest.id,
+      questionIds: contest.problems.map((p) => p.question.id),
+      targetMinutes: contest.problems.map((p) => p.targetMinutes),
+      durationMin: contest.durationMin,
+      nowMs: Date.now(),
+    }),
+  );
+};
+
+export const focusContestProblem = (questionId: number): AppThunk => (dispatch) => {
+  dispatch(contestProblemFocused({ questionId, nowMs: Date.now() }));
+};
+
+export const blurContestProblem = (): AppThunk => (dispatch) => {
+  dispatch(contestProblemBlurred({ nowMs: Date.now() }));
+};
+
+/**
+ * Solving inside a contest is a real solve. It goes through the ordinary `solveQuestion` path so
+ * XP, the day log, streaks and the revision ladder all see it exactly as they would any other —
+ * a contest is a different way to practise, not a separate ledger.
+ */
+export const solveContestProblem = (questionId: number): AppThunk => (dispatch, getState) => {
+  if (getState().contest.attempts[questionId]?.solved) return;
+  dispatch(contestProblemSolved({ questionId, nowMs: Date.now() }));
+  dispatch(solveQuestion(questionId));
+};
+
+export const finishContest = (): AppThunk => (dispatch) => {
+  dispatch(contestFinished({ nowMs: Date.now() }));
+};
+
+export const clearContest = (): AppThunk => (dispatch) => {
+  dispatch(contestCleared());
 };
 
 export const importProgress = (state: PersistedStateV1): AppThunk => (dispatch) => {

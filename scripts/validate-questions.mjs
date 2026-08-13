@@ -212,6 +212,119 @@ for (const c of companies) {
   }
 }
 
+// --- ML implementation tracks & project ladder (mlTracks.json / mlProjects.json) --------
+// The two rules worth restating offline are the ones that make a claim about something outside
+// these files: a `weekId` must be a real week of the AI/ML course or an explicit null (many are
+// null on purpose — the 26-week course has no classical-ML week), and every prereq must resolve
+// to a real track with no cycle anywhere in the graph. Everything else here is shape, plus the
+// two content gates: five stages with 2+ failure modes, and a baseline that is either a stated
+// figure or a null carrying the note that says who must establish it.
+const mlTracks = JSON.parse(readFileSync(join(root, 'src', 'data', 'mlTracks.json'), 'utf8'));
+const mlProjects = JSON.parse(readFileSync(join(root, 'src', 'data', 'mlProjects.json'), 'utf8'));
+const courseSource = readFileSync(join(root, 'src', 'data', 'aimlCourse.ts'), 'utf8');
+const weekIds = new Set([...courseSource.matchAll(/\bid: '([^']+)'/g)].map((m) => m[1]));
+
+const ML_STAGES = ['math', 'scratch', 'library', 'experiment', 'failure'];
+const ML_TIERS = new Set([
+  'beginner', 'intermediate', 'advanced', 'deep-learning', 'nlp', 'modern-ai', 'production',
+]);
+const MIN_FAILURES = 2;
+const MIN_WHY_CHARS = 120;
+const MIN_NULL_BASELINE_NOTE = 120;
+const stated = (v) => typeof v === 'string' && v.trim() !== '';
+
+const trackIds = new Set();
+for (const t of mlTracks) {
+  const where = `track "${t.id}"`;
+  if (trackIds.has(t.id)) fail(`${where}: duplicate id`);
+  trackIds.add(t.id);
+  if (!stated(t.title) || !stated(t.tests)) fail(`${where}: missing title or tests sentence`);
+  if (!Number.isInteger(t.minutes) || t.minutes <= 0) fail(`${where}: minutes must be a positive integer`);
+  if (t.weekId !== null && !weekIds.has(t.weekId)) {
+    fail(`${where}: weekId "${t.weekId}" is not a course week (null is the honest value where the course has none)`);
+  }
+  for (const stage of ML_STAGES) {
+    const value = t.stages?.[stage];
+    if (value === undefined) fail(`${where}: missing the "${stage}" stage`);
+    else if (stage !== 'failure' && !stated(value.summary)) fail(`${where}: ${stage} stage has no summary`);
+  }
+  const failures = t.stages?.failure ?? [];
+  if (!Array.isArray(failures) || failures.length < MIN_FAILURES) {
+    fail(`${where}: ${failures.length ?? 0} failure mode(s) — at least ${MIN_FAILURES} are required`);
+  } else {
+    for (const [i, f] of failures.entries()) {
+      if (!stated(f.symptom) || !stated(f.cause) || !stated(f.fix)) {
+        fail(`${where}: failure[${i}] needs a symptom, a cause and a fix`);
+      }
+    }
+  }
+}
+// Prereq resolution and acyclicity, over the emitted graph.
+const trackEdges = new Map();
+for (const t of mlTracks) {
+  const prereqs = Array.isArray(t.prereqs) ? t.prereqs : [];
+  for (const p of prereqs) if (!trackIds.has(p)) fail(`track "${t.id}": prereq "${p}" is not a track`);
+  trackEdges.set(t.id, prereqs.filter((p) => trackIds.has(p)));
+}
+{
+  const state = new Map();
+  const stack = [];
+  const visit = (id) => {
+    const seen = state.get(id);
+    if (seen === 'done') return;
+    if (seen === 'open') {
+      fail(`ml tracks: prereq cycle ${[...stack.slice(stack.indexOf(id)), id].join(' → ')}`);
+      return;
+    }
+    state.set(id, 'open');
+    stack.push(id);
+    for (const next of trackEdges.get(id) ?? []) visit(next);
+    stack.pop();
+    state.set(id, 'done');
+  };
+  for (const id of trackEdges.keys()) visit(id);
+}
+
+const projectIds = new Set();
+for (const p of mlProjects) {
+  const where = `project "${p.id}"`;
+  if (projectIds.has(p.id)) fail(`${where}: duplicate id`);
+  projectIds.add(p.id);
+  if (!ML_TIERS.has(p.tier)) fail(`${where}: unknown tier "${p.tier}"`);
+  if (!Number.isInteger(p.order) || p.order < 1) fail(`${where}: order must be a positive integer`);
+  if (!stated(p.title) || !stated(p.objective)) fail(`${where}: missing title or objective`);
+  if (!ISO_DATE.test(p.dataset?.checkedAt ?? '')) fail(`${where}: dataset.checkedAt must be yyyy-MM-dd`);
+  if (!stated(p.dataset?.source)) fail(`${where}: dataset.source must say where the data comes from`);
+  // The baseline is the whole point of the file: a project without one is a tutorial.
+  if (!stated(p.baseline?.model)) fail(`${where}: baseline.model must name the dumb model`);
+  if (p.baseline?.score === null) {
+    if (!stated(p.baseline.note) || p.baseline.note.trim().length < MIN_NULL_BASELINE_NOTE) {
+      fail(`${where}: a null baseline.score must carry a note naming who establishes it`);
+    }
+  } else if (!stated(p.baseline?.score) || !/\d/.test(p.baseline.score)) {
+    fail(`${where}: baseline.score must be a figure or an explicit null`);
+  }
+  if (!stated(p.metric?.name)) fail(`${where}: metric.name is empty`);
+  if (!stated(p.metric?.why) || p.metric.why.trim().length < MIN_WHY_CHARS) {
+    fail(`${where}: metric.why must argue against the obvious alternative (${MIN_WHY_CHARS}+ chars)`);
+  }
+  if (!Array.isArray(p.experiments) || p.experiments.length < 2) fail(`${where}: needs 2+ experiments`);
+  if (!Array.isArray(p.errorAnalysis) || p.errorAnalysis.length < 3) fail(`${where}: needs 3+ error-analysis prompts`);
+  if (!Array.isArray(p.retrospective) || p.retrospective.length < 3) fail(`${where}: needs 3+ retrospective questions`);
+  if (p.deployment !== null && !stated(p.deployment)) fail(`${where}: deployment must be a string or an explicit null`);
+  if (!Number.isInteger(p.hours) || p.hours <= 0) fail(`${where}: hours must be a positive integer`);
+  for (const t of p.prereqTracks ?? []) {
+    if (!trackIds.has(t)) fail(`${where}: prereqTrack "${t}" is not a track`);
+  }
+  if (p.weekId !== null && !weekIds.has(p.weekId)) {
+    fail(`${where}: weekId "${p.weekId}" is not a course week`);
+  }
+  // The schema must never grow an answer key — the retrospective questions are the learner's.
+  for (const forbidden of ['solution', 'walkthrough', 'answers']) {
+    if (forbidden in p) fail(`${where}: shipped answers are not supported ("${forbidden}")`);
+  }
+}
+
 // --- Report ----------------------------------------------------------------------------
 const unresolved = questions.filter((q) => q.url === undefined);
 console.log(`questions: ${questions.length}, leetcode-linked: ${linked}, unresolved: ${unresolved.length}`);
@@ -222,6 +335,16 @@ console.log(
 console.log(
   `companies: ${companies.length} first-party sources, ` +
     `${companies.filter((c) => c.evidence === 'topics').length} enumerating topics`,
+);
+console.log(
+  `ml tracks: ${mlTracks.length} × 5 stages, ` +
+    `${mlTracks.reduce((s, t) => s + (t.stages.failure?.length ?? 0), 0)} failure modes, ` +
+    `${mlTracks.filter((t) => t.weekId === null).length} with no course week (stated, not guessed)`,
+);
+console.log(
+  `ml projects: ${mlProjects.length} across ${new Set(mlProjects.map((p) => p.tier)).size} tiers, ` +
+    `${mlProjects.filter((p) => p.baseline.score !== null).length} baselines stated / ` +
+    `${mlProjects.filter((p) => p.baseline.score === null).length} for the learner to establish`,
 );
 if (unresolved.length > 0) {
   console.log('unresolved (declared not-on-leetcode in the generator):');

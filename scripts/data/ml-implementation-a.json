@@ -1,0 +1,536 @@
+{
+  "tracks": [
+    {
+      "id": "linear-regression",
+      "title": "Linear Regression",
+      "weekId": "w02",
+      "prereqs": [],
+      "minutes": 75,
+      "tests": "Whether you can turn \"fit a line\" into a solved linear system — deriving the least-squares normal equations, implementing them in numpy, and knowing the conditions under which they stop being trustworthy.",
+      "stages": {
+        "math": {
+          "summary": "Least squares picks the weights whose predictions have the smallest total squared error. Because the objective is convex and quadratic, that minimum has a closed form — the only model in this set that does.",
+          "detail": "model      ŷ = Xw + b      (fold b in by prepending a column of 1s to X)\nobjective  J(w) = (1/2n) ||Xw - y||²\ngradient   ∇J(w) = (1/n) Xᵀ(Xw - y)\nset ∇J = 0 →  XᵀX w = Xᵀy        ← the normal equations\nsolution   w = (XᵀX)⁻¹ Xᵀy       (exists only when X has full column rank)\n\nThe Hessian ∇²J = (1/n) XᵀX is positive semi-definite, so J is convex and any stationary point is a global minimum. That is why a formula exists here at all.\n\nA useful equivalent reading: Xᵀ(y - ŷ) = 0 says the residual is orthogonal to every column of X. Least squares is the orthogonal projection of y onto the column space of X — nothing more.",
+          "symbols": [
+            { "symbol": "X", "meaning": "design matrix, one row per sample and one column per feature" },
+            { "symbol": "y", "meaning": "vector of observed targets, one per sample" },
+            { "symbol": "w", "meaning": "the weight vector being solved for — one coefficient per feature" },
+            { "symbol": "b", "meaning": "intercept; absorbed into w by prepending a constant 1s column to X" },
+            { "symbol": "n", "meaning": "number of samples (rows of X)" },
+            { "symbol": "d", "meaning": "number of features (columns of X)" },
+            { "symbol": "ŷ", "meaning": "predicted targets, Xw" },
+            { "symbol": "J", "meaning": "the objective — mean squared error, halved so the gradient has no stray 2" },
+            { "symbol": "∇J", "meaning": "gradient of J with respect to w; a vector of length d" },
+            { "symbol": "XᵀX", "meaning": "the Gram matrix, d×d and symmetric — invertible exactly when the columns of X are linearly independent" }
+          ]
+        },
+        "scratch": {
+          "summary": "Roughly sixty lines of numpy: build the augmented matrix, solve one linear system, and write the checks that prove the solution is actually the least-squares optimum rather than merely a number.",
+          "checklist": [
+            "add_bias(X) — prepend a column of ones so the intercept is learned as w[0] instead of being special-cased everywhere downstream",
+            "fit_normal_equations(Xb, y) — solve with np.linalg.solve(Xb.T @ Xb, Xb.T @ y). Never np.linalg.inv(...) @ ...: inverting is slower and numerically worse than solving",
+            "fit_lstsq(Xb, y) — a second fitter using np.linalg.lstsq(Xb, y, rcond=None), which survives rank-deficient X where solve raises. Keeping both is the point, not redundancy",
+            "predict(X, w) — add_bias(X) @ w",
+            "r2(y, yhat) — 1 - SS_res/SS_tot, with SS_tot measured against y.mean(); write it yourself before trusting .score()",
+            "check_orthogonality(Xb, y, w) — assert Xb.T @ (y - Xb @ w) is ~0. This single assertion catches essentially every wrong derivation, because it is the stationarity condition restated",
+            "check_conditioning(Xb) — report np.linalg.cond(Xb) and np.linalg.cond(Xb.T @ Xb), so you can see the condition number get squared with your own eyes"
+          ],
+          "shapes": [
+            "X: (n, d)",
+            "Xb: (n, d+1) — X with the 1s column prepended",
+            "y: (n,)",
+            "w: (d+1,) — w[0] is the intercept",
+            "XᵀX: (d+1, d+1)",
+            "Xᵀy: (d+1,)",
+            "ŷ: (n,)",
+            "residual y - ŷ: (n,)"
+          ]
+        },
+        "library": {
+          "summary": "sklearn's LinearRegression is a thin predictor wrapper around scipy's SVD-based least-squares solver — deliberately not the normal equations you just wrote.",
+          "api": [
+            "sklearn.linear_model.LinearRegression",
+            "sklearn.datasets.load_diabetes",
+            "sklearn.metrics.r2_score",
+            "sklearn.metrics.root_mean_squared_error",
+            "sklearn.dummy.DummyRegressor"
+          ],
+          "version": "scikit-learn >=1.5 (signature below verified against 1.9.0)",
+          "detail": "LinearRegression(*, fit_intercept=True, copy_X=True, tol=1e-6, n_jobs=None, positive=False)\n\nThere is no `normalize` parameter — it was removed in 1.2, and tutorials that still pass it are pre-1.2. `tol` is new in 1.9 and is forwarded as the `cond` argument of scipy.linalg.lstsq.\n\nFitted attributes: coef_ (d,), intercept_ (float), rank_, singular_, n_features_in_.\n\nUnder the hood this is scipy.linalg.lstsq for dense X (scipy.sparse.linalg.lsqr for sparse, scipy.optimize.nnls when positive=True) — an SVD-based solve, not (XᵀX)⁻¹Xᵀy. That difference is the whole reason it keeps working on collinear data where your np.linalg.solve version raises.\n\n.score(X, y) returns R². For RMSE use root_mean_squared_error (added in 1.4); mean_squared_error's `squared=False` argument was deprecated in 1.4 and removed in 1.6, so the old one-liner is now a TypeError."
+        },
+        "experiment": {
+          "summary": "Fit both implementations on the same bundled dataset and compare coefficients digit by digit — a correct scratch version agrees with sklearn far beyond display precision, so any visible disagreement is a bug rather than rounding.",
+          "dataset": "sklearn.datasets.load_diabetes(return_X_y=True) — 442 samples × 10 features, ships with sklearn, no download. Features are already mean-centred and scaled by std·√n (the `scaled=True` default), and the target is a disease-progression score ranging 25 to 346.",
+          "metric": "R² on the fitted data, plus max(abs(your_w[1:] - sklearn.coef_)) and abs(your_w[0] - sklearn.intercept_).",
+          "expect": "sklearn returns intercept_ = 152.1334841629 and R² = 0.5177484222 (RMSE 53.4761287640). Your normal-equations solution reproduces both, matching coef_ to about 2e-11 and the intercept to machine zero — that residue is float64 noise, not a methodological difference. A disagreement in the third decimal means a bug. Two things worth reading off the same run: cond(Xb) ≈ 227 while cond(XᵀX) ≈ 5.16e4, the squaring that failure mode 2 is about; and R² = 0.52 is the honest ceiling for a linear model on this data, not a sign you did it wrong."
+        },
+        "failure": [
+          {
+            "symptom": "numpy.linalg.LinAlgError: Singular matrix from np.linalg.solve — or coefficients around 1e15 that flip sign entirely when you add one row of data.",
+            "cause": "X has linearly dependent columns, so XᵀX is singular and (XᵀX)⁻¹ does not exist. The usual culprits are a duplicated or derived feature (height in cm and in inches), or a one-hot encoding that keeps every level alongside an intercept column, making the dummies sum to the constant column.",
+            "fix": "Switch to np.linalg.lstsq(Xb, y, rcond=None) or np.linalg.pinv, which return the minimum-norm solution instead of failing; or drop the redundant column (one-hot with drop='first'). This is precisely why sklearn uses lstsq internally rather than the formula."
+          },
+          {
+            "symptom": "Coefficients differ from sklearn's in the 4th or 5th significant digit even though nothing is singular and both methods claim success.",
+            "cause": "Forming XᵀX squares the condition number, so the normal equations lose roughly twice as many significant digits as an SVD-based solve. On the diabetes data cond(X) ≈ 227 but cond(XᵀX) ≈ 5.16e4; on badly scaled data the gap grows until the answer is meaningless.",
+            "fix": "This is a property of the method, not a bug — use lstsq or a QR factorisation when accuracy matters. Here the problem is well-conditioned enough that solve and lstsq still agree to 2e-11, which is exactly why you should check cond() rather than assume."
+          },
+          {
+            "symptom": "The intercept comes out as 0.0, or every prediction is offset from the truth by a constant.",
+            "cause": "Either the 1s column was never prepended, or it was prepended and the augmented matrix was then handed to LinearRegression with its default fit_intercept=True — fitting two intercepts against one constant column, which also makes XᵀX singular.",
+            "fix": "Pick one convention and hold it. If you augment X yourself, compare against LinearRegression(fit_intercept=False); if you let sklearn handle it, pass the raw X. The orthogonality check catches this immediately, because a missing intercept leaves the residuals with a nonzero mean."
+          },
+          {
+            "symptom": "R² is 0.52 on the data you fitted and negative on held-out data.",
+            "cause": "R² is 1 - SS_res/SS_tot where SS_tot uses the mean of the set being evaluated, so a model that is worse than predicting that mean scores below zero. It usually means the fit did not generalise at all — common when d approaches n, or when the split leaked a scaling step.",
+            "fix": "Compare against DummyRegressor(strategy='mean') before concluding anything, and check n against d. A negative R² is a real signal, not a computational artefact — it is telling you the model is worse than a horizontal line."
+          }
+        ]
+      }
+    },
+    {
+      "id": "logistic-regression",
+      "title": "Logistic Regression",
+      "weekId": "w02",
+      "prereqs": ["linear-regression", "gradient-descent"],
+      "minutes": 90,
+      "tests": "Whether you can build a calibrated binary classifier from the log-loss up — deriving why its gradient looks identical to linear regression's, keeping the sigmoid numerically stable, and reading sklearn's C convention correctly enough to reproduce its coefficients.",
+      "stages": {
+        "math": {
+          "summary": "Push a linear score through a sigmoid to get a probability, then maximise the likelihood of the observed labels. The objective is convex but transcendental — so there is no formula, and iteration becomes mandatory.",
+          "detail": "model     p(y=1|x) = σ(z),  z = xᵀw + b,  σ(z) = 1 / (1 + e^(-z))\nloss      J(w) = -(1/n) Σᵢ [ yᵢ·log(pᵢ) + (1-yᵢ)·log(1-pᵢ) ]      (binary cross-entropy)\ngradient  ∇J(w) = (1/n) Xᵀ(p - y)          ← identical in form to least squares, with p in place of ŷ\n          ∂J/∂b  = (1/n) Σᵢ (pᵢ - yᵢ)\nHessian   ∇²J = (1/n) Xᵀ S X,  S = diag(pᵢ(1 - pᵢ))    → PSD, so J is convex\n\nThe collapse to Xᵀ(p - y) is not a coincidence: it falls out of σ'(z) = σ(z)(1 - σ(z)) cancelling against the log in the loss. Both models are generalised linear models, and both gradients read \"features transposed, times the error\".\n\nWhat differs is that p depends on w through an exponential, so ∇J = 0 has no algebraic solution. That is why gradient descent is a prerequisite for this track and was merely an alternative for the last one.\n\nsklearn's regularised objective, in its own convention:\n          min_w,b   ½·wᵀw + C · Σᵢ log(1 + exp(-tᵢ·(xᵢᵀw + b))),   tᵢ ∈ {-1, +1}\nNote the sum rather than a mean, and that C scales the data term rather than the penalty.",
+          "symbols": [
+            { "symbol": "σ", "meaning": "the logistic sigmoid, mapping any real score to (0, 1)" },
+            { "symbol": "z", "meaning": "the linear score xᵀw + b, often called the logit" },
+            { "symbol": "p", "meaning": "predicted probability of the positive class, σ(z)" },
+            { "symbol": "y", "meaning": "true labels encoded as 0/1 (the form the cross-entropy above expects)" },
+            { "symbol": "t", "meaning": "the same labels encoded as -1/+1, which is the form sklearn's objective uses" },
+            { "symbol": "w", "meaning": "weight vector, length d" },
+            { "symbol": "b", "meaning": "intercept — excluded from the L2 penalty by convention" },
+            { "symbol": "S", "meaning": "diagonal matrix of pᵢ(1-pᵢ); store it as a length-n vector, never as an n×n matrix" },
+            { "symbol": "J", "meaning": "mean binary cross-entropy, the quantity being minimised" },
+            { "symbol": "C", "meaning": "sklearn's inverse regularisation strength — larger C means weaker penalty; equals 1/(nλ) relative to the mean-loss form" }
+          ]
+        },
+        "scratch": {
+          "summary": "The maths is a short step from linear regression, but the implementation is not: nearly all the difficulty here is numerical stability, and a naive sigmoid will produce NaN on real data within a few epochs.",
+          "checklist": [
+            "stable_sigmoid(z) — never 1/(1+np.exp(-z)) directly. Branch on the sign: for z >= 0 use 1/(1+exp(-z)), for z < 0 use exp(z)/(1+exp(z)). Both branches only ever exponentiate a non-positive number. scipy.special.expit already does this correctly if you would rather check your version against it",
+            "stable_loss(z, t) — compute np.logaddexp(0, -t*z).mean() with t ∈ {-1,+1}, rather than log(p): log(p) is -inf the moment p underflows to exactly 0, which happens routinely on confidently classified points",
+            "gradient(X, y, p) — X.T @ (p - y) / n, with the bias handled either by a 1s column or as a separate scalar term. Do not regularise the bias",
+            "an L2 term — add λ·w to the gradient (bias excluded). You need this to match sklearn at all, and failure mode 3 is what happens without it",
+            "fit(X, y) — a gradient descent loop reusing the learning-rate discipline from the gradient-descent track, recording the loss each epoch",
+            "predict_proba(X) and predict(X, threshold=0.5) as separate functions — collapsing them hides the fact that the threshold is a business decision, not part of the model",
+            "an accuracy scorer and a log-loss scorer, so you can compare against sklearn on the metric you actually optimised rather than only on accuracy",
+            "a sanity check: feed z = ±1000 through your sigmoid and loss and confirm both return finite numbers"
+          ],
+          "shapes": [
+            "X: (n, d)",
+            "y: (n,) of 0/1 integers",
+            "t: (n,) of -1/+1 floats, for the stable loss",
+            "w: (d,)",
+            "b: scalar",
+            "z: (n,)",
+            "p: (n,)",
+            "∇J: (d,)",
+            "S: (n,) held as a vector — materialising the (n, n) diagonal is the classic memory blowup"
+          ]
+        },
+        "library": {
+          "summary": "LogisticRegression is the most API-churned class in this set: multi_class has been removed and penalty is mid-deprecation, so the safe call is the one that passes neither.",
+          "api": [
+            "sklearn.linear_model.LogisticRegression",
+            "sklearn.preprocessing.StandardScaler",
+            "sklearn.pipeline.make_pipeline",
+            "sklearn.datasets.load_breast_cancer",
+            "sklearn.metrics.log_loss",
+            "sklearn.metrics.accuracy_score"
+          ],
+          "version": "scikit-learn >=1.5; signature verified against 1.9.0 — read the API-change note, this class moved recently",
+          "detail": "In 1.9 the signature is:\nLogisticRegression(penalty='deprecated', *, C=1.0, l1_ratio=0.0, dual=False, tol=1e-4, fit_intercept=True, intercept_scaling=1, class_weight=None, random_state=None, solver='lbfgs', max_iter=100, verbose=0, warm_start=False, n_jobs=None)\n\nTwo changes that break older code:\n• multi_class was deprecated in 1.5 and is now gone. Every solver except 'liblinear' optimises the full multinomial loss for 3+ classes automatically; wrap in sklearn.multiclass.OneVsRestClassifier if you specifically want one-vs-rest.\n• penalty was deprecated in 1.8 (removal planned for 1.10) in favour of l1_ratio: l1_ratio=0 is pure L2, 1 is pure L1, values between are elastic-net, and C=np.inf means no penalty. Passing penalty='l2' still works in 1.9 but emits a FutureWarning.\n\nSo write LogisticRegression(C=..., solver='lbfgs', max_iter=...) and pass neither kwarg — the default is L2 under both regimes, making that call identical on every version from 1.5 to 1.9. For L1 you do need the version split: penalty='l1' with solver='liblinear' or 'saga' before 1.8, l1_ratio=1.0 with solver='saga' after.\n\nThe convention that actually matters is C. sklearn minimises ½·wᵀw + C·Σᵢ log(1+exp(-tᵢ·(xᵢᵀw+b))) — a sum over samples, with C multiplying the data term. If your scratch version minimises (1/n)Σ loss + (λ/2)||w||², then sklearn's C corresponds to 1/(nλ). Verified empirically: minimising that exact expression with scipy.optimize.minimize reproduces sklearn's coef_ to under 1e-6 once tol is tightened to 1e-12.\n\nFitted attributes: coef_ (1, d) for binary, intercept_ (1,), classes_, n_iter_."
+        },
+        "experiment": {
+          "summary": "Fit a real binary classifier on bundled medical data, then deliberately break it twice — once by skipping the scaler, once by removing the regularisation — so both failures are things you have watched happen rather than warnings you have read.",
+          "dataset": "sklearn.datasets.load_breast_cancer(return_X_y=True) — 569 samples × 30 features, 212 malignant / 357 benign, bundled with sklearn. Split with train_test_split(test_size=0.2, random_state=0, stratify=y), then fit StandardScaler on the training split only and apply it to both.",
+          "metric": "Test accuracy and test log-loss, plus the value of sklearn's regularised objective that your scratch optimiser reaches.",
+          "expect": "LogisticRegression(C=1.0, solver='lbfgs', max_iter=1000) gives test accuracy 0.9824561404 (112 of 114 correct), train accuracy 0.9890109890, test log-loss 0.0776901692, intercept_ = 0.3411727216, ‖coef_‖ = 3.6410047260, and converges in 17 lbfgs iterations. If your scratch version minimises the same C-scaled objective it should land on 29.8346745731 and match coef_ closely; if it minimises the unpenalised mean loss instead, expect comparable accuracy but visibly larger coefficients — that is the convention gap of the library stage, not an error. Then the two instructive runs: fitting on unscaled features with the default max_iter=100 hits the iteration ceiling and scores 0.9473684211, and setting C=1e6 drives ‖coef_‖ to about 1308 with perfect training accuracy while test accuracy *falls* to 0.9473684211."
+        },
+        "failure": [
+          {
+            "symptom": "RuntimeWarning: overflow encountered in exp, followed by NaN in the loss and weights that never recover.",
+            "cause": "1/(1+np.exp(-z)) overflows once z drops below about -709 in float64, and np.log(p) returns -inf as soon as p rounds to exactly 0 or 1 — which happens on any confidently classified point, so it is a matter of when rather than whether.",
+            "fix": "Branch the sigmoid on the sign of z so you only ever exponentiate a non-positive number, and compute the loss with np.logaddexp(0, -t*z), which is exact across the entire range (np.logaddexp(0, 1000.0) returns 1000.0 where the naive route returns inf). Test with z = ±1000 before training on anything."
+          },
+          {
+            "symptom": "ConvergenceWarning: lbfgs failed to converge (status=1): STOP: TOTAL NO. OF ITERATIONS REACHED LIMIT.",
+            "cause": "Almost always unstandardised features rather than a genuinely too-small max_iter. Features on wildly different scales make the loss surface badly conditioned, and lbfgs crawls for the same reason plain gradient descent does.",
+            "fix": "Scale first — make_pipeline(StandardScaler(), LogisticRegression()) — and only raise max_iter if that was not enough. Verified on this dataset: raw features hit the max_iter=100 ceiling and score 0.9474, while the identical call on standardised features converges in 17 iterations and scores 0.9825."
+          },
+          {
+            "symptom": "Training loss drives towards zero, the weight norm grows without bound, and test accuracy gets worse the longer you train.",
+            "cause": "On linearly separable — or merely nearly separable — data the unregularised maximum-likelihood estimate does not exist. Any separating direction can be scaled up indefinitely to increase the likelihood, so the optimiser has nothing to converge to and simply runs until it hits a limit.",
+            "fix": "Keep a finite penalty; this is exactly what the default C=1.0 is protecting you from. Verified: C=1e6 on this data pushes ‖coef_‖ to about 1308 and train log-loss to 9.9e-4 with 100% training accuracy, while test accuracy drops from 0.9825 to 0.9474. Add the L2 term to your scratch gradient and watch ‖w‖ level off instead."
+          },
+          {
+            "symptom": "Accuracy looks healthy at around 0.95 but every predicted probability is 0.99 or 0.01, and downstream thresholding behaves erratically.",
+            "cause": "Accuracy reads only the sign of z, so it is completely blind to calibration. Over-confident probabilities come from too little regularisation (see above), squashed ones from too much — and accuracy is flat across both.",
+            "fix": "Always report log_loss alongside accuracy, since log-loss is the quantity you actually minimised and the one that moves when calibration degrades. If calibrated probabilities are the deliverable, sklearn.calibration.CalibratedClassifierCV is the right tool — but check log-loss first, because a well-regularised model is often already fine."
+          }
+        ]
+      }
+    },
+    {
+      "id": "gradient-descent",
+      "title": "Gradient Descent",
+      "weekId": "w07",
+      "prereqs": ["linear-regression"],
+      "minutes": 100,
+      "tests": "Whether you can choose a learning rate from the data instead of guessing at it — computing the curvature that sets the stability limit, and diagnosing divergence, crawling and plateaus from the loss curve alone.",
+      "stages": {
+        "math": {
+          "summary": "Step downhill against the gradient. The only real question is how far, and for a quadratic objective the answer is not a heuristic — it is an eigenvalue.",
+          "detail": "update       w ← w - η·∇J(w)\n\nleast squares, as the running example:\n  J(w) = (1/2n)||Xw - y||²\n  ∇J(w) = (1/n) Xᵀ(Xw - y)\n  ∇²J   = (1/n) XᵀX      (constant — the surface is a fixed bowl)\n  L = λ_max(∇²J)         the largest curvature\n  μ = λ_min(∇²J)         the smallest curvature\n\nstability    full-batch GD converges  ⟺  0 < η < 2/L\nbest fixed   η = 1/L\nrate         ||w_k - w*|| ≤ (1 - μ/L)^k · ||w_0 - w*||,   κ = L/μ\n\nWhy 2/L exactly: decompose the error along the eigenvectors of ∇²J. Along the eigenvector with eigenvalue λ, one step multiplies the error by (1 - ηλ). That contracts only while |1 - ηλ| < 1, i.e. η < 2/λ, and the binding constraint is the largest λ — which is L. Every practical rule about learning rates is a restatement of that line.\n\nmini-batch   ∇J_B(w) = (1/|B|) X_Bᵀ(X_B w - y_B)     unbiased for ∇J, but with variance that does not vanish at w*\nmomentum     v ← β·v + ∇J(w);  w ← w - η·v",
+          "symbols": [
+            { "symbol": "η", "meaning": "learning rate (step size) — the one hyperparameter this track exists to demystify" },
+            { "symbol": "∇J", "meaning": "gradient of the objective at the current w; points uphill, so the update subtracts it" },
+            { "symbol": "∇²J", "meaning": "Hessian — the curvature matrix. Constant for least squares, which is what makes the analysis exact" },
+            { "symbol": "L", "meaning": "largest eigenvalue of the Hessian, the smoothness constant; sets the stability ceiling η < 2/L" },
+            { "symbol": "μ", "meaning": "smallest eigenvalue of the Hessian, the strong-convexity constant; sets how slowly the flattest direction converges" },
+            { "symbol": "κ", "meaning": "condition number L/μ — how elongated the bowl is, and roughly how many steps convergence costs" },
+            { "symbol": "w*", "meaning": "the minimiser being approached" },
+            { "symbol": "B", "meaning": "a mini-batch: a random subset of row indices" },
+            { "symbol": "β", "meaning": "momentum coefficient, typically 0.9 — the fraction of the previous velocity carried forward" }
+          ]
+        },
+        "scratch": {
+          "summary": "The loop itself is four lines. Everything of value is in the instrumentation around it: a gradient check that proves the maths, an eigenvalue that predicts the stability limit, and a loss history that lets you recognise each failure by its shape.",
+          "checklist": [
+            "loss(w) and grad(w) as two separate functions — you cannot finite-difference-check a fused loss-and-gradient routine",
+            "check_grad(w) — compare grad(w)[i] against (loss(w + εeᵢ) - loss(w - εeᵢ)) / (2ε) with ε=1e-5. Use the central difference, not the forward one: it is second-order accurate and the forward version is too loose to catch a factor-of-2 error. Do this before touching η",
+            "gradient_descent(w0, eta, steps) — the plain loop, appending loss(w) to a history list every step so the curve is inspectable afterwards",
+            "smoothness_constant(X) — L = np.linalg.eigvalsh(X.T @ X / n)[-1], and κ from the ratio of the extreme eigenvalues. This is the line that turns learning-rate choice from folklore into arithmetic",
+            "run the same problem at η = 1/L, 1.9/L, 2.0/L and 2.1/L, and plot all four loss curves on a log y-axis — the four regimes look completely different and you should be able to recognise them by sight",
+            "minibatch_gd(X, y, batch_size, epochs) — reshuffle with rng.permutation(n) each epoch, then slice. Reshuffling per epoch rather than sampling with replacement is what makes each epoch a full pass",
+            "momentum_gd(...) — a velocity vector initialised to zeros; compare its step count against plain GD on the same ill-conditioned problem",
+            "stop on the gradient norm (np.linalg.norm(g) < tol), not on the change in loss — loss deltas go small both near the optimum and when the step size is too small to move, and those are opposite problems"
+          ],
+          "shapes": [
+            "X: (n, d)",
+            "y: (n,)",
+            "w: (d,)",
+            "g (gradient): (d,)",
+            "v (velocity): (d,)",
+            "XᵀX/n: (d, d)",
+            "eigenvalues: (d,) — ascending from np.linalg.eigvalsh, so L is [-1] and μ is [0]",
+            "loss history: (steps,)",
+            "X_B: (batch_size, d), y_B: (batch_size,)"
+          ]
+        },
+        "library": {
+          "summary": "SGDRegressor is sklearn's actual gradient-descent estimator, and comparing it to your loop is mostly an exercise in noticing that two of its defaults quietly change the problem being solved.",
+          "api": [
+            "sklearn.linear_model.SGDRegressor",
+            "sklearn.linear_model.SGDClassifier",
+            "sklearn.preprocessing.StandardScaler",
+            "sklearn.datasets.make_regression",
+            "sklearn.pipeline.make_pipeline"
+          ],
+          "version": "scikit-learn >=1.5 (signature verified against 1.9.0)",
+          "detail": "SGDRegressor(loss='squared_error', *, penalty='l2', alpha=0.0001, l1_ratio=0.15, fit_intercept=True, max_iter=1000, tol=1e-3, shuffle=True, verbose=0, epsilon=0.1, random_state=None, learning_rate='invscaling', eta0=0.01, power_t=0.25, early_stopping=False, validation_fraction=0.1, n_iter_no_change=5, warm_start=False, average=False)\n\nTwo defaults will make a naive comparison against your scratch loop disagree, and neither is a bug:\n• penalty='l2' with alpha=1e-4 means it is not minimising plain least squares. Pass penalty=None to match unregularised scratch code.\n• learning_rate='invscaling' decays the step as eta0/t^power_t. To reproduce a fixed η you must pass learning_rate='constant', eta0=<your η>.\n\nOther accepted learning_rate values: 'optimal', 'adaptive', 'pa1', 'pa2'. loss accepts 'squared_error', 'huber', 'epsilon_insensitive', 'squared_epsilon_insensitive'.\n\npartial_fit(X, y) runs exactly one epoch (it sets max_iter=1 internally), which is the honest way to build a per-epoch loss curve comparable to your own. average=True switches on iterate averaging, the standard remedy for the noise floor in failure mode 4.\n\nSGDRegressor is genuinely scale-sensitive for the reason this track is about, so it belongs behind a StandardScaler in a pipeline essentially always."
+        },
+        "experiment": {
+          "summary": "Compute the stability threshold from the data, then walk the learning rate across it and watch the predicted boundary hold exactly — this is the rare hyperparameter whose correct value can be derived rather than searched.",
+          "dataset": "sklearn.datasets.make_regression(n_samples=200, n_features=10, noise=10.0, random_state=0) — generated in-process, nothing to download, and small enough that 300 gradient steps are instantaneous.",
+          "metric": "The largest η at which the loss still decreases, compared against the computed 2/L; and the step count to reach 1e-6 relative error at η = 1/L.",
+          "expect": "L = λ_max(XᵀX/n) = 1.2844267795, so the predicted threshold is 2/L = 1.5571148405 and the best fixed step is 1/L = 0.7785574203. Sweeping η: at 1/L and 1.9/L the loss converges to J(w*) = 47.0160504982 (matching lstsq to about 1e-13); at exactly 2.0/L it oscillates without contracting and sits at 866.13 after 300 steps; at 2.001/L it diverges; at 2.5/L the loss reaches roughly 1e106 within those same 300 steps. The boundary is exactly where the eigenvalue says it is, with no fudge factor. At η = 1/L convergence to 1e-6 relative error takes 16 steps, because this problem's κ is only 1.86 — then compare against the deliberately ill-conditioned version in failure mode 2 to see what κ actually buys you."
+        },
+        "failure": [
+          {
+            "symptom": "The loss becomes NaN or inf within a handful of steps, often after appearing to decrease once or twice first.",
+            "cause": "η exceeds 2/L, so each step multiplies the error along the top eigenvector by a factor greater than 1 in magnitude. The blowup is geometric, which is why it goes from plausible to overflowed in single-digit iterations rather than degrading gradually.",
+            "fix": "Compute L = np.linalg.eigvalsh(X.T @ X / n)[-1] and set η = 1/L. Where the Hessian is not available or not constant, backtrack instead: halve η whenever a step increases the loss. Verified on the experiment data — 1.9/L converges cleanly, 2.001/L diverges, and 2.5/L reaches about 1e106 in 300 steps."
+          },
+          {
+            "symptom": "The loss decreases, but so slowly it looks flat; thousands of steps barely move w, and raising η to compensate immediately triggers failure mode 1.",
+            "cause": "Features on very different scales make κ = L/μ enormous. The safe step size is capped by the largest curvature while progress along the flattest direction is governed by the smallest, so the two constraints pull apart and there is no η that satisfies both.",
+            "fix": "Standardise the features — the highest-leverage single line in the whole loop. Verified: scaling just one feature of the experiment data by 1000 drives κ from 1.86 to 1.41e6 and 2/L from 1.56 down to 2.0e-6, so the same 1e-6 accuracy that took 16 steps now takes over 500,000. Running StandardScaler on that corrupted data restores κ ≈ 1.77 and 15 steps. Momentum helps too, but scaling is what actually fixes it."
+          },
+          {
+            "symptom": "The gradient looks right on paper but the model never fits — the loss plateaus immediately at a value well above the optimum and no learning rate helps.",
+            "cause": "A sign error, a missing 1/n, or a transpose in the wrong place. These are silent failures: the loop still runs and the loss still changes, so nothing raises. Time gets spent tuning η for a problem that is not about η.",
+            "fix": "Finite-difference-check the gradient before tuning anything. If (J(w+εeᵢ) - J(w-εeᵢ))/(2ε) disagrees with your analytic gradient by more than about 1e-6 relative, the bug is in the derivation. A factor-of-n error shows up as a clean constant ratio between the two, which makes it easy to identify once you are actually looking."
+          },
+          {
+            "symptom": "Mini-batch training produces a jagged loss curve that never settles, bouncing around a floor, even though full-batch gradient descent converged smoothly on the same data.",
+            "cause": "Stochastic gradients are unbiased but their variance does not vanish at w* — a single batch's gradient is nonzero even at the exact optimum. With a constant η the iterates settle into a ball around the minimum whose radius scales with η, rather than converging to a point.",
+            "fix": "Decay the step size (this is what learning_rate='invscaling' or 'adaptive' does in SGDRegressor) or average the late iterates (average=True). And judge SGD by a running mean over an epoch, never by a single batch's loss — most reported \"SGD instability\" is a plotting artefact of the latter."
+          }
+        ]
+      }
+    },
+    {
+      "id": "k-means",
+      "title": "K-Means Clustering",
+      "weekId": null,
+      "prereqs": [],
+      "minutes": 70,
+      "tests": "Whether you can implement alternating minimisation and reason honestly about local minima — the first algorithm in this set that has no globally correct answer, and where the initialisation matters more than the update rule.",
+      "stages": {
+        "math": {
+          "summary": "Alternate between assigning points to their nearest centre and moving each centre to the mean of its points. Each half provably lowers one objective, so the loop terminates — but at a local minimum, not the best one.",
+          "detail": "objective  J(C, μ) = Σ_{k=1..K} Σ_{i ∈ C_k} ||xᵢ - μ_k||²        (the within-cluster sum of squares; sklearn calls it inertia_)\n\nassign step   C_k ← { i : k = argmin_j ||xᵢ - μ_j||² }      (μ held fixed)\nupdate step   μ_k ← (1/|C_k|) Σ_{i ∈ C_k} xᵢ                 (C held fixed)\nrepeat until the assignments stop changing.\n\nWhy the mean, specifically: minimising Σ_{i ∈ C_k} ||xᵢ - μ||² over μ gives Σ(μ - xᵢ) = 0, so μ is the arithmetic mean. This is a consequence of squared Euclidean distance, not a design choice — change the metric and the centroid step is no longer the mean (with L1 it becomes the median, which is a different algorithm).\n\nWhy it terminates: each step minimises J exactly over its own variable with the other fixed, so J is non-increasing, and there are finitely many possible assignments. J therefore cannot cycle.\n\nWhy it is not enough: J is not jointly convex in (C, μ). Termination guarantees a local minimum and says nothing about the global one. That gap is the entire practical story of k-means, and the reason k-means++ and restarts exist.\n\nk-means++ seeding: choose the first centre uniformly at random, then draw each subsequent centre with probability proportional to D(x)², where D(x) is the distance from x to the nearest already-chosen centre.",
+          "symbols": [
+            { "symbol": "K", "meaning": "number of clusters — chosen by you, never learned from the objective" },
+            { "symbol": "μ_k", "meaning": "centroid of cluster k, a point in feature space" },
+            { "symbol": "C_k", "meaning": "the set of sample indices currently assigned to cluster k" },
+            { "symbol": "J", "meaning": "within-cluster sum of squares; the quantity both steps decrease and the number to compare against sklearn's inertia_" },
+            { "symbol": "|C_k|", "meaning": "size of cluster k — when this hits zero the centroid update divides by zero (failure mode 2)" },
+            { "symbol": "D(x)", "meaning": "distance from x to the nearest already-chosen centre, used by k-means++ seeding" }
+          ]
+        },
+        "scratch": {
+          "summary": "Under a hundred lines, and the tricky parts are not the loop: they are vectorising the distance computation, handling empty clusters, and implementing k-means++ correctly enough that it actually helps.",
+          "checklist": [
+            "pairwise_sq_dists(X, mu) — ((X[:, None, :] - mu[None, :, :])**2).sum(-1) gives (n, K) without a Python loop. For large n the ||x||² - 2xᵀμ + ||μ||² expansion avoids the (n, K, d) intermediate; keep the readable version until memory forces the change",
+            "assign(dists) — dists.argmin(axis=1)",
+            "update(X, labels, K) — the centroid means. A loop over K is fine and clearer than np.add.at here, since K is small",
+            "empty-cluster handling — check counts == 0 explicitly and re-seed that centroid to the point currently furthest from its own centroid. Deciding this up front is the difference between a working implementation and an intermittent NaN",
+            "kmeans_plus_plus(X, K, rng) — first centre uniform, then sample each next centre with probability D²/ΣD², updating D as the running minimum against all chosen centres. The squaring is the whole point: it biases hard towards far-away points without ever making a nearby one impossible",
+            "fit(X, K, n_init, max_iter, tol) — an outer loop over restarts that keeps only the run with the lowest J. This is where the algorithm becomes usable rather than a coin flip",
+            "convergence test on np.array_equal(labels, prev_labels), or centroid shift below tol; also cap max_iter",
+            "seed everything through np.random.default_rng(seed) so a run can be reproduced exactly",
+            "inertia(X, labels, mu) as its own function — this is your direct point of comparison with sklearn"
+          ],
+          "shapes": [
+            "X: (n, d)",
+            "mu: (K, d)",
+            "dists: (n, K)",
+            "labels: (n,)",
+            "counts: (K,) from np.bincount(labels, minlength=K)",
+            "D2 for k-means++: (n,) — the running squared distance to the nearest chosen centre",
+            "the naive broadcast intermediate: (n, K, d) — the array to be aware of when n gets large"
+          ]
+        },
+        "library": {
+          "summary": "sklearn's KMeans exposes inertia_ directly, which makes this the easiest track to verify — your J and its J are the same number or your implementation is wrong.",
+          "api": [
+            "sklearn.cluster.KMeans",
+            "sklearn.datasets.make_blobs",
+            "sklearn.metrics.silhouette_score",
+            "sklearn.metrics.adjusted_rand_score",
+            "sklearn.preprocessing.StandardScaler"
+          ],
+          "version": "scikit-learn >=1.5 (signature verified against 1.9.0)",
+          "detail": "KMeans(n_clusters=8, *, init='k-means++', n_init='auto', max_iter=300, tol=1e-4, verbose=0, random_state=None, copy_x=True, algorithm='lloyd')\n\nTwo defaults changed recently and older tutorials get them wrong:\n• n_init became 'auto' in 1.4 — that means 10 restarts when init='random', but only 1 when init='k-means++', on the reasoning that the smart seeding already does the work that restarts were compensating for. Passing an explicit integer is still supported and is what you want when comparing against your own restart loop.\n• algorithm accepts only 'lloyd' and 'elkan'. 'full' was renamed to 'lloyd' and 'auto' was deprecated in 1.1 and removed in 1.3.\n\nFitted attributes: cluster_centers_ (K, d), labels_ (n,), inertia_ (float — exactly the J above), n_iter_.\n\nFor evaluation: silhouette_score(X, labels) works without ground truth and does have an interior optimum over K, unlike inertia. adjusted_rand_score(y_true, labels) needs true labels, so it is only available on synthetic data — which is precisely why the experiment uses make_blobs."
+        },
+        "experiment": {
+          "summary": "Match sklearn's inertia exactly on generated blobs, then run the seeding comparison that shows why k-means++ and multiple restarts are not optional extras.",
+          "dataset": "sklearn.datasets.make_blobs(n_samples=1500, centers=4, cluster_std=1.0, random_state=42) — 1500 points in 2D, generated in-process, low-dimensional enough to plot and check by eye.",
+          "metric": "inertia_ (within-cluster sum of squares), compared directly against your J on the same data; then the spread of inertia across 40 seeds at n_init=1 for each seeding strategy.",
+          "expect": "KMeans(n_clusters=4, n_init=10, random_state=0) converges in 2 iterations to inertia_ = 2914.427612, with ARI 0.998221 against the generating labels and silhouette 0.790047. Centres land near (-8.80, 7.34), (-6.94, -6.81), (-2.54, 9.02) and (4.78, 2.06). Your implementation should reach the same 2914.43 — if it does, it is correct, and the ordering of the centroids will differ, which is meaningless. Then the part worth the time: across 40 seeds at n_init=1, init='k-means++' finds that optimum 40 times out of 40, while init='random' finds it only 21 times out of 40 and its worst run lands at 47140.67 — sixteen times worse than the optimum, on data with four perfectly obvious blobs."
+        },
+        "failure": [
+          {
+            "symptom": "The same code gives a different clustering, and a different inertia, on every run — and some of those runs are visibly wrong when plotted.",
+            "cause": "Lloyd's algorithm converges to a local minimum of a non-convex objective, and which one it reaches depends entirely on the initial centroids. Nothing about the update rule can fix this; the algorithm is doing exactly what it guarantees.",
+            "fix": "k-means++ seeding plus multiple restarts, keeping the run with the lowest J. Verified on the experiment data: random seeding at n_init=1 misses the optimum on 19 of 40 seeds, while k-means++ at the same n_init=1 hits it on all 40. Do not paper over this by fixing a random seed — that makes a bad local minimum reproducible rather than making it go away."
+          },
+          {
+            "symptom": "RuntimeWarning: invalid value encountered in divide, and one or more centroids become NaN, after which every distance to them is NaN and the labels stop meaning anything.",
+            "cause": "A cluster lost every one of its points, so the centroid update computes 0/0. It happens with unlucky initialisation, with duplicate points, or whenever K exceeds the number of genuinely distinct groups.",
+            "fix": "Detect counts == 0 before dividing and re-seed that centroid — the standard choice is the point currently furthest from its own assigned centroid, since that is where an extra cluster helps most. sklearn handles this internally, which is why the problem only ever shows up in scratch implementations."
+          },
+          {
+            "symptom": "Inertia keeps falling as K increases, so the \"best\" K appears to be as large as you are willing to compute.",
+            "cause": "J is monotonically non-increasing in K by construction, and reaches exactly 0 when every point is its own centroid. It is a measure of fit, not of fit-versus-complexity, so it cannot select K — no threshold on it will ever work.",
+            "fix": "Read the elbow rather than the minimum. On the experiment data, inertia for K = 1..8 is 100984.80, 47518.16, 10789.40, 2914.43, 2648.81, 2393.14, 2155.40, 1915.88 — the 3→4 drop is a factor of 3.7 and the 4→5 drop is 1.1, and that change of slope is the signal. silhouette_score does have an interior optimum and is a better automatic choice. Best of all, let the problem domain fix K when it can."
+          },
+          {
+            "symptom": "The clusters split along a single feature and completely ignore the others, producing parallel bands rather than groups.",
+            "cause": "The objective is squared Euclidean distance, so a feature measured in larger units contributes disproportionately to every distance. k-means is not scale-invariant in any sense — changing a column's units changes the answer.",
+            "fix": "StandardScaler before clustering, unless the features are genuinely commensurable (all pixel intensities, all the same measurement). Separately, remember the shape assumption baked into the objective: it rewards round, similarly sized, linearly separable clusters, so elongated, nested or density-varying structure will be carved up wrongly no matter how carefully you scale. That calls for a different algorithm, not a different K."
+          }
+        ]
+      }
+    },
+    {
+      "id": "pca",
+      "title": "Principal Component Analysis",
+      "weekId": null,
+      "prereqs": [],
+      "minutes": 110,
+      "tests": "Whether you can derive principal components as an eigenproblem, implement them through the SVD, and read explained variance correctly — including the sign and denominator conventions that make a correct implementation look broken next to sklearn's.",
+      "stages": {
+        "math": {
+          "summary": "Find the orthonormal directions along which the centred data varies most. They are the eigenvectors of the covariance matrix, and the same directions simultaneously minimise reconstruction error — two objectives, one answer.",
+          "detail": "centre       X̄ = X - mean(X, axis=0)         ← mandatory; PCA on uncentred data is a different method with different answers\ncovariance   S = (1/(n-1)) · X̄ᵀX̄               (d, d), symmetric positive semi-definite\neigenproblem S·v_k = λ_k·v_k,  ordered λ₁ ≥ λ₂ ≥ … ≥ λ_d ≥ 0\n             v_k is the k-th principal direction; λ_k is the variance of the data projected onto it\nratio        explained_variance_ratio_k = λ_k / Σ_j λ_j\n\nSVD route (what sklearn actually does):\n             X̄ = U·Σ·Vᵀ     →  the components are the rows of Vᵀ,  and  λ_k = σ_k² / (n-1)\n\nproject      Z = X̄ · V_kᵀ            (n, k)\nreconstruct  X̂ = Z · V_k + mean(X)   (n, d)\n\nTwo readings of the same optimum. Maximising variance: v₁ = argmax vᵀSv subject to ||v|| = 1. Form the Lagrangian vᵀSv - λ(vᵀv - 1), set the gradient to zero, and you get Sv = λv directly — the eigenproblem is not analogous to the variance objective, it is that objective's stationarity condition. Minimising reconstruction error: the same v₁ minimises Σᵢ ||xᵢ - (xᵢᵀv)v||² over all unit v. Keeping the most variance and losing the least information are the same request.\n\nWhy the SVD is preferred over eigendecomposing S: it never forms X̄ᵀX̄, so it does not square the condition number — the same argument as the normal equations in linear regression.",
+          "symbols": [
+            { "symbol": "X̄", "meaning": "the column-centred data matrix; the mean vector must be kept to invert the transform later" },
+            { "symbol": "S", "meaning": "sample covariance matrix, d×d, using the (n-1) denominator" },
+            { "symbol": "v_k", "meaning": "the k-th principal direction — a unit vector in feature space" },
+            { "symbol": "λ_k", "meaning": "variance captured along v_k; sklearn's explained_variance_" },
+            { "symbol": "σ_k", "meaning": "the k-th singular value of X̄; sklearn's singular_values_, related by λ_k = σ_k²/(n-1)" },
+            { "symbol": "U, Σ, Vᵀ", "meaning": "the thin SVD factors of X̄; the rows of Vᵀ are the components, the columns of U scaled by Σ are the scores" },
+            { "symbol": "Z", "meaning": "the projected data (scores), n×k — the low-dimensional representation you actually use downstream" },
+            { "symbol": "k", "meaning": "number of components retained; chosen from the cumulative explained variance" },
+            { "symbol": "n, d", "meaning": "samples and features. The (n-1) rather than n is the source of failure mode 2" }
+          ]
+        },
+        "scratch": {
+          "summary": "Two implementations worth writing — covariance-plus-eigh and the SVD — because the places they disagree are exactly the conventions that make scratch-versus-sklearn comparisons confusing.",
+          "checklist": [
+            "centre the data and store mean_ as an attribute — without it inverse_transform cannot exist, and forgetting it is failure mode 4",
+            "covariance route: np.cov(Xc, rowvar=False) (ddof=1 by default, which is the convention you want) followed by np.linalg.eigh — eigh, not eig: it exploits symmetry, returns real eigenvalues, and sorts them ascending",
+            "reverse to descending order: ev[::-1] and evec[:, ::-1]. Note the transposition trap — eigenvectors are the *columns* of what eigh returns but the *rows* of sklearn's components_",
+            "SVD route: np.linalg.svd(Xc, full_matrices=False) → Vt rows are components, S**2/(n-1) are the eigenvalues. Prefer this one; write the covariance route mainly to confirm the two agree",
+            "a deterministic sign convention — for each component, flip it so its largest-magnitude entry is positive. This is what sklearn.utils.extmath.svd_flip does, and it is the only reason its output is reproducible at all",
+            "transform(X) = (X - mean_) @ components_.T  and  inverse_transform(Z) = Z @ components_ + mean_",
+            "explained_variance_ratio_ from the eigenvalues, plus a cumulative version — you will read the cumulative one far more often",
+            "checks worth asserting: components_ @ components_.T ≈ I (orthonormality), Σλ_k equals the total variance of the centred data, and reconstruction MSE decreases monotonically as k rises"
+          ],
+          "shapes": [
+            "X: (n, d)",
+            "Xc (centred): (n, d)",
+            "mean_: (d,)",
+            "S (covariance): (d, d)",
+            "eigenvalues: (d,)",
+            "eigenvectors from eigh: (d, d), one component per *column*",
+            "components_: (k, d), one component per *row* — the transpose of the above",
+            "Z (scores): (n, k)",
+            "X̂ (reconstruction): (n, d)",
+            "from the thin SVD — U: (n, min(n,d)), Σ: (min(n,d),), Vt: (min(n,d), d)"
+          ]
+        },
+        "library": {
+          "summary": "sklearn's PCA centres the data for you and nothing else — the standardisation decision is yours, and it changes the answer more than any parameter on the class.",
+          "api": [
+            "sklearn.decomposition.PCA",
+            "sklearn.preprocessing.StandardScaler",
+            "sklearn.datasets.load_breast_cancer",
+            "sklearn.utils.extmath.svd_flip"
+          ],
+          "version": "scikit-learn >=1.5 (signature verified against 1.9.0)",
+          "detail": "PCA(n_components=None, *, copy=True, whiten=False, svd_solver='auto', tol=0.0, iterated_power='auto', n_oversamples=10, power_iteration_normalizer='auto', random_state=None)\n\nsvd_solver accepts 'auto', 'full', 'covariance_eigh' (added in 1.5 — fast when n ≫ d, since it eigendecomposes the d×d covariance instead of the full SVD), 'arpack' and 'randomized'.\n\nFitted attributes: components_ (k, d), explained_variance_ (k,), explained_variance_ratio_ (k,), singular_values_ (k,), mean_ (d,), n_components_, noise_variance_.\n\nThree behaviours to internalise:\n• PCA centres but does not scale. The docs are explicit that input is centred but not scaled per feature before the SVD. Standardising is your decision and your responsibility.\n• n_components accepts a float in (0, 1), meaning \"retain at least this fraction of the variance\" and choosing k for you. n_components='mle' is also accepted, using Minka's dimensionality estimate.\n• explained_variance_ uses the (n-1) denominator — verified to be exactly singular_values_**2/(n-1) to within 9e-16. This is the single most common source of a scratch implementation that is right but appears wrong.\n\nwhiten=True additionally rescales the scores to unit variance, which changes Z but not components_ — useful downstream, confusing if you did not ask for it."
+        },
+        "experiment": {
+          "summary": "Reproduce sklearn's eigenvalues from your own covariance eigendecomposition, then run the same fit without standardising to see one column swallow the entire decomposition.",
+          "dataset": "sklearn.datasets.load_breast_cancer(return_X_y=True) — 569 samples × 30 features, bundled. Fit StandardScaler().fit_transform(X) first, so the standardised-versus-raw contrast can be run on identical data.",
+          "metric": "explained_variance_ratio_ for the leading components, the number of components needed to reach 95% cumulative variance, and max|your_eigenvalues - explained_variance_|.",
+          "expect": "On the standardised data, PCA().fit(Xs) gives explained_variance_ratio_[:5] = [0.44272026, 0.18971182, 0.09393163, 0.06602135, 0.05495768], cumulative [0.44272026, 0.63243208, 0.72636371, 0.79238506, 0.84734274], and needs 10 components to pass 95% — confirm with PCA(n_components=0.95).n_components_, which returns 10. Your eigendecomposition of np.cov(Xs, rowvar=False) should match explained_variance_ = [13.30499079, 5.70137460, 2.82291016, 1.98412752, 1.65163324] to about 7e-15. Because the data is standardised those 30 eigenvalues sum to 30.05, roughly one unit of variance per feature. Now refit on the raw X: PC1 jumps to 0.98204467 of the total variance, because the raw per-feature variances span 6.99e-06 to 3.24e+05 and a single column dominates every inner product. That contrast is the experiment."
+        },
+        "failure": [
+          {
+            "symptom": "Your components match sklearn's in magnitude but several are negated, and the projected scatter plot comes out mirrored against theirs.",
+            "cause": "If v is a unit eigenvector then so is -v, with an identical eigenvalue. The sign is genuinely undetermined by the mathematics — LAPACK returns whichever one its internal pivoting produces, and that varies across routines and even across library versions.",
+            "fix": "Nothing is wrong. Compare abs(components_), or apply sklearn's own convention via sklearn.utils.extmath.svd_flip, which forces the largest-magnitude entry of each component to be positive. Verified on this dataset: against np.linalg.eigh, sklearn's first five components come back with signs [-, +, -, +, -]. Never flip a single component in isolation to make one plot look right — the projection is only self-consistent if every component and its scores are flipped together."
+          },
+          {
+            "symptom": "Your explained variances are uniformly a hair below sklearn's — every one of them scaled by about 0.998.",
+            "cause": "You divided the covariance by n instead of n - 1. The discrepancy is a single constant factor across all components, which is why it looks like a mysterious precision problem rather than an off-by-one.",
+            "fix": "Use np.cov(..., rowvar=False), whose ddof defaults to 1, or S**2/(n-1) from the SVD. Verified exactly: on this dataset the ratio is 0.9982425308, which is precisely (n-1)/n for n = 569. Note that explained_variance_ratio_ is completely unaffected, since the factor cancels in the ratio — which is exactly why this bug can survive a long time before anyone notices."
+          },
+          {
+            "symptom": "The first component explains 98% of the variance and, on inspection, is essentially just the feature with the largest numerical values.",
+            "cause": "PCA maximises variance in whatever units it is handed, and it does not standardise. A feature measured in thousands contributes a millionfold more to the covariance than one measured in thousandths, so it captures the leading component regardless of whether it carries any information.",
+            "fix": "StandardScaler before PCA whenever features have different units. Verified here: raw feature variances span 6.99e-06 to 3.24e+05, and unscaled PC1 takes 0.98204467 of the total against 0.44272026 once standardised. The one case for skipping it is data already on a single common scale — pixel intensities, one repeated measurement — where standardising can amplify near-constant noisy features instead."
+          },
+          {
+            "symptom": "inverse_transform does not return the original data, even when every component is kept.",
+            "cause": "Usually the mean was never added back, or transform was applied to data that had already been centred. With all d components the round trip is exact to floating-point error; with k < d it is lossy by construction, and mistaking designed loss for a bug is the other half of this.",
+            "fix": "X̂ = Z @ components_ + mean_, and calibrate what \"lossy\" costs before worrying. Verified on this dataset: a 2-component reconstruction has MSE 0.36756792 against standardised data whose per-feature variance is 1.0 — it discards roughly 37% of the signal, which matches 1 minus the 0.63243208 cumulative variance those two components retain. That is PCA delivering the minimum possible rank-2 error, not failing."
+          }
+        ]
+      }
+    },
+    {
+      "id": "decision-tree",
+      "title": "Decision Tree (CART)",
+      "weekId": null,
+      "prereqs": [],
+      "minutes": 150,
+      "tests": "Whether you can implement recursive greedy partitioning end to end — impurity, exhaustive threshold search, stopping rules and pruning — and explain why a tree that classifies the training set perfectly is usually the wrong model to ship.",
+      "stages": {
+        "math": {
+          "summary": "At every node, search every feature and every candidate threshold for the split that most reduces impurity, then recurse on both halves. No gradient, no closed form — just exhaustive local search repeated greedily.",
+          "detail": "impurity of a node S, over class proportions p_c:\n  Gini     G(S) = 1 - Σ_c p_c²          ranges 0 (pure) to 1 - 1/C (uniform)\n  Entropy  H(S) = -Σ_c p_c·log₂(p_c)    ranges 0 (pure) to log₂C (uniform)\n\nsplit    S is partitioned by a single feature j and threshold τ:\n  S_L = { i ∈ S : x_ij ≤ τ },   S_R = { i ∈ S : x_ij > τ }\n\ngain     ΔI = I(S) - (|S_L|/|S|)·I(S_L) - (|S_R|/|S|)·I(S_R)\n         the weighting is essential — an unweighted difference happily takes splits that peel off one sample\n\nchoose   (j*, τ*) = argmax over all features j and all candidate thresholds τ of ΔI\nrecurse  build the tree on S_L and S_R until a stopping rule fires; a leaf predicts its majority class\n\nprune    cost-complexity: minimise R_α(T) = R(T) + α·|leaves(T)|\n         α = 0 keeps the full tree; increasing α collapses the weakest subtrees first. This is sklearn's ccp_alpha.\n\nBoth impurity measures are zero exactly when a node is pure and maximal when classes are uniform, and in practice they choose nearly the same trees — Gini is the default largely because it avoids the logarithm. The greedy part is a genuine compromise: constructing the globally optimal tree is NP-hard, so every implementation, sklearn's included, takes the locally best split at each node and never reconsiders it.",
+          "symbols": [
+            { "symbol": "S", "meaning": "the set of training samples reaching the current node" },
+            { "symbol": "S_L, S_R", "meaning": "left and right partitions of S under the candidate split; left is the ≤ side by convention" },
+            { "symbol": "p_c", "meaning": "fraction of samples in the node belonging to class c" },
+            { "symbol": "G, H", "meaning": "Gini impurity and Shannon entropy — the two impurity functions I can be" },
+            { "symbol": "ΔI", "meaning": "impurity decrease from a split, weighted by child sizes; the quantity being maximised" },
+            { "symbol": "j, τ", "meaning": "the feature index and threshold defining a split — trees are axis-aligned, so a split touches exactly one feature" },
+            { "symbol": "α", "meaning": "cost-complexity pruning parameter; the price charged per leaf, exposed as ccp_alpha" },
+            { "symbol": "R(T)", "meaning": "total misclassification cost of tree T on the training data" },
+            { "symbol": "|leaves(T)|", "meaning": "number of leaves — the complexity term α penalises" }
+          ]
+        },
+        "scratch": {
+          "summary": "The longest build in this set, because it is genuinely recursive and has real bookkeeping. Write the impurity function first and test it against a value you can compute by hand, or every later bug will look like a splitting bug.",
+          "checklist": [
+            "gini(y) from np.bincount(y) / len(y) — test it before anything else: balanced three-class data must give exactly 1 - 3·(1/3)² = 0.66666667, and a pure node must give 0",
+            "entropy(y) with the same interface, and a guard for p_c = 0 (use np.where or add nothing — 0·log0 is defined as 0 here, but numpy will emit a warning if you let it compute it)",
+            "candidate_thresholds(column) — sort the unique values and take the midpoints between consecutive distinct ones. Using the raw values puts the boundary exactly on a data point, which is failure mode 3",
+            "best_split(X, y, idx) — loop over features and their candidate thresholds, compute the size-weighted child impurity, and track the argmax gain. Skip any split that would leave a child empty or violate min_samples_leaf",
+            "a Node structure (dataclass or dict) holding feature, threshold, left, right, prediction, n_samples and impurity — carry n_samples and impurity even before you need them, since they are what make the tree inspectable",
+            "build(X, y, idx, depth) recursing, with the stopping rules as explicit parameters: max_depth, min_samples_split, min_samples_leaf, plus early exits for a pure node and for zero best gain",
+            "pass index arrays down the recursion rather than slicing copies of X — the arrays shrink as you descend and copying at every node is what makes naive implementations quadratic in memory",
+            "predict_one(x, node) walking from the root, then a vectorised predict over rows",
+            "a text printer mirroring export_text's layout, so you can diff your tree against sklearn's by eye rather than by attribute",
+            "(stretch) feature_importances_ — accumulate (n_node_samples/n)·ΔI per feature over all internal nodes, then normalise to sum to 1"
+          ],
+          "shapes": [
+            "X: (n, d)",
+            "y: (n,) of integer class labels",
+            "idx: (m,) — the index array carried into a node, with m shrinking down the tree",
+            "boolean split mask: (m,)",
+            "np.bincount(y): (C,) for C classes",
+            "candidate thresholds for one feature: (u-1,) where u is its number of distinct values",
+            "feature_importances_: (d,)"
+          ]
+        },
+        "library": {
+          "summary": "sklearn's trees are binary and axis-aligned only, and the tree_ attribute exposes the whole structure — making a node-by-node comparison against your implementation genuinely possible.",
+          "api": [
+            "sklearn.tree.DecisionTreeClassifier",
+            "sklearn.tree.export_text",
+            "sklearn.tree.plot_tree",
+            "sklearn.datasets.load_iris",
+            "sklearn.datasets.load_wine",
+            "sklearn.inspection.permutation_importance"
+          ],
+          "version": "scikit-learn >=1.5 (signature verified against 1.9.0)",
+          "detail": "DecisionTreeClassifier(*, criterion='gini', splitter='best', max_depth=None, min_samples_split=2, min_samples_leaf=1, min_weight_fraction_leaf=0.0, max_features=None, random_state=None, max_leaf_nodes=None, min_impurity_decrease=0.0, class_weight=None, ccp_alpha=0.0, monotonic_cst=None)\n\ncriterion accepts 'gini', 'entropy' and 'log_loss' — the last two are the same Shannon criterion under two names. monotonic_cst was added in 1.4 and takes a per-feature array of +1 / 0 / -1 to force monotone responses; binary classification only.\n\nFitted attributes: classes_, n_classes_, feature_importances_, max_features_, n_outputs_, tree_.\n\nInspecting the structure: tree_.feature, tree_.threshold, tree_.impurity, tree_.value and tree_.children_left/right give the raw arrays (a feature index of -2 marks a leaf); export_text(clf, feature_names=...) renders it readably; plot_tree draws it. get_depth() and get_n_leaves() are the two numbers to compare against your own tree first.\n\ncost_complexity_pruning_path(X, y) returns a Bunch of ccp_alphas and impurities — the candidate α values to feed back into ccp_alpha, ideally selected by cross-validation.\n\nOne structural limitation worth knowing before you go looking for the kwarg: sklearn trees do only binary, axis-aligned splits. There are no multiway categorical splits and no oblique combinations of features, so categorical variables must be encoded first."
+        },
+        "experiment": {
+          "summary": "Match sklearn's tree structure on iris where the splits are readable by hand, then run a depth sweep on wine where the shallower tree beats the perfect one — the point of the whole track.",
+          "dataset": "sklearn.datasets.load_iris(return_X_y=True) — 150 × 4, three balanced classes — for the structural comparison; sklearn.datasets.load_wine(return_X_y=True) — 178 × 13, three classes — with train_test_split(test_size=0.3, random_state=0, stratify=y) for the depth sweep. Both bundled.",
+          "metric": "Tree depth, leaf count and training accuracy on iris; train-versus-test accuracy across max_depth on wine.",
+          "expect": "On the full iris set, DecisionTreeClassifier(criterion='gini', random_state=0) grows to depth 5 with 9 leaves and 1.000 training accuracy. The root impurity is exactly 0.66666667 (three balanced classes) and the root split is petal width (cm) ≤ 0.80, which isolates all 50 setosa in a single cut. feature_importances_ = [0.0, 0.01333333, 0.06405596, 0.92261071] — petal width alone carries 92%, and sepal length is never split on at all. Your scratch tree should reproduce the depth, the leaf count and that root split. Then the part that matters, on wine: an unrestricted tree reaches depth 4 with 9 leaves at 1.000 train / 0.9444 test, while max_depth=3 gives 0.9839 train / 0.9630 test. The shallower, strictly worse-fitting tree is the better model — and no amount of training-set evidence would have told you so."
+        },
+        "failure": [
+          {
+            "symptom": "Your tree and sklearn's have identical depth, leaf count and accuracy, but split on a different feature at the root.",
+            "cause": "A genuine tie in the impurity gain. On iris, petal length ≤ 2.45 and petal width ≤ 0.80 both isolate all 50 setosa perfectly and score exactly the same decrease, so the choice between them is arbitrary. sklearn breaks such ties using random_state — verified across 30 seeds, it returns exactly those two roots and nothing else, both producing depth 5 and 9 leaves.",
+            "fix": "Not a bug in either implementation. Compare depth, leaf count and accuracy rather than demanding a node-for-node match, and always pass random_state when you need sklearn itself to be reproducible — the default of None means the tie is broken differently on each fit."
+          },
+          {
+            "symptom": "Training accuracy is exactly 1.000 and test accuracy sits below that of a much simpler model.",
+            "cause": "With no depth limit, the greedy recursion keeps splitting until every leaf is pure, so it fits the noise as diligently as the signal. A fully grown tree can memorise any consistent training set, which makes its training accuracy carry no information whatsoever.",
+            "fix": "Constrain growth (max_depth, min_samples_leaf, min_impurity_decrease) or prune afterwards with ccp_alpha, choosing α from cost_complexity_pruning_path by cross-validation. Verified on wine: unrestricted gives 1.000 train / 0.9444 test, while max_depth=3 gives 0.9839 train / 0.9630 test — the constrained tree wins on the only number that counts."
+          },
+          {
+            "symptom": "Thresholds land exactly on observed feature values, and samples sitting on a boundary get classified inconsistently between your fit and your predict paths.",
+            "cause": "Candidate thresholds taken from the raw sorted values rather than the midpoints between consecutive distinct values, usually combined with using < in one place and ≤ in another. A threshold sitting on a data point means the point's own side depends on which comparison operator happened to be written.",
+            "fix": "Use midpoints of consecutive distinct sorted values, and use ≤ for the left child everywhere. This is sklearn's convention, and it is exactly why iris reports petal length ≤ 2.45 — the midpoint of 1.9 and 3.0, the two values that straddle the setosa boundary — rather than ≤ 1.9. Likewise petal width ≤ 0.80 is the midpoint of 0.6 and 1.0."
+          },
+          {
+            "symptom": "feature_importances_ contradicts what you know about the domain, and swaps between correlated features when anything about the fit changes.",
+            "cause": "Impurity-based importance is computed from the splits the tree actually chose, so when two features carry the same information the greedy first pick absorbs all the credit and its equally informative twin scores near zero. It is also biased towards high-cardinality continuous features, which simply offer more candidate thresholds to win with. On iris, sepal length scores exactly 0.0 — meaning \"never used\", not \"irrelevant\".",
+            "fix": "Read it as a record of what this particular tree used, not as a measure of what matters. For an attribution you can defend, use sklearn.inspection.permutation_importance on held-out data, which measures the actual drop in score when a feature is shuffled and does not care which correlated twin the tree happened to pick."
+          }
+        ]
+      }
+    }
+  ]
+}

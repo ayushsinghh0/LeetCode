@@ -46,7 +46,7 @@ export function HintLadder({
         .filter((h) => h.level <= revealedLevel)
         .map((hint) => (
           <div key={hint.level} className="border-l-2 border-primary/40 pl-3">
-            <p className="text-xs uppercase tracking-wider text-muted-foreground">
+            <p className="figures text-xs uppercase tracking-[0.14em] text-muted-foreground">
               Hint {hint.level} &middot; {hint.label}
             </p>
             <ul className={cn('mt-1 space-y-1', hint.lines.length === 1 && 'list-none')}>
@@ -73,9 +73,11 @@ export function HintLadder({
           {revealedLevel === 0 ? 'Show a hint' : `Next hint · ${nextHint.label}`}
         </Button>
       ) : (
-        <p className="text-xs text-muted-foreground">
-          That is the whole ladder. If it is still not landing, the family page walks the idea
-          from its simplest member up.
+        <p className="max-w-prose text-sm text-muted-foreground">
+          That is the whole ladder — it is derived from this problem&rsquo;s family, so there is no
+          fourth rung to invent. If it still is not landing, mark the attempt however it went: the
+          family&rsquo;s full write-up opens below once the attempt is resolved, and it walks the
+          idea from its simplest member up.
         </p>
       )}
     </div>

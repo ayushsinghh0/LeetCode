@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { ArrowRight, Check } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
@@ -15,25 +15,35 @@ import type { ProblemFamily, Question, QuestionProgress } from '@/types';
  * What happens after "Solved".
  *
  * The moment a problem clicks is the cheapest time to record why it clicked and the most
- * expensive time to lose it. So this panel does three things and stops: it names what was
- * actually practiced, it asks one open question, and it points at exactly one sensible next
- * step. It does not congratulate at length, and it does not dump the learner back into a list.
+ * expensive time to lose it. So this panel runs one short sequence and stops: it names what was
+ * actually practiced, asks how sure you are, asks one open question, and points at exactly one
+ * next step with the reason attached. It does not congratulate at length, and it does not dump
+ * the learner back into a list.
  *
- * The "next" suggestion is an unsolved sibling from the same family — the transfer move. Solving
- * one problem teaches the problem; solving its disguised twin teaches the idea.
+ * The order is deliberate. Confidence is a reflex and costs one tap, so it comes first and is
+ * captured even from someone who is already closing the dialog; the written reflection is the
+ * expensive part and sits behind it; the recommendation comes last, because a suggestion offered
+ * before the learner has finished thinking about what just happened is an interruption.
  */
+
+/** The single recommended next move, with the reason it is being recommended. */
+export interface NextStep {
+  id: number;
+  title: string;
+  /** Why this one, in the learner's terms. Never a bare "related question". */
+  reason: string;
+}
+
 export function PostSolvePanel({
   question,
   progress,
   family,
-  siblingId,
-  siblingTitle,
+  next,
 }: {
   question: Question;
   progress: QuestionProgress;
   family: ProblemFamily | undefined;
-  siblingId: number | null;
-  siblingTitle: string | null;
+  next: NextStep | null;
 }) {
   const dispatch = useAppDispatch();
   const [reflection, setReflection] = useState(progress.reflection ?? '');
@@ -42,19 +52,37 @@ export function PostSolvePanel({
   const pattern = patternById[question.pattern];
   const use = hintUse(progress.hintLevelUsed);
 
+  // Autosave plumbing. The reflection has to survive Escape, a backdrop click, and navigating to
+  // a sibling question — losing what someone just typed because they closed a dialog is the one
+  // unforgivable bug for a field like this. `onBlur` covers the ordinary cases; the unmount
+  // cleanup below covers the case where the dialog tears down without the textarea ever blurring.
+  const latest = useRef(reflection);
+  latest.current = reflection;
+  const persisted = useRef(progress.reflection ?? '');
+
   function handleSave() {
-    if (reflection === (progress.reflection ?? '')) {
+    if (latest.current === persisted.current) {
       setSaved(true);
       return;
     }
-    dispatch(saveReflection(question.id, reflection));
+    persisted.current = latest.current;
+    dispatch(saveReflection(question.id, latest.current));
     setSaved(true);
   }
 
+  useEffect(() => {
+    const id = question.id;
+    return () => {
+      if (latest.current !== persisted.current) dispatch(saveReflection(id, latest.current));
+    };
+  }, [dispatch, question.id]);
+
   return (
-    <div className="flex flex-col gap-4">
+    <div className="flex flex-col gap-5">
       <div>
-        <p className="text-xs uppercase tracking-wider text-muted-foreground">What you practiced</p>
+        <p className="figures text-xs uppercase tracking-[0.14em] text-muted-foreground">
+          What you practiced
+        </p>
         <ul className="mt-2 space-y-1.5">
           <li className="flex items-start gap-2 text-sm text-muted-foreground">
             <Check className="mt-0.5 h-3.5 w-3.5 shrink-0 text-easy" aria-hidden="true" />
@@ -74,6 +102,9 @@ export function PostSolvePanel({
               </span>
             </li>
           )}
+          {/* Hint use is reported beside the outcome, never folded into it and never priced.
+              See the mastery/hints invariants — a support feature that scores you is one people
+              stop using, and the signal disappears with it. */}
           <li className="flex items-start gap-2 text-sm text-muted-foreground">
             <Check className="mt-0.5 h-3.5 w-3.5 shrink-0 text-easy" aria-hidden="true" />
             <span>{HINT_USE_LABEL[use]}.</span>
@@ -82,16 +113,23 @@ export function PostSolvePanel({
       </div>
 
       <div>
+        <p className="text-sm font-medium">How confident are you?</p>
+        <p className="mb-0.5 text-xs text-muted-foreground">
+          This is what tells the review schedule how hard to push.
+        </p>
+        <ConfidenceRating
+          value={progress.confidence}
+          onChange={(v) => dispatch(setConfidence(question.id, v))}
+        />
+      </div>
+
+      <div>
         <label htmlFor={`reflection-${question.id}`} className="text-sm font-medium">
           What did you learn?
         </label>
         <p className="mb-1.5 text-xs text-muted-foreground">
-          One line is enough. You will read it again when this comes back for review.
+          Optional. One line is enough — you will read it again when this comes back for review.
         </p>
-        {/* Autosaves on blur, matching the notes editor on this same dialog. Save-on-click-only
-            meant Escape, a backdrop click, or the sibling button silently discarded whatever had
-            just been typed — two text fields on one dialog with two different save models, one
-            of which loses data. */}
         <Textarea
           id={`reflection-${question.id}`}
           value={reflection}
@@ -115,40 +153,41 @@ export function PostSolvePanel({
         </div>
       </div>
 
-      <div>
-        <p className="mb-1 text-sm font-medium">How confident are you?</p>
-        <ConfidenceRating
-          value={progress.confidence}
-          onChange={(v) => dispatch(setConfidence(question.id, v))}
-        />
-      </div>
-
-      <div className="rule pt-3">
-        <p className="text-xs uppercase tracking-wider text-muted-foreground">Next</p>
-        <div className="mt-2 flex flex-col gap-2">
-          {siblingId !== null && siblingTitle !== null ? (
-            <Button variant="outline" size="sm" className="self-start" onClick={() => dispatch(activeQuestionSet(siblingId))}>
-              <ArrowRight /> Same idea, different disguise: {siblingTitle}
+      {/* One recommendation, with its reason stated. Not a menu — a menu at this moment is the
+          learner's decision to make all over again, which is what they came here to avoid. */}
+      <div className="rule flex flex-col gap-2 pt-4">
+        <p className="figures text-xs uppercase tracking-[0.14em] text-muted-foreground">Next</p>
+        {next ? (
+          <>
+            <p className="text-base font-medium leading-snug">{next.title}</p>
+            <p className="max-w-prose text-sm leading-relaxed text-muted-foreground">{next.reason}</p>
+            <Button
+              variant="outline"
+              size="sm"
+              className="self-start"
+              onClick={() => dispatch(activeQuestionSet(next.id))}
+            >
+              <ArrowRight /> Open {next.title}
             </Button>
-          ) : family ? (
-            <p className="text-sm text-muted-foreground">
-              No untouched siblings left in this family — you have covered the idea from every angle
-              the roadmap offers.
-            </p>
-          ) : (
-            // 101 of the 539 questions sit outside the family map. Claiming they have an
-            // exhausted family would be a fabricated completion.
-            <p className="text-sm text-muted-foreground">
-              This one is not mapped to a problem family, so there is no sibling to transfer the
-              idea to yet.
-            </p>
-          )}
-          <p className="text-sm text-muted-foreground">
-            {progress.nextRevision
-              ? `This comes back on ${format(parseISO(progress.nextRevision), 'MMM d')}. Nothing to schedule — it is already on the ladder.`
-              : 'This one is off the review ladder for good.'}
+          </>
+        ) : family ? (
+          <p className="max-w-prose text-sm text-muted-foreground">
+            No untouched siblings left in this family — you have covered the idea from every angle
+            the roadmap offers.
           </p>
-        </div>
+        ) : (
+          // 101 of the 539 questions sit outside the family map. Claiming they have an
+          // exhausted family would be a fabricated completion.
+          <p className="max-w-prose text-sm text-muted-foreground">
+            This one is not mapped to a problem family, so there is no sibling to transfer the
+            idea to yet.
+          </p>
+        )}
+        <p className="text-sm text-muted-foreground">
+          {progress.nextRevision
+            ? `This comes back on ${format(parseISO(progress.nextRevision), 'MMM d')}. Nothing to schedule — it is already on the ladder.`
+            : 'This one is off the review ladder for good.'}
+        </p>
       </div>
     </div>
   );

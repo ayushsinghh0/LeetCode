@@ -9,11 +9,39 @@
     "data. A schema with nowhere to put a problem-level claim is the cheapest way to guarantee",
     "the app never makes one.",
     "",
+    "THE PER-PROBLEM HUNT WAS RUN AGAIN ON 2026-08-13, AND FAILED. The premise worth testing was",
+    "that a company might publish concrete recommended problems on its own domain — which Google's",
+    "Tech Dev Guide (techdevguide.withgoogle.com) once did, and which would have been genuinely",
+    "citable per-problem evidence. That host is now retired: it 302s in its entirety to a generic",
+    "Careers resources page naming nothing, and the string 'techdevguide' no longer appears in",
+    "Google's SWE prep guide. Seventeen companies were swept. Exactly ONE first-party page names",
+    "any specific problem at all (LinkedIn, below), and it names two warm-up exercises from a 2016",
+    "post scoped to one specialist role. There is no per-problem evidence to be had. The absence",
+    "of that field is therefore a finding, not a limitation.",
+    "",
     "`quote` MUST be a verbatim excerpt. Not a summary, not a paraphrase, not a stitching-together",
     "of two sentences — the UI renders it inside a blockquote attributed to a named company, so",
     "anything less than verbatim is fabricated attribution. Two entries (Atlassian, Shopify) were",
     "removed for exactly this: their `note` admitted the quote was a paraphrase of page headings.",
     "If a page has no quotable sentence about interview content, the company does not go in here.",
+    "An ellipsis marks elision and is allowed; `npm run audit:companies` checks each fragment",
+    "independently and in order, so an elided quote cannot smuggle in a reordering.",
+    "",
+    "`npm run audit:companies` re-fetches every URL and re-checks every quote against the live",
+    "page. Run it before trusting any `checkedAt` older than a few months. It is the reason this",
+    "file's dates mean something; before it existed they asserted a fetch nothing could repeat.",
+    "",
+    "About half these sources cannot be re-checked by script: some answer 403/400 to anything that",
+    "is not a browser (Bloomberg, Goldman Sachs, DoorDash, Netflix, Dropbox, Lyft, Meta), and some",
+    "ship a JavaScript shell whose prose never appears in the server HTML (Google, Roblox). The",
+    "audit reports those as UNVERIFIABLE rather than as failures, because a bot block is not",
+    "evidence a page changed and a check that cries wolf gets ignored.",
+    "",
+    "There is deliberately NO per-entry 'machine-checkable' flag. It was considered and rejected:",
+    "whether a given host blocks a scripted fetch is a property of that host on a given day, not of",
+    "this dataset, so a static boolean would go stale silently and become its own false claim. The",
+    "audit determines it live, every run. `checkedAt` means what it says either way — the date a",
+    "human or agent fetched the page and read the quote off it.",
     "",
     "`namedTopics` is drawn from the WHOLE page, not only from the quoted excerpt, and the UI says",
     "so. Do not read it as an expansion of the quote.",
@@ -26,12 +54,18 @@
     "                   enumerates nothing. `patterns` must be empty.",
     "  avoids-puzzles - the page explicitly says it does NOT ask algorithm-puzzle questions.",
     "                   Worth recording: it is the single most decision-changing fact a learner",
-    "                   preparing for that company can have."
+    "                   preparing for that company can have.",
+    "",
+    "`namedProblems` records problem descriptions a first-party page names, VERBATIM as that page",
+    "phrases them. It is NOT a mapping to this roadmap and must never become one — the strings are",
+    "shown as the source wrote them, or not at all. Any entry using it MUST also carry",
+    "`namedProblemsNote` stating the scope and limits of the claim; the validator enforces that."
   ],
   "companies": [
     {
       "id": "google",
       "name": "Google",
+      "sourceLabel": "Google Careers — Software Engineer interview prep guide",
       "url": "https://www.google.com/about/careers/applications/candidate-prep/swe",
       "checkedAt": "2026-08-13",
       "evidence": "topics",
@@ -46,11 +80,13 @@
         "sort-search", "modified-binary-search", "graphs", "dynamic-programming", "greedy",
         "tree-dfs", "tree-bfs", "linked-list-inplace", "top-k-elements", "two-heaps", "stacks",
         "hash-maps"
-      ]
+      ],
+      "note": "'Traveling salesman' and 'knapsack' appear on the page only as parenthetical examples of NP-complete problem classes, not as recommended exercises. The page names no practice problems."
     },
     {
       "id": "meta",
       "name": "Meta",
+      "sourceLabel": "Meta Careers blog — Preparing for your software engineering interview at Meta",
       "url": "https://www.metacareers.com/blog/preparing-for-your-software-engineering-interview-at-meta/",
       "checkedAt": "2026-08-13",
       "evidence": "topics",
@@ -61,12 +97,14 @@
       ],
       "patterns": [
         "hash-maps", "stacks", "graphs", "tree-dfs", "tree-bfs", "top-k-elements", "two-heaps",
-        "sort-search", "linked-list-inplace"
-      ]
+        "sort-search"
+      ],
+      "note": "Published 2016, last updated by Meta in October 2022. 'linked-list-inplace' was removed from this mapping on 2026-08-13: the page says 'lists', not 'linked lists', and that is ambiguous enough (Python lists, generic sequences) that the when-in-doubt-leave-it-out rule applies."
     },
     {
       "id": "microsoft",
       "name": "Microsoft",
+      "sourceLabel": "Microsoft Careers — Hiring tips: technical interviewing",
       "url": "https://careers.microsoft.com/v2/global/en/hiring-tips/technical-interviewing",
       "checkedAt": "2026-08-13",
       "evidence": "topics",
@@ -76,11 +114,13 @@
         "hash maps / hash sets", "graphs", "recursion", "n log n sorting (quicksort, merge sort)",
         "Big-O"
       ],
-      "patterns": ["linked-list-inplace", "tree-dfs", "tree-bfs", "trie", "hash-maps", "graphs", "sort-search"]
+      "patterns": ["linked-list-inplace", "tree-dfs", "tree-bfs", "trie", "hash-maps", "graphs", "sort-search"],
+      "note": "'tree-bfs' is this app's inference from the page's 'trees/tries': the page names trees but not breadth-first traversal specifically."
     },
     {
       "id": "doordash",
       "name": "DoorDash",
+      "sourceLabel": "DoorDash Careers blog — Technical interview preparation",
       "url": "https://careersatdoordash.com/blog/technical-interview-preparation/",
       "checkedAt": "2026-08-13",
       "evidence": "topics",
@@ -101,6 +141,7 @@
     {
       "id": "roblox",
       "name": "Roblox",
+      "sourceLabel": "Roblox Careers — Interviewing at Roblox",
       "url": "https://careers.roblox.com/interviewing-at-roblox",
       "checkedAt": "2026-08-13",
       "evidence": "topics",
@@ -118,17 +159,19 @@
     {
       "id": "netflix",
       "name": "Netflix",
+      "sourceLabel": "Netflix Technology Blog — Demystifying Interviewing for Backend Engineers",
       "url": "https://netflixtechblog.com/demystifying-interviewing-for-backend-engineers-netflix-aceb26a83495",
       "checkedAt": "2026-08-13",
       "evidence": "avoids-puzzles",
       "quote": "We recommend against interview coding practice puzzle-type exercises, as we don't ask those types of questions.",
       "namedTopics": [],
       "patterns": [],
-      "note": "Netflix's own engineering blog steers candidates toward medium-difficulty real-world problems instead. Published February 2022."
+      "note": "Netflix's own engineering blog steers candidates toward medium-difficulty real-world problems instead, and says the problems asked relate to the team's actual work. Published February 2022, and scoped to BACKEND engineers. Netflix authors the blog but hosts it on Medium — first-party authorship, third-party platform."
     },
     {
       "id": "amazon",
       "name": "Amazon",
+      "sourceLabel": "Amazon Jobs — Interview prep: software development topics",
       "url": "https://amazon.jobs/content/en/how-we-hire/interview-prep/software-development-topics",
       "checkedAt": "2026-08-13",
       "evidence": "categories",
@@ -137,22 +180,25 @@
         "data structures", "algorithms", "coding", "object-oriented design", "databases",
         "distributed computing", "operating systems"
       ],
-      "patterns": []
+      "patterns": [],
+      "note": "'Data structures' and 'Algorithms' are section headers with no members listed, so nothing here maps to a pattern. The page links a HackerRank sample challenge, but that is off-domain and is not a named problem."
     },
     {
       "id": "databricks",
       "name": "Databricks",
+      "sourceLabel": "Databricks blog — Engineering interviews: a hiring manager's guide",
       "url": "https://www.databricks.com/blog/2020/01/22/engineering-intervews-a-hiring-managers-guide.html",
       "checkedAt": "2026-08-13",
       "evidence": "categories",
-      "quote": "review common data structures, the runtime and memory utilization of each method, and their interface",
+      "quote": "Know common data structures, the runtime and memory utilization of each method, and their interface in the language you plan to use.",
       "namedTopics": ["data structures", "runtime and memory utilization", "multi-threading", "concurrency", "locks", "transactions"],
       "patterns": [],
-      "note": "Published January 2020 — the oldest source in this set."
+      "note": "Published January 2020 — among the oldest sources in this set. The quote was corrected on 2026-08-13: the previously shipped version began 'review common data structures', borrowing the verb from the preceding sentence ('Review computer science fundamentals.') and lowercasing the page's own 'Know'. That is not verbatim, and it is the exact defect that removed two earlier entries from this file. Caught by audit:companies on its first run."
     },
     {
       "id": "dropbox",
       "name": "Dropbox",
+      "sourceLabel": "Dropbox Jobs — Emerging talent",
       "url": "https://www.dropbox.jobs/teams/emerging-talent",
       "checkedAt": "2026-08-13",
       "evidence": "categories",
@@ -163,16 +209,19 @@
     {
       "id": "goldman-sachs",
       "name": "Goldman Sachs",
+      "sourceLabel": "Goldman Sachs Careers blog — Your Guide to HackerRank Success",
       "url": "https://www.goldmansachs.com/careers/blog/guide-to-hackerrank",
       "checkedAt": "2026-08-13",
       "evidence": "categories",
       "quote": "It is also a good idea to review algorithms and basic data structures from your first few computer science courses as a basic refresher.",
       "namedTopics": ["algorithms", "basic data structures"],
-      "patterns": []
+      "patterns": [],
+      "note": "Dated December 2022 on the page. goldmansachs.com returns HTTP 403 to scripted fetches, so audit:companies cannot re-verify it — a browser is required. The page's calculus/statistics/linear-algebra/probability terms belong to an OPTIONAL maths assessment, not the coding one, and are deliberately not recorded as topics."
     },
     {
       "id": "ibm",
       "name": "IBM",
+      "sourceLabel": "IBM Careers blog — Entry-level developer: the secrets to becoming a successful candidate",
       "url": "https://www.ibm.com/careers/blog/entry-level-developer-the-secrets-to-becoming-a-successful-candidate",
       "checkedAt": "2026-08-13",
       "evidence": "categories",
@@ -183,6 +232,7 @@
     {
       "id": "snap",
       "name": "Snap",
+      "sourceLabel": "Snap Careers — Machine learning",
       "url": "https://careers.snap.com/departments/machine-learning",
       "checkedAt": "2026-08-13",
       "evidence": "categories",
@@ -194,23 +244,63 @@
     {
       "id": "salesforce",
       "name": "Salesforce",
+      "sourceLabel": "Salesforce Trailhead — Take the Remote Programming Test",
       "url": "https://trailhead.salesforce.com/content/learn/modules/strategies-for-successful-software-engineer-interviews/take-the-remote-programming-test",
       "checkedAt": "2026-08-13",
       "evidence": "categories",
-      "quote": "data structures and algorithms that would allow the program to work at high volume",
+      "quote": "Evaluators also want to see that you have used data structures and algorithms that would allow the program to work at high volume.",
       "namedTopics": ["data structures", "algorithms", "scalability"],
       "patterns": []
     },
     {
       "id": "lyft",
       "name": "Lyft",
+      "sourceLabel": "Lyft Engineering — Interviewing with Lyft Engineering",
       "url": "https://eng.lyft.com/interviewing-with-lyft-engineering-7d3dd65b2001",
       "checkedAt": "2026-08-13",
       "evidence": "categories",
       "quote": "Problem Solving/Data Structures/Algorithms… we pair you with an interviewer who will present a problem, and you'll come up with an algorithm or function to solve it.",
       "namedTopics": ["data structures", "algorithms", "architecture and design", "code quality", "test coverage"],
       "patterns": [],
-      "note": "Published August 2017, and Lyft has since publicly moved parts of its loop to a third-party assessment. Treat as dated."
+      "note": "Published August 2017, and Lyft has since publicly moved parts of its loop to a third-party assessment. Treat as dated. Hosted on Medium — first-party authorship, third-party platform."
+    },
+    {
+      "id": "bloomberg",
+      "name": "Bloomberg",
+      "sourceLabel": "Bloomberg LP — Engineering: student application process",
+      "url": "https://www.bloomberg.com/company/careers/application-process/engineering-student/",
+      "checkedAt": "2026-08-13",
+      "evidence": "categories",
+      "quote": "We'll assess you on coding skills, data structures, algorithms and problem-solving skills in your preferred programming language.",
+      "namedTopics": ["coding skills", "data structures", "algorithms", "problem-solving skills", "computer science fundamentals", "design questions"],
+      "patterns": [],
+      "note": "Bloomberg names data structures and algorithms as an assessed area but never enumerates a single one on either engineering application-process page, so nothing maps to a pattern. bloomberg.com returns HTTP 403 to scripted fetches — audit:companies cannot re-verify it without a browser."
+    },
+    {
+      "id": "atlassian",
+      "name": "Atlassian",
+      "sourceLabel": "Atlassian Careers — Atlassian engineering interview handbook",
+      "url": "https://www.atlassian.com/company/careers/resources/interviewing/engineering",
+      "checkedAt": "2026-08-13",
+      "evidence": "categories",
+      "quote": "In the coding interview stage, we'll draw from a different bank of questions, designed to assess your coding proficiency as well as your problem-solving skills.",
+      "namedTopics": ["Data Structures", "Code Design", "problem-solving ability", "learning agility"],
+      "patterns": [],
+      "note": "Re-added on 2026-08-13 after an earlier entry was deleted for a quote that was not verbatim. This one is different: a complete sentence read character-for-character from the live page. The coding interview is split into sections labelled 'Data Structures' and 'Code Design', but those are section labels rather than an enumeration, so the tier stays 'categories' and nothing maps to a pattern. Atlassian's linked first-party role-guide PDFs describe logistics, IDE setup and communication expectations, and name no data structures, algorithms or problems."
+    },
+    {
+      "id": "linkedin",
+      "name": "LinkedIn",
+      "sourceLabel": "LinkedIn Engineering Blog — Hiring Relevance Science Engineers at LinkedIn",
+      "url": "https://www.linkedin.com/blog/engineering/archive/hiring-relevance-science-engineers-at-linkedin",
+      "checkedAt": "2026-08-13",
+      "evidence": "categories",
+      "quote": "Second, the ability to write clean, modular code for simple problems such as shuffling an array, or merging two sorted arrays, or the like.",
+      "namedTopics": ["data mining concepts", "probability distributions", "estimation", "clustering", "classification", "algorithmic complexity", "arrays"],
+      "patterns": [],
+      "namedProblems": ["shuffling an array", "merging two sorted arrays"],
+      "namedProblemsNote": "The only first-party page found in a seventeen-company sweep that names any specific problem. Read it narrowly: the post is from 2016, it is scoped to Relevance Science Engineer roles rather than general software engineering, and it names these two as examples of the phone screen's warm-up tier — the page's own words are 'simple problems'. They are recorded exactly as LinkedIn phrases them and are deliberately NOT mapped to any question in this roadmap.",
+      "note": "Published March 2016 — the oldest source in this set alongside Databricks. The original engineering.linkedin.com URL redirects to the /blog/engineering/archive/ path recorded here."
     }
   ]
 }

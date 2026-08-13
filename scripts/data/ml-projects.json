@@ -1,0 +1,755 @@
+{
+  "_readme": [
+    "ML PROJECT PROGRESSION — a portfolio ladder, not a tutorial list. Seven tiers (beginner,",
+    "intermediate, advanced, deep-learning, nlp, modern-ai, production), each with one or two",
+    "projects, ordered by `order` within the tier. The ladder is cumulative on purpose: the",
+    "production tier ships the intermediate tier's churn model, the modern-AI observability",
+    "project instruments the RAG service, and the CIFAR project is measured against the MLP the",
+    "learner wrote in the tier above. Do not reorder tiers without re-checking those references.",
+    "",
+    "THE BASELINE FIELD IS THE POINT OF THIS FILE. A project without a stated dumb model and its",
+    "actual score is a tutorial; a project with one is engineering. Every `baseline.score` here is",
+    "in one of exactly three categories, and there is no fourth:",
+    "  1. EXACT BY CONSTRUCTION - derived from a published dataset property that cannot be wrong,",
+    "     e.g. a majority-class rate on a balanced set (Fashion-MNIST 0.1000, CIFAR-10 0.1000,",
+    "     IMDB 0.5000) or a random ranker's PR-AUC, which equals the positive prevalence exactly",
+    "     (credit-card fraud 0.001727 = 492/284807).",
+    "  2. COMPUTED HERE - measured on 2026-08-13 by downloading the actual data and running the",
+    "     baseline model, in pure Python, with the split stated in `baseline.note` so the learner's",
+    "     number is comparable. This covers California Housing, Telco churn, bike demand, MovieLens,",
+    "     Tiny Shakespeare and IMDB. If you change a stated split you MUST recompute the score.",
+    "  3. NULL WITH A NOTE - the honest answer when the number is a property of the learner's own",
+    "     system, model choice, or hardware: the constant judge's base rate and the unoptimized LLM",
+    "     endpoint's p95 are both JSON null. A null here is not a gap in the research; it is a",
+    "     refusal to invent a number, and the note names who must measure it.",
+    "Some baselines are COMPOSITE - two rungs, where one is exact and the other is the learner's to",
+    "establish (the zero-hidden-layer ablation on Fashion-MNIST, the MLP rung on CIFAR-10, the",
+    "closed-book LLM on SciFact). Those keep the measured rung in `score` and flag the un-measured",
+    "rung in the note. Never silently fill a composite's second rung with a plausible figure.",
+    "Exactly one score is quoted from external literature rather than measured: BM25 nDCG@10 =",
+    "0.665 on SciFact, from the BEIR paper's Table 2 (Anserini defaults k1=0.9, b=0.4). It is",
+    "labelled as published-not-measured in its note, with the reimplementation spread stated,",
+    "because BM25 numbers move with the tokenizer.",
+    "",
+    "NEVER invent a baseline number. Not a plausible one, not a rounded one, not one recalled from",
+    "a leaderboard. A fabricated baseline is worse than no baseline: it silently redefines success",
+    "for every learner who trusts it, and it is invisible in review because it looks like research.",
+    "If you cannot cite it or compute it, set `score` to null and say who must establish it.",
+    "",
+    "DATASET VERIFICATION STANDARD. Every `dataset.source` was fetched on `checkedAt` and confirmed",
+    "to return data without a login. Datasets whose best-known home is behind a Kaggle account are",
+    "routed to an open mirror and the note says so explicitly (Telco churn -> IBM's Apache-2.0",
+    "tutorial repo; credit-card fraud -> OpenML dataset 1597). Sizes and counts in `dataset.size`",
+    "were read off the downloaded artifact, not off a description page: SciFact's 5,183 documents",
+    "and 300 test claims, bike-sharing's 17,379 rows, MovieLens u1's 80,000/20,000 split and IMDB's",
+    "12,500-per-class balance were all counted directly. A future editor re-verifying this file",
+    "should re-fetch and re-count rather than trusting these strings, and must bump `checkedAt`",
+    "only for entries actually re-checked - a blanket date bump destroys the only signal the field",
+    "carries.",
+    "",
+    "Libraries and models named in `experiments`/`deployment` were confirmed to exist with the API",
+    "described, on 2026-08-13: scikit-learn 1.9.0, torch 2.13.0, transformers 5.15.0 (Trainer +",
+    "TrainingArguments still the documented fine-tuning path), fastapi 0.141.1, evidently 0.7.21",
+    "(Report with DataDriftPreset / ClassificationPreset), sentence-transformers 5.7.0, rank-bm25",
+    "0.2.2, beir 2.2.0, ragas 0.4.3; Hub models distilbert-base-uncased, all-MiniLM-L6-v2 and",
+    "bge-small-en-v1.5 all public and ungated. Do not name a library version you have not checked.",
+    "",
+    "METRIC JUSTIFICATION IS MANDATORY. `metric.why` must argue against the obvious alternative in",
+    "one sentence - RMSE not MAE, PR-AUC not ROC-AUC, kappa not raw agreement, p95 not mean. A why",
+    "that only praises the chosen metric without naming what it beats has failed, because",
+    "accuracy-by-default is exactly the habit this field exists to break.",
+    "",
+    "SCHEMA. id (kebab-case, stable, referenced by progress records - never renumber), tier, order,",
+    "title, objective, dataset {name, source, size, license, checkedAt, note?}, baseline {model,",
+    "score (string or null), metric, note?}, metric {name, why}, experiments[2-4], errorAnalysis[],",
+    "iteration, deployment (string or null - null for the early tiers where shipping would be",
+    "theatre), retrospective[], hours, prereqTracks[] (ids from ml-implementation.json), weekId (a",
+    "real id from src/data/aimlCourse.ts, or null). weekId is null wherever the 26-week course",
+    "genuinely does not cover the material - classical tabular ML, recommenders and sklearn-era",
+    "serving have no week, and inventing a mapping would be a false claim about the curriculum.",
+    "",
+    "Do not add a 'solution' or 'walkthrough' field. The retrospective questions are deliberately",
+    "unanswered: a project whose answers ship with it is a tutorial again, and the answers are",
+    "properties of the learner's own runs."
+  ],
+  "projects": [
+    {
+      "id": "california-housing-beat-the-mean",
+      "tier": "beginner",
+      "order": 1,
+      "title": "California Housing — beat the mean",
+      "objective": "Predict the median house value of a California census block from eight numeric features, and establish the habit that every project on this ladder depends on: measure the dumb model first, then earn every point above it.",
+      "dataset": {
+        "name": "California Housing (1990 US Census)",
+        "source": "sklearn.datasets.fetch_california_housing — downloads cal_housing.tgz (442 KB) on first call and caches it in ~/scikit_learn_data",
+        "size": "20,640 rows × 8 numeric features; target = median house value in units of $100,000, range 0.15–5.00001",
+        "license": "Derived from the 1990 U.S. Census, distributed via StatLib and shipped as a scikit-learn fetcher. Free to use, no login.",
+        "checkedAt": "2026-08-13",
+        "note": "992 of the 20,640 targets sit exactly at the 5.00001 ceiling — the values are censored, not observed. This is a real property of the data and it will show up in your residuals."
+      },
+      "baseline": {
+        "model": "Predict the training mean for every block (DummyRegressor(strategy='mean'))",
+        "score": "RMSE 1.1539 (≈ $115,393) · MAE 0.9117 · R² 0.000",
+        "metric": "RMSE in $100,000 units",
+        "note": "Computed on 2026-08-13 over all 20,640 targets: mean 2.06856, population std 1.15393. The mean predictor's RMSE is exactly the target's standard deviation, and its R² is exactly 0 by definition — so any R² you report is already a comparison against this baseline whether you framed it that way or not."
+      },
+      "metric": {
+        "name": "RMSE in $100,000 units, reported next to MAE",
+        "why": "RMSE rather than MAE because the cost of mispricing a house grows faster than linearly — being $200k wrong once is worse than being $20k wrong ten times, and squaring is what encodes that — but carry MAE alongside, because the gap between the two tells you how much of your error is a handful of catastrophic blocks."
+      },
+      "experiments": [
+        "Ridge on the raw 8 features, then Ridge on the same features plus rooms-per-person and bedrooms-per-room — find out whether feature construction beats model choice at this scale.",
+        "HistGradientBoostingRegressor against the linear model, to quantify what nonlinearity is actually worth here rather than assuming it wins.",
+        "Drop the 992 rows sitting at the 5.00001 ceiling and re-score; the difference is your estimate of what censoring is costing you.",
+        "Replace the random split with a geographic one (hold out whole latitude/longitude regions) and watch the score fall — that gap is the honest generalization number."
+      ],
+      "errorAnalysis": [
+        "Plot residuals against the target: the ceiling will appear as a wall of under-predictions at 5.0. Confirm the 992 censored rows before blaming the model.",
+        "Map the largest residuals by latitude and longitude — clustered errors mean a missing geographic feature, scattered errors mean irreducible noise.",
+        "Check AveRooms and AveOccup for absurd values (blocks with hundreds of rooms per household); these are small-denominator artifacts, not signal.",
+        "Segment error by MedInc decile — a model that is only accurate in the middle of the income distribution will fail on exactly the interesting cases."
+      ],
+      "iteration": "One change per run, logged in a table with the metric to four decimals and the split seed. If a change moves RMSE by less than the run-to-run spread across five seeds, it did not work — record that it did not, and keep the row.",
+      "deployment": null,
+      "retrospective": [
+        "What percentage of the mean-baseline RMSE did you actually remove, and would that improvement change any real decision?",
+        "Which single feature, removed, hurt the most — and does that match what you expected before you started?",
+        "How much worse was the geographic split than the random split, and which of the two numbers would you put in front of a stakeholder?",
+        "Did the censored ceiling change what you would claim about the model's accuracy at the top of the market?"
+      ],
+      "hours": 8,
+      "prereqTracks": ["linear-regression", "gradient-descent"],
+      "weekId": "w07"
+    },
+    {
+      "id": "breast-cancer-operating-point",
+      "tier": "beginner",
+      "order": 2,
+      "title": "Diagnostic triage — choosing the operating point",
+      "objective": "Classify Wisconsin breast-mass measurements as malignant or benign, and produce not a model but a defended decision threshold: the single point on the curve you would actually deploy, with the cost argument that puts it there.",
+      "dataset": {
+        "name": "Breast Cancer Wisconsin (Diagnostic)",
+        "source": "sklearn.datasets.load_breast_cancer — bundled inside scikit-learn, no download and no network at all",
+        "size": "569 rows × 30 numeric features; 212 malignant, 357 benign",
+        "license": "UCI Machine Learning Repository, CC BY 4.0",
+        "checkedAt": "2026-08-13"
+      },
+      "baseline": {
+        "model": "Always predict the majority class (benign)",
+        "score": "accuracy 0.6274 (357/569) · recall on malignant 0.000",
+        "metric": "accuracy, deliberately shown against recall",
+        "note": "Exact, from the class counts. This baseline exists to make the argument against accuracy concrete: it scores 63% while missing every single cancer in the dataset."
+      },
+      "metric": {
+        "name": "Recall on the malignant class at a precision floor fixed in advance (start at precision ≥ 0.90)",
+        "why": "Not accuracy and not ROC-AUC — accuracy is already satisfied by the do-nothing baseline above, and ROC-AUC scores the entire curve when you will only ever ship one point on it; a false negative here is a missed cancer and a false positive is a follow-up biopsy, and since those are not interchangeable the metric has to name the trade you chose."
+      },
+      "experiments": [
+        "Logistic regression on standardized features, then read the coefficients — with 30 correlated measurements, check whether the signs are even physically sensible before trusting any of them.",
+        "Sweep the decision threshold from 0.1 to 0.9, plot precision and recall against it, pick your point and write the sentence that justifies it.",
+        "Compare against a single-feature rule (the best individual feature, thresholded). If 30 features barely beat 1, that is the finding and you should say so.",
+        "With only 569 rows, run 10-fold stratified cross-validation and report the standard deviation — a single split on this dataset will lie to you."
+      ],
+      "errorAnalysis": [
+        "List every false negative individually — there will be few enough to read. Are they borderline cases or confident mistakes?",
+        "Check whether the false negatives cluster at small mean-radius values; if they do, the model is failing exactly where early detection matters most.",
+        "Compare the cross-validation fold spread against the improvement you are claiming. If the spread is larger, you have measured noise.",
+        "Verify that no feature is a near-duplicate of the label by construction. This dataset is clean, but performing the check is the habit being trained."
+      ],
+      "iteration": "Fix the precision floor before you fit anything. Every subsequent run is judged on recall at that floor, so tuning cannot quietly move the goalposts to flatter the result.",
+      "deployment": null,
+      "retrospective": [
+        "What is your threshold, and what would you say to a clinician who asked why it is not higher?",
+        "How many false negatives per 1,000 patients does your operating point imply, and is that a number you would sign your name to?",
+        "Did the extra 29 features earn their complexity over the best single-feature rule?",
+        "If this dataset were 10× larger and 5% malignant instead of 37%, which of your conclusions would survive?"
+      ],
+      "hours": 6,
+      "prereqTracks": ["logistic-regression", "gradient-descent"],
+      "weekId": null
+    },
+    {
+      "id": "telco-churn-messy-data",
+      "tier": "intermediate",
+      "order": 1,
+      "title": "Telco churn — the mess is the assignment",
+      "objective": "Predict which telecom customers churn from a real billing export where the missing values are not random, one feature is nearly a restatement of two others, and the class you care about is the minority. Ship a model plus a written account of every judgement call the data forced on you.",
+      "dataset": {
+        "name": "IBM Telco Customer Churn",
+        "source": "https://raw.githubusercontent.com/IBM/telco-customer-churn-on-icp4d/master/data/Telco-Customer-Churn.csv — plain HTTPS, no login. The widely-linked Kaggle copy of this same file DOES require an account; use this mirror.",
+        "size": "7,043 rows × 21 columns; 1,869 churners (26.54%)",
+        "license": "IBM Community sample dataset, redistributed in IBM's Apache-2.0 tutorial repository",
+        "checkedAt": "2026-08-13",
+        "note": "Exactly 11 rows have a blank TotalCharges, and all 11 of them have tenure = 0. Verified by download on 2026-08-13. That alignment is the whole missing-data lesson and it is not documented anywhere on the dataset page."
+      },
+      "baseline": {
+        "model": "Two of them, and the pair is the lesson. (a) Always predict 'No churn'. (b) The business rule the retention team already uses: flag every month-to-month contract customer.",
+        "score": "(a) accuracy 0.7346, recall 0.000 · (b) accuracy 0.6544, precision 0.4271, recall 0.8855, F1 0.5763",
+        "metric": "accuracy, precision, recall, F1",
+        "note": "Computed over all 7,043 rows on 2026-08-13. Note what happened: the business rule is 8 accuracy points WORSE than doing nothing, while catching 89% of churners. Your model has to beat rule (b) on the precision/recall trade — beating rule (a) on accuracy is not an achievement, it is a rounding error."
+      },
+      "metric": {
+        "name": "PR-AUC on the churn class, with precision@k reported at the retention team's actual weekly call capacity",
+        "why": "PR-AUC rather than ROC-AUC because at 26% prevalence the negative class is large enough that ROC-AUC flatters a model that merely ranks easy non-churners well; and precision@k over both, because the retention team can only phone a fixed number of people a week, so the only number that maps to money is how many of that fixed list actually leave."
+      },
+      "experiments": [
+        "Fix TotalCharges properly: the 11 blanks are all tenure-0 customers who have not been billed yet, so they are not missing — impute 0, add an is_new_customer flag, and check whether the flag alone carries signal.",
+        "Train with and without TotalCharges. It is approximately MonthlyCharges × tenure, so it is near-collinear with two features you already have; measure whether it adds anything or merely destabilizes coefficients.",
+        "Logistic regression with one-hot categoricals against gradient-boosted trees, both calibrated, and compare calibration curves rather than only PR-AUC — an uncalibrated ranking cannot support a 'call the top 500' policy.",
+        "Class weighting vs. threshold tuning vs. SMOTE, all scored the same way. At 26% prevalence at least one of these will do nothing at all; report which one."
+      ],
+      "errorAnalysis": [
+        "Split PR-AUC by contract type. If the model is only good on month-to-month customers, it has learned the business rule and nothing else.",
+        "Read the 20 highest-confidence false positives — customers the model was certain would leave and who stayed. Is there a coherent segment there?",
+        "Inspect the calibration curve in the top decile specifically, because that decile is the only part of the model the retention team will ever see.",
+        "Confirm no identifier leaks in: customerID must be dropped, and any feature with suspiciously high importance deserves the question 'could this have been recorded after the churn decision?'",
+        "Compare your recall against the business rule's 0.8855 at comparable precision. If yours is lower, the model is not ready and the rule is still the incumbent."
+      ],
+      "iteration": "Write the leakage audit before tuning anything: one line per feature on when in the customer lifecycle it is recorded. Features recorded after the churn decision cannot be used, no matter what they do to the score — and that decision has to be made before you have seen how much they would have helped.",
+      "deployment": null,
+      "retrospective": [
+        "At the retention team's weekly call capacity, how many more churners does your model reach than the month-to-month rule?",
+        "Which imputation choice would change your headline number the most if you had made it differently?",
+        "Is your model calibrated enough that a predicted probability of 0.7 means roughly 70% of those customers actually churn?",
+        "What in this dataset would you have to re-verify before it could run monthly against live billing data?"
+      ],
+      "hours": 14,
+      "prereqTracks": ["logistic-regression", "decision-tree"],
+      "weekId": null
+    },
+    {
+      "id": "creditcard-fraud-extreme-imbalance",
+      "tier": "intermediate",
+      "order": 2,
+      "title": "Card fraud — 0.17% positives",
+      "objective": "Detect fraudulent card transactions in a set where roughly 1 in 579 is fraud, and learn the metric discipline that extreme imbalance demands: why ROC-AUC will tell you the model is excellent while it is useless, and what to report instead.",
+      "dataset": {
+        "name": "Credit Card Fraud Detection (ULB)",
+        "source": "OpenML dataset 1597 — https://www.openml.org/d/1597, fetchable via sklearn.datasets.fetch_openml('creditcard', version=1). No login. The original Kaggle listing of this dataset DOES require an account; use OpenML.",
+        "size": "284,807 transactions × 30 features (V1–V28 are PCA components, plus Time and Amount); 492 frauds = 0.1727%",
+        "license": "OpenML records the licence as Public; the source release is from the ULB Machine Learning Group",
+        "checkedAt": "2026-08-13",
+        "note": "The ARFF is ~150 MB and OpenML serves it without authentication (verified 2026-08-13). V1–V28 are anonymized PCA components, so no feature can be interpreted semantically — plan your write-up around that limitation rather than inventing explanations."
+      },
+      "baseline": {
+        "model": "Random ranking — equivalently, assigning every transaction the same score",
+        "score": "PR-AUC 0.001727 (exactly the positive prevalence) · ROC-AUC 0.500 · accuracy of always-predict-legitimate 0.998273",
+        "metric": "PR-AUC, ROC-AUC, accuracy",
+        "note": "Exact, from 492/284,807. These three numbers are the entire argument of this project: a do-nothing model has 99.83% accuracy, a random model has PR-AUC 0.0017, and the distance between 0.0017 and your PR-AUC is the only one of the three that represents work."
+      },
+      "metric": {
+        "name": "PR-AUC (average precision) on fraud, plus recall at a fixed review budget of 100 alerts per day",
+        "why": "ROC-AUC divides by the 284,315 negatives, so a model can move it from 0.95 to 0.98 while its top-100 alert list stays mostly junk; PR-AUC conditions on the alerts you actually raise, which is what the analyst team experiences — and recall-at-budget is the version of that number a fraud manager can staff against."
+      },
+      "experiments": [
+        "Split by Time, not randomly. Fraud patterns move, and a random split lets tomorrow's fraud teach you about yesterday's, inflating every number you report.",
+        "Logistic regression with class_weight='balanced' vs. gradient-boosted trees vs. an unsupervised IsolationForest — the unsupervised model is the honest test of whether the labels are adding anything at all.",
+        "Undersample negatives at 10:1, 100:1 and not at all, always scoring on the untouched test set. Resample the training set only; a resampled test set produces a number that means nothing.",
+        "Ablate Amount and Time. Since V1–V28 are uninterpretable PCA components, those two raw features are your only chance at a story about what the model found."
+      ],
+      "errorAnalysis": [
+        "Rank the test set by score and read the top 100. What fraction are fraud? That is your precision@100, and it is exactly what the analyst sees on Monday morning.",
+        "Look at the Amount distribution of the frauds you missed — a model that catches only large-value fraud has a very different business value from one that catches all of it.",
+        "Plot precision@100 across the test period week by week; a model that decays is telling you its required retraining cadence.",
+        "Because the features are anonymized, you cannot sanity-check them semantically. State that limitation explicitly in the write-up instead of inventing interpretations for V17.",
+        "Check whether your best model's gains over the baseline come from a handful of near-duplicate fraudulent transactions; deduplicate and re-score if so."
+      ],
+      "iteration": "Change one thing at a time and always report PR-AUC and precision@100 together. If PR-AUC rises while precision@100 falls, you improved the tail and damaged the product — that is a rejection, not a win.",
+      "deployment": null,
+      "retrospective": [
+        "At 100 alerts a day, how many of the 492 frauds would your model have caught, and how many analyst-hours would that have cost?",
+        "How far apart were ROC-AUC and PR-AUC on your best model, and what would you have concluded from ROC-AUC alone?",
+        "How much did the time-ordered split cost you against the random split, and what does that gap imply for deployment?",
+        "The features are PCA components you cannot interpret. What would you need from the bank to make this model auditable?"
+      ],
+      "hours": 12,
+      "prereqTracks": ["logistic-regression", "decision-tree", "pca"],
+      "weekId": null
+    },
+    {
+      "id": "bike-demand-end-to-end-service",
+      "tier": "advanced",
+      "order": 1,
+      "title": "Bike demand — ingest, train, evaluate, serve",
+      "objective": "Build the complete loop for an hourly demand forecaster: a reproducible ingest step, a time-respecting training pipeline, an evaluation that compares against a seasonal baseline, and an HTTP service that returns a forecast. The model is the smallest part of this project; the seams between the four stages are the assignment.",
+      "dataset": {
+        "name": "UCI Bike Sharing Dataset (Capital Bikeshare, Washington D.C.)",
+        "source": "https://archive.ics.uci.edu/static/public/275/bike+sharing+dataset.zip — 280 KB zip containing hour.csv and day.csv (UCI dataset 275)",
+        "size": "hour.csv: 17,379 hourly records spanning 2011-01-01 to 2012-12-31, 17 columns, target `cnt`",
+        "license": "CC BY 4.0 (UCI Machine Learning Repository); the original release asks that Fanaee-T and Gama (2013) be cited",
+        "checkedAt": "2026-08-13",
+        "note": "17,379 rows, not 17,544 — hours with zero rentals are absent from the file entirely. Verified by download on 2026-08-13. Any lag feature must be built on a reindexed complete hourly axis or it will silently misalign, and the misalignment will look like a modelling result."
+      },
+      "baseline": {
+        "model": "Seasonal naive: predict this hour's count as the count at the same hour one week earlier (t − 168h). Reported alongside the train-mean predictor and an hour-of-week mean.",
+        "score": "Seasonal naive: RMSE 117.71, MAE 70.60 · Hour-of-week mean: RMSE 119.95, MAE 79.05 · Train mean (185.23 rides): RMSE 204.43, MAE 156.87",
+        "metric": "RMSE and MAE on hourly rental counts",
+        "note": "Computed on 2026-08-13 from hour.csv with the split train = every hour before 2012-10-01 (15,211 rows), test = 2012-10-01 through 2012-12-31 (2,168 rows). Seasonal naive covers 2,129 of the 2,168 test hours; the remaining 39 have no t−168h record. Use exactly this split so your numbers are comparable to these, and note that the two seasonal baselines are within 2 RMSE of each other — beating a calendar lookup is harder than it sounds."
+      },
+      "metric": {
+        "name": "MAE on hourly rentals, with RMSE reported beside it",
+        "why": "MAE as the headline rather than RMSE because the operational decision — how many bikes to reposition — is linear in the error, and RMSE would let a handful of festival-day spikes dominate the score and push you to over-forecast every ordinary Tuesday; keep RMSE visible anyway so you can still see when the spikes are getting worse."
+      },
+      "experiments": [
+        "Encode the calendar properly: hour-of-day and month as cyclical sin/cos pairs rather than integers, plus a workingday × hour interaction, compared against raw integer encodings.",
+        "Add lag features (t−24h, t−168h) and a rolling 24-hour mean, built on a reindexed complete hourly axis and computed so that no feature can use a value from after the prediction time.",
+        "Gradient-boosted trees with a Poisson objective against squared error. The target is a non-negative count whose variance grows with its mean, which is precisely the situation Poisson loss exists for.",
+        "Evaluate with a rolling-origin (walk-forward) scheme across the final six months instead of one fixed split, and report the spread rather than only the mean."
+      ],
+      "errorAnalysis": [
+        "Plot predicted against actual across the test period and find the worst days; check them against the weathersit and holiday flags before concluding the model is broken.",
+        "Break MAE down by hour of day — the morning and evening commute peaks are where the error lives and where the business cost is concentrated.",
+        "Compare the casual and registered rider counts separately: registered demand is commute-driven and predictable, casual demand is weather-driven, and one model may be averaging two different processes.",
+        "Check whether the model ever predicts a negative count. If it does, the loss function is wrong for this target.",
+        "Confirm you still beat seasonal naive in the worst single week, not just on average — a model that loses to a t−168h lookup during holiday weeks is not deployable."
+      ],
+      "iteration": "Freeze the ingest step first and hash the feature table it produces; every experiment thereafter must reproduce that hash from raw hour.csv. When a score changes you need to know it was the model and not a quietly different feature build, and hashing is the cheapest way to know.",
+      "deployment": "A FastAPI service (0.141.1 verified live on PyPI, 2026-08-13) exposing POST /forecast — taking a timestamp plus weather covariates and returning a predicted count — and GET /health returning the loaded model's version hash and training date. The model artifact is versioned on disk and loaded once at startup, never trained inside the request path. Add a scheduled retrain script that writes a new artifact and promotes it only if it beats the seasonal-naive baseline on the most recent held-out month.",
+      "retrospective": [
+        "By how much did you beat seasonal naive's MAE of 70.60, and did the margin hold in every week of the test period?",
+        "How long does a full rebuild take from raw zip to served artifact, and could someone else run it from your README alone?",
+        "Which of ingest, train, evaluate and serve consumed the most time — and was it the one you expected?",
+        "What breaks first if this runs for a year: the feature pipeline, the model, or the assumption that 2012 demand resembles today's?"
+      ],
+      "hours": 30,
+      "prereqTracks": ["decision-tree", "linear-regression", "gradient-descent"],
+      "weekId": null
+    },
+    {
+      "id": "movielens-two-stage-recommender",
+      "tier": "advanced",
+      "order": 2,
+      "title": "MovieLens — a two-stage recommender",
+      "objective": "Build a recommender that retrieves candidates cheaply and ranks them well, and confront the central awkwardness of the field: the metric you can compute offline (rating error) is not the metric the product cares about (whether the top ten are worth showing).",
+      "dataset": {
+        "name": "MovieLens 100K",
+        "source": "https://files.grouplens.org/datasets/movielens/ml-100k.zip — 4.9 MB, no login; ships with five predefined train/test splits u1–u5",
+        "size": "100,000 ratings (1–5) from 943 users on 1,682 movies; u1.base = 80,000 training ratings, u1.test = 20,000 test ratings",
+        "license": "GroupLens research licence — free for research and education, no redistribution, citation requested, not for commercial use",
+        "checkedAt": "2026-08-13"
+      },
+      "baseline": {
+        "model": "Predict the global mean rating for every user-movie pair. Second rung: predict each movie's own training mean, falling back to the global mean for movies unseen in training.",
+        "score": "Global mean (3.5284): RMSE 1.1537, MAE 0.9680 · Item mean: RMSE 1.0334",
+        "metric": "RMSE on held-out ratings",
+        "note": "Computed on 2026-08-13 on the shipped u1.base/u1.test split — use u1 so your numbers are directly comparable. The item-mean rung is the one that matters: it is what tells you whether your matrix factorization learned anything about users, or only about which movies are popular."
+      },
+      "metric": {
+        "name": "NDCG@10 over a ranked list per user, with RMSE retained as a secondary diagnostic",
+        "why": "RMSE alone rewards getting the 2-star predictions right, which no user ever sees — the product surfaces ten items, so the metric has to be rank-aware — but keep RMSE reported because it is the number comparable to the baselines above and it catches a model that happens to rank well by accident."
+      },
+      "experiments": [
+        "Matrix factorization with user and item bias terms trained by SGD. Fit the bias-only model first: it should land near the item-mean baseline, and if it does not, your training loop has a bug.",
+        "Sweep latent dimensionality (8, 32, 128) with regularization retuned at each setting. With only 943 users the point where extra capacity stops helping arrives early — find it rather than assuming it.",
+        "Add a cheap candidate-generation stage (item-item cosine similarity over the rating matrix) and measure recall@100 of the candidate set. A ranker cannot recover what retrieval never surfaced.",
+        "Evaluate a time-aware split (hold out each user's most recent ratings) against the shipped random split and report both — the shipped split lets the model see a user's future, a situation that does not exist in production."
+      ],
+      "errorAnalysis": [
+        "Bucket users by how many ratings they have and plot error per bucket — cold-start users are where every recommender fails and where the product hurts most.",
+        "Do the same for items: how does the model handle movies with fewer than five ratings?",
+        "Inspect the top-10 lists for five real users by name. If every list is the same popular titles, you have built a popularity chart with extra steps.",
+        "Measure catalogue coverage — what fraction of the 1,682 movies ever appears in anyone's top 10?",
+        "Compare NDCG@10 against a pure popularity ranker. That comparison, not RMSE, is what decides whether the personalization is real."
+      ],
+      "iteration": "Keep the bias-only model as a permanent control in every results table. Every added component must justify itself against that control, and the ones that cannot get deleted rather than kept 'just in case'.",
+      "deployment": "Precompute item-item similarities and user factors offline into a small artifact, then serve GET /recommendations/{user_id}?n=10 from memory. Keep retrieval and ranking as separate modules behind one endpoint so either can be swapped. Log the served list for every request — an unlogged recommendation can never be evaluated afterwards, and that log is the only thing that would let you run an online test later.",
+      "retrospective": [
+        "Did your model beat the item-mean RMSE of 1.0334, and did that translate into a better NDCG@10 than a popularity ranker?",
+        "How different were the random-split and time-aware-split numbers, and which one would you quote?",
+        "What fraction of the catalogue does your recommender ever surface, and is that acceptable?",
+        "What would you need to start logging today in order to evaluate this system online instead of offline?"
+      ],
+      "hours": 25,
+      "prereqTracks": ["gradient-descent", "pca", "k-means"],
+      "weekId": null
+    },
+    {
+      "id": "mlp-from-scratch-fashion-mnist",
+      "tier": "deep-learning",
+      "order": 1,
+      "title": "An MLP from scratch — backprop by hand",
+      "objective": "Implement a multi-layer perceptron in NumPy with no autograd: forward pass, loss, analytic gradients, and an SGD loop you wrote yourself. Verify the gradients numerically, then train it on Fashion-MNIST until it beats the linear version of its own code.",
+      "dataset": {
+        "name": "Fashion-MNIST",
+        "source": "https://github.com/zalandoresearch/fashion-mnist — raw idx files under data/fashion/ in the repo and on the project's S3 bucket; also loadable via torchvision.datasets.FashionMNIST",
+        "size": "60,000 training and 10,000 test images, 28×28 grayscale, 10 classes, exactly 6,000 training and 1,000 test images per class",
+        "license": "MIT (Zalando SE, 2017)",
+        "checkedAt": "2026-08-13"
+      },
+      "baseline": {
+        "model": "Two rungs. (a) Always predict a single class. (b) Your own code with the hidden layer removed — i.e. multinomial logistic regression trained by the same loop.",
+        "score": "(a) accuracy 0.1000, exactly, since all ten classes are exactly balanced. (b) null — establish it yourself before adding a hidden layer.",
+        "metric": "top-1 accuracy",
+        "note": "(a) is exact from the dataset's balanced design. (b) is left null deliberately: it is your own script with one line changed, it takes minutes to run, and the difference between (b) and your final MLP is the only honest measure of what the hidden layer bought. Zalando's repo also publishes an automated benchmark of 129 scikit-learn classifiers (verified live 2026-08-13) if you want a stronger external bar."
+      },
+      "metric": {
+        "name": "top-1 accuracy, always shown next to a 10×10 confusion matrix",
+        "why": "Accuracy genuinely is the right headline here — the classes are exactly balanced and all ten errors cost the same — but a single number hides that shirt/coat/pullover form one hard cluster and sandal/sneaker/boot another, so the confusion matrix is not decoration; it is where the remaining error actually lives."
+      },
+      "experiments": [
+        "Gradient-check every layer against a finite-difference estimate before training anything. If the relative error exceeds 1e-5 the bug is in your backward pass, and no amount of tuning will fix it.",
+        "Compare initialization schemes (all-zeros, small Gaussian, He) on the same seed. All-zeros will fail to learn — make sure you can explain why in one sentence about symmetry.",
+        "Sweep hidden width (32, 128, 512) and depth (one vs. two hidden layers), plotting train and validation accuracy together to find the point where they separate.",
+        "Add L2 regularization and, separately, dropout implemented by hand. Measure each against the un-regularized run rather than stacking both and claiming the total."
+      ],
+      "errorAnalysis": [
+        "Read the confusion matrix: expect the shirt class to absorb most of the error, then quantify what fraction of total error that one row represents.",
+        "Display the 20 most confidently wrong test images. If you cannot classify them yourself at a glance, some of the model's error is the dataset's.",
+        "Plot training loss per minibatch rather than per epoch — a loss that plateaus at exactly ln(10) ≈ 2.303 means the model is predicting uniform and no gradient is flowing.",
+        "Track weight and gradient norms per layer per epoch; the layer whose gradient norm collapses is where a deeper network is dying.",
+        "Check that your accuracy computation and your loss computation agree about label indexing — an off-by-one in the label map produces a plausible-looking 10% accuracy."
+      ],
+      "iteration": "Do not touch a single hyperparameter until the gradient check passes and the model can overfit 100 examples to nearly 100% training accuracy. Those two gates catch almost every from-scratch bug, and skipping them turns a two-hour debugging session into a two-day one.",
+      "deployment": null,
+      "retrospective": [
+        "What did the hidden layer actually buy over your own zero-hidden-layer baseline, in accuracy points?",
+        "Where was your backward pass wrong the first time, and which check caught it?",
+        "At what width did extra capacity stop helping, and what did the train/validation gap look like at that point?",
+        "Now that you have written backprop once, what specifically does an autograd framework do for you that you would not want to redo?"
+      ],
+      "hours": 20,
+      "prereqTracks": ["neural-network", "backpropagation", "gradient-descent"],
+      "weekId": "w02"
+    },
+    {
+      "id": "cnn-cifar10-overfitting-budget",
+      "tier": "deep-learning",
+      "order": 2,
+      "title": "CIFAR-10 — a CNN and an overfitting budget",
+      "objective": "Train a convolutional network on CIFAR-10 in PyTorch and treat the train/validation gap as the primary object of study: deliberately overfit first, then close the gap one intervention at a time and measure what each is worth.",
+      "dataset": {
+        "name": "CIFAR-10",
+        "source": "https://cave.cs.toronto.edu/kriz/cifar.html — the older cs.toronto.edu URL now 301-redirects there; python tarball ~170 MB, or torchvision.datasets.CIFAR10(download=True)",
+        "size": "50,000 training and 10,000 test images, 32×32 RGB, 10 mutually exclusive classes, 5,000 training and 1,000 test images per class",
+        "license": "Free for research use; the page asks that you cite Krizhevsky, 'Learning Multiple Layers of Features from Tiny Images' (2009)",
+        "checkedAt": "2026-08-13"
+      },
+      "baseline": {
+        "model": "Always predict a single class; then, as the rung that actually matters, the MLP-on-flattened-pixels you built in the previous project, retrained on CIFAR-10.",
+        "score": "Majority class: accuracy 0.1000, exactly (classes are exactly balanced). MLP on raw pixels: null — you already have the code, so run it.",
+        "metric": "top-1 accuracy",
+        "note": "The 0.1000 is exact from the balanced design. The MLP rung is null on purpose: it is the comparison that shows what convolution and weight sharing buy on natural images, and it is only meaningful if you measure it with your own code on your own hardware rather than quoting someone else's number."
+      },
+      "metric": {
+        "name": "top-1 test accuracy, reported with the train-minus-test gap",
+        "why": "Accuracy is adequate for a balanced ten-class problem, but reporting it alone is exactly what lets people ship overfit models — the gap between train and test accuracy is the quantity this project is about, so it belongs in the headline rather than in a footnote."
+      },
+      "experiments": [
+        "Establish the overfitting reference first: a CNN with no augmentation and no regularization, trained until training accuracy exceeds 95%. Record the gap. Everything after is measured against this run.",
+        "Add standard augmentation (random crop with padding, horizontal flip) alone and measure the change in the gap. Add nothing else in this run.",
+        "Add batch normalization alone, then weight decay alone, each against the reference, and rank the three interventions by accuracy points gained per unit of added training time.",
+        "Swap in a small residual network at a similar parameter count, and report whether the architecture or the regularization was worth more."
+      ],
+      "errorAnalysis": [
+        "Confusion matrix first — cat/dog and automobile/truck are the classic confusions; confirm them and quantify how much of the error they account for.",
+        "Plot train and validation curves on the same axes for every run. The epoch where they diverge is more informative than the final number.",
+        "Inspect the augmented images actually fed to the network. A cropping bug that cuts the subject out of frame looks exactly like 'augmentation didn't help'.",
+        "Check per-class recall rather than only overall accuracy — a model can hold accuracy steady while quietly abandoning one class.",
+        "Compare errors on the animal classes against the vehicle classes; if one supergroup dominates, capacity is being spent unevenly."
+      ],
+      "iteration": "One intervention per run, same seed, same epoch budget, results in a table with three columns: test accuracy, train-test gap, and wall-clock minutes. That third column is what stops you recommending something that buys 0.3 points for triple the training time.",
+      "deployment": null,
+      "retrospective": [
+        "What did convolution buy over your own MLP baseline on the same data?",
+        "Which single regularizer closed the most gap per minute of extra training?",
+        "What was your best accuracy, and how many runs did it take — would you report the best run or the median run to a colleague?",
+        "If you had 10× the compute, would you spend it on a bigger model, more augmentation, or more seeds? Defend the answer with your own table."
+      ],
+      "hours": 20,
+      "prereqTracks": ["neural-network", "backpropagation", "gradient-descent"],
+      "weekId": "w05"
+    },
+    {
+      "id": "char-transformer-from-scratch",
+      "tier": "nlp",
+      "order": 1,
+      "title": "A character-level Transformer, written from nothing",
+      "objective": "Implement a decoder-only Transformer end to end — token and position embeddings, scaled dot-product attention with causal masking, multi-head attention, residual connections, layer norm and a sampling loop — and train it until it comfortably beats a bigram lookup table on held-out text.",
+      "dataset": {
+        "name": "Tiny Shakespeare",
+        "source": "https://raw.githubusercontent.com/karpathy/char-rnn/master/data/tinyshakespeare/input.txt — single plain-text file, no login",
+        "size": "1,115,394 characters, 65-character vocabulary; the standard split is the first 90% for training and the last 10% for validation",
+        "license": "MIT (karpathy/char-rnn); the underlying Shakespeare text is public domain",
+        "checkedAt": "2026-08-13"
+      },
+      "baseline": {
+        "model": "A bigram character model — predict the next character from the current one alone, with add-1 smoothing, fitted on the training 90%.",
+        "score": "validation loss 2.4819 nats/char (perplexity 11.96). Unigram model: 3.3473 nats/char. Uniform over 65 characters: 4.1744 nats/char.",
+        "metric": "cross-entropy in nats per character on the validation split",
+        "note": "Computed from scratch on 2026-08-13 on the standard 90/10 split with add-1 smoothing over the 65-character vocabulary. These three numbers bracket the problem: uniform = ln(65) = 4.1744, unigram = 3.3473, bigram = 2.4819. If your Transformer is not comfortably below 2.4819 it has not learned anything a lookup table could not."
+      },
+      "metric": {
+        "name": "validation cross-entropy in nats per character",
+        "why": "Not sample quality and not next-character accuracy: cross-entropy is the quantity the model is actually optimizing, it converts directly to perplexity for comparison across model sizes, and generated-text quality is a judgement you will make anyway but cannot put on a training curve."
+      },
+      "experiments": [
+        "Build up in rungs and log validation loss at each: bigram lookup → a single attention head → multi-head → stacked blocks with residuals and layer norm. Each rung should drop the loss, and a rung that does not has a bug in it.",
+        "Ablate the causal mask on purpose. The loss will collapse to something impossibly good because the model is reading the answer — see that happen once, deliberately, so you recognize the signature of leakage in a project where it is not deliberate.",
+        "Sweep context length (8, 32, 128, 256) at fixed parameter count, plot loss against context length, and find where the returns flatten for this corpus.",
+        "Remove layer normalization, then remove the residual connections, and try to train a six-block model without them. The failure mode is the lesson."
+      ],
+      "errorAnalysis": [
+        "Sample 500 characters at temperature 1.0 every few hundred steps and keep the log. Structure appears in a predictable order: character frequencies, then word shapes, then line breaks and speaker names.",
+        "Plot train and validation loss together — on a 1.1 MB corpus a model of any real size will overfit, and knowing which step it starts is worth more than the final number.",
+        "Visualize one attention head's weights on a fixed sample string. At least one head usually learns something legible, such as attending to the previous character or to line starts.",
+        "If loss plateaus at exactly ln(65) = 4.1744, the model is emitting uniform and no gradient is reaching the embeddings.",
+        "Check that your sampling loop and your training loop agree on positional indexing — a mismatch produces perfectly good loss curves and gibberish samples."
+      ],
+      "iteration": "Keep a single table with one row per rung: parameters, context length, validation loss, minutes to train. That table is the real deliverable — it is what turns 'I implemented a Transformer' into 'I know what each part of it is worth'.",
+      "deployment": null,
+      "retrospective": [
+        "How far below the 2.4819 bigram baseline did you get, and how many parameters did that take?",
+        "Which component, when removed, hurt the most — attention, residuals, or layer norm?",
+        "What did the causal-mask ablation look like, and would you now recognize that signature in a project where you had not caused it on purpose?",
+        "At what point did more context stop helping on this corpus, and what does that suggest about corpora with longer-range structure?"
+      ],
+      "hours": 25,
+      "prereqTracks": ["attention", "transformer", "backpropagation", "neural-network"],
+      "weekId": "w03"
+    },
+    {
+      "id": "distilbert-imdb-finetune",
+      "tier": "nlp",
+      "order": 2,
+      "title": "Fine-tuning DistilBERT — and the baseline that nearly matches it",
+      "objective": "Fine-tune a pretrained Transformer for sentiment classification on IMDB against a bag-of-words baseline strong enough to make you justify the GPU, and produce a comparison table that reports accuracy, training cost and inference latency together.",
+      "dataset": {
+        "name": "Large Movie Review Dataset (aclImdb v1)",
+        "source": "https://ai.stanford.edu/~amaas/data/sentiment/aclImdb_v1.tar.gz — 84 MB, no login; the Hugging Face mirror stanfordnlp/imdb is public and not gated",
+        "size": "25,000 labelled training and 25,000 labelled test reviews, exactly 12,500 positive and 12,500 negative in each split, plus 50,000 unlabelled reviews",
+        "license": "Stanford AI Lab release; free for research use, citation of Maas et al. (2011) requested",
+        "checkedAt": "2026-08-13",
+        "note": "Split sizes and the exact 12,500/12,500 class balance were verified by downloading and counting the archive on 2026-08-13."
+      },
+      "baseline": {
+        "model": "Binarized multinomial Naive Bayes over unigrams + bigrams (document-presence counts, minimum document frequency 2, add-1 smoothing) — about 40 lines, no scikit-learn required.",
+        "score": "test accuracy 0.8690 (unigrams + bigrams, 438,105 features) · unigrams only 0.8294 · majority class 0.5000 exactly",
+        "metric": "top-1 accuracy on the official 25,000-review test split",
+        "note": "Computed from scratch on 2026-08-13 on the official aclImdb train/test split; reproducible in pure Python in under 20 seconds on a laptop. This is the number that makes the project honest — a bag-of-words model costing seconds already reaches 86.9%, so a fine-tuned Transformer has to justify itself on the margin above that, not on the margin above 50%."
+      },
+      "metric": {
+        "name": "top-1 accuracy, reported alongside training cost in GPU-minutes and median inference latency per review",
+        "why": "The classes are exactly balanced so accuracy is unbiased here and needs no PR-AUC treatment — but accuracy alone is precisely what hides the finding this project exists to produce, which is how many points per GPU-minute the Transformer buys over a model that trains in twenty seconds."
+      },
+      "experiments": [
+        "Fine-tune distilbert-base-uncased (verified public and ungated on the Hub, 2026-08-13) with Trainer and TrainingArguments for 1, 2 and 3 epochs, recording where it stops improving — on IMDB that is usually earlier than expected.",
+        "Sweep maximum sequence length (128, 256, 512) and record accuracy against training time. IMDB reviews are long, so truncation is a real information loss you should quantify rather than assume away.",
+        "Run the frozen-encoder variant: extract pooled embeddings without updating the backbone and fit logistic regression on top. This separates 'pretrained representations are good' from 'fine-tuning is necessary'.",
+        "Test both models on out-of-domain sentiment text you write yourself — thirty short, sarcastic or mixed-sentiment sentences. The gap here is usually far larger than the gap on the test set."
+      ],
+      "errorAnalysis": [
+        "Find the reviews both models get wrong, and separately the ones only Naive Bayes gets right. That second set is what fine-tuning cost you.",
+        "Bucket accuracy by review length. If the Transformer only wins on short reviews, your truncation setting is the finding.",
+        "Read 20 misclassified reviews in full. IMDB contains genuinely ambiguous and occasionally mislabelled examples; estimate what fraction of remaining error is dataset noise before chasing it.",
+        "Check for a threshold effect — is the Transformer better ranked (higher AUC) but poorly calibrated, so that a 0.5 cutoff wastes the advantage?",
+        "Look for spurious cues in the baseline: bag-of-words models on IMDB pick up reviewer-specific tics, so confirm your baseline is not winning for a reason that will not generalize."
+      ],
+      "iteration": "Fill in the comparison table before tuning anything — accuracy, minutes to train, latency per review, peak memory, one row per model. Tuning decisions made against a table that includes cost are systematically different from ones made against accuracy alone.",
+      "deployment": "Optional stretch: export the fine-tuned model, serve it behind a single POST /sentiment endpoint, and measure p95 latency at concurrency 1 and 8 against the Naive Bayes model on identical hardware. That measurement, not the accuracy number, is what a product team will actually ask you for.",
+      "retrospective": [
+        "How many accuracy points did fine-tuning buy over 0.8690, and how many GPU-minutes did each point cost?",
+        "Would you ship the Transformer for this task? Write the two-sentence recommendation you would send.",
+        "Did the frozen-encoder variant land closer to the baseline or to the fine-tuned model, and what does that tell you about where the value sits?",
+        "How much of your remaining error do you believe is label noise rather than model error, and how did you estimate that?"
+      ],
+      "hours": 18,
+      "prereqTracks": ["transformer", "attention", "naive-bayes", "logistic-regression"],
+      "weekId": "w12"
+    },
+    {
+      "id": "scifact-rag-beat-bm25",
+      "tier": "modern-ai",
+      "order": 1,
+      "title": "RAG over SciFact — beating BM25 is the whole problem",
+      "objective": "Build a retrieval-augmented system that checks scientific claims against a 5,183-abstract corpus and cites the abstracts it used. The generation is the easy half; the project is retrieval quality, and the bar is a lexical ranking function from 1994.",
+      "dataset": {
+        "name": "SciFact (BEIR retrieval format)",
+        "source": "https://public.ukp.informatik.tu-darmstadt.de/thakur/BEIR/datasets/scifact.zip — 2.8 MB, no login; the Hugging Face mirror BeIR/scifact is public and not gated",
+        "size": "5,183 abstracts in corpus.jsonl, 1,109 claims in queries.jsonl, and 300 test claims with 339 relevance judgements in qrels/test.tsv",
+        "license": "CC BY-SA 4.0 for the BEIR distribution; the underlying SciFact release from AI2 is CC BY-NC 2.0",
+        "checkedAt": "2026-08-13",
+        "note": "All counts verified by downloading and reading the archive on 2026-08-13. The corpus is small enough to index and evaluate repeatedly on a laptop, which is exactly why it is the right corpus to learn retrieval on."
+      },
+      "baseline": {
+        "model": "BM25 lexical retrieval — no embeddings, no LLM. The second baseline is the LLM answering the claim with no retrieval at all.",
+        "score": "BM25 nDCG@10 = 0.665 on the SciFact test split, as published in the BEIR paper (Table 2, Anserini/Lucene defaults k1=0.9, b=0.4). Closed-book LLM: null.",
+        "metric": "nDCG@10 for retrieval",
+        "note": "The 0.665 is PUBLISHED, not measured here — the only such number in this file. Reimplementations land roughly 0.65–0.68 depending on tokenizer and stemming, so run BM25 inside your own pipeline (rank-bm25 verified on PyPI at 0.2.2, 2026-08-13) and treat your own reproduction as the number to beat. The closed-book score is null on purpose: it depends entirely on which model you use, and measuring it yourself is how you discover whether retrieval is helping at all."
+      },
+      "metric": {
+        "name": "nDCG@10 for the retriever, gated by a citation-groundedness rate for the generator",
+        "why": "End-to-end answer accuracy is the tempting single number and it is the wrong one, because it cannot distinguish a system that retrieved the right abstract and reasoned badly from one that retrieved nothing and guessed well — and nDCG@10 over plain recall because only the top few documents enter the context window, so position is part of what you are measuring."
+      },
+      "experiments": [
+        "Reproduce BM25 in your own pipeline first and record your own number. Every dense retriever you build afterwards is measured against your reproduction, not against the paper's 0.665.",
+        "Dense retrieval with an off-the-shelf embedding model (sentence-transformers/all-MiniLM-L6-v2 or BAAI/bge-small-en-v1.5, both verified public on the Hub 2026-08-13), then hybrid retrieval fusing BM25 and dense scores. On SciFact, plain dense retrieval often loses to BM25 — report it if yours does.",
+        "Sweep chunking: whole abstracts against sentence windows with overlap. Abstracts are short, so this is a cheap experiment with a surprisingly large effect.",
+        "Add a cross-encoder reranker over the top 50 candidates and measure the nDCG@10 gain against the added latency per query."
+      ],
+      "errorAnalysis": [
+        "Take the 30 test claims with the worst retrieval rank and read them, separating vocabulary mismatch (the abstract says the same thing in different words) from genuine absence from the corpus.",
+        "Compare recall@100 against nDCG@10: high recall with low nDCG means your problem is ranking and a reranker will help; low recall means no reranker can save you.",
+        "Check 20 generated answers by hand against the abstracts they cite, and count the ones that are correct but cite the wrong source. They are as broken as wrong answers and they never show up in accuracy.",
+        "Find claims where the closed-book model was right and the RAG system was wrong — retrieval that injects irrelevant context actively hurts, and this is where you can see it happen.",
+        "Verify that chunk boundaries are not splitting the single sentence that answers the claim."
+      ],
+      "iteration": "Build the evaluation harness before the second retriever. Fix the 300 test claims, fix the metric script, and only then start changing the system — a RAG pipeline has enough knobs that tuning without a harness is indistinguishable from guessing.",
+      "deployment": "Serve as POST /verify, taking a claim and returning a verdict plus the cited abstracts with their scores. Persist the index rather than rebuilding it per request, and log the query, retrieved ids, scores and final answer for every call — that log is the dataset for the next project on this ladder.",
+      "retrospective": [
+        "Did your dense or hybrid retriever actually beat your own BM25 reproduction, and by how much?",
+        "How much of the end-to-end improvement came from retrieval and how much from the generation prompt?",
+        "What fraction of answers were correct but wrongly cited, and how would you have caught those without reading them by hand?",
+        "What does this system do when the corpus genuinely does not contain the answer — and did you test that case deliberately?"
+      ],
+      "hours": 30,
+      "prereqTracks": ["transformer", "attention"],
+      "weekId": "w09"
+    },
+    {
+      "id": "llm-eval-harness-calibrated-judge",
+      "tier": "modern-ai",
+      "order": 2,
+      "title": "An eval harness you trust before a system you tune",
+      "objective": "Build the measurement layer for the RAG system: a frozen test set, a written rubric, an LLM-as-judge, and — the part everyone skips — a calibration of that judge against your own labels, so you know its error rate before you start believing its scores.",
+      "dataset": {
+        "name": "Your own labelled evaluation set, built over the SciFact corpus from the previous project",
+        "source": "Derived from BeIR/scifact (verified public and ungated, 2026-08-13) plus your own hand labels; no external eval set is required or appropriate here",
+        "size": "Target 100–150 examples: at least 30 the system should answer, 30 it should refuse because no supporting abstract exists, and 30 adversarial or genuinely ambiguous claims",
+        "license": "Your own work, over a CC BY-SA 4.0 corpus",
+        "checkedAt": "2026-08-13"
+      },
+      "baseline": {
+        "model": "The constant judge — a 'judge' that returns PASS for everything. Its accuracy is exactly the base rate of passing answers in your labelled set.",
+        "score": null,
+        "metric": "agreement with your hand labels (raw accuracy and Cohen's kappa)",
+        "note": "Null deliberately, and it is the most important null in this file. The constant judge's accuracy is the base rate of passing answers in your own labelled set — a property of your system and your labels, typically landing somewhere between 0.5 and 0.8, and nobody else can compute it for you. Measure it before quoting any judge score: a judge with 80% agreement is worthless if 80% of answers pass anyway. Cohen's kappa exists precisely to report agreement above chance, so use kappa as the headline and this constant-judge number as the sanity check."
+      },
+      "metric": {
+        "name": "Cohen's kappa between the LLM judge and your hand labels, reported before any system metric is quoted",
+        "why": "Not raw agreement, because on a skewed label distribution raw agreement is mostly measuring the base rate rather than the judge — kappa subtracts the agreement you would get by chance, which is the only version of the number that stays honest when 80% of your answers are fine anyway."
+      },
+      "experiments": [
+        "Hand-label all 100–150 examples yourself first, without seeing any model's judgement, and only then measure judge agreement. Doing it in the other order contaminates your labels and you cannot undo it.",
+        "Compare judge prompts: a bare 'is this correct?' against a rubric with explicit criteria and required evidence quotes. Measure kappa for each — rubric specificity usually moves the number more than model size does.",
+        "Test judge self-consistency by running the same 50 examples three times at temperature 0 and again at 0.7. A judge that disagrees with itself cannot adjudicate anything.",
+        "Check position and verbosity bias: swap the order of paired answers, and pad one answer with fluent but irrelevant text. If the verdict moves, document the bias and factor it into how you read every score afterwards."
+      ],
+      "errorAnalysis": [
+        "Build the 2×2 table of judge verdict against your label and read every disagreement, sorting them into 'judge wrong', 'my label wrong' and 'the rubric is ambiguous'. That third pile is a rubric bug, not a judge bug.",
+        "Check the refusal cases separately. Judges are systematically bad at rewarding a correct 'I don't know', which is exactly the behaviour a RAG system most needs graded well.",
+        "Test for length correlation between answer length and judge score across the set; if it is strong, your judge is grading fluency rather than correctness.",
+        "Re-run the harness against a deliberately degraded system with retrieval switched off. If your eval does not clearly detect that, it cannot detect anything subtler either.",
+        "Verify that your test set still contains examples your current system fails; a frozen set that the system now passes entirely has stopped measuring anything."
+      ],
+      "iteration": "Freeze the test set and version it. When you change the rubric, re-label rather than reinterpret. An eval set that drifts alongside the system it measures will show improvement on every run and progress on none.",
+      "deployment": "Wire the harness into a script that runs on every change to the RAG system and appends a dated row to a results file: kappa, pass rate, refusal accuracy, and the per-category breakdown. The value is in the history — a single run tells you a score, a hundred runs tell you whether you are improving.",
+      "retrospective": [
+        "What is your constant-judge base rate, and how much of your judge's raw agreement was it explaining?",
+        "Which disagreements turned out to be your own labelling errors, and what did that change about the rubric?",
+        "Did your harness detect the deliberately degraded system, and by how large a margin?",
+        "What would you have concluded about your RAG system if you had trusted the judge without calibrating it first?"
+      ],
+      "hours": 20,
+      "prereqTracks": ["transformer"],
+      "weekId": "w26"
+    },
+    {
+      "id": "churn-service-with-drift-monitoring",
+      "tier": "production",
+      "order": 1,
+      "title": "Shipping the churn model — and finding out when it breaks",
+      "objective": "Take the churn model from the intermediate tier and put it into production shape: a versioned artifact, a service with health and prediction endpoints, a reproducible retraining path, and monitoring that detects data drift before anyone downstream complains.",
+      "dataset": {
+        "name": "IBM Telco Customer Churn (the same file as the intermediate-tier project), plus drifted replays you generate yourself",
+        "source": "https://raw.githubusercontent.com/IBM/telco-customer-churn-on-icp4d/master/data/Telco-Customer-Churn.csv — plain HTTPS, no login",
+        "size": "7,043 rows × 21 columns; hold out a 20% reference window and replay the remainder in weekly batches with injected shifts",
+        "license": "IBM Community sample dataset, redistributed in IBM's Apache-2.0 tutorial repository",
+        "checkedAt": "2026-08-13",
+        "note": "This dataset has no time column, so the 'weeks' are a replay construct you define. Say so in your write-up — simulated drift is a legitimate way to test a monitor and an illegitimate way to claim the model works over time."
+      },
+      "baseline": {
+        "model": "A pair, and they are different kinds of baseline. For prediction: the month-to-month business rule. For monitoring: no monitoring at all — drift is detected when a stakeholder notices the numbers look wrong.",
+        "score": "Business rule: precision 0.4271, recall 0.8855, F1 0.5763, accuracy 0.6544. No-monitoring detection latency: undefined by construction.",
+        "metric": "precision/recall for the model; time-to-detection in replayed weeks for the monitoring",
+        "note": "The business-rule figures were computed over all 7,043 rows on 2026-08-13. The monitoring baseline has no number and that is the point: without instrumentation, detection latency is not large, it is undefined. Your job in this project is to replace an undefined number with a measured one."
+      },
+      "metric": {
+        "name": "Time-to-detection, measured in replayed weeks between an injected shift and the monitor firing, at a fixed false-alarm rate",
+        "why": "Not drift-test p-values and not the model's own accuracy — a p-value tells you a distribution moved but not whether you would have noticed in time, and accuracy is unavailable in production until labels arrive weeks later; time-to-detection at a fixed false-alarm budget is the only pair of numbers that describes a monitoring system you would actually leave switched on."
+      },
+      "experiments": [
+        "Version the artifact properly — model file, feature schema, training-data hash and training date, all loaded at startup and reported by /health. Then deliberately serve a request against a mismatched schema and confirm it fails loudly rather than silently mis-scoring.",
+        "Replay the held-out data in weekly batches through the service, then inject three shifts of different kinds: a covariate shift (the tenure distribution moves), a schema break (a category value never seen in training), and a label shift (the churn rate doubles). Measure detection latency for each.",
+        "Configure drift monitoring with Evidently (verified on PyPI at 0.7.21, 2026-08-13; Report with DataDriftPreset and ClassificationPreset are the current entry points) and tune alert thresholds until the false-alarm rate on undrifted weeks is acceptable. Record the whole trade-off curve, not just your chosen point.",
+        "Add prediction-distribution monitoring alongside input monitoring. Input drift and output drift fire at different times, and knowing which fires first for each shift type is the useful finding."
+      ],
+      "errorAnalysis": [
+        "For each injected shift, check which monitor fired and which stayed silent. The label shift will likely be invisible to input monitoring — confirm that and write down why.",
+        "Examine your false alarms on undrifted weeks: are they concentrated in low-cardinality categorical features where small samples move the statistic?",
+        "Verify that features computed in the service match features computed in training, byte for byte, on the same input row. Training/serving skew is the most common production failure and it is completely silent.",
+        "Test the cold-start path: what does the service return for a customer with tenure 0 and a blank TotalCharges — the exact case that was messy in the raw data?",
+        "Check latency under concurrency and confirm the model is loaded once at startup rather than per request."
+      ],
+      "iteration": "Write the runbook as you go, one line per failure mode: what fires, what it means, what you do about it. A monitor with no documented response is a notification, not monitoring — and you will not remember your own thresholds in three weeks.",
+      "deployment": "A FastAPI service (0.141.1 verified on PyPI, 2026-08-13) exposing POST /predict, GET /health returning model version and training date, and GET /metrics for scraping. Containerized, with the model artifact mounted rather than baked into the image so that a rollback is a restart. A scheduled job recomputes drift reports against the frozen reference window and writes them to a dated directory. Promotion is gated: a new model ships only if it beats the business rule on the most recent labelled window.",
+      "retrospective": [
+        "How many replayed weeks passed before each injected shift was detected, and which shift took longest?",
+        "What was your false-alarm rate on clean weeks, and would you personally leave that alert enabled?",
+        "Did input drift or prediction drift fire first, and does that change what you would monitor if you could only afford one?",
+        "If this service ran unattended for six months, what would fail first — and is that thing monitored?"
+      ],
+      "hours": 35,
+      "prereqTracks": ["logistic-regression", "decision-tree"],
+      "weekId": null
+    },
+    {
+      "id": "llm-endpoint-cost-and-observability",
+      "tier": "production",
+      "order": 2,
+      "title": "An LLM endpoint you can afford and explain",
+      "objective": "Put a production skin on the RAG service: tracing that follows one request through retrieval and generation, per-request token and cost accounting, caching, and a documented latency/cost/quality trade-off backed entirely by your own measurements.",
+      "dataset": {
+        "name": "Your own request traces, generated by replaying the SciFact eval set through the service",
+        "source": "Derived from BeIR/scifact (verified public and ungated, 2026-08-13) and the eval harness built in the modern-AI tier",
+        "size": "Replay the 300 test claims plus a synthetic burst load; target at least 2,000 logged requests so that a p95 figure means something",
+        "license": "Your own logs, over a CC BY-SA 4.0 corpus",
+        "checkedAt": "2026-08-13"
+      },
+      "baseline": {
+        "model": "Your own unoptimized endpoint, measured before you change anything: no caching, no batching, full context on every call.",
+        "score": null,
+        "metric": "p95 latency and cost per 1,000 requests",
+        "note": "Null because this is the one baseline nobody can compute for you: it depends on your model, provider, region and context length, all of which change. On day one, before any optimization, record p50 and p95 latency, tokens in and out per request, and cost per 1,000 requests — then never overwrite that measurement. Every claim in this project is a delta against it, and without it you will report improvements you cannot size."
+      },
+      "metric": {
+        "name": "cost per 1,000 requests and p95 latency, reported as a pair and always with the quality score from your eval harness beside them",
+        "why": "p95 rather than mean latency because the mean hides exactly the tail users complain about, and cost paired with quality rather than either alone because every optimization here — shorter context, smaller model, aggressive caching — trades one against the other, so a cost number without the accompanying eval score is not a result, it is a claim."
+      },
+      "experiments": [
+        "Instrument end to end first: one trace id per request, spans for retrieval, reranking and generation, with token counts and cost attached to each. Find where p95 time actually goes before optimizing anything — it is frequently retrieval or a cold index rather than the model.",
+        "Add exact-match response caching, then semantic caching over the embedded query. Measure hit rate and the quality cost of a semantic-cache false hit; the second number is the one people forget to report.",
+        "Cut context aggressively — top-10 chunks against top-3, full abstracts against truncated ones — and plot cost per 1,000 requests against your eval score, then pick a point on that curve you can defend.",
+        "Swap the generation model for a smaller one and re-run the eval harness, reporting the quality drop in the same units as the cost saving so the trade is legible."
+      ],
+      "errorAnalysis": [
+        "Read the slowest 1% of traces individually. Tail latency is usually one component rather than general slowness, and it is often a retry or a cold cache.",
+        "Check for silent failures — requests that returned 200 with an empty or truncated answer. They cost the same as good ones and appear nowhere in an error rate.",
+        "Reconcile your token accounting against the provider's own reported usage. If the numbers do not match, your cost figures are decoration.",
+        "Inspect semantic-cache hits where the cached answer was wrong for the new query, and quantify that rate before recommending the cache to anyone.",
+        "Look at the cost distribution rather than the mean: a small number of very long contexts usually dominates spend, and capping them may be the cheapest win available.",
+        "Break latency down by whether the request hit the cache — a healthy mean hit rate can hide a bad experience for every miss."
+      ],
+      "iteration": "Every optimization gets three numbers in the table, in this order: cost per 1,000, p95 latency, eval score. A change that improves two of them while quietly damaging the third is the exact failure mode this tier exists to prevent.",
+      "deployment": "The service from the RAG project plus structured request logging, a tracing backend, and a dashboard showing p50/p95 latency, cost per hour, cache hit rate and error rate, with one alert on p95 latency and one on hourly spend. Sample a fixed percentage of live traffic into the eval harness nightly so that quality is monitored on the same cadence as cost — an endpoint whose cost is watched hourly and whose quality is watched never will be optimized into uselessness.",
+      "retrospective": [
+        "What was your cost per 1,000 requests before and after, and what did quality do across that change?",
+        "Where did p95 latency actually go, and was it where you assumed before you had traces?",
+        "What is your semantic cache's false-hit rate, and is the saving worth it?",
+        "If your traffic grew 100×, which of your optimizations still holds and which one breaks first?"
+      ],
+      "hours": 25,
+      "prereqTracks": ["transformer"],
+      "weekId": "w24"
+    }
+  ]
+}

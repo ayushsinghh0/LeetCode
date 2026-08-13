@@ -25,6 +25,12 @@ export default defineConfig({
             './src/data/subpatterns.json',
             './src/data/companies.json',
           ],
+          // The ML curriculum: 11 from-scratch implementation tracks and the 14-project ladder,
+          // ~180 kB of authored content with measured figures in it. Same reasoning as
+          // data-curriculum, and a separate chunk rather than an addition to it because only the
+          // /aiml route reads it — a learner who never opens the AI/ML track never fetches it,
+          // and an edit to either dataset leaves the other one valid in every cache.
+          'data-ml': ['./src/data/mlTracks.json', './src/data/mlProjects.json'],
         },
       },
     },

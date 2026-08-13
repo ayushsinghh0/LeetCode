@@ -4,14 +4,9 @@ import { screen, within, fireEvent } from '@testing-library/react';
 import { makeStore } from '@/store/store';
 import { renderWithStore } from '@/test/renderWithStore';
 import AnalyticsPage from '@/pages/AnalyticsPage';
-import { completeCourseSession, reviseCourseWeek, solveQuestion } from '@/store/actions';
-import { selectStreaks, selectProductivityScore, selectWeakestPatterns } from '@/store/selectors';
-import { consistency } from '@/utils/engine/stats';
-import { PATTERNS, patternById } from '@/data/patterns';
-import questionsData from '@/data/questions.json';
-import type { Question } from '@/types';
+import { completeCourseSession, reviseCourseWeek, reviseQuestion, solveQuestion } from '@/store/actions';
+import { selectStreaks } from '@/store/selectors';
 
-const questions = questionsData as Question[];
 const TODAY = '2026-07-30';
 
 // --- Recharts + jsdom -------------------------------------------------------------------------
@@ -32,16 +27,6 @@ vi.mock('recharts', async (importOriginal) => {
   };
 });
 
-// --- "zero-filled series reached the chart" assertion strategy -------------------------------
-// Rather than counting Recharts-internal DOM nodes (a `.recharts-bar-rectangle` class query would
-// depend on Recharts' internal markup, effectively snapshotting SVG structure — explicitly what
-// the task brief says not to do), every chart in src/components/charts renders a visually-hidden
-// (`sr-only`) caption stating its exact data-point count and date range. That caption is real,
-// accessible content (a textual equivalent of the chart, per the dataviz skill's "a table view
-// exists" accessibility requirement) and also gives tests a stable, implementation-detail-free
-// hook: asserting on it proves the full N-point zero-filled series actually reached the chart
-// component, without asserting on rendered SVG.
-
 beforeEach(() => {
   vi.useFakeTimers();
   vi.setSystemTime(new Date(`${TODAY}T12:00:00`));
@@ -51,45 +36,67 @@ afterEach(() => {
   vi.useRealTimers();
 });
 
-describe('AnalyticsPage', () => {
-  test('renders every section heading on a seeded store', () => {
+/** The Ledger renders each figure as a `dt`/`dd` pair inside one wrapper div. */
+function figure(label: string): HTMLElement {
+  return screen.getByText(label).closest('div')!;
+}
+
+describe('AnalyticsPage — the page is five questions, in decision order', () => {
+  test('every section is one of the questions a learner actually has', () => {
     const store = makeStore();
     for (let id = 1; id <= 5; id++) store.dispatch(solveQuestion(id));
     renderWithStore(<AnalyticsPage />, store);
 
-    expect(screen.getByRole('heading', { name: 'Analytics' })).toBeInTheDocument();
-    expect(screen.getByRole('heading', { name: /solved per day/i })).toBeInTheDocument();
-    expect(screen.getByRole('heading', { name: /pattern completion/i })).toBeInTheDocument();
-    expect(screen.getByRole('heading', { name: /difficulty breakdown/i })).toBeInTheDocument();
-    expect(screen.getByRole('heading', { name: /revision success rate/i })).toBeInTheDocument();
-    expect(screen.getByRole('heading', { name: /revision forecast/i })).toBeInTheDocument();
-    expect(screen.getByRole('heading', { name: /strong & weak patterns/i })).toBeInTheDocument();
+    expect(screen.getByRole('heading', { level: 1, name: 'Analytics' })).toBeInTheDocument();
+    for (const question of [
+      'Am I showing up?',
+      'Am I getting faster?',
+      'Am I getting more accurate?',
+      'Can I solve unfamiliar problems?',
+      'What should I do next?',
+    ]) {
+      expect(screen.getByRole('heading', { name: question })).toBeInTheDocument();
+    }
+    expect(screen.getByRole('heading', { name: 'The ML track' })).toBeInTheDocument();
   });
 
-  test('stat cards show streak/active-days/productivity numbers computed via the same selectors', () => {
+  test('the questions appear in decision order — "what next" is not the first thing read', () => {
+    renderWithStore(<AnalyticsPage />);
+
+    const order = screen
+      .getAllByRole('heading', { level: 2 })
+      .map((h) => h.textContent ?? '');
+
+    expect(order.indexOf('Am I showing up?')).toBeLessThan(order.indexOf('What should I do next?'));
+    expect(order.indexOf('Can I solve unfamiliar problems?')).toBeLessThan(
+      order.indexOf('What should I do next?'),
+    );
+  });
+});
+
+describe('AnalyticsPage — figures come from the same selectors as the rest of the app', () => {
+  test('streak and active-days match the store, both tracks counted', () => {
     const store = makeStore();
     for (let id = 1; id <= 8; id++) store.dispatch(solveQuestion(id));
     renderWithStore(<AnalyticsPage />, store);
 
-    const state = store.getState();
-    const streaks = selectStreaks(state, TODAY);
-    const productivity = selectProductivityScore(state, TODAY);
-    const activeDays = Math.round(consistency(state.progress.dayLogs, TODAY) * 14);
+    const streaks = selectStreaks(store.getState(), TODAY);
 
-    const currentCard = screen.getByText('Current streak').closest('div')!;
-    expect(within(currentCard).getByText(String(streaks.current))).toBeInTheDocument();
-
-    const longestCard = screen.getByText('Longest streak').closest('div')!;
-    expect(within(longestCard).getByText(String(streaks.longest))).toBeInTheDocument();
-
-    const activeCard = screen.getByText('Active days (14d)').closest('div')!;
-    expect(within(activeCard).getByText(String(activeDays))).toBeInTheDocument();
-
-    const productivityCard = screen.getByText('Productivity score').closest('div')!;
-    expect(within(productivityCard).getByText(`${productivity} / 100`)).toBeInTheDocument();
+    expect(within(figure('Current streak')).getByText(String(streaks.current))).toBeInTheDocument();
+    expect(within(figure('Current streak')).getByText(`longest ${streaks.longest}`)).toBeInTheDocument();
+    expect(within(figure('Active days')).getByText('1 / 14')).toBeInTheDocument();
   });
 
-  test('course row shows sessions, cleared weeks, and pass rate; course reviews blend into the success rate', () => {
+  test('a course-only day is an active day and sustains the streak', () => {
+    const store = makeStore();
+    store.dispatch(completeCourseSession('w00', 1)); // no DSA work at all today
+    renderWithStore(<AnalyticsPage />, store);
+
+    expect(within(figure('Active days')).getByText('1 / 14')).toBeInTheDocument();
+    expect(within(figure('Current streak')).getByText('1')).toBeInTheDocument();
+  });
+
+  test('the ML track reports attendance and retention as separate things', () => {
     const store = makeStore();
     store.dispatch(completeCourseSession('w00', 1));
     store.dispatch(completeCourseSession('w00', 2)); // cleared — review due tomorrow
@@ -97,39 +104,72 @@ describe('AnalyticsPage', () => {
     store.dispatch(reviseCourseWeek('w00', true));
     renderWithStore(<AnalyticsPage />, store);
 
-    expect(screen.getByRole('heading', { name: /ai\/ml course/i })).toBeInTheDocument();
-
-    const sessionsCard = screen.getByText('Course sessions').closest('div')!;
-    expect(within(sessionsCard).getByText('2 / 52')).toBeInTheDocument();
-
-    const weeksCard = screen.getByText('Weeks cleared').closest('div')!;
-    expect(within(weeksCard).getByText('1 / 26')).toBeInTheDocument();
-
-    const passCard = screen.getByText('Review pass rate').closest('div')!;
-    expect(within(passCard).getByText('100%')).toBeInTheDocument();
-
-    // The blended success-rate chart counts the course review as a pass.
-    expect(screen.getByText('Overall pass rate (1 passed / 0 failed)')).toBeInTheDocument();
+    expect(within(figure('Sessions')).getByText('2 / 52')).toBeInTheDocument();
+    expect(within(figure('Weeks cleared')).getByText('1 / 26')).toBeInTheDocument();
+    expect(within(figure('Review pass rate')).getByText('100%')).toBeInTheDocument();
+    // With every cleared week graded, the attendance figure is backed rather than standing alone.
+    expect(screen.getByText(/backed by recall rather than standing on its own/)).toBeInTheDocument();
   });
 
-  test('a course-only day counts toward Active days (14d), matching the unified streak', () => {
+  test('an unreviewed course reports no pass rate rather than a flattering one', () => {
     const store = makeStore();
-    store.dispatch(completeCourseSession('w00', 1)); // course-only activity today
+    store.dispatch(completeCourseSession('w00', 1));
+    store.dispatch(completeCourseSession('w00', 2));
     renderWithStore(<AnalyticsPage />, store);
 
-    const activeCard = screen.getByText('Active days (14d)').closest('div')!;
-    expect(within(activeCard).getByText('1')).toBeInTheDocument();
+    expect(within(figure('Review pass rate')).getByText('no week has been reviewed yet')).toBeInTheDocument();
+    // Attendance is not retention, and the page refuses to let one stand for the other.
+    expect(screen.getByText(/Sessions completed is attendance/)).toBeInTheDocument();
+  });
+});
 
-    const streakCard = screen.getByText('Current streak').closest('div')!;
-    expect(within(streakCard).getByText('1')).toBeInTheDocument();
+describe('AnalyticsPage — suppression over padding', () => {
+  test('a fresh store answers "not yet, and here is what it would take" rather than showing zeros', () => {
+    renderWithStore(<AnalyticsPage />);
+
+    // Recognition names its own floor instead of reporting 0%.
+    expect(within(figure('Recognition')).getByText(/needs \d+ recorded drill days/)).toBeInTheDocument();
+    // Focus time distinguishes "not measured" from "zero".
+    expect(within(figure('Focus time')).getByText(/not measured/)).toBeInTheDocument();
   });
 
-  test('solved-per-day chart defaults to a full 30-day zero-filled series', () => {
+  test('no pattern is called weak on a single observation', () => {
+    renderWithStore(<AnalyticsPage />);
+
+    const section = screen.getByRole('heading', { name: 'What should I do next?' }).closest('section')!;
+    expect(within(section).getByText(/Nothing has failed on repeated evidence yet/)).toBeInTheDocument();
+    expect(within(section).getByText(/one miss is a bad evening, not a weakness/)).toBeInTheDocument();
+    expect(within(section).queryByRole('list', { name: 'Patterns to work on' })).not.toBeInTheDocument();
+  });
+
+  test('a weakness is never a bare number — every entry states why', () => {
+    const store = makeStore();
+    // Two failed recalls on one question is repeated evidence on its pattern.
+    store.dispatch(solveQuestion(1));
+    vi.setSystemTime(new Date('2026-07-31T12:00:00'));
+    store.dispatch(reviseQuestion(1, false));
+    vi.setSystemTime(new Date('2026-08-01T12:00:00'));
+    store.dispatch(reviseQuestion(1, false));
+    renderWithStore(<AnalyticsPage />, store);
+
+    const list = screen.queryByRole('list', { name: 'Patterns to work on' });
+    if (list) {
+      // Whatever the model surfaces, it must explain itself in words, not in a score.
+      for (const item of within(list).getAllByRole('listitem')) {
+        expect(item.textContent ?? '').toMatch(/Because /);
+        expect(item.textContent ?? '').not.toMatch(/score|0\.\d{2}|\brating\b/i);
+      }
+    }
+  });
+});
+
+describe('AnalyticsPage — the charts that survived', () => {
+  test('solved-per-day defaults to a full 30-day zero-filled series', () => {
     renderWithStore(<AnalyticsPage />);
     expect(screen.getByText(/Solved and revision counts for 30 days/)).toBeInTheDocument();
   });
 
-  test('switching the range tab to 90 re-renders solved-per-day with a 90-day series', () => {
+  test('switching the range tab to 90 re-renders with a 90-day series', () => {
     renderWithStore(<AnalyticsPage />);
 
     fireEvent.mouseDown(screen.getByRole('tab', { name: /90/i }));
@@ -138,44 +178,10 @@ describe('AnalyticsPage', () => {
     expect(screen.queryByText(/Solved and revision counts for 30 days/)).not.toBeInTheDocument();
   });
 
-  test('strong/weak patterns card shows "Not enough data yet" on a fresh store', () => {
+  test('the review-load forecast is framed as planning, not as debt', () => {
     renderWithStore(<AnalyticsPage />);
 
-    const heading = screen.getByRole('heading', { name: /strong & weak patterns/i });
-    const section = heading.closest('div')!;
-    expect(within(section).getByText(/not enough data yet/i)).toBeInTheDocument();
-  });
-
-  test('strong/weak patterns split into disjoint Strongest/Weakest lists once 6 patterns are eligible', () => {
-    // 6 eligible patterns (>=3 solves each, weakestPatterns' eligibility floor) is the smallest
-    // count where the top-3/bottom-3 split (AnalyticsPage: weakest.slice(0,3) vs.
-    // weakest.slice(-3).reverse()) is guaranteed disjoint, so each pattern's name is expected in
-    // exactly one of the two lists rather than "show what exists" overlap with <6 eligible.
-    const store = makeStore();
-    for (const pattern of PATTERNS.slice(0, 6)) {
-      const ids = questions
-        .filter((q) => q.pattern === pattern.id)
-        .slice(0, 3)
-        .map((q) => q.id);
-      for (const id of ids) store.dispatch(solveQuestion(id));
-    }
-    renderWithStore(<AnalyticsPage />, store);
-
-    const eligible = selectWeakestPatterns(store.getState()); // ascending: weakest first
-    expect(eligible.length).toBe(6);
-    const expectedWeak = eligible.slice(0, 3);
-    const expectedStrong = eligible.slice(-3).reverse();
-
-    const heading = screen.getByRole('heading', { name: /strong & weak patterns/i });
-    const section = heading.closest('div')!;
-    const strongList = within(section).getByText(/strongest/i).closest('div')!;
-    const weakList = within(section).getByText(/weakest/i).closest('div')!;
-
-    for (const w of expectedStrong) {
-      expect(within(strongList).getByText(patternById[w.pattern].name)).toBeInTheDocument();
-    }
-    for (const w of expectedWeak) {
-      expect(within(weakList).getByText(patternById[w.pattern].name)).toBeInTheDocument();
-    }
+    const section = screen.getByRole('heading', { name: 'Review load ahead' }).closest('section')!;
+    expect(within(section).getByText(/Reviewing early costs nothing on the ladder/)).toBeInTheDocument();
   });
 });

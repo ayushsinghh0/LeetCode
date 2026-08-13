@@ -3,6 +3,7 @@ import { motion } from 'framer-motion';
 import { Bookmark, BookmarkCheck, CheckCircle2, Circle, Clock, FileText, PlayCircle, RotateCcw, SkipForward, XCircle } from 'lucide-react';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
+import { Meta } from '@/components/layout/Page';
 import { DifficultyBadge } from '@/components/questions/DifficultyBadge';
 import { PatternChip } from '@/components/questions/PatternChip';
 import { RevisionStagePips } from '@/components/questions/RevisionStagePips';
@@ -68,7 +69,7 @@ export function QuestionCard({ question, progress, context = 'browse', onOpenDet
   return (
     <motion.div layout whileHover={{ y: -2 }} transition={{ duration: 0.15, ease: [0.23, 1, 0.32, 1] }}>
       <Card
-        className="glass cursor-pointer p-4 transition-colors duration-150 ease-swift hover:border-primary/40"
+        className="cursor-pointer p-4 transition-colors duration-150 ease-swift hover:border-primary/40"
         role="button"
         tabIndex={0}
         onClick={() => onOpenDetail(question.id)}
@@ -90,24 +91,26 @@ export function QuestionCard({ question, progress, context = 'browse', onOpenDet
           {question.tests}
         </p>
 
-        <div className="mt-2 flex flex-wrap items-center gap-2">
-          <DifficultyBadge difficulty={question.difficulty} />
-          <PatternChip pattern={pattern} />
-          {/* The label alone is not decodable — "Variant" means nothing until you know the
-              taxonomy — so the meaning rides along on hover and for assistive tech. */}
-          <span
-            className="rounded-sm border border-border px-1.5 py-0.5 text-xs text-muted-foreground"
-            title={QUESTION_TYPE_MEANING[question.type]}
-          >
-            {QUESTION_TYPE_LABEL[question.type]}
-          </span>
-        </div>
+        {/* Difficulty, pattern, kind and cost describe ONE object, so they read as one line
+            rather than as four boxed chips (DESIGN.md § Composition — "related facts look like
+            one fact"). The estimate wears a tilde: it is a band, not a measurement. */}
+        <Meta
+          className="mt-2"
+          items={[
+            <DifficultyBadge key="difficulty" difficulty={question.difficulty} />,
+            <PatternChip key="pattern" pattern={pattern} />,
+            // The label alone is not decodable — "Variant" means nothing until you know the
+            // taxonomy — so the meaning rides along on hover and for assistive tech.
+            <span key="type" title={QUESTION_TYPE_MEANING[question.type]}>
+              {QUESTION_TYPE_LABEL[question.type]}
+            </span>,
+            <span key="estimate" className="figures inline-flex items-center gap-1">
+              <Clock className="h-3.5 w-3.5" aria-hidden="true" />~{question.estimatedTime} min
+            </span>,
+          ]}
+        />
 
         <div className="mt-2 flex flex-wrap items-center gap-3 text-xs text-muted-foreground">
-          <span className="figures inline-flex items-center gap-1">
-            <Clock className="h-3.5 w-3.5" aria-hidden="true" />
-            {question.estimatedTime} min
-          </span>
           <RevisionStagePips stage={progress.revisionStage} />
           <span className="inline-flex items-center gap-1">
             <StatusIcon className="h-3.5 w-3.5" aria-hidden="true" />

@@ -28,29 +28,51 @@ afterEach(() => {
   vi.useRealTimers();
 });
 
+const openLadder = () => fireEvent.click(screen.getByRole('button', { name: /the problem ladder/i }));
+
 describe('FamilyPanel', () => {
-  test('shows the family name and idea, and orders members canonical-first', () => {
+  test('the core idea is the only thing shown up front — signals, trap and ladder each wait to be asked for', () => {
     renderWithStore(<FamilyPanel family={family} currentQuestionId={1} />);
+
     expect(screen.getByText('Same idea: Converging pointers')).toBeInTheDocument();
     expect(screen.getByText(/discard one side/)).toBeInTheDocument();
 
-    const items = screen.getAllByRole('listitem').filter((li) => li.querySelector('button'));
-    const titles = items.map((li) => li.textContent);
-    expect(titles[0]).toContain('Valid Palindrome'); // canonical first despite authoring order
-    expect(titles[0]).toContain('Canonical');
+    // Progressive disclosure: the mini-course does not arrive all at once.
+    expect(screen.queryByText(/Pairs in sorted or symmetric input/)).not.toBeInTheDocument();
+    expect(screen.queryByText(/silently breaks the discard argument/)).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: /Valid Palindrome/ })).not.toBeInTheDocument();
   });
 
-  test('recognition cues are hidden until revealed (recall before explanation)', () => {
+  test('recognition cues open on request (recall before explanation), and the trap is its own step', () => {
     renderWithStore(<FamilyPanel family={family} currentQuestionId={1} />);
-    expect(screen.queryByText(/Pairs in sorted or symmetric input/)).not.toBeInTheDocument();
 
     fireEvent.click(screen.getByRole('button', { name: /recognition cues/i }));
     expect(screen.getByText(/Pairs in sorted or symmetric input/)).toBeInTheDocument();
+    // The trap is a separate rung of the same course — revealing the cues does not spend it.
+    expect(screen.queryByText(/silently breaks the discard argument/)).not.toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole('button', { name: /the common trap/i }));
     expect(screen.getByText(/silently breaks the discard argument/)).toBeInTheDocument();
+  });
+
+  test('the ladder groups members by learning role, canonical first, and explains what each role is for', () => {
+    renderWithStore(<FamilyPanel family={family} currentQuestionId={1} />);
+    openLadder();
+
+    expect(screen.getByText('Canonical')).toBeInTheDocument();
+    expect(screen.getByText(/The reference statement of the idea/)).toBeInTheDocument();
+    // The transfer framing, stated per role rather than left for the learner to infer.
+    expect(screen.getByText(/One constraint or objective changed/)).toBeInTheDocument();
+
+    const roleLabels = ['Canonical', 'Standard', 'Variant'].map((label) => screen.getByText(label));
+    expect(roleLabels[0]!.compareDocumentPosition(roleLabels[1]!)).toBe(Node.DOCUMENT_POSITION_FOLLOWING);
+    expect(roleLabels[1]!.compareDocumentPosition(roleLabels[2]!)).toBe(Node.DOCUMENT_POSITION_FOLLOWING);
   });
 
   test('the current question is disabled; siblings dispatch navigation to their modal', () => {
     const { store } = renderWithStore(<FamilyPanel family={family} currentQuestionId={1} />);
+    openLadder();
+
     expect(screen.getByRole('button', { name: /Valid Palindrome/ })).toBeDisabled();
 
     fireEvent.click(screen.getByRole('button', { name: /3Sum/ }));

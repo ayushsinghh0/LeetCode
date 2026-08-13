@@ -45,10 +45,12 @@ export function AchievementToast() {
   const def = currentId ? achievementById.get(currentId) : undefined;
   const Icon = def ? iconByName(def.icon, Award) : Award;
 
-  // bottom-20 below md clears MobileNav's fixed full-width bottom bar (same offset the
-  // floating PomodoroWidget uses); md+ can sit in the corner proper.
+  // On phones this has to clear TWO fixed things, not one: MobileNav's bottom bar (up to 66px)
+  // and the floating PomodoroWidget above it (which tops out at ~134px). Sharing the widget's
+  // bottom-20 put the toast directly on top of it for its whole four seconds — z-order meant the
+  // toast won, but it still buried the timer. bottom-36 stacks it above both. md+ has neither.
   return (
-    <div className="pointer-events-none fixed bottom-20 right-4 z-50 md:bottom-4">
+    <div className="pointer-events-none fixed bottom-36 right-4 z-50 md:bottom-4">
       {/* No `exit` variant on the motion.div below: framer-motion only defers unmounting for an
           AnimatePresence child that declares one, and this toast needs to leave the DOM the
           instant its id is popped from the queue (both on the 4s auto-dismiss and the X button)

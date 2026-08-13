@@ -1,6 +1,7 @@
 import { Link } from 'react-router-dom';
 import { format, parseISO } from 'date-fns';
 import { Button } from '@/components/ui/button';
+import { Page, PageHeader, Section } from '@/components/layout/Page';
 import { DailyGoalProgress } from '@/components/shared/DailyGoalProgress';
 import { WeeklyRevisionBanner } from '@/components/shared/WeeklyRevisionBanner';
 import { TodayTasks } from '@/components/tasks/TodayTasks';
@@ -31,6 +32,12 @@ import { buildSession } from '@/utils/engine/nextAction';
  * decision. Full question inventories deliberately live on /roadmap and /revision rather than
  * here; listing the same eight problems on three surfaces was the thing that made this page read
  * as a dashboard rather than a plan.
+ *
+ * Composition: masthead, then exactly one plate — the next action — then open sections. The page
+ * previously stacked five bordered boxes of near-identical weight (goal bar, plan, course, tasks,
+ * and a solid-ink weekly banner sitting *above* the hero), so the recommendation the whole surface
+ * exists to deliver was one rectangle among many. There is now a single `Lead` and nothing else
+ * may match it; the size difference is the hierarchy. See DESIGN.md § Composition.
  */
 export default function TodayPage() {
   const today = useToday();
@@ -54,23 +61,28 @@ export default function TodayPage() {
   const plannedMinutes = buildSession(capacityMin, ranked).totalMinutes;
 
   return (
-    <div className="flex flex-col gap-6">
-      <header className="flex flex-wrap items-end justify-between gap-3">
-        <div>
-          <h1 className="text-2xl font-bold text-gradient">Today</h1>
-          <p className="figures text-sm text-muted-foreground">
-            {format(parseISO(today), 'EEEE, MMMM d')} &middot; Day {currentDay} of {totalDays}
-          </p>
+    <Page>
+      <PageHeader
+        eyebrow={`${format(parseISO(today), 'EEEE, MMMM d')} · Day ${currentDay} of ${totalDays}`}
+        title="Today"
+        support="One recommendation at a time, and a plan cut to the hours you actually have."
+        action={
+          <Button asChild variant="outline" size="sm">
+            <Link to="/focus">Focus mode</Link>
+          </Button>
+        }
+      />
+
+      {/* Day-level context, grouped so two notes never sit a full section apart. Both are quiet
+          by design: neither is more important than the recommendation below them. */}
+      {(isWeeklyDay || returning) && (
+        <div className="flex flex-col gap-5">
+          {isWeeklyDay && <WeeklyRevisionBanner count={revisionIds.length} />}
+          {returning && <ReturnNotice daysAway={daysAway} plannedMinutes={plannedMinutes} />}
         </div>
-        <Button asChild variant="outline" size="sm">
-          <Link to="/focus">Focus mode</Link>
-        </Button>
-      </header>
+      )}
 
-      {returning && <ReturnNotice daysAway={daysAway} plannedMinutes={plannedMinutes} />}
-
-      {isWeeklyDay && <WeeklyRevisionBanner count={revisionIds.length} />}
-
+      {/* The page's one plate. */}
       {ranked.length > 0 ? (
         <NextActionCard ranked={ranked} />
       ) : (
@@ -79,15 +91,18 @@ export default function TodayPage() {
 
       <SessionPlan ranked={ranked} />
 
-      <div className="glass p-5">
+      {/* A bar and its caption, ruled off. It needs no heading — "3 / 8 solved today" is its own
+          label — and no box, because a progress bar already draws one edge and a plate would add
+          a second. */}
+      <Section aria-label="Daily goal" divider>
         <DailyGoalProgress solvedToday={solvedToday} perDay={perDay} />
-      </div>
+      </Section>
 
       <CourseTodayCard />
 
       <TodayTasks />
 
-      <p className="text-center text-xs text-muted-foreground">
+      <p className="text-sm text-muted-foreground">
         Looking for the full lists?{' '}
         <Link to="/roadmap" className="underline underline-offset-2">
           Roadmap
@@ -98,6 +113,6 @@ export default function TodayPage() {
         </Link>{' '}
         has the whole queue.
       </p>
-    </div>
+    </Page>
   );
 }

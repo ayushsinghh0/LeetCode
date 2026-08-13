@@ -565,9 +565,21 @@ function validateIntelligence(intel, titlesByPattern, difficultyByTitle) {
 //    structures and algorithms" and stops has no pattern-level content to map, and the schema
 //    refuses to let one be invented for it.
 //  - There is no per-problem field anywhere. See the file's own _readme for why.
+//  - `namedProblems` is the one place a source's own problem wording may be recorded, and it is
+//    NOT a mapping: the strings are shown exactly as the page phrases them. Because that field is
+//    the closest this dataset comes to a per-problem claim, it may only exist alongside a
+//    substantial `namedProblemsNote` bounding what is being claimed — enforced below.
 const EVIDENCE_TIERS = new Set(['topics', 'categories', 'avoids-puzzles']);
 const ISO_DATE = /^\d{4}-\d{2}-\d{2}$/;
 const MIN_QUOTE_CHARS = 40;
+// A caveat short enough to fit in a tweet is not a caveat. The LinkedIn entry — 2016, one
+// specialist role, explicitly the warm-up tier — needs all three of those facts to be read
+// correctly, and any future entry here will need something similar.
+const MIN_PROBLEM_NOTE_CHARS = 120;
+const COMPANY_FIELDS = [
+  'id', 'name', 'sourceLabel', 'url', 'checkedAt', 'evidence', 'quote',
+  'namedTopics', 'patterns', 'namedProblems', 'namedProblemsNote', 'note',
+];
 
 function validateCompanies(companies, patternIds) {
   const errors = [];
@@ -580,6 +592,11 @@ function validateCompanies(companies, patternIds) {
     ids.add(c.id);
 
     if (typeof c.name !== 'string' || c.name.trim() === '') errors.push(`${where}: empty name`);
+    // The UI attributes the quote to a named page, not just to a company — "Google Careers —
+    // Software Engineer interview prep guide" is a checkable citation, "Google" is a brand.
+    if (typeof c.sourceLabel !== 'string' || c.sourceLabel.trim() === '') {
+      errors.push(`${where}: sourceLabel must name the specific page being quoted`);
+    }
     if (typeof c.url !== 'string' || !c.url.startsWith('https://')) {
       errors.push(`${where}: url must be an https first-party link`);
     }
@@ -611,8 +628,346 @@ function validateCompanies(companies, patternIds) {
       errors.push(`${where}: evidence is "topics" but no patterns were mapped`);
     }
 
+    if (c.namedProblems !== undefined) {
+      if (!Array.isArray(c.namedProblems) || c.namedProblems.some((p) => typeof p !== 'string' || !p.trim())) {
+        errors.push(`${where}: namedProblems must be an array of non-empty verbatim strings`);
+      } else if (c.namedProblems.length > 0) {
+        if (typeof c.namedProblemsNote !== 'string' || c.namedProblemsNote.trim().length < MIN_PROBLEM_NOTE_CHARS) {
+          errors.push(
+            `${where}: namedProblems is populated but namedProblemsNote is missing or too short ` +
+              `(${MIN_PROBLEM_NOTE_CHARS}+ chars) — a problem-level claim must carry its own scope and limits`,
+          );
+        }
+      }
+    }
+    if (c.namedProblemsNote !== undefined && (c.namedProblems ?? []).length === 0) {
+      errors.push(`${where}: namedProblemsNote without namedProblems`);
+    }
+
     for (const key of Object.keys(c)) {
-      if (!['id', 'name', 'url', 'checkedAt', 'evidence', 'quote', 'namedTopics', 'patterns', 'note'].includes(key)) {
+      if (!COMPANY_FIELDS.includes(key)) {
+        errors.push(`${where}: unknown field "${key}"`);
+      }
+    }
+  }
+
+  return errors;
+}
+
+// ── ML implementation tracks & project ladder ──────────────────────────────────────────
+// scripts/data/ml-implementation.json → src/data/mlTracks.json
+// scripts/data/ml-projects.json       → src/data/mlProjects.json
+//
+// Same closed-world discipline as everything else, against two reference sets that live
+// outside these files:
+//
+//  - `weekId` must be a real week id from src/data/aimlCourse.ts, or an EXPLICIT null. Many are
+//    null on purpose: the 26-week course runs orientation → neural networks → transformers →
+//    PyTorch → agents → RAG → fine-tuning → RL → evals, so it contains no classical-ML week and
+//    k-means, PCA, decision trees and naive Bayes have nowhere honest to attach. A missing key
+//    is a failure; a stated null is a fact. That distinction is the whole rule — inventing a
+//    mapping would be a false claim about the curriculum, and so would quietly dropping the field.
+//  - `prereqs` / `prereqTracks` must resolve to a real track id, and the prereq graph must be
+//    acyclic. At eleven nodes a cycle is invisible to the eye and would make the ladder
+//    unorderable, so it is checked rather than trusted.
+//
+// Every track carries all five stages (math → scratch → library → experiment → failure), each
+// non-empty, and `failure` needs at least two entries: by the file's own _readme the failure list
+// is its highest-value content, and one entry is a caveat rather than a failure analysis.
+//
+// Two content gates worth naming, because they guard the claim this data makes about itself:
+// an experiment's `expect` and a stated `baseline.score` must both contain a digit. Both fields
+// exist to carry a measured number; prose where a number belongs is exactly how a "measured"
+// dataset turns into a remembered one. And where `baseline.score` is null — the honest answer
+// when the figure is a property of the learner's own system — a substantial `note` is mandatory,
+// because a null without a note reads as a gap in the research rather than a refusal to invent.
+const ML_STAGE_ORDER = ['math', 'scratch', 'library', 'experiment', 'failure'];
+const ML_TRACK_FIELDS = ['id', 'title', 'weekId', 'prereqs', 'minutes', 'tests', 'stages'];
+const ML_TRACK_MINUTES = [30, 300];
+const ML_MIN_FAILURES = 2;
+const ML_FAILURE_FIELDS = ['symptom', 'cause', 'fix'];
+// [required text fields, {listField: minimumLength}]
+const ML_STAGE_SCHEMA = {
+  math: { text: ['summary', 'detail'], objectLists: { symbols: [4, ['symbol', 'meaning']] } },
+  scratch: { text: ['summary'], lists: { checklist: 5, shapes: 3 } },
+  library: { text: ['summary', 'version', 'detail'], lists: { api: 3 } },
+  experiment: { text: ['summary', 'dataset', 'metric', 'expect'] },
+};
+
+const ML_TIERS = ['beginner', 'intermediate', 'advanced', 'deep-learning', 'nlp', 'modern-ai', 'production'];
+const ML_PROJECT_FIELDS = [
+  'id', 'tier', 'order', 'title', 'objective', 'dataset', 'baseline', 'metric',
+  'experiments', 'errorAnalysis', 'iteration', 'deployment', 'retrospective', 'hours',
+  'prereqTracks', 'weekId',
+];
+const ML_DATASET_FIELDS = ['name', 'source', 'size', 'license', 'checkedAt', 'note'];
+const ML_BASELINE_FIELDS = ['model', 'score', 'metric', 'note'];
+const ML_METRIC_FIELDS = ['name', 'why'];
+// A `why` that only praises the chosen metric is not a justification. The length floor is a
+// proxy for "argues against the obvious alternative in one sentence" — the shortest one on file
+// is 263 chars, so this catches a field being emptied out, not honest brevity.
+const ML_MIN_WHY_CHARS = 120;
+const ML_MIN_NULL_BASELINE_NOTE = 120;
+const ML_PROJECT_HOURS = [2, 60];
+const ML_EXPERIMENTS = [2, 4];
+// The two fields the projects file exists to refuse. Answers shipped alongside the retrospective
+// turn the ladder back into a tutorial, and they are properties of the learner's own runs.
+const ML_FORBIDDEN_PROJECT_FIELDS = ['solution', 'walkthrough', 'answers'];
+
+const isText = (v) => typeof v === 'string' && v.trim() !== '';
+const isTextList = (v, min) => Array.isArray(v) && v.length >= min && v.every(isText);
+const hasDigit = (v) => typeof v === 'string' && /\d/.test(v);
+
+/** Course week ids, read straight out of the hand-maintained TS module — one source of truth. */
+function courseWeekIds() {
+  const source = readFileSync(join(root, 'src', 'data', 'aimlCourse.ts'), 'utf8');
+  return new Set([...source.matchAll(/\bid: '([^']+)'/g)].map((m) => m[1]));
+}
+
+/** First cycle in a prereq graph, as a readable path, or null. Missing edges are ignored here. */
+function findCycle(edges) {
+  const state = new Map();
+  const stack = [];
+  let cycle = null;
+  const visit = (id) => {
+    if (cycle) return;
+    const seen = state.get(id);
+    if (seen === 'done') return;
+    if (seen === 'open') {
+      cycle = [...stack.slice(stack.indexOf(id)), id];
+      return;
+    }
+    state.set(id, 'open');
+    stack.push(id);
+    for (const next of edges.get(id) ?? []) visit(next);
+    stack.pop();
+    state.set(id, 'done');
+  };
+  for (const id of edges.keys()) visit(id);
+  return cycle;
+}
+
+function validateStage(where, name, stage, errors) {
+  if (name === 'failure') {
+    if (!Array.isArray(stage) || stage.length < ML_MIN_FAILURES) {
+      errors.push(
+        `${where}: the failure stage needs ${ML_MIN_FAILURES}+ entries — one entry is a caveat, ` +
+          `not a failure analysis, and this is the field the dataset exists for`,
+      );
+      return;
+    }
+    stage.forEach((f, i) => {
+      for (const field of ML_FAILURE_FIELDS) {
+        if (!isText(f?.[field])) errors.push(`${where}: failure[${i}] has an empty ${field}`);
+      }
+      for (const key of Object.keys(f ?? {})) {
+        if (!ML_FAILURE_FIELDS.includes(key)) errors.push(`${where}: failure[${i}] unknown field "${key}"`);
+      }
+    });
+    return;
+  }
+
+  const schema = ML_STAGE_SCHEMA[name];
+  if (typeof stage !== 'object' || stage === null || Array.isArray(stage)) {
+    errors.push(`${where}: the ${name} stage must be an object`);
+    return;
+  }
+  for (const field of schema.text) {
+    if (!isText(stage[field])) errors.push(`${where}: ${name}.${field} is empty`);
+  }
+  for (const [field, min] of Object.entries(schema.lists ?? {})) {
+    if (!isTextList(stage[field], min)) {
+      errors.push(`${where}: ${name}.${field} must be ${min}+ non-empty strings`);
+    }
+  }
+  for (const [field, [min, keys]] of Object.entries(schema.objectLists ?? {})) {
+    const list = stage[field];
+    if (!Array.isArray(list) || list.length < min) {
+      errors.push(`${where}: ${name}.${field} must have ${min}+ entries`);
+    } else {
+      list.forEach((entry, i) => {
+        for (const key of keys) {
+          if (!isText(entry?.[key])) errors.push(`${where}: ${name}.${field}[${i}].${key} is empty`);
+        }
+      });
+    }
+  }
+  const known = [...schema.text, ...Object.keys(schema.lists ?? {}), ...Object.keys(schema.objectLists ?? {})];
+  for (const key of Object.keys(stage)) {
+    if (!known.includes(key)) errors.push(`${where}: ${name} has unknown field "${key}"`);
+  }
+  // A stated expectation with no figure in it is a recollection wearing a measurement's clothes.
+  if (name === 'experiment' && isText(stage.expect) && !hasDigit(stage.expect)) {
+    errors.push(`${where}: experiment.expect states no number — every expectation here is a measured run`);
+  }
+}
+
+function validateMlTracks(source, weekIds) {
+  const errors = [];
+  const tracks = source.tracks;
+  if (!Array.isArray(tracks) || tracks.length === 0) return { errors: ['ml-tracks: no tracks in the source file'], trackIds: new Set() };
+
+  const trackIds = new Set();
+  for (const t of tracks) {
+    const where = `track "${t.id}"`;
+    if (!KEBAB.test(t.id ?? '')) errors.push(`${where}: id must be kebab-case`);
+    if (trackIds.has(t.id)) errors.push(`${where}: duplicate id`);
+    trackIds.add(t.id);
+
+    if (!isText(t.title)) errors.push(`${where}: empty title`);
+    if (!isText(t.tests)) errors.push(`${where}: empty tests — a track must say what it tests`);
+    const [lo, hi] = ML_TRACK_MINUTES;
+    if (!Number.isInteger(t.minutes) || t.minutes < lo || t.minutes > hi) {
+      errors.push(`${where}: minutes must be an integer in ${lo}..${hi}, got ${t.minutes}`);
+    }
+
+    if (!('weekId' in t)) {
+      errors.push(`${where}: weekId is missing — write an explicit null where the course has no week`);
+    } else if (t.weekId !== null && !weekIds.has(t.weekId)) {
+      errors.push(`${where}: weekId "${t.weekId}" is not a week in aimlCourse.ts (use null, never a near miss)`);
+    }
+
+    if (!Array.isArray(t.prereqs)) {
+      errors.push(`${where}: prereqs must be an array`);
+    } else {
+      if (new Set(t.prereqs).size !== t.prereqs.length) errors.push(`${where}: duplicate prereq`);
+      if (t.prereqs.includes(t.id)) errors.push(`${where}: lists itself as a prereq`);
+    }
+
+    if (typeof t.stages !== 'object' || t.stages === null || Array.isArray(t.stages)) {
+      errors.push(`${where}: stages must be an object with all five stages`);
+    } else {
+      for (const stage of ML_STAGE_ORDER) {
+        if (!(stage in t.stages)) errors.push(`${where}: missing the "${stage}" stage`);
+        else validateStage(where, stage, t.stages[stage], errors);
+      }
+      for (const key of Object.keys(t.stages)) {
+        if (!ML_STAGE_ORDER.includes(key)) errors.push(`${where}: unknown stage "${key}"`);
+      }
+    }
+
+    for (const key of Object.keys(t)) {
+      if (!ML_TRACK_FIELDS.includes(key)) errors.push(`${where}: unknown field "${key}"`);
+    }
+  }
+
+  // Reference + cycle checks once every id is known.
+  const edges = new Map();
+  for (const t of tracks) {
+    const resolved = (Array.isArray(t.prereqs) ? t.prereqs : []).filter((p) => {
+      if (!trackIds.has(p)) {
+        errors.push(`track "${t.id}": prereq "${p}" is not a track id`);
+        return false;
+      }
+      return true;
+    });
+    edges.set(t.id, resolved);
+  }
+  const cycle = findCycle(edges);
+  if (cycle) errors.push(`ml-tracks: prereq cycle ${cycle.join(' → ')} — the ladder cannot be ordered`);
+
+  return { errors, trackIds };
+}
+
+function validateMlProjects(source, trackIds, weekIds) {
+  const errors = [];
+  const projects = source.projects;
+  if (!Array.isArray(projects) || projects.length === 0) return ['ml-projects: no projects in the source file'];
+
+  const ids = new Set();
+  const slots = new Set();
+  for (const p of projects) {
+    const where = `project "${p.id}"`;
+    if (!KEBAB.test(p.id ?? '')) errors.push(`${where}: id must be kebab-case`);
+    if (ids.has(p.id)) errors.push(`${where}: duplicate id`);
+    ids.add(p.id);
+
+    if (!ML_TIERS.includes(p.tier)) errors.push(`${where}: unknown tier "${p.tier}"`);
+    if (!Number.isInteger(p.order) || p.order < 1) errors.push(`${where}: order must be a positive integer`);
+    const slot = `${p.tier}#${p.order}`;
+    if (slots.has(slot)) errors.push(`${where}: tier slot ${slot} is already taken — order is the reading sequence`);
+    slots.add(slot);
+
+    for (const field of ['title', 'objective', 'iteration']) {
+      if (!isText(p[field])) errors.push(`${where}: empty ${field}`);
+    }
+    if (!isTextList(p.experiments, ML_EXPERIMENTS[0]) || p.experiments.length > ML_EXPERIMENTS[1]) {
+      errors.push(`${where}: experiments must be ${ML_EXPERIMENTS[0]}-${ML_EXPERIMENTS[1]} non-empty strings`);
+    }
+    if (!isTextList(p.errorAnalysis, 3)) errors.push(`${where}: errorAnalysis must be 3+ non-empty strings`);
+    if (!isTextList(p.retrospective, 3)) errors.push(`${where}: retrospective must be 3+ non-empty questions`);
+    if (p.deployment !== null && !isText(p.deployment)) {
+      errors.push(`${where}: deployment must be a string or an explicit null`);
+    }
+    const [hlo, hhi] = ML_PROJECT_HOURS;
+    if (!Number.isInteger(p.hours) || p.hours < hlo || p.hours > hhi) {
+      errors.push(`${where}: hours must be an integer in ${hlo}..${hhi}, got ${p.hours}`);
+    }
+
+    // --- dataset ---
+    const d = p.dataset ?? {};
+    for (const field of ['name', 'source', 'size', 'license']) {
+      if (!isText(d[field])) errors.push(`${where}: dataset.${field} is empty`);
+    }
+    if (!ISO_DATE.test(d.checkedAt ?? '')) errors.push(`${where}: dataset.checkedAt must be yyyy-MM-dd`);
+    if (d.note !== undefined && !isText(d.note)) errors.push(`${where}: dataset.note is present but empty`);
+    for (const key of Object.keys(d)) {
+      if (!ML_DATASET_FIELDS.includes(key)) errors.push(`${where}: dataset has unknown field "${key}"`);
+    }
+
+    // --- baseline: the field the file exists for ---
+    const b = p.baseline ?? {};
+    if (!isText(b.model)) errors.push(`${where}: baseline.model is empty — name the dumb model`);
+    if (!isText(b.metric)) errors.push(`${where}: baseline.metric is empty — a score means nothing unlabelled`);
+    if (b.score === null) {
+      if (!isText(b.note) || b.note.trim().length < ML_MIN_NULL_BASELINE_NOTE) {
+        errors.push(
+          `${where}: baseline.score is null but the note is missing or under ${ML_MIN_NULL_BASELINE_NOTE} ` +
+            `chars — a null is a refusal to invent a number, and must say who establishes it`,
+        );
+      }
+    } else if (!isText(b.score)) {
+      errors.push(`${where}: baseline.score must be a stated string or an explicit null`);
+    } else if (!hasDigit(b.score)) {
+      errors.push(`${where}: baseline.score "${b.score}" contains no figure`);
+    }
+    if (b.note !== undefined && !isText(b.note)) errors.push(`${where}: baseline.note is present but empty`);
+    for (const key of Object.keys(b)) {
+      if (!ML_BASELINE_FIELDS.includes(key)) errors.push(`${where}: baseline has unknown field "${key}"`);
+    }
+
+    // --- metric: name plus the argument against the obvious alternative ---
+    const m = p.metric ?? {};
+    if (!isText(m.name)) errors.push(`${where}: metric.name is empty`);
+    if (!isText(m.why) || m.why.trim().length < ML_MIN_WHY_CHARS) {
+      errors.push(
+        `${where}: metric.why must be ${ML_MIN_WHY_CHARS}+ chars arguing against the obvious ` +
+          `alternative — accuracy-by-default is the habit this field exists to break`,
+      );
+    }
+    for (const key of Object.keys(m)) {
+      if (!ML_METRIC_FIELDS.includes(key)) errors.push(`${where}: metric has unknown field "${key}"`);
+    }
+
+    // --- references ---
+    if (!Array.isArray(p.prereqTracks) || p.prereqTracks.length === 0) {
+      errors.push(`${where}: prereqTracks must name at least one implementation track`);
+    } else {
+      if (new Set(p.prereqTracks).size !== p.prereqTracks.length) errors.push(`${where}: duplicate prereqTrack`);
+      for (const t of p.prereqTracks) {
+        if (!trackIds.has(t)) errors.push(`${where}: prereqTrack "${t}" is not a track id`);
+      }
+    }
+    if (!('weekId' in p)) {
+      errors.push(`${where}: weekId is missing — write an explicit null where the course has no week`);
+    } else if (p.weekId !== null && !weekIds.has(p.weekId)) {
+      errors.push(`${where}: weekId "${p.weekId}" is not a week in aimlCourse.ts (use null, never a near miss)`);
+    }
+
+    for (const key of Object.keys(p)) {
+      if (ML_FORBIDDEN_PROJECT_FIELDS.includes(key)) {
+        errors.push(`${where}: "${key}" is not supported — a project that ships its answers is a tutorial`);
+      } else if (!ML_PROJECT_FIELDS.includes(key)) {
         errors.push(`${where}: unknown field "${key}"`);
       }
     }
@@ -678,6 +1033,20 @@ const companiesSource = JSON.parse(readFileSync(join(root, 'scripts', 'data', 'c
 const companyErrors = validateCompanies(companiesSource.companies, new Set(titlesByPattern.keys()));
 if (companyErrors.length > 0) {
   for (const e of companyErrors) console.error(`COMPANIES: ${e}`);
+  process.exitCode = 1;
+}
+
+const mlTracksSource = JSON.parse(readFileSync(join(root, 'scripts', 'data', 'ml-implementation.json'), 'utf8'));
+const mlProjectsSource = JSON.parse(readFileSync(join(root, 'scripts', 'data', 'ml-projects.json'), 'utf8'));
+const weekIds = courseWeekIds();
+const { errors: mlTrackErrors, trackIds } = validateMlTracks(mlTracksSource, weekIds);
+if (mlTrackErrors.length > 0) {
+  for (const e of mlTrackErrors) console.error(`ML-TRACKS: ${e}`);
+  process.exitCode = 1;
+}
+const mlProjectErrors = validateMlProjects(mlProjectsSource, trackIds, weekIds);
+if (mlProjectErrors.length > 0) {
+  for (const e of mlProjectErrors) console.error(`ML-PROJECTS: ${e}`);
   process.exitCode = 1;
 }
 
@@ -772,6 +1141,18 @@ writeFileSync(
   JSON.stringify(companiesSource.companies, null, 2) + '\n',
 );
 
+// ML tracks and projects pass through unchanged apart from dropping each source file's _readme
+// (which is written for the editor of the source, not for the app). Nothing is derived here: the
+// app reads exactly the content that was validated above.
+writeFileSync(
+  join(root, 'src', 'data', 'mlTracks.json'),
+  JSON.stringify(mlTracksSource.tracks, null, 2) + '\n',
+);
+writeFileSync(
+  join(root, 'src', 'data', 'mlProjects.json'),
+  JSON.stringify(mlProjectsSource.projects, null, 2) + '\n',
+);
+
 const byDiff = questions.reduce((a, q) => ((a[q.difficulty] = (a[q.difficulty] ?? 0) + 1), a), {});
 const linked = questions.filter((q) => q.url).length;
 const inFamily = questions.filter((q) => q.familyId).length;
@@ -785,6 +1166,20 @@ const withComplexity = questions.filter((q) => q.complexity).length;
 const estMinutes = questions.reduce((s, q) => s + q.estimatedTime, 0);
 console.log('question types:', byType);
 console.log(`complexity stated: ${withComplexity}/${questions.length}; total estimated ${Math.round(estMinutes / 60)}h`);
+const mlTracks = mlTracksSource.tracks;
+const mlProjects = mlProjectsSource.projects;
+const failureCount = mlTracks.reduce((s, t) => s + t.stages.failure.length, 0);
+console.log(
+  `ml tracks: ${mlTracks.length} (${mlTracks.filter((t) => t.weekId !== null).length} attached to a course week, ` +
+    `${mlTracks.filter((t) => t.weekId === null).length} deliberately unattached); ` +
+    `${failureCount} documented failure modes`,
+);
+console.log(
+  `ml projects: ${mlProjects.length} across ${new Set(mlProjects.map((p) => p.tier)).size} tiers, ` +
+    `${mlProjects.filter((p) => p.baseline.score !== null).length} with a stated baseline score, ` +
+    `${mlProjects.filter((p) => p.baseline.score === null).length} the learner must establish; ` +
+    `${mlProjects.reduce((s, p) => s + p.hours, 0)}h of work`,
+);
 if (difficultyMismatches.length > 0) {
   console.log(`difficulty disagreements vs LeetCode (informational, not applied): ${difficultyMismatches.length}`);
   for (const m of difficultyMismatches) console.log(m);

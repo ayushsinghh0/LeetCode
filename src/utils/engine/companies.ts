@@ -79,35 +79,74 @@ export function companyCoverage(
 }
 
 /**
+ * One question in a company practice set, carrying the only honest answer to "why is this here?".
+ *
+ * The reason is never "this company asks it" — it is "this question sits in a roadmap pattern
+ * that was mapped from a topic this company's own page names", plus "you are weakest there".
+ * Both halves are returned so the UI can say it rather than imply it.
+ */
+export interface PracticePick {
+  question: Question;
+  /** The mapped pattern this question belongs to. */
+  pattern: PatternId;
+  /** The learner's standing in that pattern — which is also why the set is ordered as it is. */
+  standing: CompanyPatternCoverage['standing'];
+}
+
+/**
  * A practice set for one company: unsolved questions in its named patterns, gap patterns first,
  * easiest first inside a pattern so the set has an on-ramp rather than a wall.
  *
  * Explicitly NOT "questions this company asks". It is the roadmap's own material, filtered by
  * topics the company published, ordered by where this learner is weakest.
  */
+export function practicePicks(
+  coverage: CompanyCoverage,
+  all: Question[],
+  byId: Record<number, QuestionProgress>,
+  limit = 8,
+): PracticePick[] {
+  const rank: Record<CompanyPatternCoverage['standing'], number> = { gap: 0, developing: 1, strong: 2 };
+  const standingByPattern = new Map(coverage.patterns.map((r) => [r.pattern, r.standing]));
+  const difficultyRank = { easy: 0, medium: 1, hard: 2 } as const;
+  const orderOf = (q: Question) => rank[standingByPattern.get(q.pattern)!];
+
+  return all
+    .filter(
+      (q) => standingByPattern.has(q.pattern) && (byId[q.id]?.status ?? 'unsolved') === 'unsolved',
+    )
+    .sort((a, b) => {
+      const byStanding = orderOf(a) - orderOf(b);
+      if (byStanding !== 0) return byStanding;
+      const byDifficulty = difficultyRank[a.difficulty] - difficultyRank[b.difficulty];
+      if (byDifficulty !== 0) return byDifficulty;
+      return a.id - b.id;
+    })
+    .slice(0, limit)
+    .map((question) => ({
+      question,
+      pattern: question.pattern,
+      standing: standingByPattern.get(question.pattern)!,
+    }));
+}
+
+/** The same set, questions only — for callers that do not need the attribution. */
 export function companyPracticeSet(
   coverage: CompanyCoverage,
   all: Question[],
   byId: Record<number, QuestionProgress>,
   limit = 8,
 ): Question[] {
-  const rank: Record<CompanyPatternCoverage['standing'], number> = { gap: 0, developing: 1, strong: 2 };
-  const order = new Map(coverage.patterns.map((r) => [r.pattern, rank[r.standing]]));
-  const difficultyRank = { easy: 0, medium: 1, hard: 2 } as const;
-
-  return all
-    .filter((q) => order.has(q.pattern) && (byId[q.id]?.status ?? 'unsolved') === 'unsolved')
-    .sort((a, b) => {
-      const byStanding = order.get(a.pattern)! - order.get(b.pattern)!;
-      if (byStanding !== 0) return byStanding;
-      const byDifficulty = difficultyRank[a.difficulty] - difficultyRank[b.difficulty];
-      if (byDifficulty !== 0) return byDifficulty;
-      return a.id - b.id;
-    })
-    .slice(0, limit);
+  return practicePicks(coverage, all, byId, limit).map((p) => p.question);
 }
 
-/** Minutes a practice set would take, at the learner's own pace where known. */
+/**
+ * Minutes a practice set would take, at the questions' own authored estimates.
+ *
+ * Deliberately NOT personalised: `engine/timeEstimate.ts` only reports a personal figure at five
+ * comparable measurements, and a set of eight questions the learner has never attempted has no
+ * such sample. The UI writes `~` in front of this for the same reason.
+ */
 export function practiceSetMinutes(set: Question[]): number {
   return set.reduce((sum, q) => sum + q.estimatedTime, 0);
 }

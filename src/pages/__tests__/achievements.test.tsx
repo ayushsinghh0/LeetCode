@@ -15,21 +15,45 @@ afterEach(() => {
   vi.useRealTimers();
 });
 
+// The page leads with what you earned and keeps the (much longer) unearned catalogue behind one
+// disclosure, so every locked-state assertion has to open it first.
+function showLockedList() {
+  fireEvent.click(screen.getByRole('button', { name: 'Show list' }));
+}
+
 describe('AchievementsPage', () => {
   test('sanity: the achievements engine exposes exactly 59 defs', () => {
     expect(TOTAL).toBe(59);
   });
 
-  test('fresh store: renders all 59 achievement cards (locked) and "Unlocked 0 / 59"', () => {
+  test('fresh store: header reads "Unlocked 0 / 59" and the locked list holds all 59 defs once expanded', () => {
     renderWithStore(<AchievementsPage />);
 
-    // Locked state is announced by a role="img" "Locked" badge on each card (an aria-label on
+    expect(screen.getByText('Unlocked 0 / 59')).toBeInTheDocument();
+    // Collapsed by default: the six group headings are the index, the 59 defs are not on screen.
+    expect(screen.queryByText('First Blood')).not.toBeInTheDocument();
+
+    showLockedList();
+
+    // Locked state is announced by a role="img" "Locked" badge on each row (an aria-label on
     // the bare card div was ignored by AT — deliberate a11y rework).
     for (const def of ACHIEVEMENTS) {
       expect(screen.getByText(def.title)).toBeInTheDocument();
     }
     expect(screen.getAllByRole('img', { name: 'Locked' })).toHaveLength(TOTAL);
-    expect(screen.getByText('Unlocked 0 / 59')).toBeInTheDocument();
+  });
+
+  test('the locked list toggles closed again', () => {
+    renderWithStore(<AchievementsPage />);
+    const toggle = screen.getByRole('button', { name: 'Show list' });
+    expect(toggle).toHaveAttribute('aria-expanded', 'false');
+
+    fireEvent.click(toggle);
+    expect(screen.getByRole('button', { name: 'Hide list' })).toHaveAttribute('aria-expanded', 'true');
+    expect(screen.getByText('First Blood')).toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole('button', { name: 'Hide list' }));
+    expect(screen.queryByText('First Blood')).not.toBeInTheDocument();
   });
 
   test('a fixture-unlocked achievement shows its unlock date and bumps the header count; an untouched one stays locked', () => {
@@ -37,23 +61,34 @@ describe('AchievementsPage', () => {
     store.dispatch(achievementsUnlocked({ ids: ['first-solve'], date: '2026-07-30' }));
     renderWithStore(<AchievementsPage />, store);
 
-    const unlockedCard = screen.getByText('First Blood').closest('div')!;
-    expect(within(unlockedCard).getByText('Unlocked Jul 30, 2026')).toBeInTheDocument();
-    expect(within(unlockedCard).queryByRole('img', { name: 'Locked' })).not.toBeInTheDocument();
+    // Earned rows are open on the page — no disclosure, and each carries the date it was earned.
+    const unlockedRow = screen.getByText('First Blood').closest('li')!;
+    expect(within(unlockedRow).getByText('Unlocked Jul 30, 2026')).toBeInTheDocument();
+    expect(within(unlockedRow).queryByRole('img', { name: 'Locked' })).not.toBeInTheDocument();
     expect(screen.getByText('Unlocked 1 / 59')).toBeInTheDocument();
 
+    showLockedList();
+
     const lockedDef = ACHIEVEMENTS.find((a) => a.id === 'solved-539')!;
-    const lockedCard = screen.getByText(lockedDef.title).closest('div')!;
-    expect(within(lockedCard).getByRole('img', { name: 'Locked' })).toBeInTheDocument();
+    const lockedRow = screen.getByText(lockedDef.title).closest('li')!;
+    expect(within(lockedRow).getByRole('img', { name: 'Locked' })).toBeInTheDocument();
+    // The earned one is no longer in the locked list at all, so 58 badges remain.
     expect(screen.getAllByRole('img', { name: 'Locked' })).toHaveLength(TOTAL - 1);
   });
 
-  test('renders all six group section headings', () => {
-    renderWithStore(<AchievementsPage />);
+  test('renders all six group section headings, with a per-group earned tally, without expanding', () => {
+    const store = makeStore();
+    store.dispatch(achievementsUnlocked({ ids: ['first-solve'], date: '2026-07-30' }));
+    renderWithStore(<AchievementsPage />, store);
 
     for (const heading of ['Progress', 'Streaks', 'Patterns', 'Mastery', 'Course', 'Special']) {
       expect(screen.getByRole('heading', { name: heading })).toBeInTheDocument();
     }
+    // Progress holds first-solve plus the 6 solved-* milestones; one of the 7 is now earned.
+    const progressRow = screen.getByRole('heading', { name: 'Progress' }).closest('li')!;
+    expect(within(progressRow).getByText('1 / 7')).toBeInTheDocument();
+    expect(within(screen.getByRole('heading', { name: 'Patterns' }).closest('li')!).getByText('0 / 28'))
+      .toBeInTheDocument();
   });
 });
 

@@ -1,0 +1,466 @@
+{
+  "tracks": [
+    {
+      "id": "naive-bayes",
+      "title": "Naive Bayes by Counting",
+      "weekId": null,
+      "prereqs": [],
+      "minutes": 70,
+      "tests": "That you can build a working classifier with no optimiser at all — just counts, logs and a conditional-independence assumption you know how to defend and how to break.",
+      "stages": {
+        "math": {
+          "summary": "Score every class by log P(c) + Σ_j x_j · log P(j | c) and take the argmax. No gradients, no iterations — the parameters are counts.",
+          "detail": "Bayes' rule says P(c | x) ∝ P(c) · P(x | c). The intractable part is P(x | c), the joint distribution of every feature at once. The 'naive' move is to assume the features are conditionally independent given the class, so P(x | c) = Π_j P(x_j | c). That turns an impossible joint estimate into D separate one-dimensional ones.\n\nFor the multinomial model (counts: word frequencies, pixel intensities) the fitted parameters are two tables:\n\n  log P(c)     = log( N_c / N )\n  log P(j | c) = log( (F_cj + α) / (Σ_k F_ck + α·D) )\n\nwhere F_cj is the total count of feature j summed over the training rows of class c. The α terms are Laplace/Lidstone smoothing: without them a feature never seen with class c gives log 0 = -∞ and vetoes that class no matter what the rest of the evidence says.\n\nPrediction is then a single matrix multiply, because the log of a product is a sum:\n\n  score(x, c) = log P(c) + Σ_j x_j · log P(j | c)\n  ŷ = argmax_c score(x, c)\n\nThe scores are unnormalised log-joints, log P(x, c). If you want calibrated-looking probabilities, normalise with log-sum-exp: P(c|x) = exp(score_c - logsumexp(score)).\n\nFor continuous features the Gaussian variant replaces the count table with a per-class mean and variance, and the likelihood term becomes\n\n  log P(x_j | c) = -0.5·log(2π σ²_cj) - (x_j - μ_cj)² / (2 σ²_cj)\n\nSame skeleton, different likelihood. That substitution is the whole family: Bernoulli for presence/absence, Complement for imbalanced text.",
+          "symbols": [
+            { "symbol": "c", "meaning": "a class label; there are K of them" },
+            { "symbol": "x", "meaning": "one feature vector, D entries long" },
+            { "symbol": "x_j", "meaning": "the count (or value) of feature j in this example" },
+            { "symbol": "N", "meaning": "number of training examples; N_c is how many belong to class c" },
+            { "symbol": "F_cj", "meaning": "total count of feature j across all training rows of class c" },
+            { "symbol": "α", "meaning": "additive smoothing constant; α=1 is Laplace smoothing" },
+            { "symbol": "D", "meaning": "number of features (the vocabulary size, for text)" },
+            { "symbol": "μ_cj, σ²_cj", "meaning": "per-class mean and variance of feature j, used by the Gaussian variant" }
+          ]
+        },
+        "scratch": {
+          "summary": "Two fitted tables and one matmul. Fit is a groupby-sum; predict is X @ log_lik.T + log_prior. Everything happens in log space from the first line.",
+          "checklist": [
+            "fit: for each class c, select the rows with y == c, sum them column-wise into feature_count[c] and record class_count[c].",
+            "log_prior = log(class_count / class_count.sum()) — one number per class.",
+            "numerator = feature_count + alpha; log_lik = log(numerator) - log(numerator.sum(axis=1, keepdims=True)). Subtracting the log of the row sum is the same as dividing, and it keeps you in log space.",
+            "predict: scores = X @ log_lik.T + log_prior, then argmax along axis 1. That is the entire inference path.",
+            "predict_proba: subtract scores.max(axis=1, keepdims=True), exponentiate, divide by the row sum — log-sum-exp, not a naive exp.",
+            "Gaussian variant: compute per-class mean and var, add var_smoothing (1e-9 × the largest feature variance) to the denominator, and score with the Gaussian log-density instead of the count table.",
+            "Assert your log_lik rows exponentiate to 1.0 (np.allclose(np.exp(log_lik).sum(1), 1.0)) — a broken normalisation is invisible in the accuracy until it isn't."
+          ],
+          "shapes": [
+            "X: (N, D) non-negative counts (float64 is fine)",
+            "y: (N,) integer class labels in [0, K)",
+            "class_count: (K,)",
+            "feature_count: (K, D)",
+            "log_prior: (K,)",
+            "log_lik: (K, D) — row c is the log distribution over features given class c",
+            "scores = X @ log_lik.T + log_prior: (N, K)",
+            "Gaussian variant: theta (means) and var both (K, D)"
+          ]
+        },
+        "library": {
+          "summary": "scikit-learn's naive_bayes module exposes exactly the two tables you just built, so you can diff your parameters against theirs rather than only comparing accuracy.",
+          "api": [
+            "sklearn.naive_bayes.MultinomialNB",
+            "sklearn.naive_bayes.GaussianNB",
+            "sklearn.naive_bayes.BernoulliNB",
+            "sklearn.naive_bayes.ComplementNB",
+            "sklearn.feature_extraction.text.CountVectorizer",
+            "sklearn.datasets.load_digits",
+            "sklearn.calibration.CalibratedClassifierCV"
+          ],
+          "version": "scikit-learn >=1.5 (signatures checked against 1.9.0)",
+          "detail": "MultinomialNB(*, alpha=1.0, force_alpha=True, fit_prior=True, class_prior=None). Note force_alpha: it arrived in 1.2 and its default flipped from False to True in 1.4, so on a modern install a tiny alpha is respected literally instead of being silently raised to 1e-10. If you are reading a tutorial written before 1.4, its smoothing behaviour is not what you will get.\n\nGaussianNB(*, priors=None, var_smoothing=1e-09) — var_smoothing is added to every variance as a fraction of the largest feature variance, which is what stops a constant feature from producing a divide-by-zero.\n\nThe fitted attributes are the point of this stage: class_log_prior_ has shape (K,) and feature_log_prob_ has shape (K, D), and they are literally your log_prior and log_lik. Diff them elementwise. predict_joint_log_proba(X) returns your scores matrix before normalisation.\n\nFor text, CountVectorizer(...) produces the non-negative integer matrix MultinomialNB expects; it returns a scipy sparse matrix, and X @ log_lik.T works on sparse input unchanged."
+        },
+        "experiment": {
+          "summary": "Fit your scratch MultinomialNB and scikit-learn's on the same split of the bundled digits dataset, then compare the fitted parameter tables — not just the accuracy.",
+          "dataset": "sklearn.datasets.load_digits() — 1797 8x8 handwritten digits, bundled with scikit-learn, no download. Pixel values are integers 0..16, so they are legitimately multinomial counts. Split with train_test_split(X, y, test_size=0.25, random_state=0, stratify=y) giving 1347 train / 450 test rows.",
+          "metric": "Test accuracy, plus max |your log_prior - clf.class_log_prior_| and max |your log_lik - clf.feature_log_prob_|.",
+          "expect": "Both models score exactly 0.9044 on the 450 test rows and agree on 100% of individual predictions. feature_log_prob_ should match to 0.0 (identical arithmetic) and class_log_prior_ to about 4e-16 (one float rounding). Accuracy is insensitive to alpha here — 1e-10, 0.01, 0.1 and 1.0 all give 0.9044, and only alpha=10 moves it, down to 0.9022. Then swap in GaussianNB on the same split: 0.8356. That seven-point drop is the lesson — the Gaussian likelihood is the wrong density for bounded integer pixel counts, and choosing the likelihood matters more than tuning the smoothing."
+        },
+        "failure": [
+          {
+            "symptom": "Every prediction is the same class, or predict_proba returns rows of exact zeros, once you have more than a few hundred features.",
+            "cause": "You multiplied probabilities instead of adding logs. A product of 64 numbers each around 0.01 is ~1e-128; with a real vocabulary it underflows float64 to exactly 0.0, and argmax over all-zeros returns index 0 every time.",
+            "fix": "Never leave log space. Store log_prior and log_lik as logs, score with X @ log_lik.T + log_prior, and if you need probabilities use log-sum-exp (subtract the row max before exponentiating)."
+          },
+          {
+            "symptom": "One class is never predicted at all, and its score is -inf for every test row.",
+            "cause": "alpha=0 with a feature that has zero count for that class. log 0 = -inf, and a single -inf term in the sum vetoes the class regardless of all the other evidence. In the digits training split there are 130 (class, pixel) pairs with zero count, so this fires immediately.",
+            "fix": "Keep alpha strictly positive (alpha=1.0 is the safe default). If you genuinely want unsmoothed counts for a comparison, pass alpha=1e-10 with force_alpha=True and expect the -inf behaviour."
+          },
+          {
+            "symptom": "ValueError: Negative values in data passed to MultinomialNB (input X).",
+            "cause": "You put a StandardScaler (or any centring step) in front of MultinomialNB. The multinomial likelihood is a distribution over counts; a negative count has no meaning, so scikit-learn refuses rather than producing nonsense.",
+            "fix": "Drop the scaler — multinomial NB does not need feature scaling. If your features really are continuous and signed, you want GaussianNB, which is the variant that models them."
+          },
+          {
+            "symptom": "predict_proba returns 0.99+ on nearly every row, including the ones it gets wrong.",
+            "cause": "The independence assumption is violated by correlated features, so the same evidence gets counted many times over and the log-odds are inflated. On digits, adjacent pixels are strongly correlated: mean top probability is 0.9959, 96% of rows exceed 0.99 — and on the 43 rows the model gets wrong the mean top probability is still 0.9823.",
+            "fix": "Treat the scores as a ranking, not a probability. The argmax is fine; the confidence is not. If you need usable probabilities, wrap the estimator in sklearn.calibration.CalibratedClassifierCV, or use fewer, less redundant features."
+          }
+        ]
+      }
+    },
+    {
+      "id": "neural-network",
+      "title": "A Two-Layer Neural Network from Scratch",
+      "weekId": "w02",
+      "prereqs": ["logistic-regression", "gradient-descent"],
+      "minutes": 150,
+      "tests": "That you can assemble logistic regression's machinery into a hidden layer and a training loop, and read the diagnostics — initial loss, dead units, scaling — that tell you whether it is learning or thrashing.",
+      "stages": {
+        "math": {
+          "summary": "Z1 = X W1 + b1 ; A1 = max(Z1, 0) ; Z2 = A1 W2 + b2 ; P = softmax(Z2) ; L = -(1/N) Σ_i log P[i, y_i]",
+          "detail": "A two-layer network is logistic regression with one learned feature-extraction step in front of it. The hidden layer computes a linear map followed by a pointwise nonlinearity; the output layer is a plain softmax classifier over those learned features.\n\nThe nonlinearity is the entire reason this is not just another linear model. Stack two linear layers with nothing between them and you get X W1 W2 + const, which is one linear layer wearing a disguise. ReLU, max(z, 0), breaks that collapse: it is piecewise linear, so the network as a whole becomes a piecewise-linear function with as many pieces as the units can carve out.\n\nSoftmax turns the K output logits into a distribution:\n\n  softmax(z)_k = exp(z_k - max z) / Σ_j exp(z_j - max z)\n\nThe subtraction of the row maximum is mathematically a no-op (it cancels in the ratio) and numerically essential — without it exp overflows to inf as soon as a logit exceeds about 709.\n\nThe loss is average cross-entropy over the batch, L = -(1/N) Σ_i log P[i, y_i]. Because the labels are one-hot, only one term per row survives.\n\nTraining is minibatch SGD: sample a batch, compute L, compute ∂L/∂θ for every parameter (that is the backpropagation track), and step θ ← θ - η · ∂L/∂θ.\n\nInitialisation is part of the maths, not an implementation detail. He initialisation draws W ~ N(0, 2/fan_in), which keeps the variance of the activations roughly constant as they pass through ReLU (the factor 2 compensates for ReLU zeroing half the distribution).",
+          "symbols": [
+            { "symbol": "X", "meaning": "input minibatch, one row per example" },
+            { "symbol": "W1, b1", "meaning": "hidden-layer weights and bias" },
+            { "symbol": "Z1", "meaning": "hidden pre-activations, before the nonlinearity" },
+            { "symbol": "A1", "meaning": "hidden activations, after ReLU" },
+            { "symbol": "W2, b2", "meaning": "output-layer weights and bias" },
+            { "symbol": "Z2", "meaning": "output logits — raw scores, not probabilities" },
+            { "symbol": "P", "meaning": "predicted class probabilities, softmax(Z2)" },
+            { "symbol": "Y", "meaning": "one-hot label matrix" },
+            { "symbol": "η", "meaning": "learning rate" },
+            { "symbol": "H", "meaning": "hidden width; N batch size, D input features, K classes" }
+          ]
+        },
+        "scratch": {
+          "summary": "Six functions: init, softmax, forward, loss, a backward pass, and a minibatch loop. Keep forward returning its intermediates — the backward pass needs Z1 and A1, and recomputing them is where subtle bugs live.",
+          "checklist": [
+            "init(D, H, K): W1 ~ N(0, sqrt(2/D)), b1 = zeros(H), b2 = zeros(K). Initialise W2 small — 0.01·randn or literally zeros — so the network starts with no opinion.",
+            "softmax(Z): subtract Z.max(axis=1, keepdims=True) before exp. Non-negotiable.",
+            "forward(params, X): return (Z1, A1, Z2, P), not just P. The backward pass consumes Z1 and A1.",
+            "loss: -(Y * log(P + 1e-12)).sum() / N. The epsilon guards log(0) when a probability underflows.",
+            "backward: dZ2 = (P - Y) / N ; gW2 = A1.T @ dZ2 ; gb2 = dZ2.sum(0) ; dA1 = dZ2 @ W2.T ; dZ1 = dA1 * (Z1 > 0) ; gW1 = X.T @ dZ1 ; gb1 = dZ1.sum(0). Divide by N exactly once, in dZ2.",
+            "train loop: shuffle indices each epoch with rng.permutation(N), slice batches of 32, and update every parameter in place: p -= lr * g.",
+            "Standardise the inputs before any of this (subtract the training mean, divide by the training std — fit on train only, then apply to test).",
+            "Instrument three things every epoch: the loss, the test accuracy, and the fraction of A1 entries that are exactly zero. The third one is your dead-ReLU alarm."
+          ],
+          "shapes": [
+            "X: (N, D) — (32, 64) for a digits minibatch",
+            "W1: (D, H) = (64, 64) ; b1: (H,)",
+            "Z1, A1: (N, H) = (32, 64)",
+            "W2: (H, K) = (64, 10) ; b2: (K,)",
+            "Z2, P: (N, K) = (32, 10)",
+            "Y one-hot: (N, K)",
+            "dZ2: (N, K) ; gW2: (H, K) ; gb2: (K,)",
+            "dA1, dZ1: (N, H) ; gW1: (D, H) ; gb1: (H,)"
+          ]
+        },
+        "library": {
+          "summary": "The same network is six lines of torch.nn, or one scikit-learn estimator. Build both so you have two independent references for the number your scratch version should hit.",
+          "api": [
+            "torch.nn.Sequential",
+            "torch.nn.Linear",
+            "torch.nn.ReLU",
+            "torch.nn.CrossEntropyLoss",
+            "torch.optim.SGD",
+            "sklearn.neural_network.MLPClassifier",
+            "sklearn.preprocessing.StandardScaler"
+          ],
+          "version": "PyTorch >=2.x (checked against 2.13) and scikit-learn >=1.5 (checked against 1.9.0)",
+          "detail": "nn.Sequential(nn.Linear(64, 64), nn.ReLU(), nn.Linear(64, 10)) is the whole model — note there is no softmax at the end. torch.nn.CrossEntropyLoss (and torch.nn.functional.cross_entropy(input, target, weight=None, size_average=None, ignore_index=-100, reduce=None, reduction='mean', label_smoothing=0.0)) expects raw unnormalised logits and applies log_softmax internally. Adding your own softmax before it applies the operation twice and is the single most common torch beginner bug. The target is a vector of class indices with shape (N,), not one-hot.\n\nnn.Linear stores its weight transposed relative to your scratch W1: layer.weight has shape (out_features, in_features), so the equivalent of your W1 is layer.weight.T. Check this before you conclude your gradients disagree.\n\nMLPClassifier(hidden_layer_sizes=(100,), activation='relu', *, solver='adam', alpha=0.0001, batch_size='auto', learning_rate='constant', learning_rate_init=0.001, max_iter=200, ...). Two defaults worth knowing: alpha=0.0001 is L2 regularisation and is on by default (your scratch net has none), and max_iter counts epochs, not gradient steps — the 'ConvergenceWarning: Stochastic Optimizer: Maximum iterations reached' you will see at the default 200 means it stopped early, not that it failed. Fitted attributes coefs_ and intercepts_ are lists of the per-layer arrays; loss_curve_ is the per-epoch training loss and n_iter_ the epochs actually run."
+        },
+        "experiment": {
+          "summary": "Train your scratch net on standardised digits with plain minibatch SGD, then train MLPClassifier on exactly the same split and compare. Two independent implementations landing on the same number is the only real proof your backward pass is right.",
+          "dataset": "sklearn.datasets.load_digits(), split with train_test_split(X, y, test_size=0.25, random_state=0, stratify=y), then StandardScaler().fit(X_train) applied to both halves. 1347 train / 450 test.",
+          "metric": "Test accuracy after training, plus the loss on the very first minibatch.",
+          "expect": "Scratch net with H=64, 60 epochs, batch size 32, lr=0.1: train accuracy 1.0000 and test accuracy about 0.978. MLPClassifier(hidden_layer_sizes=(64,), max_iter=400, random_state=0) on the same split reaches 0.9733, stopping after 172 epochs with a final training loss of 0.0065. If your scratch version lands more than roughly two points below 0.97, that is a bug in the backward pass, not a hyperparameter you need to tune. Separately, check the first-batch loss: with W2 initialised to zeros it should be 2.3026, exactly ln(10)."
+        },
+        "failure": [
+          {
+            "symptom": "Test accuracy sits at exactly 0.100 — chance for ten classes — and the loss is nan or frozen after the first few batches.",
+            "cause": "You skipped standardisation. Raw digit pixels run 0..16, so with lr=0.1 the first update is enormous, pre-activations blow up, and every unit either saturates or goes NaN. Measured on this exact setup: 0.1000 test accuracy versus 0.978 with scaling.",
+            "fix": "Fit StandardScaler on the training half and transform both halves. If you must train on raw features, drop the learning rate by roughly the scale of the inputs (here about 100x)."
+          },
+          {
+            "symptom": "The loss starts near 2.30 and stays there. Accuracy never leaves 10%, but nothing is NaN and no exception is raised.",
+            "cause": "Softmax applied twice — either you softmaxed before nn.CrossEntropyLoss, or in numpy you softmaxed inside forward and again inside the loss. The doubly-softmaxed logits are squashed into a narrow range, so the gradient signal is tiny and the model sits at the uniform-prediction loss ln(10) = 2.3026.",
+            "fix": "Exactly one softmax in the whole path. In torch, the model ends at nn.Linear and CrossEntropyLoss does the rest. In numpy, softmax lives in forward and the loss consumes P directly."
+          },
+          {
+            "symptom": "The first minibatch loss is 2.7 or 6.5 rather than the 2.30 you expected, and the first few hundred steps make no progress.",
+            "cause": "The output layer was initialised too wide, so the network starts with a confident random opinion it must unlearn before it can learn anything. Measured on digits with H=64: He-scaled output weights give an initial cross-entropy of 2.74, whereas W2 = 0 gives exactly 2.3026 and W2 = 0.01·randn gives 2.3031.",
+            "fix": "Use He initialisation for hidden layers and a deliberately small (or zero) initialisation for the final layer. Then assert that the very first loss is within a few thousandths of ln(K) — it is the cheapest sanity check in deep learning."
+          },
+          {
+            "symptom": "Accuracy climbs for a few epochs then freezes permanently, and a growing fraction of A1 is exactly 0.0 for every input.",
+            "cause": "Dead ReLUs. A too-large learning rate drove some units' pre-activations negative for every training example; ReLU's gradient there is exactly zero, so those units receive no gradient ever again and cannot recover.",
+            "fix": "Lower the learning rate, use He initialisation, and log mean(A1 == 0) each epoch. If it climbs past roughly half the units, restart with a smaller lr; switching to LeakyReLU keeps a small gradient alive on the negative side."
+          }
+        ]
+      }
+    },
+    {
+      "id": "backpropagation",
+      "title": "Backpropagation and Gradient Checking",
+      "weekId": "w02",
+      "prereqs": ["neural-network"],
+      "minutes": 110,
+      "tests": "That you can derive and verify the gradient of any composed function yourself — writing each local gradient by hand and then proving it correct with finite differences instead of trusting it.",
+      "stages": {
+        "math": {
+          "summary": "For a node y = f(x) with upstream gradient ḡ = ∂L/∂y, the local rule is ∂L/∂x = (∂y/∂x)ᵀ ḡ. Apply it to every node in reverse topological order and you have every gradient in one sweep.",
+          "detail": "Backpropagation is the chain rule with a specific evaluation order. A network is a composition L = f_n(f_{n-1}(...f_1(θ)...)), and the chain rule says ∂L/∂θ is a product of Jacobians. The only question is which end you multiply from.\n\nMultiply left-to-right (forward mode) and you compute the derivative with respect to one input at a time — cost proportional to the number of parameters. Multiply right-to-left (reverse mode) and you compute the derivative of one output with respect to everything at once — cost proportional to the number of outputs. A loss is a single scalar, so reverse mode wins by a factor of millions. That asymmetry is the whole reason deep learning is affordable.\n\nThe practical form never builds a Jacobian. Each node only needs to answer one question: given ḡ = ∂L/∂y, what is ∂L/∂x? That is a vector-Jacobian product, and for every operation you care about it has a closed form that is cheaper than the Jacobian itself. For Z = A B with A of shape (N, D) and B of shape (D, H), the Jacobian has N·H·D·H entries; the VJP is just dA = dZ Bᵀ.\n\nTwo bookkeeping rules make implementations correct by construction:\n\n  1. The gradient of a tensor always has exactly that tensor's shape. Assert it.\n  2. When a value is used more than once, its gradients from each use are summed. Fan-out in the forward pass is addition in the backward pass.\n\nVerification is finite differences. The central difference\n\n  ∂L/∂θ_i ≈ ( L(θ + ε e_i) - L(θ - ε e_i) ) / (2ε)\n\nhas error O(ε²), whereas the forward difference ( L(θ + ε e_i) - L(θ) ) / ε has error O(ε). Compare against the analytic gradient with a relative error, not an absolute one:\n\n  rel = |num - ana| / max(|num| + |ana|, tiny)",
+          "symbols": [
+            { "symbol": "L", "meaning": "the scalar loss — the single output everything is differentiated with respect to" },
+            { "symbol": "θ", "meaning": "the parameters; θ_i is one scalar entry of one parameter tensor" },
+            { "symbol": "ḡ (written dY in code)", "meaning": "the upstream gradient ∂L/∂Y arriving at a node from its consumers" },
+            { "symbol": "∂y/∂x", "meaning": "the node's local Jacobian — never materialised, only applied" },
+            { "symbol": "VJP", "meaning": "vector-Jacobian product: the closed-form way to apply that Jacobian to ḡ" },
+            { "symbol": "ε", "meaning": "the finite-difference step, typically 1e-5 in float64" },
+            { "symbol": "e_i", "meaning": "a one-hot perturbation isolating parameter entry i" }
+          ]
+        },
+        "scratch": {
+          "summary": "Write the local gradient of every primitive you use, then compose them backwards. This checklist is the table — derive each line yourself first, then check it against this.",
+          "checklist": [
+            "matmul, Z = A @ B  ->  dA = dZ @ B.T ; dB = A.T @ dZ. (Shapes force the answer: dA must match A, and only one arrangement conforms.)",
+            "bias add, Z = A + b with b broadcast over the batch  ->  dA = dZ ; db = dZ.sum(axis=0). The sum is the backward pass of broadcasting; forgetting it is the single most common shape bug.",
+            "general broadcasting  ->  sum the incoming gradient over every axis that was broadcast, then reshape to the original shape.",
+            "ReLU, A = maximum(Z, 0)  ->  dZ = dA * (Z > 0). At exactly zero the derivative is undefined; the convention is 0 and it does not matter in practice.",
+            "LeakyReLU with slope s  ->  dZ = dA * where(Z > 0, 1.0, s).",
+            "sigmoid, S = 1/(1+exp(-Z))  ->  dZ = dA * S * (1 - S). Reuse the forward output S, do not recompute.",
+            "tanh, T = tanh(Z)  ->  dZ = dA * (1 - T**2).",
+            "elementwise product, C = A * B  ->  dA = dC * B ; dB = dC * A.",
+            "row-wise softmax, P = softmax(Z)  ->  dZ = P * (dP - (dP * P).sum(axis=1, keepdims=True)). This is the softmax Jacobian applied without ever building it.",
+            "softmax + cross-entropy fused  ->  dZ = (P - Y) / N. Deriving this once and fusing it avoids both the Jacobian above and the 1/P blow-up when a probability is tiny.",
+            "mean over the batch, L = (1/N) Σ  ->  the 1/N belongs in exactly one place. Put it in dZ2 and never again.",
+            "sum along an axis  ->  broadcast the incoming gradient back along that axis.",
+            "reshape / transpose  ->  apply the inverse reshape / transpose to the gradient.",
+            "After every backward function, assert g.shape == param.shape. This catches roughly half of all backprop bugs before you ever run a gradient check.",
+            "Gradient checker: pick random scalar entries, perturb by ±ε in float64, recompute the loss both times, and compare the central difference against your analytic gradient by relative error."
+          ],
+          "shapes": [
+            "Every gradient has the shape of the thing it differentiates: gW1.shape == W1.shape, gb1.shape == b1.shape",
+            "dZ2: (N, K) ; A1.T @ dZ2 -> gW2: (H, K) ; dZ2.sum(0) -> gb2: (K,)",
+            "dZ2 @ W2.T -> dA1: (N, H) ; dA1 * (Z1 > 0) -> dZ1: (N, H)",
+            "X.T @ dZ1 -> gW1: (D, H) ; dZ1.sum(0) -> gb1: (H,)",
+            "gradient check inputs: a tiny batch, X (8, D) and Y (8, K) — you need correctness, not statistics",
+            "all parameters cast to float64 for the check"
+          ]
+        },
+        "library": {
+          "summary": "torch's autograd is a generic implementation of exactly what you just wrote, and gradcheck is a production-grade version of your finite-difference tester — including the double-precision requirement you are about to discover the hard way.",
+          "api": [
+            "torch.Tensor.backward",
+            "torch.autograd.grad",
+            "torch.autograd.gradcheck",
+            "torch.autograd.Function",
+            "torch.autograd.functional.vjp",
+            "torch.autograd.functional.jacobian",
+            "torch.optim.Optimizer.zero_grad",
+            "torch.no_grad"
+          ],
+          "version": "PyTorch >=2.x (checked against 2.13)",
+          "detail": "torch.autograd.gradcheck(func, inputs, *, eps=1e-06, atol=1e-05, rtol=0.001, raise_exception=True, nondet_tol=0.0, check_undefined_grad=True, check_grad_dtypes=False, check_batched_grad=False, check_batched_forward_grad=False, check_forward_ad=False, check_backward_ad=True, fast_mode=False, masked=None). It returns True or raises. The documentation is explicit that the defaults assume double precision: 'The default values are designed for input of double precision. This check will likely fail if input is of less precision, e.g., FloatTensor.' Call .double() on your inputs and set requires_grad=True before passing them.\n\ntorch.autograd.Function is how you supply your own backward. Both forward(ctx, ...) and backward(ctx, grad_output) are @staticmethod, you stash forward values with ctx.save_for_backward(*tensors), and you invoke it with MyFn.apply(x) — never MyFn.forward(x) directly. backward must return one gradient per forward input, in order, with None for inputs that need none. Writing your fused softmax-cross-entropy as a Function and then passing gradcheck on it is the cleanest possible proof that your derivation is right.\n\ntorch.autograd.grad(outputs, inputs, ...) returns gradients instead of accumulating them into .grad, which is what you want for anything that is not a plain training step.\n\nOptimizer.zero_grad(set_to_none=True) — note the default is True in current PyTorch. That matters more than it looks: the docs point out that optimizers behave differently for a zero gradient than for a None gradient, in one case taking a step with gradient 0 and in the other skipping the parameter entirely."
+        },
+        "experiment": {
+          "summary": "Gradient-check the two-layer network from the previous track: perturb 40 random entries of each of W1, b1, W2, b2 and compare central differences against your analytic gradients. Then deliberately break it three ways and watch the numbers move.",
+          "dataset": "The first 8 rows of the standardised sklearn.datasets.load_digits() training split — a gradient check needs a tiny deterministic batch, not a big one. Nothing to download.",
+          "metric": "Worst relative error across all sampled entries, rel = |numeric - analytic| / max(|numeric| + |analytic|, 1e-12).",
+          "expect": "In float64 with central differences at ε=1e-5 the worst relative error is about 8.8e-09 — set your pass bar at 1e-7 and this clears it by an order of magnitude. Now change two things one at a time. Switch to a forward difference and the worst error rises to about 8.3e-06: still small, but it would hide a genuine 1-in-10000 bug, which is exactly why central differences are the standard. Switch back to central differences but cast everything to float32 and the worst relative error becomes 1.0 — total garbage, with a correct analytic gradient. That last number is the one to remember."
+        },
+        "failure": [
+          {
+            "symptom": "Your gradient check reports relative errors near 1.0 (or torch.autograd.gradcheck fails) even though the network trains perfectly well.",
+            "cause": "Finite differences in float32. L(θ+ε) and L(θ-ε) differ in roughly the seventh significant digit, which is where float32 keeps its noise; the subtraction cancels away every meaningful bit. Measured on this exact network: 8.8e-09 in float64 becomes 1.0 in float32.",
+            "fix": "Cast parameters and inputs to float64 for the check only, then cast back. With torch, call .double() and set requires_grad=True before torch.autograd.gradcheck — its default tolerances assume double precision."
+          },
+          {
+            "symptom": "ValueError about non-broadcastable shapes when updating a bias, or the bias gradient has shape (N, K) instead of (K,).",
+            "cause": "You returned dZ unchanged as the bias gradient. Adding a bias broadcasts it across the batch, and the backward pass of a broadcast is a sum over the broadcast axis — db = dZ.sum(axis=0), not db = dZ.",
+            "fix": "Sum the incoming gradient over every axis the forward pass broadcast over. Then assert g.shape == param.shape for every parameter; that assertion alone catches this class of bug at the point it happens rather than three layers later."
+          },
+          {
+            "symptom": "Loss decreases for one step then explodes, or the model trains but each epoch is worse than the last.",
+            "cause": "Gradients accumulating instead of being reset. In torch, .backward() adds into .grad rather than overwriting it, so skipping optimizer.zero_grad() makes step k use the sum of the first k gradients. In numpy the equivalent is reusing a gradient buffer with += and never clearing it.",
+            "fix": "Call optimizer.zero_grad(set_to_none=True) at the top of every training step (or allocate fresh gradient arrays each step in numpy). If you are deliberately accumulating over micro-batches, divide by the number of micro-batches so the effective loss is still a mean."
+          },
+          {
+            "symptom": "Training works at batch size 32 but diverges at 512, or a learning rate that worked yesterday is suddenly 10x too large.",
+            "cause": "The 1/N averaging is applied twice or not at all. If the loss averages over the batch and the update also divides by N, your effective learning rate is η/N and shrinks as batches grow; if neither divides, the gradient magnitude scales with the batch size and a working η becomes an exploding one.",
+            "fix": "Decide once that the loss is a mean, put the 1/N in dZ2 alone, and verify by checking that the gradient norm is roughly constant across batch sizes 8, 32 and 512 on the same data."
+          }
+        ]
+      }
+    },
+    {
+      "id": "attention",
+      "title": "Scaled Dot-Product Attention",
+      "weekId": "w03",
+      "prereqs": ["neural-network", "backpropagation"],
+      "minutes": 130,
+      "tests": "That you can implement multi-head scaled dot-product attention correctly — including the scale, the causal mask and the head reshape — and prove numerically that no position ever sees the future.",
+      "stages": {
+        "math": {
+          "summary": "Attention(Q, K, V) = softmax( (QKᵀ / sqrt(d_k)) + M ) V — a content-addressed weighted average, where every query builds its own set of weights over the values.",
+          "detail": "Attention is a differentiable lookup table. Each query row q_t is compared against every key row k_s by dot product; those similarities become weights via softmax; the output is the weighted average of the value rows. Nothing about it is sequential — the same computation happens for every position in parallel, which is precisely why it replaced recurrence.\n\nThe scale is not cosmetic. If the entries of q and k are roughly independent with zero mean and unit variance, then q·k is a sum of d_k such products and has variance d_k, i.e. a standard deviation of sqrt(d_k). Feed logits of that size into softmax and it saturates: the largest one takes essentially all the mass and the gradient through the softmax goes to zero. Dividing by sqrt(d_k) restores unit-variance logits regardless of head width.\n\nThe mask M is added before the softmax, not after. Entries that must be forbidden are set to -inf so that exp(-inf) = 0 and, crucially, the remaining weights still sum to 1. Zeroing weights after the softmax would leave the rows unnormalised. Two different masks get added the same way and are often confused: a causal mask is (T, S) and lower-triangular, encoding 'position t may not read position s > t'; a padding mask is (B, S) and encodes 'these key positions are filler, nobody may read them'.\n\nMulti-head attention runs H of these in parallel on slices of the model dimension. X is projected to Q, K, V of width d_model, reshaped into H heads of width d_head = d_model / H, attended independently, concatenated back and passed through an output projection W_o. Each head can specialise on a different relation; the concatenation is what lets the layer track several at once.\n\nThe backward pass is worth deriving by hand once, because it is the softmax VJP in a real setting:\n\n  dV = Aᵀ dO\n  dA = dO Vᵀ\n  dS = A ⊙ ( dA - rowsum(dA ⊙ A) )\n  dQ = (dS K) / sqrt(d_k)\n  dK = (dSᵀ Q) / sqrt(d_k)",
+          "symbols": [
+            { "symbol": "Q", "meaning": "queries — what each position is looking for" },
+            { "symbol": "K", "meaning": "keys — what each position offers as an address" },
+            { "symbol": "V", "meaning": "values — what each position actually contributes if selected" },
+            { "symbol": "d_k", "meaning": "width of a single head's queries/keys; the scale is 1/sqrt(d_k)" },
+            { "symbol": "d_model", "meaning": "the model width; d_model = H · d_head" },
+            { "symbol": "H", "meaning": "number of attention heads" },
+            { "symbol": "S (scores)", "meaning": "the raw similarity matrix QKᵀ / sqrt(d_k), one row per query" },
+            { "symbol": "A", "meaning": "the attention weights, softmax(S + M); every row sums to 1" },
+            { "symbol": "M", "meaning": "the additive mask — 0 where attention is allowed, -inf where it is forbidden" },
+            { "symbol": "O", "meaning": "the attention output, A V" },
+            { "symbol": "W_o", "meaning": "the output projection applied after the heads are concatenated" },
+            { "symbol": "B, T, S_len", "meaning": "batch size, query (target) length, key (source) length" }
+          ]
+        },
+        "scratch": {
+          "summary": "One function for single-head attention, one wrapper for heads. The two things that will bite are the mask being applied before the softmax and the head reshape needing a transpose, not just a reshape.",
+          "checklist": [
+            "stable softmax over the last axis: subtract Z.max(axis=-1, keepdims=True) before exp, then divide by the sum. Reuse the one from the neural-network track.",
+            "scores = Q @ K.transpose(-1, -2) / sqrt(d_k). Compute the scale from Q.shape[-1] rather than hard-coding it, so it stays right when you change head width.",
+            "mask: build causal = np.tril(np.ones((T, S), dtype=bool)) and apply scores = np.where(causal, scores, -np.inf) BEFORE the softmax. Never multiply the weights by a 0/1 mask afterwards.",
+            "padding mask: shape (B, 1, 1, S) so it broadcasts across heads and queries, combined with the causal mask by logical AND.",
+            "A = softmax(scores) ; O = A @ V. Assert np.allclose(A.sum(-1), 1.0).",
+            "head split: x (B, T, d_model) -> reshape(B, T, H, d_head) -> transpose(0, 2, 1, 3) -> (B, H, T, d_head). The transpose is mandatory. reshape(B, H, T, d_head) produces the same shape with scrambled contents and raises no error.",
+            "head merge: (B, H, T, d_head) -> transpose(0, 2, 1, 3) -> reshape(B, T, d_model), then apply W_o.",
+            "backward (optional but do it once): dV = A.T @ dO ; dA = dO @ V.T ; dS = A * (dA - (dA * A).sum(-1, keepdims=True)) ; dQ = dS @ K / sqrt(d_k) ; dK = dS.transpose(-1,-2) @ Q / sqrt(d_k). Gradient-check it against the finite-difference tester from the backpropagation track.",
+            "Diagnostic to keep: the mean entropy of the attention rows, -(A * log(A + 1e-12)).sum(-1).mean(). Compare it to log(S_len). Watching that number is how you catch a missing scale in seconds."
+          ],
+          "shapes": [
+            "x: (B, T, d_model) — e.g. (4, 16, 64)",
+            "Q, K, V after projection: (B, T, d_model)",
+            "after head split: (B, H, T, d_head) — (4, 8, 16, 8) for H=8",
+            "scores / A: (B, H, T, S_len) — (4, 8, 16, 16)",
+            "causal mask: (T, S_len) bool, broadcast over (B, H)",
+            "padding mask: (B, 1, 1, S_len) bool",
+            "O per head: (B, H, T, d_head)",
+            "after merge: (B, T, d_model) ; after W_o: (B, T, d_model)",
+            "W_q, W_k, W_v, W_o: (d_model, d_model) each"
+          ]
+        },
+        "library": {
+          "summary": "torch gives you a fused kernel (F.scaled_dot_product_attention) and a full module (nn.MultiheadAttention). They disagree about what a boolean mask means, and the module's batch_first default is the trap this stage exists to defuse.",
+          "api": [
+            "torch.nn.functional.scaled_dot_product_attention",
+            "torch.nn.MultiheadAttention",
+            "torch.nn.Transformer.generate_square_subsequent_mask",
+            "torch.nn.attention.sdpa_kernel"
+          ],
+          "version": "PyTorch >=2.x (signatures checked against 2.13)",
+          "detail": "torch.nn.functional.scaled_dot_product_attention(query, key, value, attn_mask=None, dropout_p=0.0, is_causal=False, scale=None, enable_gqa=False). It expects head-split tensors of shape (N, ..., H, L, E) — the same (B, H, T, d_head) layout your scratch version produces. If scale is None the default is 1/sqrt(E), so the scale you wrote by hand is already there. Passing both attn_mask and is_causal raises an error rather than silently preferring one. When L != S the causal masking aligns to the upper left.\n\ntorch.nn.MultiheadAttention(embed_dim, num_heads, dropout=0.0, bias=True, add_bias_kv=False, add_zero_attn=False, kdim=None, vdim=None, batch_first=False, device=None, dtype=None). batch_first defaults to False, meaning the module expects (sequence, batch, embedding). Its forward is forward(query, key, value, key_padding_mask=None, need_weights=True, attn_mask=None, average_attn_weights=True, is_causal=False), attn_mask is (L, S) or (N·num_heads, L, S), and key_padding_mask is (N, S). The docs warn that is_causal is only a hint that attn_mask is the causal mask, and that an incorrect hint can produce incorrect execution — it does not build the mask for you.\n\nThe polarity difference is the thing to write on a sticky note. For scaled_dot_product_attention the docs say a boolean mask value of True indicates the element should take part in attention. For MultiheadAttention, a True in attn_mask or key_padding_mask means that position is masked OUT. The same array passed to both functions means opposite things. Float masks are unambiguous in both: they are added to the scores, so use -inf (or a large negative) to forbid.\n\ntorch.nn.Transformer.generate_square_subsequent_mask(sz, device=None, dtype=None) returns a float mask with 0.0 where attention is allowed and float('-inf') where it is not — an additive mask, which sidesteps the polarity question entirely. Prefer it.\n\nOne caveat on nn.MultiheadAttention: the current docs describe it as a reference implementation with limited features relative to newer architectures, so treat it as a correctness oracle for your scratch version rather than as the way to build a modern model."
+        },
+        "experiment": {
+          "summary": "Two checks on synthetic tensors. First, numerical agreement with torch's fused kernel. Second — the one that actually matters — a behavioural proof that the causal mask works, by scrambling the future and confirming the past does not move.",
+          "dataset": "Synthetic, generated in-script: rng = np.random.default_rng(0), then Q, K, V of shape (2, 8, 64) drawn from a standard normal. No dataset needed — attention is a function, and functions are tested on inputs, not corpora.",
+          "metric": "(a) max |numpy_output - torch_output| on the same tensors. (b) max |O1 - O2| on rows 0..4 after scrambling keys and values at positions 5..7. (c) mean attention-row entropy, with and without the 1/sqrt(d_k) scale.",
+          "expect": "(a) Agreement to about 1e-6 in float32 and 1e-12 in float64 — anything larger is a real discrepancy, usually the head layout. (b) This is the sharp one: with a causal mask, rows 0..4 change by exactly 0.000e+00 when you scramble tokens 5..7, while rows 5..7 change by around 0.65. Delete the mask and rows 0..4 change by about 1.76. Exact zero or a bug, no middle ground. (c) With d_k=64 and 64 positions, the scaled version has mean row entropy about 3.69 nats against a uniform ceiling of ln(64)=4.16, and a maximum weight around 0.44. Remove the scale and entropy collapses to about 0.53 with a maximum weight of 1.000 — the softmax has become an argmax and the gradient with it. Sanity-check the premise while you are there: the raw QKᵀ logits have standard deviation about 8.28, which is sqrt(64)=8 as predicted."
+        },
+        "failure": [
+          {
+            "symptom": "Training loss drops far faster and lower than it should, but sampling from the model produces nonsense.",
+            "cause": "No causal mask, or a mask off by one (np.tril(..., k=1) instead of k=0). Every position is reading the answer it is being asked to predict, so training is trivial and inference — where the future genuinely does not exist — collapses.",
+            "fix": "Add the mask before the softmax and then prove it: run the model, scramble every token after position t, and assert the outputs at positions 0..t are bitwise unchanged. On the synthetic check above a correct mask gives a difference of exactly 0.0; an absent one gives about 1.76."
+          },
+          {
+            "symptom": "The model barely learns, gradients into Q and K are near zero, and inspecting the attention weights shows one position at ~1.0 and the rest at ~0.",
+            "cause": "The 1/sqrt(d_k) scale is missing. The dot products have standard deviation sqrt(d_k), so at d_k=64 the softmax saturates from initialisation onward and its gradient — which is proportional to A(1-A) — vanishes.",
+            "fix": "Divide the scores by sqrt(Q.shape[-1]) before the softmax. Verify with the entropy diagnostic: unscaled gives about 0.53 nats and a max weight of 1.000, scaled gives about 3.69 nats and a max weight near 0.44."
+          },
+          {
+            "symptom": "You move code from F.scaled_dot_product_attention to nn.MultiheadAttention (or the reverse) and the loss immediately gets worse, or the model attends exclusively to padding.",
+            "cause": "Inverted boolean-mask polarity. For scaled_dot_product_attention, True in attn_mask means the element takes part in attention. For nn.MultiheadAttention, True in attn_mask or key_padding_mask means the position is masked out. The same tensor means the exact opposite thing in the two APIs, and neither raises an error.",
+            "fix": "Use float masks (0.0 to allow, -inf to forbid) everywhere, which are additive and unambiguous in both APIs — torch.nn.Transformer.generate_square_subsequent_mask returns exactly that. If you must use booleans, write the polarity in a comment on the same line and assert the resulting attention row sums are 1.0 and put no weight on padded positions."
+          },
+          {
+            "symptom": "nn.MultiheadAttention runs without any error but the outputs are meaningless, and results change when you alter the batch size.",
+            "cause": "batch_first defaults to False, so the module reads your (batch, seq, embed) tensor as (seq, batch, embed). It only validates the last dimension, so nothing raises — the layer simply attends across the batch instead of across time, mixing unrelated examples together.",
+            "fix": "Pass batch_first=True explicitly (and do the same for nn.TransformerEncoderLayer, which has the same default). To confirm the wiring, run one batch, then run the same examples with a different batch size and assert the per-example outputs are unchanged."
+          }
+        ]
+      }
+    },
+    {
+      "id": "transformer",
+      "title": "A Decoder-Only Transformer",
+      "weekId": "w04",
+      "prereqs": ["attention", "neural-network", "backpropagation"],
+      "minutes": 240,
+      "tests": "That you can wire attention into a full autoregressive language model — residuals, normalisation, position, weight tying, warmup — and diagnose it against a loss floor you can compute in advance.",
+      "stages": {
+        "math": {
+          "summary": "Pre-norm block: h = x + MHA(LN(x), causal) ; y = h + FFN(LN(h)). Stack L of them over token+position embeddings, project to the vocabulary, and train on next-token cross-entropy.",
+          "detail": "A decoder-only transformer is a stack of identical blocks operating on a residual stream — a (B, T, d_model) tensor that every block reads from and adds back into. Nothing overwrites it; each sublayer proposes an increment. That is what makes depth trainable: the gradient has an identity path from the loss all the way to the embeddings.\n\nEach block has exactly two sublayers, each wrapped in a residual connection and a normalisation:\n\n  h = x + MultiHeadAttention( LN(x), causal mask )\n  y = h + FFN( LN(h) )        with FFN(u) = W2 · act(W1 u + b1) + b2\n\nThe FFN widens to d_ff = 4·d_model and comes back — it is where most of the parameters live, and it is the only part of the block that mixes information across channels rather than across positions. Attention mixes across positions; the FFN mixes across features. A block does both, alternately, which is the whole architecture in one sentence.\n\nWhere the LN goes is a real decision, not a style choice. Pre-norm (LN inside the residual branch, as written above) leaves the residual stream unnormalised and gives a clean identity path; it trains stably at higher learning rates and is what essentially every modern model uses. Post-norm (y = LN(x + sublayer(x))) puts a normalisation on the identity path and needs learning-rate warmup to train at all at depth.\n\nAttention is permutation-equivariant: shuffle the input positions and the outputs shuffle with them. So the model has no notion of order unless you supply one. The simplest working answer is a learned position embedding table added to the token embeddings, x = E[tokens] + P[0:T].\n\nThe head is LN, then a linear projection to vocabulary logits. Tying that projection to the embedding matrix (logits = LN(y) Eᵀ) saves V·d_model parameters and usually helps.\n\nThe objective is the mean cross-entropy of each position's prediction of the next token:\n\n  L = -(1/(T-1)) Σ_{t=1..T-1} log P( x_t | x_0 ... x_{t-1} )\n\nTwo numbers bracket that loss and you should compute both before training. An untrained model predicts uniformly, so L starts at ln(V). And if your data has a known structure, the entropy of that structure is a hard floor — a loss below it is not a better model, it is a bug.",
+          "symbols": [
+            { "symbol": "x", "meaning": "the residual stream, (B, T, d_model) — the block's input and, after addition, its output" },
+            { "symbol": "LN", "meaning": "layer normalisation over the feature axis, with learned scale and shift" },
+            { "symbol": "MHA", "meaning": "multi-head causal self-attention, from the attention track" },
+            { "symbol": "FFN", "meaning": "the position-wise feed-forward network, d_model -> d_ff -> d_model" },
+            { "symbol": "d_ff", "meaning": "feed-forward width, conventionally 4·d_model" },
+            { "symbol": "E", "meaning": "token embedding matrix, (V, d_model); reused as the output projection when tied" },
+            { "symbol": "P", "meaning": "learned position embedding table, (T_max, d_model)" },
+            { "symbol": "V", "meaning": "vocabulary size; ln(V) is the loss of an untrained model" },
+            { "symbol": "L_layers", "meaning": "number of stacked blocks" },
+            { "symbol": "B, T", "meaning": "batch size and context length" }
+          ]
+        },
+        "scratch": {
+          "summary": "Build it bottom-up and test each piece before stacking: LayerNorm, FFN, block, then the model. Do not write all of it and then debug the loss — with a transformer that is a full day lost.",
+          "checklist": [
+            "LayerNorm(x): mu = x.mean(-1, keepdims=True) ; var = x.var(-1, keepdims=True) ; (x - mu) / sqrt(var + 1e-5) * gamma + beta. Normalise over the FEATURE axis only, never over the batch or time axes.",
+            "Embeddings: tok = E[idx] (a row lookup, so the backward pass is a scatter-add into E, not a matmul) ; x = tok + P[:T]. Broadcast P over the batch.",
+            "FFN(u): W1 (d_model, 4·d_model), GELU or ReLU, W2 (4·d_model, d_model). No normalisation inside.",
+            "Block: h = x + MHA(LN1(x), causal) ; y = h + FFN(LN2(h)). Write it pre-norm; you can add a post-norm flag later to see the difference for yourself.",
+            "Causal mask: build it ONCE outside the loop as np.tril(np.ones((T, T), dtype=bool)) and pass the same object to every layer — a per-layer rebuild is where off-by-one errors get introduced.",
+            "Head: logits = LN_f(y) @ E.T if tying, else @ W_head. Shape (B, T, V).",
+            "Loss: shift by one — predict tokens[:, 1:] from tokens[:, :-1]. Flatten to (B·(T-1), V) and (B·(T-1),) and reuse the softmax cross-entropy from the neural-network track.",
+            "Before training anything, assert the initial loss is within about 0.02 of ln(V). If it is not, your head initialisation or your embedding scale is wrong.",
+            "Sampling: feed the prompt, take logits[:, -1, :], softmax, sample, append, repeat. Confirm that appending a token never changes the logits already produced for earlier positions — that is your causal mask working at inference time.",
+            "Backward: if you are hand-deriving it, reuse the attention VJP from the attention track and note that LayerNorm's backward is the awkward one (mu and var both depend on every element, so the gradient does not factorise elementwise). Deriving LayerNorm's backward once is worth the hour; after that, use autograd."
+          ],
+          "shapes": [
+            "tokens: (B, T) int64 — (64, 17) for the copy task below",
+            "E: (V, d_model) = (27, 128) ; P: (T_max, d_model) = (17, 128)",
+            "residual stream x, h, y: (B, T, d_model) = (64, 17, 128)",
+            "inside MHA: (B, H, T, d_head) = (64, 4, 17, 32) for H=4",
+            "attention weights: (B, H, T, T) = (64, 4, 17, 17)",
+            "FFN hidden: (B, T, 4·d_model) = (64, 17, 512)",
+            "logits: (B, T, V) = (64, 17, 27)",
+            "loss inputs after shift+flatten: (B·(T-1), V) = (1024, 27) and targets (1024,)",
+            "causal mask: (T, T) = (17, 17)"
+          ]
+        },
+        "library": {
+          "summary": "torch has the block as a single module. The two settings that matter are norm_first (default False = post-norm, which is not what you want) and batch_first (default False, same trap as nn.MultiheadAttention).",
+          "api": [
+            "torch.nn.TransformerEncoderLayer",
+            "torch.nn.TransformerEncoder",
+            "torch.nn.Embedding",
+            "torch.nn.LayerNorm",
+            "torch.nn.RMSNorm",
+            "torch.nn.Transformer.generate_square_subsequent_mask",
+            "torch.nn.functional.cross_entropy",
+            "torch.optim.AdamW",
+            "torch.optim.lr_scheduler.LambdaLR",
+            "torch.nn.utils.clip_grad_norm_"
+          ],
+          "version": "PyTorch >=2.x (signatures checked against 2.13)",
+          "detail": "Use nn.TransformerEncoderLayer, not nn.TransformerDecoderLayer, for a GPT-style model. The 'decoder' layer in torch carries a cross-attention sublayer for encoder-decoder translation, which a language model has nothing to attend to. A decoder-only model is an encoder stack with a causal mask.\n\nnn.TransformerEncoderLayer(d_model, nhead, dim_feedforward=2048, dropout=0.1, activation=<relu>, layer_norm_eps=1e-05, batch_first=False, norm_first=False, bias=True, device=None, dtype=None). Set batch_first=True and norm_first=True. The defaults are the historical ones: batch_first=False expects (sequence, batch, embedding), and norm_first=False is post-norm. forward(src, src_mask=None, src_key_padding_mask=None, is_causal=False).\n\nnn.TransformerEncoder(encoder_layer, num_layers, norm=None, enable_nested_tensor=True, mask_check=True), forward(src, mask=None, src_key_padding_mask=None, is_causal=None). As with nn.MultiheadAttention, is_causal is documented as a hint that mask is the causal mask and an incorrect hint can cause incorrect execution — you still pass the mask.\n\nGet the mask from torch.nn.Transformer.generate_square_subsequent_mask(sz, device=None, dtype=None): a float (sz, sz) mask with 0.0 where attention is permitted and float('-inf') where it is not. Additive, so no boolean-polarity question.\n\nF.cross_entropy(input, target, weight=None, size_average=None, ignore_index=-100, reduce=None, reduction='mean', label_smoothing=0.0) takes raw logits shaped (N, C) with targets (N,), so reshape (B, T, V) to (B·T, V) and (B, T) to (B·T,). ignore_index defaults to -100, which is how you exclude padded positions from the loss.\n\nOptimiser: torch.optim.AdamW(params, lr=0.001, betas=(0.9, 0.999), eps=1e-08, weight_decay=0.01, amsgrad=False, ...). Note weight_decay defaults to 0.01, not 0 as in Adam — decoupled decay is the whole reason AdamW exists. Warmup with torch.optim.lr_scheduler.LambdaLR(optimizer, lr_lambda, last_epoch=-1), where lr_lambda returns a multiplier on the INITIAL lr, e.g. lambda step: min(1.0, (step + 1) / warmup_steps); call scheduler.step() after optimizer.step(). Clip with torch.nn.utils.clip_grad_norm_(parameters, max_norm, norm_type=2.0, error_if_nonfinite=False, foreach=None) between loss.backward() and optimizer.step(); it returns the pre-clip total norm, which is worth logging.\n\nnn.RMSNorm(normalized_shape, eps=None, elementwise_affine=True, device=None, dtype=None) is available in current PyTorch and computes x / sqrt(eps + mean(x²)) · gamma — no mean subtraction, which is what most recent models use in place of LayerNorm."
+        },
+        "experiment": {
+          "summary": "Train the model on a copy task you generate in-script, whose optimal loss you can compute exactly beforehand. That turns 'is my transformer working?' from a vibe into an arithmetic comparison against 1.4254.",
+          "dataset": "Generated in-script, no download. Alphabet = 26 letters plus a '|' separator, so V = 27. Each example is a block of 17 tokens: 8 uniformly random letters, then '|', then the same 8 letters repeated — e.g. 'wqnhibba|wqnhibba'. Generate 20000 blocks with np.random.default_rng(0). Train on next-token prediction: inputs are tokens[:, :-1] and targets tokens[:, 1:], giving 16 predictions per block.",
+          "metric": "Mean next-token cross-entropy in nats on held-out blocks, compared against four numbers you compute before training.",
+          "expect": "Compute the brackets first. An untrained model predicts uniformly: ln(27) = 3.2958, and your step-0 loss should match that to within about 0.02. The optimal loss is 7·ln(26)/16 = 1.4254, because only the 7 letters after the first are genuinely unpredictable — the '|' and all 8 copied letters are fully determined by the prefix. Now the baselines that show attention is doing something: a unigram model scores 3.2882, a bigram (previous token only) model 3.2819, and a position-aware bigram 3.0434. A correct transformer — 2 layers, d_model 128, 4 heads, AdamW at 3e-4 — should fall from 3.2958 through the ~3.04 shelf and settle near 1.43. Two readings are diagnostic and unambiguous: a held-out loss stuck around 3.0 means the model has learned the letter distribution but cannot copy, and a held-out loss below 1.4254 is mathematically impossible for this data, so it proves information is leaking from the future."
+        },
+        "failure": [
+          {
+            "symptom": "Held-out loss falls below 1.4254 — the computed optimum — and keeps going toward zero, but generated samples are incoherent.",
+            "cause": "The model is seeing the token it is being asked to predict. Either the causal mask is off by one (allowing position t to read position t+1), or the targets were not shifted and you are predicting tokens[:, :] from tokens[:, :], or you passed is_causal=True to a torch module without actually supplying the mask — the docs are explicit that is_causal is only a hint.",
+            "fix": "Pass an explicit mask from torch.nn.Transformer.generate_square_subsequent_mask(T) and shift targets by exactly one. Then prove it behaviourally: change the tokens after position t and assert the logits at positions 0..t are bitwise identical. Treat any held-out loss below the analytic floor as a failing test, not a result."
+          },
+          {
+            "symptom": "Loss drops quickly to about 3.04 and then flatlines there no matter how long you train or how many layers you add.",
+            "cause": "The model has no positional information. Self-attention is permutation-equivariant, so without position embeddings the model can see the multiset of prefix letters but cannot tell which one is the third — and the copy task requires exactly that. 3.04 is precisely the score of a position-aware bigram model, i.e. everything obtainable without order-sensitive attention.",
+            "fix": "Add a learned position embedding table P of shape (T_max, d_model) to the token embeddings (or use RoPE). Confirm T_max is at least your context length — a table shorter than the block silently truncates the prefix out of reach and reproduces the same plateau."
+          },
+          {
+            "symptom": "Loss is fine for a few hundred steps, then spikes to a huge value or becomes nan and never recovers.",
+            "cause": "Post-norm plus a full learning rate from step zero. With norm_first=False the normalisation sits on the residual path, early gradients through the deep stack are badly scaled, and one large step destroys the run. Missing gradient clipping turns a single bad batch into a permanent one.",
+            "fix": "Three things together: norm_first=True (pre-norm), a linear warmup over the first few hundred steps via LambdaLR(optimizer, lambda step: min(1.0, (step + 1) / warmup_steps)), and clip_grad_norm_(model.parameters(), 1.0) between backward and step. Log the total norm that clip_grad_norm_ returns — a spike in it precedes the loss spike, so it tells you which batch did it."
+          },
+          {
+            "symptom": "Training loss slides below 1.4254 while held-out loss stays pinned near 3.0. Nothing NaNs, nothing errors.",
+            "cause": "Memorisation, not leakage — and the two look identical if you only ever plot one curve. With a small fixed corpus and enough parameters the model can store the training blocks outright instead of learning the copy rule.",
+            "fix": "Always evaluate on freshly generated blocks. Because the data is synthetic you can make the corpus effectively infinite: generate a new batch every step rather than looping over a fixed array. If train and held-out losses converge to 1.43 together, the model learned the rule; if they diverge, it memorised."
+          }
+        ]
+      }
+    }
+  ]
+}

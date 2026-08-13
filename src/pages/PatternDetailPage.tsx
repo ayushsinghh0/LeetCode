@@ -3,9 +3,11 @@ import { Link, useParams } from 'react-router-dom';
 import { SearchX, Shapes } from 'lucide-react';
 import { iconByName } from '@/components/shared/iconMap';
 import { EmptyState } from '@/components/shared/EmptyState';
-import { ProgressRing } from '@/components/shared/ProgressRing';
+import { Ledger, Meta, Page, PageHeader, Section } from '@/components/layout/Page';
 import { DifficultyBadge } from '@/components/questions/DifficultyBadge';
+import { ConfidenceRating } from '@/components/questions/ConfidenceRating';
 import { QuestionCard } from '@/components/questions/QuestionCard';
+import { Progress } from '@/components/ui/progress';
 import {
   Select,
   SelectContent,
@@ -22,7 +24,7 @@ import { activeQuestionSet } from '@/store/slices/uiSlice';
 import { selectPatternStats } from '@/store/selectors';
 import { useToday } from '@/hooks/useToday';
 import { initialProgress, isDue } from '@/utils/engine/spacedRepetition';
-import type { Difficulty, PatternId, Question, QuestionProgress } from '@/types';
+import type { Confidence, Difficulty, PatternId, Question, QuestionProgress } from '@/types';
 
 const questions = questionsData as Question[];
 
@@ -50,6 +52,10 @@ const DIFFICULTY_FILTER_LABEL: Record<DifficultyFilterValue, string> = {
   medium: 'Medium',
   hard: 'Hard',
 };
+
+// The filter row is chrome, not content: it already has its own boundary (two bordered controls),
+// so it sits on the page ground rather than inside a plate that drew a second one around it.
+const FILTER_LABEL_CLASS = 'figures text-xs uppercase tracking-[0.14em] text-muted-foreground';
 
 function isPatternId(id: string): id is PatternId {
   return Object.prototype.hasOwnProperty.call(patternById, id);
@@ -123,12 +129,14 @@ export default function PatternDetailPage() {
 
   if (!patternId || !isPatternId(patternId)) {
     return (
-      <div className="flex flex-col items-center gap-4">
-        <EmptyState icon={SearchX} title="Pattern not found" hint="This pattern doesn't exist in the roadmap." />
-        <Link to="/patterns" className="text-sm text-primary underline-offset-4 hover:underline">
-          Back to Patterns
-        </Link>
-      </div>
+      <Page width="reading">
+        <div className="flex flex-col items-center gap-4">
+          <EmptyState icon={SearchX} title="Pattern not found" hint="This pattern doesn't exist in the roadmap." />
+          <Link to="/patterns" className="text-sm text-primary underline-offset-4 hover:underline">
+            Back to Patterns
+          </Link>
+        </div>
+      </Page>
     );
   }
 
@@ -136,6 +144,8 @@ export default function PatternDetailPage() {
   const Icon = iconByName(meta.icon, Shapes);
   const stat = stats.find((s) => s.pattern === patternId)!;
   const namingCompanies = companiesNamingPattern(patternId);
+  const passRate = stat.revisionPassRate;
+  const avgConfidence = stat.avgConfidence !== null ? (Math.round(stat.avgConfidence) as Confidence) : null;
 
   const difficultyCounts = DIFFICULTIES.map((d) => ({
     difficulty: d,
@@ -146,53 +156,85 @@ export default function PatternDetailPage() {
     dispatch(activeQuestionSet(id));
   }
 
+  const questionGrid = (items: Question[]) => (
+    <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-3">
+      {items.map((q) => (
+        <QuestionCard
+          key={q.id}
+          question={q}
+          progress={progressById[q.id] ?? initialProgress()}
+          context="browse"
+          onOpenDetail={openQuestion}
+        />
+      ))}
+    </div>
+  );
+
   return (
-    <div className="flex flex-col gap-6">
-      <header className="glass flex flex-col gap-6 p-6 md:flex-row md:items-center md:justify-between">
-        <div className="flex items-center gap-4">
-          <span
-            className="flex h-12 w-12 shrink-0 items-center justify-center rounded-lg"
-            style={{ backgroundColor: `${meta.color}26`, color: meta.color }}
-          >
-            <Icon className="h-6 w-6" aria-hidden="true" />
+    <Page>
+      {/* The pattern's ink rides its icon, beside the title — not on a 96px ring parked at the
+          far end of a header plate with 500px of nothing between them. */}
+      <PageHeader
+        eyebrow={`${patternQuestions.length} questions`}
+        title={
+          <span className="flex items-center gap-3">
+            <span
+              className="flex h-10 w-10 shrink-0 items-center justify-center rounded-md"
+              style={{ backgroundColor: `${meta.color}26`, color: meta.color }}
+            >
+              <Icon className="h-5 w-5" aria-hidden="true" />
+            </span>
+            {meta.name}
           </span>
-          <div>
-            <h1 className="text-2xl font-bold text-gradient">{meta.name}</h1>
-            <p className="text-sm text-muted-foreground">{patternQuestions.length} Questions</p>
-            <div className="mt-2 flex flex-wrap gap-2">
-              {difficultyCounts.map(({ difficulty: d, count }) => (
-                <span key={d} className="inline-flex items-center gap-1">
-                  <DifficultyBadge difficulty={d} />
-                  <span className="text-xs text-muted-foreground">{count}</span>
-                </span>
-              ))}
-            </div>
-          </div>
-        </div>
+        }
+      />
 
-        <div className="flex flex-wrap items-center gap-6">
-          <ProgressRing value={stat.solved} max={stat.total} size={96}>
-            <div className="flex flex-col items-center">
-              <span className="text-lg font-bold">{stat.pct}%</span>
-              <span className="text-[10px] text-muted-foreground">
-                {stat.solved}/{stat.total}
+      <Section aria-label="Progress">
+        <Meta
+          items={[
+            ...difficultyCounts.map(({ difficulty: d, count }) => (
+              <span key={d} className="inline-flex items-center gap-1.5">
+                <DifficultyBadge difficulty={d} />
+                <span className="figures">{count}</span>
               </span>
-            </div>
-          </ProgressRing>
+            )),
+            avgConfidence !== null && (
+              <span key="confidence" className="inline-flex items-center gap-2">
+                Avg. confidence
+                <ConfidenceRating value={avgConfidence} />
+              </span>
+            ),
+          ]}
+        />
 
-          <div className="flex flex-col gap-1 text-sm text-muted-foreground">
-            <span>{stat.mastered} mastered</span>
-            <span>{stat.inRevision} in revision</span>
-            <span>{stat.revisionPassRate !== null ? `${Math.round(stat.revisionPassRate * 100)}% pass rate` : '— pass rate'}</span>
-          </div>
-        </div>
-      </header>
+        <Progress value={stat.pct} className="h-1.5" aria-label={`${meta.name} completion`} />
+
+        <Ledger
+          items={[
+            {
+              label: 'Solved',
+              value: `${stat.solved}/${stat.total}`,
+              sub: `${stat.pct}% · ${stat.remaining} remaining`,
+            },
+            { label: 'Mastered', value: stat.mastered },
+            { label: 'In revision', value: stat.inRevision },
+            {
+              label: 'Pass rate',
+              value: passRate !== null ? `${Math.round(passRate * 100)}%` : '—',
+              sub: passRate === null ? 'no reviews yet' : undefined,
+            },
+          ]}
+        />
+      </Section>
 
       {/* Interview relevance, at the only level the evidence supports: which companies name
           this topic in their own published prep guidance. Never a per-problem claim. */}
       {namingCompanies.length > 0 && (
-        <section className="glass flex flex-col gap-2 p-4" aria-label="Interview relevance">
-          <h2 className="text-sm font-medium">Named in company prep guidance</h2>
+        <Section
+          title="Named in company prep guidance"
+          support="These companies' own interview-prep pages list topics this pattern covers. That is a statement about the topic, not about any question below."
+          aria-label="Interview relevance"
+        >
           <ul className="flex flex-wrap gap-2">
             {namingCompanies.map((company) => (
               <li key={company.id}>
@@ -205,85 +247,74 @@ export default function PatternDetailPage() {
               </li>
             ))}
           </ul>
-          <p className="text-xs text-muted-foreground">
-            These companies&apos; own interview-prep pages list topics this pattern covers. That is a
-            statement about the topic, not about any question below.
-          </p>
-        </section>
+        </Section>
       )}
 
-      <div className="glass flex flex-wrap items-center gap-4 p-4">
-        <div className="flex items-center gap-2">
-          <span className="text-sm text-muted-foreground">Status</span>
-          <Select value={status} onValueChange={(v) => setStatus(v as StatusFilter)}>
-            <SelectTrigger aria-label="Filter by status" className="w-40">
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              {(Object.keys(STATUS_LABEL) as StatusFilter[]).map((s) => (
-                <SelectItem key={s} value={s}>
-                  {STATUS_LABEL[s]}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-        </div>
-
-        <div className="flex items-center gap-2">
-          <span className="text-sm text-muted-foreground">Difficulty</span>
-          <Select value={difficulty} onValueChange={(v) => setDifficulty(v as DifficultyFilterValue)}>
-            <SelectTrigger aria-label="Filter by difficulty" className="w-32">
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              {(Object.keys(DIFFICULTY_FILTER_LABEL) as DifficultyFilterValue[]).map((d) => (
-                <SelectItem key={d} value={d}>
-                  {DIFFICULTY_FILTER_LABEL[d]}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-        </div>
-      </div>
-
-      {filtered.length === 0 ? (
-        <EmptyState icon={SearchX} title="No questions match these filters" />
-      ) : sections.length > 0 ? (
-        // Sub-pattern sections: the taxonomy layer that turns "20 stack problems" into
-        // "matching, monotonic, parsing..." — recognition starts with the grouping.
-        <div className="flex flex-col gap-6">
-          {sections.map(({ id, name, items }) => (
-            <section key={id} aria-label={name}>
-              <h2 className="mb-3 text-base font-semibold">
-                {name} <span className="figures text-sm font-normal text-muted-foreground">· {items.length}</span>
-              </h2>
-              <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-3">
-                {items.map((q) => (
-                  <QuestionCard
-                    key={q.id}
-                    question={q}
-                    progress={progressById[q.id] ?? initialProgress()}
-                    context="browse"
-                    onOpenDetail={openQuestion}
-                  />
+      <Section
+        title="Questions"
+        support={`Showing ${filtered.length} of ${patternQuestions.length}.`}
+      >
+        <div className="flex flex-wrap items-center gap-x-5 gap-y-3">
+          <div className="flex items-center gap-2">
+            <span className={FILTER_LABEL_CLASS}>Status</span>
+            <Select value={status} onValueChange={(v) => setStatus(v as StatusFilter)}>
+              <SelectTrigger aria-label="Filter by status" className="w-40">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                {(Object.keys(STATUS_LABEL) as StatusFilter[]).map((s) => (
+                  <SelectItem key={s} value={s}>
+                    {STATUS_LABEL[s]}
+                  </SelectItem>
                 ))}
-              </div>
-            </section>
-          ))}
+              </SelectContent>
+            </Select>
+          </div>
+
+          <div className="flex items-center gap-2">
+            <span className={FILTER_LABEL_CLASS}>Difficulty</span>
+            <Select value={difficulty} onValueChange={(v) => setDifficulty(v as DifficultyFilterValue)}>
+              <SelectTrigger aria-label="Filter by difficulty" className="w-32">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                {(Object.keys(DIFFICULTY_FILTER_LABEL) as DifficultyFilterValue[]).map((d) => (
+                  <SelectItem key={d} value={d}>
+                    {DIFFICULTY_FILTER_LABEL[d]}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
         </div>
-      ) : (
-        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-3">
-          {filtered.map((q) => (
-            <QuestionCard
-              key={q.id}
-              question={q}
-              progress={progressById[q.id] ?? initialProgress()}
-              context="browse"
-              onOpenDetail={openQuestion}
-            />
-          ))}
-        </div>
-      )}
-    </div>
+
+        {filtered.length === 0 ? (
+          <EmptyState icon={SearchX} title="No questions match these filters" />
+        ) : sections.length > 0 ? (
+          // Sub-pattern sections: the taxonomy layer that turns "20 stack problems" into
+          // "matching, monotonic, parsing..." — recognition starts with the grouping. They are
+          // sections in their own right, so they sit at the between-sections step, not at the
+          // heading-to-content one.
+          <div className="flex flex-col gap-10">
+            {sections.map(({ id, name, items }) => (
+              <Section
+                key={id}
+                level={3}
+                title={
+                  <>
+                    {name} <span className="figures text-sm font-normal text-muted-foreground">· {items.length}</span>
+                  </>
+                }
+                aria-label={name}
+              >
+                {questionGrid(items)}
+              </Section>
+            ))}
+          </div>
+        ) : (
+          questionGrid(filtered)
+        )}
+      </Section>
+    </Page>
   );
 }

@@ -14,6 +14,7 @@ import { ChevronLeft, ChevronRight, CheckCircle2, XCircle, Zap, Timer, CalendarX
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { EmptyState } from '@/components/shared/EmptyState';
+import { Page, PageHeader, Section, Rule, Meta } from '@/components/layout/Page';
 import { useAppDispatch, useAppSelector } from '@/store/hooks';
 import { activeQuestionSet } from '@/store/slices/uiSlice';
 import { selectCourseActivityByDate, selectPerDay, selectQuestionById } from '@/store/selectors';
@@ -36,6 +37,9 @@ const LEVEL_CLASS: Record<0 | 1 | 2 | 3 | 4, string> = {
   4: 'bg-primary',
 };
 
+// The eyebrow register, reused for the weekday column heads and the day-dialog group labels.
+const LABEL_CLASS = 'text-xs uppercase tracking-[0.14em] text-muted-foreground';
+
 function activityLevel(count: number): 0 | 1 | 2 | 3 | 4 {
   if (count === 0) return 0;
   if (count <= 2) return 1;
@@ -50,6 +54,10 @@ function dayLogCount(log: DayLog | undefined): number {
 
 function titleFor(id: number): string {
   return selectQuestionById(id)?.title ?? `#${id}`;
+}
+
+function plural(count: number, noun: string): string {
+  return count === 1 ? noun : `${noun}s`;
 }
 
 interface CourseDayEvent {
@@ -83,6 +91,12 @@ function courseEventsOn(
   return events;
 }
 
+/**
+ * Calendar — one month of activity, read as a page of the course reader rather than a stack of
+ * cards. The month name *is* the page title (the stepper in the masthead changes which month
+ * you're reading), the grid sits on the page ground because 31 outlined cells already draw their
+ * own structure, and the month totals are a ruled caption under it — not a fourth plate.
+ */
 export default function CalendarPage() {
   const dispatch = useAppDispatch();
   const dayLogs = useAppSelector((s) => s.progress.dayLogs);
@@ -106,6 +120,7 @@ export default function CalendarPage() {
 
   const selectedLog = selectedDate ? dayLogs[selectedDate] : undefined;
   const selectedCourseEvents = selectedDate ? courseEventsOn(courseByWeekId, selectedDate) : [];
+  const selectedHasActivity = Boolean(selectedLog) || selectedCourseEvents.length > 0;
 
   let activeDays = 0;
   let totalSolves = 0;
@@ -125,109 +140,114 @@ export default function CalendarPage() {
     }
   }
 
+  // One caption line, not a strip of five boxed stats. Every value is a counted fact, so every
+  // value wears `.figures`; the words around them stay in the reading voice.
+  const monthTotals: { value: number; label: string }[] = [
+    { value: activeDays, label: plural(activeDays, 'active day') },
+    { value: totalSolves, label: plural(totalSolves, 'solve') },
+    { value: totalRevisions, label: plural(totalRevisions, 'revision') },
+    { value: totalCourse, label: plural(totalCourse, 'course session') },
+    { value: totalXp, label: 'XP' },
+  ];
+
   function handleDialogOpenChange(open: boolean) {
     if (!open) setSelectedDate(null);
   }
 
   return (
-    <div className="space-y-6">
-      <header className="glass flex flex-wrap items-center justify-between gap-4 p-4">
-        <div className="flex items-center gap-2">
-          <Button
-            variant="outline"
-            size="icon"
-            aria-label="Previous month"
-            onClick={() => setViewMonth((m) => addMonths(m, -1))}
-          >
-            <ChevronLeft />
-          </Button>
-          <h1 className="min-w-[10ch] text-center text-xl font-semibold">{format(viewMonth, 'MMMM yyyy')}</h1>
-          <Button
-            variant="outline"
-            size="icon"
-            aria-label="Next month"
-            onClick={() => setViewMonth((m) => addMonths(m, 1))}
-          >
-            <ChevronRight />
-          </Button>
-        </div>
-        <Button variant="secondary" onClick={() => setViewMonth(parseISO(today))}>
-          Today
-        </Button>
-      </header>
+    <Page width="wide">
+      <PageHeader
+        eyebrow="Calendar"
+        title={format(viewMonth, 'MMMM yyyy')}
+        support="Every solve, revision and course session, day by day. Open a day to read what you did."
+        action={
+          <>
+            <Button
+              variant="outline"
+              size="icon"
+              aria-label="Previous month"
+              onClick={() => setViewMonth((m) => addMonths(m, -1))}
+            >
+              <ChevronLeft />
+            </Button>
+            <Button
+              variant="outline"
+              size="icon"
+              aria-label="Next month"
+              onClick={() => setViewMonth((m) => addMonths(m, 1))}
+            >
+              <ChevronRight />
+            </Button>
+            <Button variant="secondary" onClick={() => setViewMonth(parseISO(today))}>
+              Today
+            </Button>
+          </>
+        }
+      />
 
-      <div className="glass p-4">
-        <div className="mb-2 grid grid-cols-7 gap-2 text-center text-sm font-medium text-muted-foreground">
-          {WEEKDAY_LABELS.map((label) => (
-            <div key={label}>{label}</div>
+      <Section aria-label="Month activity">
+        <div className="flex flex-col gap-2">
+          <div className={cn('grid grid-cols-7 gap-2 text-center', LABEL_CLASS)}>
+            {WEEKDAY_LABELS.map((label) => (
+              <div key={label}>{label}</div>
+            ))}
+          </div>
+          <div className="grid grid-cols-7 gap-2">
+            {Array.from({ length: leadingOffset }).map((_, i) => (
+              <div key={`pad-${i}`} aria-hidden="true" />
+            ))}
+            {days.map((day) => {
+              const iso = toISODate(day);
+              const log = dayLogs[iso];
+              const count = dayLogCount(log) + (courseActivity.get(iso) ?? 0);
+              const level = activityLevel(count);
+              const future = isAfter(day, parseISO(today));
+              const isToday = iso === today;
+              const perfect = isPerfectDay(log, perDay);
+
+              return (
+                <button
+                  key={iso}
+                  type="button"
+                  disabled={future}
+                  data-level={level}
+                  aria-label={`${format(day, 'MMMM d, yyyy')} — ${count} activities${perfect ? ' — perfect day' : ''}`}
+                  onClick={() => setSelectedDate(iso)}
+                  className={cn(
+                    // Square at phone width (a 37×64 sliver holding one numeral and one dot was
+                    // the worst thing on this page), a calm landscape cell from sm up.
+                    'relative flex aspect-square flex-col items-center justify-center gap-1.5 rounded-md border border-transparent text-sm transition-colors duration-150 ease-swift sm:aspect-auto sm:h-16',
+                    future ? 'cursor-not-allowed opacity-40' : 'hover:bg-muted',
+                    isToday && 'border-primary',
+                    perfect && 'ring-2 ring-primary',
+                  )}
+                >
+                  <span className="figures">{format(day, 'd')}</span>
+                  <span className={cn('h-2 w-2 rounded-full', LEVEL_CLASS[level])} aria-hidden="true" />
+                </button>
+              );
+            })}
+          </div>
+        </div>
+
+        <Rule />
+
+        <Meta
+          items={monthTotals.map((total) => (
+            <span key={total.label}>
+              <span className="figures text-foreground">{total.value}</span> {total.label}
+            </span>
           ))}
-        </div>
-        <div className="grid grid-cols-7 gap-2">
-          {Array.from({ length: leadingOffset }).map((_, i) => (
-            <div key={`pad-${i}`} aria-hidden="true" />
-          ))}
-          {days.map((day) => {
-            const iso = toISODate(day);
-            const log = dayLogs[iso];
-            const count = dayLogCount(log) + (courseActivity.get(iso) ?? 0);
-            const level = activityLevel(count);
-            const future = isAfter(day, parseISO(today));
-            const isToday = iso === today;
-            const perfect = isPerfectDay(log, perDay);
-
-            return (
-              <button
-                key={iso}
-                type="button"
-                disabled={future}
-                data-level={level}
-                aria-label={`${format(day, 'MMMM d, yyyy')} — ${count} activities${perfect ? ' — perfect day' : ''}`}
-                onClick={() => setSelectedDate(iso)}
-                className={cn(
-                  'relative flex h-16 flex-col items-center justify-center gap-1 rounded-md border border-transparent text-sm transition-colors',
-                  future ? 'cursor-not-allowed opacity-40' : 'hover:bg-muted',
-                  isToday && 'border-primary',
-                  perfect && 'ring-2 ring-primary',
-                )}
-              >
-                <span>{format(day, 'd')}</span>
-                <span className={cn('h-2 w-2 rounded-full', LEVEL_CLASS[level])} aria-hidden="true" />
-              </button>
-            );
-          })}
-        </div>
-      </div>
-
-      <div className="glass flex flex-wrap gap-x-6 gap-y-2 p-4 text-sm">
-        <div>
-          <span className="font-semibold text-foreground">{activeDays}</span>{' '}
-          <span className="text-muted-foreground">active days</span>
-        </div>
-        <div>
-          <span className="font-semibold text-foreground">{totalSolves}</span>{' '}
-          <span className="text-muted-foreground">solves</span>
-        </div>
-        <div>
-          <span className="font-semibold text-foreground">{totalRevisions}</span>{' '}
-          <span className="text-muted-foreground">revisions</span>
-        </div>
-        <div>
-          <span className="font-semibold text-foreground">{totalCourse}</span>{' '}
-          <span className="text-muted-foreground">course sessions</span>
-        </div>
-        <div>
-          <span className="font-semibold text-foreground">{totalXp}</span>{' '}
-          <span className="text-muted-foreground">XP</span>
-        </div>
-      </div>
+        />
+      </Section>
 
       <Dialog open={selectedDate !== null} onOpenChange={handleDialogOpenChange}>
         {selectedDate && (
           <DialogContent className="max-h-[85vh] overflow-y-auto">
             <DialogHeader>
               <DialogTitle>{format(parseISO(selectedDate), 'EEEE, MMMM d, yyyy')}</DialogTitle>
-              <DialogDescription>
-                {selectedLog || selectedCourseEvents.length > 0
+              <DialogDescription className={cn(selectedHasActivity && 'figures')}>
+                {selectedHasActivity
                   ? `${selectedLog?.solvedIds.length ?? 0} solved · ${
                       (selectedLog?.revisionsPassed.length ?? 0) +
                       (selectedLog?.revisionsFailed.length ?? 0)
@@ -238,19 +258,19 @@ export default function CalendarPage() {
               </DialogDescription>
             </DialogHeader>
 
-            {!selectedLog && selectedCourseEvents.length === 0 ? (
+            {!selectedHasActivity ? (
               <EmptyState icon={CalendarX} title="No activity on this day" />
             ) : (
-              <div className="space-y-4">
+              <div className="flex flex-col gap-5">
                 {selectedLog && selectedLog.solvedIds.length > 0 && (
-                  <div>
-                    <p className="mb-2 text-sm font-medium">Solved</p>
-                    <ul className="space-y-1">
+                  <div className="flex flex-col gap-2">
+                    <p className={LABEL_CLASS}>Solved</p>
+                    <ul className="flex flex-col gap-1.5">
                       {selectedLog.solvedIds.map((id) => (
                         <li key={id}>
                           <button
                             type="button"
-                            className="text-sm text-primary hover:underline"
+                            className="text-left text-sm text-primary underline-offset-2 hover:underline"
                             onClick={() => dispatch(activeQuestionSet(id))}
                           >
                             {titleFor(id)}
@@ -262,18 +282,18 @@ export default function CalendarPage() {
                 )}
 
                 {selectedLog && (selectedLog.revisionsPassed.length > 0 || selectedLog.revisionsFailed.length > 0) && (
-                  <div>
-                    <p className="mb-2 text-sm font-medium">Revisions</p>
-                    <ul className="space-y-1">
+                  <div className="flex flex-col gap-2">
+                    <p className={LABEL_CLASS}>Revisions</p>
+                    <ul className="flex flex-col gap-1.5">
                       {selectedLog.revisionsPassed.map((id) => (
                         <li key={`p-${id}`} className="flex items-center gap-2 text-sm">
-                          <CheckCircle2 className="h-4 w-4 text-easy" aria-hidden="true" />
+                          <CheckCircle2 className="h-4 w-4 shrink-0 text-easy" aria-hidden="true" />
                           {titleFor(id)}
                         </li>
                       ))}
                       {selectedLog.revisionsFailed.map((id) => (
                         <li key={`f-${id}`} className="flex items-center gap-2 text-sm">
-                          <XCircle className="h-4 w-4 text-hard" aria-hidden="true" />
+                          <XCircle className="h-4 w-4 shrink-0 text-hard" aria-hidden="true" />
                           {titleFor(id)}
                         </li>
                       ))}
@@ -282,19 +302,19 @@ export default function CalendarPage() {
                 )}
 
                 {selectedCourseEvents.length > 0 && (
-                  <div>
-                    <p className="mb-2 text-sm font-medium">Course</p>
-                    <ul className="space-y-1">
+                  <div className="flex flex-col gap-2">
+                    <p className={LABEL_CLASS}>Course</p>
+                    <ul className="flex flex-col gap-1.5">
                       {selectedCourseEvents.map((event) => (
                         <li key={event.key} className="flex items-center gap-2 text-sm">
                           {event.kind === 'Review' ? (
                             event.passed ? (
-                              <CheckCircle2 className="h-4 w-4 text-easy" aria-hidden="true" />
+                              <CheckCircle2 className="h-4 w-4 shrink-0 text-easy" aria-hidden="true" />
                             ) : (
-                              <XCircle className="h-4 w-4 text-hard" aria-hidden="true" />
+                              <XCircle className="h-4 w-4 shrink-0 text-hard" aria-hidden="true" />
                             )
                           ) : (
-                            <GraduationCap className="h-4 w-4 text-muted-foreground" aria-hidden="true" />
+                            <GraduationCap className="h-4 w-4 shrink-0 text-muted-foreground" aria-hidden="true" />
                           )}
                           <span>{event.title}</span>
                           <span className="text-muted-foreground">· {event.kind}</span>
@@ -305,15 +325,18 @@ export default function CalendarPage() {
                 )}
 
                 {selectedLog && (
-                  <div className="flex items-center gap-4 text-sm text-muted-foreground">
-                    <span className="flex items-center gap-1">
-                      <Zap className="h-4 w-4" aria-hidden="true" />
-                      {selectedLog.xpEarned} XP
-                    </span>
-                    <span className="flex items-center gap-1">
-                      <Timer className="h-4 w-4" aria-hidden="true" />
-                      {selectedLog.focusMinutes} focus min
-                    </span>
+                  <div className="flex flex-col gap-3">
+                    <Rule />
+                    <div className="figures flex items-center gap-4 text-sm text-muted-foreground">
+                      <span className="flex items-center gap-1.5">
+                        <Zap className="h-4 w-4" aria-hidden="true" />
+                        {selectedLog.xpEarned} XP
+                      </span>
+                      <span className="flex items-center gap-1.5">
+                        <Timer className="h-4 w-4" aria-hidden="true" />
+                        {selectedLog.focusMinutes} focus min
+                      </span>
+                    </div>
                   </div>
                 )}
               </div>
@@ -321,6 +344,6 @@ export default function CalendarPage() {
           </DialogContent>
         )}
       </Dialog>
-    </div>
+    </Page>
   );
 }

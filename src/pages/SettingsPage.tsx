@@ -1,7 +1,7 @@
-import { useState, type ChangeEvent } from 'react';
+import { useState, type ChangeEvent, type ReactNode } from 'react';
 import { Controller, useForm } from 'react-hook-form';
 import questionsData from '@/data/questions.json';
-import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
+import { Page, PageHeader, Section } from '@/components/layout/Page';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Switch } from '@/components/ui/switch';
@@ -35,6 +35,46 @@ interface SettingsFormValues {
   revisionEnabled: boolean;
   notifications: boolean;
   dailyCapacityMin: number;
+}
+
+interface SettingRowProps {
+  label: string;
+  /** When present the label is a real `<Label htmlFor>`, so clicking it focuses the control. */
+  htmlFor?: string;
+  description?: ReactNode;
+  children: ReactNode;
+}
+
+/**
+ * One setting: what it is on the left, the control that changes it on the right.
+ *
+ * This page previously ran two grammars at once — selects stacked under their labels, switches
+ * pushed to the far edge of a 1152px plate, and a lone `border-t` on the third danger-zone row.
+ * One row shape plus hairlines between them is the whole form's structure now. `justify-between`
+ * with a single item on a wrapped line lays it out flush left, so at 375px the control simply
+ * drops under its label instead of hugging the right gutter.
+ */
+function SettingRow({ label, htmlFor, description, children }: SettingRowProps) {
+  return (
+    <div className="flex flex-wrap items-center justify-between gap-x-6 gap-y-3 py-4">
+      <div className="flex min-w-0 flex-col gap-1.5">
+        {htmlFor ? (
+          <Label htmlFor={htmlFor}>{label}</Label>
+        ) : (
+          <p className="text-sm font-medium leading-none">{label}</p>
+        )}
+        {description && (
+          <p className="max-w-prose text-sm leading-relaxed text-muted-foreground">{description}</p>
+        )}
+      </div>
+      <div className="shrink-0">{children}</div>
+    </div>
+  );
+}
+
+/** The hairline-ruled stack a group of `SettingRow`s lives in. No plate — a form is not a card. */
+function SettingRows({ children }: { children: ReactNode }) {
+  return <div className="flex flex-col divide-y divide-border border-y border-border">{children}</div>;
 }
 
 export default function SettingsPage() {
@@ -152,33 +192,41 @@ export default function SettingsPage() {
   }
 
   return (
-    <div className="flex flex-col gap-6">
-      <header className="glass p-6">
-        <h1 className="text-2xl font-bold text-gradient">Settings</h1>
-      </header>
+    // `reading` because this is a form: a 46rem column keeps every label, its help text and its
+    // control inside one glance instead of stranding a w-32 select at the left edge of 1152px.
+    <Page width="reading">
+      <PageHeader
+        eyebrow="This device only"
+        title="Settings"
+        support="Everything you do is stored in this browser. Nothing is uploaded, so a backup file is the only way to move it."
+      />
 
-      {/* A real <form> ancestor (even with no onSubmit wired to it) matters here: Radix Select
-          only renders its visually-hidden native <select> fallback — used for native form/
-          autofill compatibility, and by this app's tests to drive perDay changes without needing
-          jsdom to support the visual popper listbox's ResizeObserver/scrollIntoView APIs — when
-          it detects a form ancestor (or an explicit `form` prop). Save stays a plain button that
-          calls handleSave() directly, so this onSubmit is just a safety net against an accidental
-          native submit (e.g. Enter inside a future text field). */}
-      <form onSubmit={(e) => e.preventDefault()}>
-        <Card>
-          <CardHeader>
-            <CardTitle>Preferences</CardTitle>
-            <CardDescription>Tune your daily pace and revision behavior.</CardDescription>
-          </CardHeader>
-          <CardContent className="flex flex-col gap-6">
-            <div className="flex flex-col gap-2">
-              <Label htmlFor="questionsPerDay">Questions per day</Label>
+      <Section title="Preferences" support="Tune your daily pace and revision behavior.">
+        {/* A real <form> ancestor (even with no onSubmit wired to it) matters here: Radix Select
+            only renders its visually-hidden native <select> fallback — used for native form/
+            autofill compatibility, and by this app's tests to drive perDay changes without needing
+            jsdom to support the visual popper listbox's ResizeObserver/scrollIntoView APIs — when
+            it detects a form ancestor (or an explicit `form` prop). Save stays a plain button that
+            calls handleSave() directly, so this onSubmit is just a safety net against an accidental
+            native submit (e.g. Enter inside a future text field). */}
+        <form onSubmit={(e) => e.preventDefault()} className="flex flex-col gap-4">
+          <SettingRows>
+            <SettingRow
+              label="Questions per day"
+              htmlFor="questionsPerDay"
+              description={
+                <>
+                  At this pace, you&apos;ll finish all {TOTAL_QUESTIONS} questions in{' '}
+                  {totalDays(TOTAL_QUESTIONS, watchedPerDay)} days.
+                </>
+              }
+            >
               <Controller
                 control={control}
                 name="questionsPerDay"
                 render={({ field }) => (
                   <Select value={String(field.value)} onValueChange={(v) => field.onChange(Number(v))}>
-                    <SelectTrigger id="questionsPerDay" aria-label="Questions per day" className="w-32">
+                    <SelectTrigger id="questionsPerDay" aria-label="Questions per day" className="w-40">
                       <SelectValue />
                     </SelectTrigger>
                     <SelectContent>
@@ -191,14 +239,13 @@ export default function SettingsPage() {
                   </Select>
                 )}
               />
-              <p className="text-sm text-muted-foreground">
-                At this pace, you&apos;ll finish all {TOTAL_QUESTIONS} questions in{' '}
-                {totalDays(TOTAL_QUESTIONS, watchedPerDay)} days.
-              </p>
-            </div>
+            </SettingRow>
 
-            <div className="flex flex-col gap-2">
-              <Label htmlFor="dailyCapacityMin">Daily study capacity</Label>
+            <SettingRow
+              label="Daily study capacity"
+              htmlFor="dailyCapacityMin"
+              description="The Today plan sums its estimates against this budget — it never schedules more for you, it just tells you when the day is overfull."
+            >
               <Controller
                 control={control}
                 name="dailyCapacityMin"
@@ -217,19 +264,13 @@ export default function SettingsPage() {
                   </Select>
                 )}
               />
-              <p className="text-sm text-muted-foreground">
-                The Today plan sums its estimates against this budget — it never schedules more for you, it just
-                tells you when the day is overfull.
-              </p>
-            </div>
+            </SettingRow>
 
-            <div className="flex items-center justify-between gap-4">
-              <div>
-                <Label htmlFor="revisionEnabled">Spaced revision</Label>
-                <p className="text-sm text-muted-foreground">
-                  Show due revisions on the Today and Revision pages.
-                </p>
-              </div>
+            <SettingRow
+              label="Spaced revision"
+              htmlFor="revisionEnabled"
+              description="Show due revisions on the Today and Revision pages."
+            >
               <Controller
                 control={control}
                 name="revisionEnabled"
@@ -242,28 +283,26 @@ export default function SettingsPage() {
                   />
                 )}
               />
-            </div>
+            </SettingRow>
 
-            <div className="flex items-center justify-between gap-4">
-              <div>
-                <Label htmlFor="theme">Dark mode</Label>
-                <p className="text-sm text-muted-foreground">Applies immediately, no need to save.</p>
-              </div>
+            <SettingRow
+              label="Dark mode"
+              htmlFor="theme"
+              description="Applies immediately, no need to save."
+            >
               <Switch
                 id="theme"
                 checked={theme === 'dark'}
                 onCheckedChange={toggleTheme}
                 aria-label="Dark mode"
               />
-            </div>
+            </SettingRow>
 
-            <div className="flex items-center justify-between gap-4">
-              <div>
-                <Label htmlFor="notifications">Notifications</Label>
-                <p className="text-sm text-muted-foreground">
-                  A browser notification when revisions are due — at most once a day, while the app is open.
-                </p>
-              </div>
+            <SettingRow
+              label="Notifications"
+              htmlFor="notifications"
+              description="A browser notification when revisions are due — at most once a day, while the app is open."
+            >
               <Controller
                 control={control}
                 name="notifications"
@@ -283,37 +322,33 @@ export default function SettingsPage() {
                   />
                 )}
               />
-            </div>
-          </CardContent>
-          <CardFooter className="justify-end">
+            </SettingRow>
+          </SettingRows>
+
+          <div className="flex justify-end">
             <Button type="button" onClick={handleSave} disabled={!isDirty}>
               Save
             </Button>
-          </CardFooter>
-        </Card>
-      </form>
+          </div>
+        </form>
+      </Section>
 
-      <Card className="border-destructive/50">
-        <CardHeader>
-          <CardTitle>Danger Zone</CardTitle>
-          <CardDescription>Export a backup, restore from one, or wipe everything.</CardDescription>
-        </CardHeader>
-        <CardContent className="flex flex-col gap-4">
-          <div className="flex flex-wrap items-center justify-between gap-4">
-            <div>
-              <p className="font-medium">Export progress</p>
-              <p className="text-sm text-muted-foreground">Download a JSON backup of everything.</p>
-            </div>
+      <Section
+        title="Danger Zone"
+        support="Export a backup, restore from one, or wipe everything."
+        divider
+      >
+        <SettingRows>
+          <SettingRow label="Export progress" description="Download a JSON backup of everything.">
             <Button type="button" variant="outline" onClick={handleExport}>
               Export
             </Button>
-          </div>
+          </SettingRow>
 
-          <div className="flex flex-wrap items-center justify-between gap-4">
-            <div>
-              <p className="font-medium">Import progress</p>
-              <p className="text-sm text-muted-foreground">Restore from a previously exported backup file.</p>
-            </div>
+          <SettingRow
+            label="Import progress"
+            description="Restore from a previously exported backup file."
+          >
             <Input
               type="file"
               accept="application/json"
@@ -321,24 +356,21 @@ export default function SettingsPage() {
               className="w-auto"
               onChange={handleFileChange}
             />
-          </div>
-          {importError && (
-            <p role="alert" className="text-sm text-destructive">
-              {importError}
-            </p>
-          )}
+          </SettingRow>
 
-          <div className="flex flex-wrap items-center justify-between gap-4 border-t pt-4">
-            <div>
-              <p className="font-medium">Reset progress</p>
-              <p className="text-sm text-muted-foreground">Erase all progress. This cannot be undone.</p>
-            </div>
+          <SettingRow label="Reset progress" description="Erase all progress. This cannot be undone.">
             <Button type="button" variant="destructive" onClick={() => setResetDialogOpen(true)}>
               Reset Progress
             </Button>
-          </div>
-        </CardContent>
-      </Card>
+          </SettingRow>
+        </SettingRows>
+
+        {importError && (
+          <p role="alert" className="text-sm text-destructive">
+            {importError}
+          </p>
+        )}
+      </Section>
 
       <Dialog open={pendingImport !== null} onOpenChange={(open) => !open && setPendingImport(null)}>
         <DialogContent>
@@ -390,6 +422,6 @@ export default function SettingsPage() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
-    </div>
+    </Page>
   );
 }

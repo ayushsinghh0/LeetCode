@@ -33,8 +33,9 @@ describe('QuestionCard', () => {
     expect(screen.getByText('Easy')).toBeInTheDocument();
     expect(screen.getByText('Two Pointers')).toBeInTheDocument();
     // The estimate is authored per question, so the assertion reads it from the dataset rather
-    // than hardcoding a per-difficulty constant that no longer exists.
-    expect(screen.getByText(`${question1.estimatedTime} min`)).toBeInTheDocument();
+    // than hardcoding a per-difficulty constant that no longer exists. The tilde is deliberate:
+    // this is a band for a typical first attempt, not a measurement of anyone.
+    expect(screen.getByText(`~${question1.estimatedTime} min`)).toBeInTheDocument();
     expect(screen.getByText('Foundation')).toBeInTheDocument();
     expect(screen.getByText(question1.tests)).toBeInTheDocument();
   });

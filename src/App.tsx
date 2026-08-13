@@ -15,6 +15,7 @@ const CompaniesPage = lazy(() => import('@/pages/CompaniesPage'));
 const PatternDetailPage = lazy(() => import('@/pages/PatternDetailPage'));
 const RevisionPage = lazy(() => import('@/pages/RevisionPage'));
 const DrillsPage = lazy(() => import('@/pages/DrillsPage'));
+const InterviewPage = lazy(() => import('@/pages/InterviewPage'));
 const CalendarPage = lazy(() => import('@/pages/CalendarPage'));
 const AnalyticsPage = lazy(() => import('@/pages/AnalyticsPage'));
 const AchievementsPage = lazy(() => import('@/pages/AchievementsPage'));
@@ -58,6 +59,7 @@ export function AppRoutes() {
           <Route path="/companies/:companyId" element={<CompaniesPage />} />
           <Route path="/revision" element={<RevisionPage />} />
           <Route path="/drills" element={<DrillsPage />} />
+          <Route path="/interview" element={<InterviewPage />} />
           <Route path="/calendar" element={<CalendarPage />} />
           <Route path="/analytics" element={<AnalyticsPage />} />
           <Route path="/achievements" element={<AchievementsPage />} />

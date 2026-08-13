@@ -1,13 +1,12 @@
-import { screen, within } from '@testing-library/react';
+import { cleanup, render, screen, within } from '@testing-library/react';
 import { MemoryRouter, Route, Routes } from 'react-router-dom';
 import { Provider } from 'react-redux';
 import { ThemeProvider } from '@/contexts/ThemeContext';
 import { TooltipProvider } from '@/components/ui/tooltip';
-import { render } from '@testing-library/react';
 import { makeStore } from '@/store/store';
 import CompaniesPage from '@/pages/CompaniesPage';
 import { solveQuestion } from '@/store/actions';
-import { COMPANIES } from '@/data/companies';
+import { COMPANIES, EVIDENCE_LABEL, EVIDENCE_MEANING } from '@/data/companies';
 import type { AppStore } from '@/store/store';
 
 // The shared helper mounts a MemoryRouter at "/", but these surfaces are route-parameterised —
@@ -40,15 +39,32 @@ afterEach(() => {
 });
 
 describe('CompaniesPage — the list', () => {
-  test('separates companies that publish topics from those that publish less', () => {
+  test('groups companies by what their own page actually says', () => {
     renderAt('/companies');
 
-    expect(screen.getByRole('heading', { name: 'Companies that name specific topics' })).toBeInTheDocument();
-    expect(screen.getByRole('heading', { name: 'Companies that publish less' })).toBeInTheDocument();
+    expect(
+      screen.getByRole('heading', { name: 'Companies that name specific topics' }),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByRole('heading', { name: 'Companies that name the area only' }),
+    ).toBeInTheDocument();
+    // A company saying it does not ask puzzles is not "publishing less" — it is publishing the
+    // most decision-changing fact in the set, so it gets its own group rather than the footer.
+    expect(
+      screen.getByRole('heading', { name: 'Companies that say they avoid puzzles' }),
+    ).toBeInTheDocument();
+  });
 
-    const withTopics = COMPANIES.filter((c) => c.evidence === 'topics');
-    for (const company of withTopics) {
-      expect(screen.getByRole('link', { name: new RegExp(company.name) })).toBeInTheDocument();
+  test('every company is listed exactly once, and cites the page being quoted', () => {
+    renderAt('/companies');
+
+    for (const company of COMPANIES) {
+      const links = screen
+        .getAllByRole('link')
+        .filter((a) => a.getAttribute('href') === `/companies/${company.id}`);
+      expect(links).toHaveLength(1);
+      // "Google Careers — Software Engineer interview prep guide" is checkable; "Google" is a brand.
+      expect(within(links[0]!).getByText(company.sourceLabel)).toBeInTheDocument();
     }
   });
 
@@ -58,18 +74,63 @@ describe('CompaniesPage — the list', () => {
   });
 });
 
+describe('CompaniesPage — evidence-aware wording', () => {
+  test('every company page names its evidence tier and what that tier means', () => {
+    for (const company of COMPANIES) {
+      renderAt(`/companies/${company.id}`);
+      expect(screen.getByText(new RegExp(EVIDENCE_LABEL[company.evidence]))).toBeInTheDocument();
+      expect(screen.getByText(EVIDENCE_MEANING[company.evidence])).toBeInTheDocument();
+      cleanup();
+    }
+  });
+
+  test('the claim boundary leads every company page instead of trailing it', () => {
+    for (const company of COMPANIES) {
+      renderAt(`/companies/${company.id}`);
+      expect(screen.getByText(/No company publishes the problems it asks/)).toBeInTheDocument();
+      cleanup();
+    }
+  });
+
+  // The single most important rule in the repo's data model, asserted against the rendered DOM
+  // rather than against the dataset: no surface may state or imply that a company asks a problem.
+  test('no company page ever phrases a per-problem association', () => {
+    const forbidden = [
+      /\basked by\b/i,
+      /\basked at\b/i,
+      /\bcommonly asked\b/i,
+      /\bfrequently asked\b/i,
+      /\btop questions\b/i,
+      /\bmost asked\b/i,
+    ];
+
+    for (const company of COMPANIES) {
+      renderAt(`/companies/${company.id}`);
+      const text = document.body.textContent ?? '';
+      for (const pattern of forbidden) {
+        expect(text).not.toMatch(pattern);
+      }
+      cleanup();
+    }
+  });
+});
+
 describe('CompaniesPage — a company with topic-level evidence', () => {
-  test('shows the verbatim quote, the checked date, and a link to the source', () => {
+  test('shows the verbatim quote, the cited page, the checked date, and a link to the source', () => {
     const google = COMPANIES.find((c) => c.id === 'google')!;
     renderAt('/companies/google');
 
     const source = screen.getByRole('region', { name: 'Source' });
     expect(within(source).getByText(google.quote)).toBeInTheDocument();
+    expect(within(source).getByText(google.sourceLabel)).toBeInTheDocument();
     expect(within(source).getByText(`checked ${google.checkedAt}`)).toBeInTheDocument();
-    expect(within(source).getByRole('link', { name: /Read their page/ })).toHaveAttribute('href', google.url);
+    expect(within(source).getByRole('link', { name: /Read their page/ })).toHaveAttribute(
+      'href',
+      google.url,
+    );
   });
 
-  test('coverage counts the learner\'s own solves against the mapped patterns', () => {
+  test("coverage counts the learner's own solves against the mapped patterns", () => {
     const store = makeStore();
     // Question 1 is two-pointers, which Google's mapping does NOT include; question 231
     // onwards covers other patterns. Use a pattern Google names: stacks.
@@ -90,6 +151,17 @@ describe('CompaniesPage — a company with topic-level evidence', () => {
     expect(within(practice).getByText(/These are not questions Google asks/)).toBeInTheDocument();
   });
 
+  test('every practice row says why it is there, and the reason is the topic mapping', () => {
+    renderAt('/companies/google');
+    const practice = screen.getByRole('region', { name: 'Practice set' });
+
+    const rows = within(practice).getAllByRole('listitem');
+    expect(rows.length).toBeGreaterThan(0);
+    for (const row of rows) {
+      expect(within(row).getByText(/mapped from a topic they name/)).toBeInTheDocument();
+    }
+  });
+
   test('solving moves the coverage count', () => {
     const store = makeStore();
     // #231 "Basic Calculator" is the first stacks question — a pattern Google names.
@@ -101,13 +173,33 @@ describe('CompaniesPage — a company with topic-level evidence', () => {
   });
 });
 
-describe('CompaniesPage — companies without topic-level evidence', () => {
+describe('CompaniesPage — companies without mapped patterns', () => {
   test('a categories-only company gets no pattern mapping and says why', () => {
     renderAt('/companies/amazon');
 
     expect(screen.getByRole('heading', { name: 'No pattern mapping' })).toBeInTheDocument();
     expect(screen.getByText(/does not invent the difference/)).toBeInTheDocument();
     expect(screen.queryByRole('region', { name: 'Your coverage' })).not.toBeInTheDocument();
+    expect(screen.queryByRole('region', { name: 'Practice set' })).not.toBeInTheDocument();
+  });
+
+  test('a categories-only company still offers somewhere to put the time, labelled as roadmap advice', () => {
+    const store = makeStore();
+    // Three solves in one pattern is what makes a pattern rankable at all (weakestPatterns).
+    store.dispatch(solveQuestion(1));
+    store.dispatch(solveQuestion(2));
+    store.dispatch(solveQuestion(3));
+    renderAt('/companies/amazon', store);
+
+    const where = screen.getByRole('region', { name: 'Where to put the time' });
+    expect(within(where).getByRole('list', { name: 'Your weakest patterns' })).toBeInTheDocument();
+    expect(within(where).getByText(/roadmap advice, not company advice/)).toBeInTheDocument();
+  });
+
+  test('with no practice history the fallback says so instead of ranking nothing', () => {
+    renderAt('/companies/amazon');
+    const where = screen.getByRole('region', { name: 'Where to put the time' });
+    expect(within(where).getByText(/Not enough practice yet to rank your patterns/)).toBeInTheDocument();
   });
 
   test('a company that says it avoids puzzles is reported as such, not padded', () => {
@@ -115,10 +207,50 @@ describe('CompaniesPage — companies without topic-level evidence', () => {
 
     expect(screen.getByText(/do not ask algorithm puzzles/)).toBeInTheDocument();
     expect(screen.queryByRole('region', { name: 'Your coverage' })).not.toBeInTheDocument();
+    // No weakest-pattern fallback here: their own words say pattern drilling is the wrong
+    // optimisation, and offering it anyway would contradict the page's own headline finding.
+    expect(screen.queryByRole('region', { name: 'Where to put the time' })).not.toBeInTheDocument();
   });
 
   test('an unknown company id fails closed instead of inventing an entry', () => {
     renderAt('/companies/definitely-not-real');
     expect(screen.getByRole('heading', { name: 'Unknown company' })).toBeInTheDocument();
+  });
+});
+
+describe('CompaniesPage — problems a first-party page names', () => {
+  const linkedin = COMPANIES.find((c) => c.id === 'linkedin')!;
+
+  test('the dataset still has exactly one entry with named problems', () => {
+    // If this ever changes, the surface below needs re-reading, not just re-testing.
+    const withNamed = COMPANIES.filter((c) => (c.namedProblems?.length ?? 0) > 0);
+    expect(withNamed.map((c) => c.id)).toEqual(['linkedin']);
+  });
+
+  test('renders each string exactly as the source phrases it', () => {
+    renderAt('/companies/linkedin');
+    const region = screen.getByRole('region', { name: 'Named problems' });
+    for (const problem of linkedin.namedProblems!) {
+      expect(within(region).getByText(problem)).toBeInTheDocument();
+    }
+  });
+
+  test('the scope note renders alongside, never behind a disclosure', () => {
+    renderAt('/companies/linkedin');
+    const region = screen.getByRole('region', { name: 'Named problems' });
+
+    expect(within(region).getByText(linkedin.namedProblemsNote!)).toBeInTheDocument();
+    expect(region.querySelector('details')).toBeNull();
+    expect(region.querySelector('[hidden]')).toBeNull();
+  });
+
+  test('named problems are never mapped onto a roadmap question', () => {
+    renderAt('/companies/linkedin');
+    const region = screen.getByRole('region', { name: 'Named problems' });
+
+    // Nothing in this block is clickable: a link or a button here would be a mapping.
+    expect(within(region).queryByRole('link')).toBeNull();
+    expect(within(region).queryByRole('button')).toBeNull();
+    expect(screen.queryByRole('region', { name: 'Practice set' })).not.toBeInTheDocument();
   });
 });

@@ -10,6 +10,16 @@ import { NAV_ITEMS } from '@/components/layout/navItems';
 const PRIMARY_ITEMS = NAV_ITEMS.filter((item) => item.mobile === 'primary');
 const MORE_ITEMS = NAV_ITEMS.filter((item) => item.mobile === 'more');
 
+// The registry allows exactly five primary tabs, and "More" was silently taking a sixth equal
+// share of the same bar: at 375px the plate is 359px wide, so six `flex-1` slots got 58.5px each
+// and "Dashboard" ellipsised to "Dashboa…". More is not a tab — it is the utility that opens the
+// rest of the app — so it now takes a fixed 44px slot (the WCAG-comfortable minimum, and enough
+// for its own four-letter label) behind a hairline, and the five real tabs share what is left:
+// 355 − 44 − 5 (hairline + its margins) = 306px, i.e. 61.2px per tab, 57.2px inside the tab's own
+// padding, against ~51px for "Dashboard" at 11px. `truncate` stays as the guard for 320px phones.
+const TAB_CLASS =
+  'flex min-h-11 flex-col items-center justify-center gap-0.5 rounded-md px-0.5 py-1.5 text-[11px] font-medium leading-tight transition-colors duration-150 ease-swift active:scale-[0.97]';
+
 export function MobileNav() {
   const dispatch = useAppDispatch();
   const [open, setOpen] = useState(false);
@@ -26,7 +36,7 @@ export function MobileNav() {
     <>
       <nav
         aria-label="Mobile navigation"
-        className="glass fixed inset-x-2 bottom-2 z-40 flex items-center justify-between px-1 py-1.5 pb-[max(0.375rem,env(safe-area-inset-bottom))] md:hidden"
+        className="glass fixed inset-x-2 bottom-2 z-40 flex items-center px-0.5 py-1.5 pb-[max(0.375rem,env(safe-area-inset-bottom))] md:hidden"
       >
         {PRIMARY_ITEMS.map(({ to, label, icon: Icon }) => (
           <NavLink
@@ -35,23 +45,31 @@ export function MobileNav() {
             end={to === '/'}
             className={({ isActive }) =>
               cn(
-                'flex min-h-11 flex-1 flex-col items-center justify-center gap-0.5 rounded-md px-1 py-1.5 text-[11px] font-medium transition-colors duration-150 ease-swift active:scale-[0.97]',
+                TAB_CLASS,
+                // basis-0 + min-w-0: equal shares regardless of label length, and truncation is
+                // allowed to kick in on very narrow phones instead of overflowing the plate.
+                'min-w-0 flex-1 basis-0',
                 isActive ? 'bg-primary text-primary-foreground' : 'text-muted-foreground',
               )
             }
           >
-            <Icon className="h-5 w-5" aria-hidden="true" />
-            {/* Six slots share ~350px at 375vw — labels must ellipsize, never wrap or overflow. */}
-            <span className="max-w-full truncate">{label}</span>
+            <Icon className="h-5 w-5 shrink-0" aria-hidden="true" />
+            <span className="w-full truncate text-center">{label}</span>
           </NavLink>
         ))}
+
+        {/* The hairline that says "the tabs stop here". Same idiom as Ledger's column rules. */}
+        <span aria-hidden="true" className="mx-0.5 h-8 w-px shrink-0 bg-border" />
+
         <button
           type="button"
+          aria-haspopup="dialog"
+          aria-expanded={open}
           onClick={() => setOpen(true)}
-          className="flex min-h-11 flex-1 flex-col items-center justify-center gap-0.5 rounded-md px-1 py-1.5 text-[11px] font-medium text-muted-foreground transition-colors duration-150 ease-swift active:scale-[0.97]"
+          className={cn(TAB_CLASS, 'w-11 shrink-0 text-muted-foreground')}
         >
-          <MoreHorizontal className="h-5 w-5" />
-          More
+          <MoreHorizontal className="h-5 w-5 shrink-0" aria-hidden="true" />
+          <span className="w-full truncate text-center">More</span>
         </button>
       </nav>
 
@@ -64,9 +82,9 @@ export function MobileNav() {
             <button
               type="button"
               onClick={openSearch}
-              className="flex min-h-11 items-center gap-2 rounded-md px-3 py-2 text-left text-sm font-medium text-muted-foreground hover:bg-muted hover:text-foreground"
+              className="flex min-h-11 items-center gap-2 rounded-md px-3 py-2 text-left text-sm font-medium text-muted-foreground transition-colors duration-150 ease-swift hover:bg-muted hover:text-foreground"
             >
-              <Search className="h-4 w-4" />
+              <Search className="h-4 w-4 shrink-0" aria-hidden="true" />
               Search
             </button>
             {MORE_ITEMS.map(({ to, label, icon: Icon }) => (
@@ -76,15 +94,15 @@ export function MobileNav() {
                 onClick={() => setOpen(false)}
                 className={({ isActive }) =>
                   cn(
-                    'flex min-h-11 items-center gap-2 rounded-md px-3 py-2 text-sm font-medium',
+                    'flex min-h-11 items-center gap-2 rounded-md px-3 py-2 text-sm font-medium transition-colors duration-150 ease-swift',
                     isActive
                       ? 'bg-primary text-primary-foreground'
                       : 'text-muted-foreground hover:bg-muted hover:text-foreground',
                   )
                 }
               >
-                <Icon className="h-4 w-4" />
-                {label}
+                <Icon className="h-4 w-4 shrink-0" aria-hidden="true" />
+                <span className="min-w-0 truncate">{label}</span>
               </NavLink>
             ))}
           </div>

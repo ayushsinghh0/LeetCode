@@ -2,11 +2,13 @@ import { useEffect, useRef, useState } from 'react';
 import { AnimatePresence, motion, useReducedMotion } from 'framer-motion';
 import { CheckCircle2, Circle, Sparkles } from 'lucide-react';
 import { DifficultyBadge } from '@/components/questions/DifficultyBadge';
+import { Meta, Page, PageHeader, RuledItem, RuledList } from '@/components/layout/Page';
 import { Progress } from '@/components/ui/progress';
 import { patternById } from '@/data/patterns';
 import { useAppDispatch, useAppSelector } from '@/store/hooks';
 import { activeQuestionSet } from '@/store/slices/uiSlice';
 import { selectCurrentDay, selectPerDay, selectQuestions, selectTotalDays } from '@/store/selectors';
+import { cn } from '@/utils/cn';
 import { daySlice, isWeeklyRevisionDay } from '@/utils/engine/roadmap';
 import type { Difficulty, Question, QuestionProgress } from '@/types';
 
@@ -76,6 +78,7 @@ interface RoadmapRowProps {
   day: number;
   slice: Question[];
   isCurrentDay: boolean;
+  isLast: boolean;
   isExpanded: boolean;
   progressById: Record<number, QuestionProgress>;
   onToggle: (day: number) => void;
@@ -83,7 +86,25 @@ interface RoadmapRowProps {
   rowRef?: (el: HTMLDivElement | null) => void;
 }
 
-function RoadmapRow({ day, slice, isCurrentDay, isExpanded, progressById, onToggle, onOpenQuestion, rowRef }: RoadmapRowProps) {
+/**
+ * One day of the syllabus, ruled off from the next.
+ *
+ * It used to be a `.glass` plate sitting beside the rail, with a second bordered panel dropping
+ * out below it when expanded — 68 rectangles fighting the one line that was already grouping
+ * them, plus a nested plate the composition contract forbids. The rail and the hairline do the
+ * grouping now; the row itself is ground.
+ */
+function RoadmapRow({
+  day,
+  slice,
+  isCurrentDay,
+  isLast,
+  isExpanded,
+  progressById,
+  onToggle,
+  onOpenQuestion,
+  rowRef,
+}: RoadmapRowProps) {
   const solvedCount = slice.filter((q) => (progressById[q.id]?.status ?? 'unsolved') === 'solved').length;
   const isComplete = slice.length > 0 && solvedCount === slice.length;
   const progressPct = slice.length > 0 ? (solvedCount / slice.length) * 100 : 0;
@@ -92,79 +113,95 @@ function RoadmapRow({ day, slice, isCurrentDay, isExpanded, progressById, onTogg
   const difficulty = difficultySummary(slice);
 
   return (
-    <div ref={rowRef} className="relative flex gap-4">
-      <div className="flex flex-col items-center">
-        <StatusNode day={day} isComplete={isComplete} isCurrentDay={isCurrentDay} />
-        <div className="w-px flex-1 bg-border" aria-hidden="true" />
-      </div>
+    <RuledItem className={cn('py-0', isCurrentDay && 'bg-muted/30')}>
+      <div className="flex gap-4">
+        {/* The rail spans the full height of every row so the timeline reads as one continuous
+            line rather than 68 segments; the marker punches through it, and on the final day it
+            stops at the marker instead of trailing off the end of the course. */}
+        <div className="relative flex w-9 shrink-0 justify-center pt-3.5">
+          <div
+            aria-hidden="true"
+            className={cn(
+              'absolute left-1/2 w-px -translate-x-1/2 bg-border',
+              isLast ? 'top-0 h-8' : 'inset-y-0',
+            )}
+          />
+          <StatusNode day={day} isComplete={isComplete} isCurrentDay={isCurrentDay} />
+        </div>
 
-      <div className="flex-1 pb-6">
-        <button
-          type="button"
-          onClick={() => onToggle(day)}
-          aria-expanded={isExpanded}
-          aria-controls={`roadmap-day-${day}-questions`}
-          className="glass flex w-full flex-col gap-2 p-4 text-left transition-colors duration-150 ease-swift hover:border-primary/40"
-        >
-          <div className="flex items-center gap-2">
-            <span className="font-semibold">Day {day}</span>
-            {weekly && <Sparkles className="h-4 w-4 text-primary" aria-label="Weekly revision day" role="img" />}
-          </div>
-          {patterns !== '' && <p className="text-sm text-muted-foreground">{patterns}</p>}
-          {difficulty !== '' && <p className="text-xs text-muted-foreground">{difficulty}</p>}
-          <Progress value={progressPct} className="h-1.5" aria-label={`Day ${day} progress`} />
-          <p className="text-xs text-muted-foreground">
-            {solvedCount}/{slice.length} solved
-          </p>
-        </button>
+        <div ref={rowRef} className="min-w-0 flex-1 py-4">
+          <button
+            type="button"
+            onClick={() => onToggle(day)}
+            aria-expanded={isExpanded}
+            aria-controls={`roadmap-day-${day}-questions`}
+            className="-mx-2 flex w-full flex-col gap-2 rounded-md px-2 py-1 text-left transition-colors duration-150 ease-swift hover:bg-muted/40 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
+          >
+            <div className="flex items-baseline justify-between gap-3">
+              <span className="flex items-center gap-2">
+                <span className="font-semibold">Day {day}</span>
+                {weekly && <Sparkles className="h-4 w-4 text-primary" aria-label="Weekly revision day" role="img" />}
+              </span>
+              <span className="figures shrink-0 text-xs text-muted-foreground">
+                {solvedCount}/{slice.length}
+              </span>
+            </div>
 
-        <AnimatePresence initial={false}>
-          {isExpanded && (
-            <motion.div
-              id={`roadmap-day-${day}-questions`}
-              layout
-              initial={{ height: 0, opacity: 0 }}
-              animate={{ height: 'auto', opacity: 1 }}
-              exit={{ height: 0, opacity: 0 }}
-              transition={{ duration: 0.2 }}
-              className="overflow-hidden"
-            >
-              <ul className="mt-2 flex flex-col gap-1 rounded-xl border border-border bg-muted/30 p-2">
-                {slice.map((question) => {
-                  const solved = (progressById[question.id]?.status ?? 'unsolved') === 'solved';
-                  return (
-                    <li key={question.id}>
-                      <div
-                        role="button"
-                        tabIndex={0}
-                        onClick={() => onOpenQuestion(question.id)}
-                        onKeyDown={(e) => {
-                          if (e.key === 'Enter' || e.key === ' ') {
-                            e.preventDefault();
-                            onOpenQuestion(question.id);
-                          }
-                        }}
-                        className="flex cursor-pointer items-center justify-between gap-2 rounded-md px-2 py-1.5 hover:bg-muted/60"
-                      >
-                        <span className="flex items-center gap-2 text-sm">
-                          {solved ? (
-                            <CheckCircle2 className="h-4 w-4 shrink-0 text-easy" aria-hidden="true" />
-                          ) : (
-                            <Circle className="h-4 w-4 shrink-0 text-muted-foreground/50" aria-hidden="true" />
-                          )}
-                          {question.title}
-                        </span>
-                        <DifficultyBadge difficulty={question.difficulty} />
-                      </div>
-                    </li>
-                  );
-                })}
-              </ul>
-            </motion.div>
-          )}
-        </AnimatePresence>
+            {/* Patterns and difficulty mix describe one thing — the day — so they read as one
+                line, not as two near-identical stacked paragraphs. */}
+            <Meta className="text-xs" items={[patterns || null, difficulty || null]} />
+
+            <Progress value={progressPct} className="h-1" aria-label={`Day ${day} progress`} />
+          </button>
+
+          <AnimatePresence initial={false}>
+            {isExpanded && (
+              <motion.div
+                id={`roadmap-day-${day}-questions`}
+                layout
+                initial={{ height: 0, opacity: 0 }}
+                animate={{ height: 'auto', opacity: 1 }}
+                exit={{ height: 0, opacity: 0 }}
+                transition={{ duration: 0.2 }}
+                className="overflow-hidden"
+              >
+                <ul className="mt-3 flex flex-col divide-y divide-border/70 border-t border-border/70">
+                  {slice.map((question) => {
+                    const solved = (progressById[question.id]?.status ?? 'unsolved') === 'solved';
+                    return (
+                      <li key={question.id}>
+                        <div
+                          role="button"
+                          tabIndex={0}
+                          onClick={() => onOpenQuestion(question.id)}
+                          onKeyDown={(e) => {
+                            if (e.key === 'Enter' || e.key === ' ') {
+                              e.preventDefault();
+                              onOpenQuestion(question.id);
+                            }
+                          }}
+                          className="-mx-2 flex cursor-pointer items-center justify-between gap-3 rounded-sm px-2 py-2 transition-colors duration-150 ease-swift hover:bg-muted/50 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
+                        >
+                          <span className="flex min-w-0 items-center gap-2 text-sm">
+                            {solved ? (
+                              <CheckCircle2 className="h-4 w-4 shrink-0 text-easy" aria-hidden="true" />
+                            ) : (
+                              <Circle className="h-4 w-4 shrink-0 text-muted-foreground/50" aria-hidden="true" />
+                            )}
+                            <span className="truncate">{question.title}</span>
+                          </span>
+                          <DifficultyBadge difficulty={question.difficulty} />
+                        </div>
+                      </li>
+                    );
+                  })}
+                </ul>
+              </motion.div>
+            )}
+          </AnimatePresence>
+        </div>
       </div>
-    </div>
+    </RuledItem>
   );
 }
 
@@ -201,15 +238,14 @@ export default function RoadmapPage() {
   const days = Array.from({ length: totalDays }, (_, i) => i + 1);
 
   return (
-    <div className="flex flex-col gap-6">
-      <header className="glass p-6">
-        <h1 className="text-2xl font-bold text-gradient">Roadmap</h1>
-        <p className="mt-1 text-sm text-muted-foreground">
-          Day {currentDay} of {totalDays} &middot; {questions.length} questions total
-        </p>
-      </header>
+    <Page>
+      <PageHeader
+        eyebrow={`Day ${currentDay} of ${totalDays}`}
+        title="Roadmap"
+        support={`${questions.length} questions across ${totalDays} days, in course order. Open a day to see its questions.`}
+      />
 
-      <div className="flex flex-col">
+      <RuledList>
         {days.map((day) => {
           const slice = daySlice(questions, day, perDay);
           const isCurrentDay = day === currentDay;
@@ -219,6 +255,7 @@ export default function RoadmapPage() {
               day={day}
               slice={slice}
               isCurrentDay={isCurrentDay}
+              isLast={day === totalDays}
               isExpanded={expandedDay === day}
               progressById={progressById}
               onToggle={toggleDay}
@@ -227,7 +264,7 @@ export default function RoadmapPage() {
             />
           );
         })}
-      </div>
-    </div>
+      </RuledList>
+    </Page>
   );
 }

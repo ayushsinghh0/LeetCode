@@ -100,4 +100,33 @@ describe('CalendarPage', () => {
     const futureCell = screen.getByRole('button', { name: 'July 31, 2026 — 0 activities' });
     expect(futureCell).toBeDisabled();
   });
+
+  test('the month caption totals the visible month, every figure in the tabular voice', () => {
+    const store = makeStore();
+    store.dispatch(solveQuestion(1));
+    store.dispatch(solveQuestion(2));
+
+    renderWithStore(<CalendarPage />, store);
+
+    const month = screen.getByRole('region', { name: 'Month activity' });
+
+    const solves = within(month).getByText('solves');
+    expect(solves).toHaveTextContent('2 solves');
+    // DESIGN.md § Typography: "anything counted, timed, or dated" wears `.figures`. The old
+    // full-width totals plate rendered these as plain bold text.
+    expect(solves.querySelector('.figures')).toHaveTextContent('2');
+
+    expect(within(month).getByText('active day')).toHaveTextContent('1 active day');
+    expect(within(month).getByText('revisions')).toHaveTextContent('0 revisions');
+    expect(within(month).getByText('course sessions')).toHaveTextContent('0 course sessions');
+    expect(within(month).getByText('XP')).toHaveTextContent(`${SOLVE_TOTAL_XP} XP`);
+  });
+
+  test('the page spends no plate on itself — the grid sits on the page ground', () => {
+    const { container } = renderWithStore(<CalendarPage />);
+
+    // DESIGN.md § The plate rule: a plate must earn itself. A month nav, a calendar grid and a
+    // totals line are one object, and none of them is liftable — this page used to box all three.
+    expect(container.querySelectorAll('.glass')).toHaveLength(0);
+  });
 });

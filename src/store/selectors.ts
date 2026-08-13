@@ -20,7 +20,24 @@ import {
   REVISION_MINUTES,
   revisionMinutes,
 } from '@/utils/engine/planner';
-import { buildInsights } from '@/utils/engine/insights';
+import {
+  accuracyTrend,
+  buildInsights,
+  confidenceCalibration,
+  courseRetention,
+  paceAgainstEstimate,
+  paceTrend,
+  recognitionRecord,
+  solveCoverage,
+} from '@/utils/engine/insights';
+import { patternWeakness, transferRecord, type PatternWeakness } from '@/utils/engine/weakness';
+import {
+  buildRevisionSession,
+  type RevisionCandidate,
+  type RevisionSession,
+  type TransferCandidate,
+} from '@/utils/engine/session';
+import { FAMILIES } from '@/data/curriculum';
 import { courseWeekById } from '@/data/aimlCourse';
 import { currentDay, daySlice, isWeeklyRevisionDay, totalDays, estimatedFinishDate } from '@/utils/engine/roadmap';
 import { computeStreaks, hasActivity } from '@/utils/engine/streak';
@@ -380,6 +397,32 @@ export const selectRankedWork = createSelector(
 // --- Decision-support analytics ------------------------------------------------------------
 
 /**
+ * Which patterns are not holding, how strongly, and why. ONE place, deliberately.
+ *
+ * The whole model lives in `engine/weakness.ts`: seven recency-weighted signals, each gated on
+ * repeated evidence, none of them allowed to dominate, every score carrying the signals that
+ * produced it. This selector only assembles the inputs — the joins against the static dataset
+ * happen here, memoized, so the engine stays pure.
+ *
+ * The return shape is deliberately a superset of `{ id, name, score }`: the revision session
+ * (engine/session.ts) reads exactly those three fields and must keep working unchanged, while
+ * every surface that explains a weakness reads `signals`/`summary` instead of printing a score.
+ */
+const MAX_WEAK_PATTERNS = 5;
+
+export const selectAllPatternWeakness = createSelector(
+  [selectProgressById, selectDrillsByDate, selectTodayArg],
+  (byId, drills, today): PatternWeakness[] =>
+    patternWeakness({ today, all: questions, byId, drills, families: FAMILIES }),
+);
+
+/** The head of the same list, for the surfaces that act on it rather than explain it. */
+export const selectPatternWeakness = createSelector(
+  [selectAllPatternWeakness],
+  (all): PatternWeakness[] => all.slice(0, MAX_WEAK_PATTERNS),
+);
+
+/**
  * Mean `revisionMinutes` across the questions currently on the review ladder.
  *
  * The revision-load forecast is a count of reviews per day, so converting it to time needs one
@@ -412,13 +455,13 @@ export const selectInsights = createSelector(
     selectProgressById,
     selectDayLogs,
     selectDrillsByDate,
-    selectPatternStats,
+    selectAllPatternWeakness,
     selectForecast,
     (state: RootState) => state.settings.dailyCapacityMin,
     selectCourseActiveDates,
     selectTodayArg,
   ],
-  (byId, dayLogs, drills, patternStatsList, forecast, capacityMin, courseActiveDates, today) =>
+  (byId, dayLogs, drills, weakness, forecast, capacityMin, courseActiveDates, today) =>
     buildInsights(
       {
         today,
@@ -426,7 +469,7 @@ export const selectInsights = createSelector(
         byId,
         dayLogs,
         drills,
-        patternStats: patternStatsList,
+        weakness,
         forecast,
         capacityMin,
         // The mean cost of the reviews actually on this learner's ladder — not the flat
@@ -439,8 +482,180 @@ export const selectInsights = createSelector(
     ),
 );
 
+/**
+ * The measurements the analytics page reads.
+ *
+ * Every one of them is an engine call with its own suppression floor — the selectors do the joins
+ * against the static dataset and nothing else. A `null` here means "the record cannot answer that
+ * yet", and the page is required to say so rather than render a zero.
+ */
+export const selectSolveCoverage = createSelector([selectProgressById], (byId) => solveCoverage(byId));
+
+export const selectTransferRecord = createSelector([selectProgressById], (byId) =>
+  transferRecord(questions, byId, FAMILIES),
+);
+
+export const selectCalibration = createSelector([selectProgressById], (byId) =>
+  confidenceCalibration(byId),
+);
+
+export const selectRecognitionRecord = createSelector([selectDrillsByDate], (drills) =>
+  recognitionRecord(drills),
+);
+
+export const selectPaceAgainstEstimate = createSelector([selectPaceSamples], (samples) =>
+  paceAgainstEstimate(samples),
+);
+
+export const selectPaceTrend = createSelector([selectProgressById], (byId) =>
+  paceTrend(questions, byId),
+);
+
+// Both tracks climb the same ladder and share the revisionHistory shape, so accuracy is measured
+// across both — the same blending the pass-rate figure on the analytics page does.
+export const selectAccuracyTrend = createSelector(
+  [selectProgressById, selectCourseByWeekId],
+  (byId, byWeekId) => accuracyTrend(byId, byWeekId),
+);
+
+export const selectCourseRetention = createSelector([selectCourseByWeekId], (byWeekId) =>
+  courseRetention(byWeekId),
+);
+
+/** Raw pass/fail counts across both tracks — `overallRevisionPassRate` returns only the ratio. */
+export const selectRecallRecord = createSelector(
+  [selectProgressById, selectCourseByWeekId],
+  (byId, byWeekId): { passed: number; failed: number; attempts: number; rate: number | null } => {
+    let passed = 0;
+    let failed = 0;
+    for (const p of [...Object.values(byId), ...Object.values(byWeekId)]) {
+      for (const ev of p.revisionHistory) {
+        if (ev.passed) passed += 1;
+        else failed += 1;
+      }
+    }
+    const attempts = passed + failed;
+    return { passed, failed, attempts, rate: attempts === 0 ? null : passed / attempts };
+  },
+);
+
 /** Whether anything is left on today's plan — the "done for today" signal. */
 export const selectDayCleared = createSelector([selectRankedWork], (work) => work.length === 0);
+
+// --- Revision session ------------------------------------------------------------------------
+// Assembly for engine/session.ts. Same discipline as selectRankedWork: every join against the
+// static dataset happens here, memoized, so the engine stays pure and clock-free.
+
+/**
+ * Every question on the ladder — due AND not yet due. The session engine needs both: the due work
+ * is the session, and the not-yet-due work is what a longer session pulls forward instead of
+ * padding itself with filler.
+ */
+const selectLadderCandidates = createSelector(
+  [selectProgressById, selectTodayArg],
+  (byId, today): RevisionCandidate[] => {
+    const out: RevisionCandidate[] = [];
+    for (const [rawId, progress] of Object.entries(byId)) {
+      if (progress.status !== 'solved' || progress.nextRevision === null) continue;
+      const question = questionById.get(Number(rawId));
+      if (!question) continue;
+      out.push({
+        question,
+        overdueDays: diffDays(today, progress.nextRevision),
+        intervalDays: REVISION_INTERVALS[progress.revisionStage] ?? REVISION_INTERVALS[0]!,
+        stage: progress.revisionStage,
+        failures: progress.revisionHistory.filter((r) => !r.passed).length,
+        confidence: progress.confidence,
+        daysSinceSeen: progress.lastReviewed ? diffDays(today, progress.lastReviewed) : 0,
+      });
+    }
+    return out;
+  },
+);
+
+/**
+ * Unsolved problems in families the learner has already met — the only honest transfer material
+ * in the dataset. "Same idea, new disguise" is a claim the family map can actually support;
+ * picking an arbitrary unsolved question and calling it transfer would not be.
+ */
+const MAX_TRANSFER_CANDIDATES = 40;
+
+const selectTransferCandidates = createSelector(
+  [selectProgressById],
+  (byId): TransferCandidate[] => {
+    const out: TransferCandidate[] = [];
+    for (const family of FAMILIES) {
+      const solved = family.members.filter((m) => byId[m.questionId]?.status === 'solved');
+      if (solved.length === 0) continue;
+      const from = questionById.get(solved[0]!.questionId);
+      if (!from) continue;
+      for (const member of family.members) {
+        const status = byId[member.questionId]?.status ?? 'unsolved';
+        if (status === 'solved' || status === 'skipped') continue;
+        const question = questionById.get(member.questionId);
+        if (!question) continue;
+        out.push({ question, familyName: family.name, fromTitle: from.title });
+        if (out.length >= MAX_TRANSFER_CANDIDATES) return out;
+      }
+    }
+    return out;
+  },
+);
+
+/**
+ * "I have N minutes" — the best revision session that fits, most valuable first.
+ *
+ * Budget comes from `settings.dailyCapacityMin`, the same number the Today chips and the Settings
+ * page write. One concept, several places to change it, never two competing numbers.
+ */
+export const selectRevisionSession = createSelector(
+  [
+    selectLadderCandidates,
+    selectTransferCandidates,
+    selectCourseDueReviewIds,
+    selectCourseByWeekId,
+    selectPatternWeakness,
+    selectSolvedNewCount,
+    selectDrillsByDate,
+    (state: RootState) => state.settings.dailyCapacityMin,
+    selectTodayArg,
+  ],
+  (
+    candidates,
+    transfer,
+    courseDueIds,
+    courseByWeekId,
+    weakPatterns,
+    solvedNewCount,
+    drillsByDate,
+    budgetMin,
+    today,
+  ): RevisionSession =>
+    buildRevisionSession({
+      budgetMin,
+      candidates,
+      transfer,
+      courseReviews: courseDueIds
+        .map((weekId) => {
+          const week = courseWeekById.get(weekId);
+          if (!week) return null;
+          const next = courseByWeekId[weekId]?.nextRevision ?? null;
+          return {
+            weekId,
+            title: `Week ${week.week} — ${week.title}`,
+            minutes: COURSE_REVIEW_MINUTES,
+            overdueDays: next ? Math.max(0, diffDays(today, next)) : 0,
+          };
+        })
+        .filter((r): r is NonNullable<typeof r> => r !== null),
+      weakPatterns,
+      drill: {
+        available: solvedNewCount >= DRILL_MIN_SOLVED && drillsByDate[today] === undefined,
+        minutes: DRILL_MINUTES,
+        weakestPatternName: weakPatterns[0]?.name ?? null,
+      },
+    }),
+);
 
 /**
  * Days since the last day with any activity on either track, or null for a learner who has never

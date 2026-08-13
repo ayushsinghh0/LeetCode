@@ -1,8 +1,9 @@
+import { useState } from 'react';
 import { format, parseISO } from 'date-fns';
-import { Award, Lock } from 'lucide-react';
+import { Award } from 'lucide-react';
 import { iconByName } from '@/components/shared/iconMap';
-import { ProgressRing } from '@/components/shared/ProgressRing';
-import { cn } from '@/utils/cn';
+import { Button } from '@/components/ui/button';
+import { Page, PageHeader, RuledItem, RuledList, Section } from '@/components/layout/Page';
 import { useAppSelector } from '@/store/hooks';
 import { ACHIEVEMENTS, type AchievementDef } from '@/utils/engine/achievements';
 
@@ -39,81 +40,154 @@ export function groupAchievements(defs: AchievementDef[]): AchievementGroup[] {
   return groups;
 }
 
-interface AchievementCardProps {
-  def: AchievementDef;
-  unlockedDate?: string;
-}
+const LOCKED_LIST_ID = 'locked-achievements';
 
-function AchievementCard({ def, unlockedDate }: AchievementCardProps) {
+/**
+ * One earned milestone: its own icon in ink, what it was, and when. The date is the point of the
+ * list — an achievements page with no dates is a checklist, not a record.
+ */
+function UnlockedRow({ def, date }: { def: AchievementDef; date: string }) {
   const Icon = iconByName(def.icon, Award);
-  const unlocked = !!unlockedDate;
 
   return (
-    <div
-      className={cn(
-        'glass relative flex flex-col items-center gap-1.5 p-4 text-center',
-        // Accent border only — DESIGN.md bans glow shadows; the ink border + full opacity
-        // already separate unlocked from locked cards.
-        unlocked ? 'border-primary/60' : 'opacity-50',
-      )}
-    >
-      {/* Locked state must reach AT too — the visual cues are an icon and reduced opacity. */}
-      {!unlocked && (
-        <span className="absolute right-2 top-2 text-muted-foreground" role="img" aria-label="Locked">
-          <Lock className="h-3.5 w-3.5" aria-hidden="true" />
-        </span>
-      )}
-      <span
-        className={cn(
-          'inline-flex h-12 w-12 items-center justify-center rounded-full',
-          unlocked ? 'bg-accent-gradient text-primary-foreground' : 'bg-muted text-muted-foreground',
-        )}
-      >
-        <Icon className="h-6 w-6" aria-hidden="true" />
-      </span>
-      <p className="text-sm font-semibold">{def.title}</p>
-      <p className="text-xs text-muted-foreground">{def.description}</p>
-      {unlockedDate && (
-        <p className="mt-0.5 text-xs font-medium text-primary">
-          Unlocked {format(parseISO(unlockedDate), 'MMM d, yyyy')}
+    <RuledItem className="flex items-baseline gap-3">
+      <Icon className="h-4 w-4 shrink-0 translate-y-0.5 text-primary" aria-hidden="true" />
+      {/* The date drops under the description on phones rather than squeezing the title column. */}
+      <div className="flex min-w-0 flex-1 flex-col gap-1 sm:flex-row sm:items-baseline sm:justify-between sm:gap-4">
+        <div className="min-w-0">
+          <p className="text-sm font-medium">{def.title}</p>
+          <p className="text-sm text-muted-foreground">{def.description}</p>
+        </div>
+        <p className="figures shrink-0 text-xs text-muted-foreground">
+          Unlocked {format(parseISO(date), 'MMM d, yyyy')}
         </p>
-      )}
-    </div>
+      </div>
+    </RuledItem>
   );
 }
 
-export default function AchievementsPage() {
-  const unlocked = useAppSelector((state) => state.gamification.unlocked);
-  const unlockedCount = Object.keys(unlocked).length;
-  const total = ACHIEVEMENTS.length;
-  const groups = groupAchievements(ACHIEVEMENTS);
+/**
+ * A milestone not yet earned. The `role="img"` label is what carries the locked state to assistive
+ * tech — the section heading above says it visually, but a row lifted out of context (search,
+ * rotor, a screen-reader list view) must still say which half of the page it came from.
+ */
+function LockedRow({ def }: { def: AchievementDef }) {
+  const Icon = iconByName(def.icon, Award);
 
   return (
-    <div className="flex flex-col gap-6">
-      <div className="glass flex flex-col items-center gap-4 p-6 sm:flex-row sm:justify-between">
-        <div>
-          <h1 className="text-2xl font-bold text-gradient">Achievements</h1>
-          <p className="mt-1 text-sm text-muted-foreground">
-            Unlocked {unlockedCount} / {total}
-          </p>
-        </div>
-        <ProgressRing value={unlockedCount} max={total} size={80}>
-          <span className="text-sm font-bold">
-            {unlockedCount} / {total}
-          </span>
-        </ProgressRing>
-      </div>
+    <li className="flex items-baseline gap-2.5">
+      <span
+        className="shrink-0 translate-y-0.5 text-muted-foreground/50"
+        role="img"
+        aria-label="Locked"
+      >
+        <Icon className="h-3.5 w-3.5" aria-hidden="true" />
+      </span>
+      <p className="text-sm">
+        <span className="font-medium">{def.title}</span>{' '}
+        <span className="text-muted-foreground">{def.description}</span>
+      </p>
+    </li>
+  );
+}
 
-      {groups.map((group) => (
-        <section key={group.name} className="flex flex-col gap-3">
-          <h2 className="text-sm font-semibold text-muted-foreground">{group.name}</h2>
-          <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5">
-            {group.items.map((def) => (
-              <AchievementCard key={def.id} def={def} unlockedDate={unlocked[def.id]} />
+/**
+ * Achievements — the record, not the scoreboard.
+ *
+ * The page used to render all 59 defs as identical bordered tiles, five across, so the 58 things
+ * you have not done shouted exactly as loudly as the one you have. It is now ordered by what the
+ * reader actually came for: what you earned and when, as an open ruled list, then the remaining
+ * catalogue as a quiet index of six groups that expands only when asked.
+ */
+export default function AchievementsPage() {
+  const unlocked = useAppSelector((state) => state.gamification.unlocked);
+  const [showLocked, setShowLocked] = useState(false);
+
+  const total = ACHIEVEMENTS.length;
+  const unlockedCount = Object.keys(unlocked).length;
+
+  // Most recent first; `sort` is stable, so same-day unlocks keep the engine's own order.
+  const unlockedDefs = ACHIEVEMENTS.filter((def) => unlocked[def.id]).sort((a, b) =>
+    unlocked[b.id]!.localeCompare(unlocked[a.id]!),
+  );
+
+  const groups = groupAchievements(ACHIEVEMENTS).map((group) => ({
+    ...group,
+    locked: group.items.filter((def) => !unlocked[def.id]),
+  }));
+  const lockedTotal = groups.reduce((sum, group) => sum + group.locked.length, 0);
+
+  return (
+    <Page>
+      <PageHeader
+        eyebrow={`Unlocked ${unlockedCount} / ${total}`}
+        title="Achievements"
+        support="Milestones for solving, revising, holding a streak, and clearing course weeks. They are a record of the work — there is nothing to spend them on."
+      />
+
+      <Section title="Earned">
+        {unlockedDefs.length === 0 ? (
+          <p className="max-w-prose text-sm text-muted-foreground">
+            Nothing yet. Solving a single question earns the first one today.
+          </p>
+        ) : (
+          <RuledList>
+            {unlockedDefs.map((def) => (
+              <UnlockedRow key={def.id} def={def} date={unlocked[def.id]!} />
             ))}
-          </div>
-        </section>
-      ))}
-    </div>
+          </RuledList>
+        )}
+      </Section>
+
+      <Section
+        title="Still locked"
+        support={
+          lockedTotal === 0
+            ? 'Every milestone in the roadmap is earned.'
+            : `${lockedTotal} left, grouped by what earns them.`
+        }
+        action={
+          lockedTotal > 0 && (
+            <Button
+              type="button"
+              variant="ghost"
+              size="sm"
+              aria-expanded={showLocked}
+              aria-controls={LOCKED_LIST_ID}
+              onClick={() => setShowLocked((open) => !open)}
+            >
+              {showLocked ? 'Hide list' : 'Show list'}
+            </Button>
+          )
+        }
+      >
+        <div id={LOCKED_LIST_ID}>
+          <RuledList>
+            {groups.map((group) => (
+              <RuledItem key={group.name} className="flex flex-col gap-3">
+                <div className="flex flex-wrap items-baseline justify-between gap-x-4 gap-y-1">
+                  <h3 className="text-base font-semibold">{group.name}</h3>
+                  <p className="figures text-xs text-muted-foreground">
+                    {group.items.length - group.locked.length} / {group.items.length}
+                  </p>
+                </div>
+                {showLocked &&
+                  (group.locked.length === 0 ? (
+                    <p className="border-l border-border pl-4 text-sm text-muted-foreground">
+                      All earned.
+                    </p>
+                  ) : (
+                    <ul className="flex flex-col gap-2 border-l border-border pl-4">
+                      {group.locked.map((def) => (
+                        <LockedRow key={def.id} def={def} />
+                      ))}
+                    </ul>
+                  ))}
+              </RuledItem>
+            ))}
+          </RuledList>
+        </div>
+      </Section>
+    </Page>
   );
 }

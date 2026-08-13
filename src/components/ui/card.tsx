@@ -6,7 +6,12 @@ const Card = React.forwardRef<HTMLDivElement, React.HTMLAttributes<HTMLDivElemen
   ({ className, ...props }, ref) => (
     <div
       ref={ref}
-      className={cn('rounded-xl border bg-card text-card-foreground shadow', className)}
+      // Built on `.glass` rather than beside it. These were two plate primitives with different
+      // shadows, and because `.glass` sets box-shadow from @layer components while this applied
+      // Tailwind's stock `shadow` utility, any surface that wore both — QuestionCard, the most
+      // repeated surface in the product — silently got the cool utility shadow instead of the
+      // warm plate one. One primitive means that class of drift cannot happen again.
+      className={cn('glass text-card-foreground', className)}
       {...props}
     />
   ),
@@ -20,9 +25,11 @@ const CardHeader = React.forwardRef<HTMLDivElement, React.HTMLAttributes<HTMLDiv
 );
 CardHeader.displayName = 'CardHeader';
 
-const CardTitle = React.forwardRef<HTMLDivElement, React.HTMLAttributes<HTMLDivElement>>(
+const CardTitle = React.forwardRef<HTMLHeadingElement, React.HTMLAttributes<HTMLHeadingElement>>(
   ({ className, ...props }, ref) => (
-    <div ref={ref} className={cn('font-semibold leading-none tracking-tight', className)} {...props} />
+    // Sized, so a card title reads as a section heading rather than as bold body copy. h3 keeps
+    // the serif voice from index.css and keeps the document outline truthful.
+    <h3 ref={ref} className={cn('text-base font-semibold tracking-tight', className)} {...props} />
   ),
 );
 CardTitle.displayName = 'CardTitle';

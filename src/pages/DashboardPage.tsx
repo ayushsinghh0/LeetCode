@@ -1,18 +1,13 @@
 import { Link, useNavigate } from 'react-router-dom';
-import { motion } from 'framer-motion';
 import { format, parseISO } from 'date-fns';
-import { BookOpen, CalendarClock, CheckCircle2, Dices, Gauge, Lightbulb, ListTodo, RotateCcw } from 'lucide-react';
+import { Dices } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Progress } from '@/components/ui/progress';
 import { DailyGoalProgress } from '@/components/shared/DailyGoalProgress';
-import { StatCard } from '@/components/shared/StatCard';
 import { Heatmap } from '@/components/shared/Heatmap';
-import { EmptyState } from '@/components/shared/EmptyState';
-import { LevelRing } from '@/components/gamification/LevelRing';
 import { StreakFlame } from '@/components/gamification/StreakFlame';
 import { XpBadge } from '@/components/gamification/XpBadge';
-import { PatternChip } from '@/components/questions/PatternChip';
-import { DifficultyBadge } from '@/components/questions/DifficultyBadge';
+import { Ledger, Meta, Page, PageHeader, RuledItem, RuledList, Section } from '@/components/layout/Page';
 import { patternById } from '@/data/patterns';
 import { quoteForDate } from '@/data/quotes';
 import { useToday } from '@/hooks/useToday';
@@ -43,17 +38,22 @@ import {
 import { courseWeekById } from '@/data/aimlCourse';
 import { seededRandomQuestion } from '@/utils/engine/recommendations';
 import { formatMinutes } from '@/utils/engine/planner';
+import type { WorkItem } from '@/utils/engine/nextAction';
 
-const heroVariants = {
-  hidden: {},
-  show: { transition: { staggerChildren: 0.05 } },
-};
-
-const itemVariants = {
-  hidden: { opacity: 0, y: 12 },
-  show: { opacity: 1, y: 0 },
-};
-
+/**
+ * Dashboard — the overview, read as one document rather than a wall of plates.
+ *
+ * The page has one purpose: where does the whole course stand today. It deliberately does not
+ * compete with Today for "what do I do next" — Today owns that decision, and the masthead's one
+ * action hands off to it. Everything here is the record: a figure band, then open sections for
+ * progress, the queue, the weak spot, the other track, and the year of activity.
+ *
+ * Composition follows DESIGN.md § Composition: the ground is the surface, sections are separated
+ * by space rather than by outlines, counted facts live in a `Ledger` instead of stat cards, and
+ * gamification is context at the foot of the page rather than three objects above the fold. There
+ * is no `Lead` plate, because a page whose job is "look at the state of things" has no single
+ * action worth that much size.
+ */
 export default function DashboardPage() {
   const today = useToday();
   const dispatch = useAppDispatch();
@@ -80,7 +80,7 @@ export default function DashboardPage() {
   const courseDueReviews = useAppSelector((s) => selectCourseDueReviewIds(s, today));
   const todaysNew = useAppSelector(selectTodaysNewQuestions);
   const progressById = useAppSelector((s) => s.progress.byId);
-  // The same ranked list Today's hero and session plan read — see the "Up next" plate below.
+  // The same ranked list Today's hero and session plan read — see the "Up next" section below.
   const ranked = useAppSelector((s) => selectRankedWork(s, today));
 
   const totalQuestions = questions.length;
@@ -100,8 +100,15 @@ export default function DashboardPage() {
   const weakestEntry = weakest[0] ?? null;
   const weakestStat = weakestEntry ? patternStats.find((s) => s.pattern === weakestEntry.pattern) : undefined;
 
-  function openQuestion(id: number) {
-    dispatch(activeQuestionSet(id));
+  const dueTotal = revisionQueueIds.length + courseDueReviews.length;
+  const courseNextWeek = courseNext ? courseWeekById.get(courseNext.weekId) : undefined;
+
+  function openWork(item: WorkItem) {
+    if (item.questionId !== undefined) {
+      dispatch(activeQuestionSet(item.questionId));
+      return;
+    }
+    navigate(item.href);
   }
 
   function handleRandomQuestion() {
@@ -110,175 +117,199 @@ export default function DashboardPage() {
   }
 
   return (
-    <div className="flex flex-col gap-6">
-      {/* Visually hidden — keeps the page's accessible heading name stable ("Dashboard") while
-          the hero below carries the actual visual heading (day counter). */}
-      <h1 className="sr-only">Dashboard</h1>
+    <Page>
+      <PageHeader
+        eyebrow={`Day ${currentDay} of ${totalDays}`}
+        title="Dashboard"
+        support={`${format(parseISO(today), 'EEEE, MMMM d, yyyy')}. Today carries the plan; this page keeps the record.`}
+        action={
+          <Button asChild size="sm">
+            <Link to="/today">Go to Today</Link>
+          </Button>
+        }
+      />
 
-      <motion.div className="flex flex-col gap-6" variants={heroVariants} initial="hidden" animate="show">
-        {/* Row 1: hero */}
-        <motion.div
-          variants={itemVariants}
-          className="glass grid grid-cols-1 gap-6 p-6 lg:grid-cols-[1fr_auto] lg:items-center"
-        >
-          <div className="flex flex-col gap-3">
-            <div>
-              <p className="font-serif text-4xl font-semibold tracking-tight md:text-5xl">
-                Day {currentDay}{' '}
-                <span className="text-[0.55em] font-normal italic text-muted-foreground">of {totalDays}</span>
-              </p>
-              <p className="mt-1 text-sm text-muted-foreground">{format(parseISO(today), 'EEEE, MMMM d, yyyy')}</p>
-            </div>
+      {/* The epigraph. A rail, not a plate — one italic line is not a component. */}
+      <p className="max-w-prose border-l-2 border-border pl-4 font-serif italic text-muted-foreground">
+        {quoteForDate(today)}
+      </p>
 
-            <p className="max-w-prose border-l border-border pl-3 font-serif italic text-muted-foreground">
-              {quoteForDate(today)}
+      <Ledger
+        items={[
+          {
+            label: 'Solved',
+            value: `${solvedCount} / ${totalQuestions}`,
+            sub: `${completionPct}% · ${remaining} to go`,
+          },
+          {
+            label: 'Revisions due',
+            value: dueTotal,
+            sub:
+              dueTotal === 0
+                ? 'nothing due today'
+                : `${revisionQueueIds.length} question${revisionQueueIds.length === 1 ? '' : 's'} · ${courseDueReviews.length} course`,
+          },
+          {
+            label: 'Est. finish',
+            value: format(parseISO(estFinish), 'MMM d'),
+            sub: 'at your current pace',
+          },
+          {
+            label: 'Productivity',
+            value: `${productivity} / 100`,
+            sub: 'last 14 days',
+          },
+        ]}
+      />
+
+      <Section title="Progress">
+        <Section
+          level={3}
+          title="Roadmap"
+          action={
+            <p className="figures text-xs text-muted-foreground">
+              {solvedCount} of {totalQuestions} solved · {completionPct}%
             </p>
+          }
+        >
+          {/* The semester arc as a quiet ruled bar — the contract's first-viewport progress. */}
+          <Progress value={completionPct} aria-label="Roadmap completion" />
+          {roadmapComplete ? (
+            <p className="text-sm font-medium">Roadmap complete — every question solved.</p>
+          ) : currentQuestion && currentPattern ? (
+            // Pattern and difficulty describe one object — the question you are standing on — so
+            // they read as one line rather than as two chips.
+            <Meta
+              items={[
+                <>
+                  You&apos;re in: <span className="text-foreground">{currentPattern.name}</span>
+                </>,
+                <span className="capitalize">{currentQuestion.difficulty}</span>,
+              ]}
+            />
+          ) : null}
+        </Section>
 
-            {roadmapComplete ? (
-              <p className="text-lg font-semibold">Roadmap complete — every question solved.</p>
-            ) : currentQuestion && currentPattern ? (
-              <div className="flex flex-wrap items-center gap-2">
-                <span className="text-sm text-muted-foreground">You&apos;re in:</span>
-                <PatternChip pattern={currentPattern} />
-                <DifficultyBadge difficulty={currentQuestion.difficulty} />
-              </div>
-            ) : null}
+        <Section level={3} title="Today">
+          <DailyGoalProgress solvedToday={solvedToday} perDay={perDay} />
+        </Section>
+      </Section>
 
-            {/* The semester arc as a quiet ruled bar — the contract's first-viewport progress. */}
-            <div className="flex flex-col gap-1.5">
-              <Progress value={completionPct} aria-label="Roadmap completion" />
-              <p className="figures text-xs text-muted-foreground">
-                {solvedCount} of {totalQuestions} solved
-              </p>
-            </div>
+      {/* Reads the same ranked list Today's hero and session plan read. The Dashboard used to run
+          a second, category-level recommender, which could tell the learner to "practice your
+          weakest pattern" while Today told them to revise a specific question — two surfaces
+          disagreeing about the same decision. One ranker now. */}
+      <Section
+        title="Up next"
+        support="The top of the same queue Today works from."
+        action={
+          <Button variant="ghost" size="sm" onClick={handleRandomQuestion}>
+            <Dices /> Random question
+          </Button>
+        }
+      >
+        {ranked.length === 0 ? (
+          <p className="text-sm text-muted-foreground">Today&apos;s plan is clear.</p>
+        ) : (
+          <RuledList>
+            {ranked.slice(0, 3).map((item, index) => (
+              <RuledItem key={item.id} className="flex flex-col gap-1">
+                <div className="flex items-baseline gap-3">
+                  <span className="figures text-xs text-muted-foreground">{index + 1}</span>
+                  <button
+                    type="button"
+                    onClick={() => openWork(item)}
+                    className="min-w-0 flex-1 truncate text-left text-sm font-medium transition-colors duration-150 ease-swift hover:text-primary"
+                  >
+                    {item.title}
+                  </button>
+                  <span className="figures shrink-0 text-xs text-muted-foreground">
+                    ~{formatMinutes(item.minutes)}
+                  </span>
+                </div>
+                <p className="pl-6 text-xs text-muted-foreground">{item.why}</p>
+              </RuledItem>
+            ))}
+          </RuledList>
+        )}
+      </Section>
 
-            <div className="flex flex-wrap items-center gap-2">
-              <Button asChild size="sm">
-                <Link to="/today">Go to Today</Link>
-              </Button>
-              <Button variant="outline" size="sm" onClick={handleRandomQuestion}>
-                <Dices /> Random question
-              </Button>
-            </div>
-          </div>
-
-          <div className="flex flex-row items-center justify-center gap-4 lg:flex-col lg:items-end">
-            <div className="flex flex-col items-center gap-1">
-              <StreakFlame current={streaks.current} />
-              <span className="text-xs text-muted-foreground">Longest: {streaks.longest}</span>
-            </div>
-            <LevelRing level={levelInfo.level} intoLevel={levelInfo.intoLevel} needed={levelInfo.needed} size={80} />
-            <XpBadge xp={xp} />
-          </div>
-        </motion.div>
-
-        {/* Row 2: stat cards */}
-        <motion.div variants={itemVariants} className="grid grid-cols-2 gap-4 md:grid-cols-3 xl:grid-cols-6">
-          <StatCard label="Solved" value={`${solvedCount} / ${totalQuestions}`} icon={CheckCircle2} />
-          <StatCard label="Remaining" value={remaining} icon={ListTodo} />
-          <StatCard label="Completion" value={`${completionPct}%`} icon={BookOpen} />
-          <StatCard
-            label="Revisions Due"
-            value={revisionQueueIds.length + courseDueReviews.length}
-            icon={RotateCcw}
-            accent={revisionQueueIds.length + courseDueReviews.length > 0}
-          />
-          <StatCard label="Est. Finish" value={format(parseISO(estFinish), 'MMM d')} icon={CalendarClock} />
-          <StatCard label="Productivity" value={`${productivity} / 100`} icon={Gauge} />
-        </motion.div>
-
-        {/* Row 3: the AI/ML track, one quiet plate beside the DSA world. */}
-        <motion.div variants={itemVariants} className="glass flex flex-col gap-3 p-5">
-          <div className="flex items-center justify-between gap-3 border-b border-border/70 pb-2">
-            <h2 className="text-base font-medium">AI/ML Course</h2>
-            <Button asChild size="sm" variant="outline">
-              <Link to="/aiml">Continue</Link>
+      <Section
+        title="Weakest pattern"
+        support="Ranked by recall, confidence and coverage — a pattern needs a few solves before it can be scored."
+        action={
+          weakestEntry ? (
+            <Button asChild size="sm" variant="ghost">
+              <Link to={`/patterns/${weakestEntry.pattern}`}>Practice this</Link>
             </Button>
+          ) : undefined
+        }
+      >
+        {weakestEntry && weakestStat ? (
+          <div className="flex flex-col gap-1">
+            <p className="text-base font-medium">{patternById[weakestEntry.pattern].name}</p>
+            <Meta
+              items={[
+                <span className="figures">{weakestStat.pct}% solved</span>,
+                <span className="figures">
+                  {weakestStat.solved} of {weakestStat.total}
+                </span>,
+              ]}
+            />
           </div>
-          <Progress value={courseStats.pct} aria-label="AI/ML course completion" />
-          <p className="figures text-sm text-muted-foreground">
-            {courseStats.sessionsDone} / {courseStats.sessionsTotal} sessions
-            {courseNext &&
-              courseWeekById.get(courseNext.weekId) &&
-              ` · next: Week ${courseWeekById.get(courseNext.weekId)!.week} — ${courseWeekById.get(courseNext.weekId)!.title}`}
-            {courseFinish && ` · finish ${format(parseISO(courseFinish), 'MMM d')}`}
-            {courseDueReviews.length > 0 &&
-              ` · ${courseDueReviews.length} review${courseDueReviews.length === 1 ? '' : 's'} due`}
-            {courseNext === null && ' · complete'}
-          </p>
-        </motion.div>
+        ) : (
+          <p className="text-sm text-muted-foreground">Not enough data yet.</p>
+        )}
+      </Section>
 
-        {/* Row 4 */}
-        <motion.div variants={itemVariants} className="grid grid-cols-1 gap-4 lg:grid-cols-3">
-          <div className="glass flex flex-col gap-3 p-5">
-            <h2 className="border-b border-border/70 pb-2 text-base font-medium">Today&apos;s Progress</h2>
-            <DailyGoalProgress solvedToday={solvedToday} perDay={perDay} />
-          </div>
+      <Section
+        title="AI/ML course"
+        action={
+          <Button asChild size="sm" variant="ghost">
+            <Link to="/aiml">Continue</Link>
+          </Button>
+        }
+      >
+        <Progress value={courseStats.pct} aria-label="AI/ML course completion" />
+        <Meta
+          items={[
+            <span className="figures">
+              {courseStats.sessionsDone} / {courseStats.sessionsTotal} sessions
+            </span>,
+            courseNextWeek && `Next: Week ${courseNextWeek.week} — ${courseNextWeek.title}`,
+            courseFinish && `Finish ${format(parseISO(courseFinish), 'MMM d')}`,
+            courseDueReviews.length > 0 &&
+              `${courseDueReviews.length} review${courseDueReviews.length === 1 ? '' : 's'} due`,
+            courseNext === null && 'Complete',
+          ]}
+        />
+      </Section>
 
-          <div className="glass flex flex-col gap-3 p-5">
-            <h2 className="border-b border-border/70 pb-2 text-base font-medium">Weakest Pattern</h2>
-            {weakestEntry && weakestStat ? (
-              <>
-                <p className="text-lg font-semibold">{patternById[weakestEntry.pattern].name}</p>
-                <p className="text-sm text-muted-foreground">{weakestStat.pct}% solved</p>
-                <Button asChild size="sm" variant="outline" className="self-start">
-                  <Link to={`/patterns/${weakestEntry.pattern}`}>Practice this</Link>
-                </Button>
-              </>
-            ) : (
-              <EmptyState icon={Gauge} title="Not enough data yet" />
-            )}
-          </div>
-
-          {/* Reads the same ranked list Today's hero and session plan read. The Dashboard used
-              to run a second, category-level recommender, which could tell the learner to
-              "practice your weakest pattern" while Today told them to revise a specific
-              question — two surfaces disagreeing about the same decision. One ranker now. */}
-          <div className="glass flex flex-col gap-3 p-5">
-            <h2 className="border-b border-border/70 pb-2 text-base font-medium">Up next</h2>
-            {ranked.length === 0 ? (
-              <EmptyState icon={Lightbulb} title="Today's plan is clear" />
-            ) : (
-              <ul className="flex flex-col gap-3">
-                {ranked.slice(0, 3).map((item, index) => (
-                  <li key={item.id} className="flex flex-col gap-1">
-                    <div className="flex items-baseline gap-2">
-                      <span className="figures text-xs text-muted-foreground">{index + 1}</span>
-                      {item.questionId !== undefined ? (
-                        <button
-                          type="button"
-                          onClick={() => openQuestion(item.questionId!)}
-                          className="min-w-0 flex-1 truncate text-left text-sm font-medium transition-colors duration-150 ease-swift hover:text-primary"
-                        >
-                          {item.title}
-                        </button>
-                      ) : (
-                        <button
-                          type="button"
-                          onClick={() => navigate(item.href)}
-                          className="min-w-0 flex-1 truncate text-left text-sm font-medium transition-colors duration-150 ease-swift hover:text-primary"
-                        >
-                          {item.title}
-                        </button>
-                      )}
-                      <span className="figures shrink-0 text-xs text-muted-foreground">
-                        ~{formatMinutes(item.minutes)}
-                      </span>
-                    </div>
-                    <p className="pl-5 text-xs text-muted-foreground">{item.why}</p>
-                  </li>
-                ))}
-              </ul>
-            )}
-          </div>
-        </motion.div>
-
-        {/* Row 5: heatmap */}
-        <motion.div variants={itemVariants} className="glass p-5">
-          <h2 className="mb-3 border-b border-border/70 pb-2 text-base font-medium">Activity</h2>
-          <Heatmap data={heatmapData} onSelectDate={(date) => navigate('/calendar', { state: { date } })} />
-        </motion.div>
-      </motion.div>
-    </div>
+      {/* Gamification is context, not the lead: one quiet line under the year of activity it
+          actually describes, rather than three competing objects in the first screenful. */}
+      <Section
+        divider
+        title="Activity"
+        support="Solves, revisions and course sessions over the last year."
+      >
+        <Meta
+          items={[
+            <span className="inline-flex items-center gap-1.5">
+              <StreakFlame current={streaks.current} /> day streak
+            </span>,
+            <span className="figures">Longest {streaks.longest}</span>,
+            <span>
+              Level {levelInfo.level},{' '}
+              <span className="figures">
+                {levelInfo.intoLevel} / {levelInfo.needed}
+              </span>{' '}
+              XP to the next
+            </span>,
+            <XpBadge xp={xp} />,
+          ]}
+        />
+        <Heatmap data={heatmapData} onSelectDate={(date) => navigate('/calendar', { state: { date } })} />
+      </Section>
+    </Page>
   );
 }

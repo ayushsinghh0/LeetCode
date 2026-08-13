@@ -41,7 +41,10 @@ export function AppShell() {
     <div className="flex min-h-screen">
       <Sidebar />
       <main className="min-w-0 flex-1">
-        <div className="mx-auto w-full max-w-6xl px-4 py-6 pb-28 md:px-8 md:py-10 md:pb-10">
+        {/* pb-36 on phones, not pb-28: the bottom nav needs ~112px, but the floating pomodoro
+            sits above it at `bottom-20` and is ~62px tall, so 112px left the widget covering the
+            last stretch of every page. Desktop has neither. */}
+        <div className="mx-auto w-full max-w-6xl px-4 py-6 pb-36 md:px-8 md:py-10 md:pb-10">
           {/* Boundary inside the shell: a page crash keeps the sidebar/nav alive so the user
               can still move to another route. App.tsx carries the outer backstop. */}
           <ErrorBoundary>

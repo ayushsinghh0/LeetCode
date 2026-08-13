@@ -66,7 +66,11 @@ describe('AppShell routing', () => {
 
   test('clicking Today in the sidebar navigates to the Today page', async () => {
     renderApp(['/']);
-    // Same lazy-chunk-under-Suspense wait as test 1 above, same justified timeout.
+    // The Dashboard wait stays here, unlike in the label test above: the sidebar is eager and
+    // clickable immediately, but navigating while the first route chunk is still resolving leaves
+    // the router transition and the Suspense boundary competing, and the Today heading then takes
+    // longer to arrive than it does from a settled start. Letting the first route land is the
+    // faster path to the thing this test actually asserts.
     await screen.findByRole('heading', { name: 'Dashboard' }, { timeout: 8000 });
 
     const sidebarNav = screen.getByRole('navigation', { name: /sidebar navigation/i });
@@ -84,7 +88,7 @@ describe('AppShell routing', () => {
     // timeout only under full-suite load, and navigation always completes within a couple seconds
     // regardless). A generous explicit timeout on just this query — rather than raising the global
     // default — absorbs that contention without masking a genuine hang elsewhere.
-    await screen.findByRole('heading', { name: 'Today' }, { timeout: 5000 });
+    await screen.findByRole('heading', { name: 'Today' }, { timeout: 8000 });
   });
 
   test('the shell chrome paints before the route chunk resolves, not after it', () => {

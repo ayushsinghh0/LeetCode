@@ -10,6 +10,7 @@ import { RevisionStagePips } from '@/components/questions/RevisionStagePips';
 import { ConfidenceRating } from '@/components/questions/ConfidenceRating';
 import { patternById } from '@/data/patterns';
 import { QUESTION_TYPE_LABEL, QUESTION_TYPE_MEANING } from '@/data/questionTypes';
+import { useToday } from '@/hooks/useToday';
 import { useAppDispatch } from '@/store/hooks';
 import {
   reviseQuestion,
@@ -47,6 +48,8 @@ export function QuestionCard({ question, progress, context = 'browse', onOpenDet
   const pattern = patternById[question.pattern];
   const StatusIcon = STATUS_ICON[progress.status];
   const hasNotes = progress.notes.trim() !== '';
+  const today = useToday();
+  const gradedToday = progress.lastReviewed === today;
 
   // Every action button calls this so its click never bubbles up to the card's own
   // onClick(onOpenDetail) — mutating a card shouldn't also pop the detail modal open.
@@ -155,12 +158,24 @@ export function QuestionCard({ question, progress, context = 'browse', onOpenDet
 
         {context === 'revision' && (
           <div className="mt-3 flex flex-wrap gap-2">
-            <Button onClick={act(() => dispatch(reviseQuestion(question.id, true)))}>
-              <CheckCircle2 /> Pass
-            </Button>
-            <Button variant="outline" onClick={act(() => dispatch(reviseQuestion(question.id, false)))}>
-              <XCircle /> Fail
-            </Button>
+            {/* Grading is offered only if a grade would actually land. `reviseQuestion` is
+                idempotent per calendar day, so after today's grade these buttons would dispatch
+                into a no-op — a control that silently does nothing is worse than no control. */}
+            {gradedToday ? (
+              <p className="inline-flex items-center gap-1.5 self-center text-xs text-muted-foreground">
+                <CheckCircle2 className="h-3.5 w-3.5" aria-hidden="true" />
+                Reviewed today
+              </p>
+            ) : (
+              <>
+                <Button onClick={act(() => dispatch(reviseQuestion(question.id, true)))}>
+                  <CheckCircle2 /> Pass
+                </Button>
+                <Button variant="outline" onClick={act(() => dispatch(reviseQuestion(question.id, false)))}>
+                  <XCircle /> Fail
+                </Button>
+              </>
+            )}
             <Button
               size="icon"
               variant="ghost"

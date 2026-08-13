@@ -13,6 +13,7 @@ import { activeQuestionSet } from '@/store/slices/uiSlice';
 import { selectPatternStats, selectPatternWeakness, selectQuestions } from '@/store/selectors';
 import { useToday } from '@/hooks/useToday';
 import {
+  STRONG_PASS_RATE,
   STRONG_PCT,
   WEAK_PCT,
   companyCoverage,
@@ -20,6 +21,9 @@ import {
   practiceSetMinutes,
 } from '@/utils/engine/companies';
 import type { CompanyPatternCoverage } from '@/utils/engine/companies';
+// The page quotes the same threshold the standing is computed from — a page that named its own
+// number would be a second opinion about when recall counts as measured.
+import { MIN_PASS_RATE_ATTEMPTS } from '@/utils/engine/stats';
 import { formatMinutes } from '@/utils/engine/planner';
 import { cn } from '@/utils/cn';
 
@@ -48,12 +52,16 @@ const SCOPE_NOTE =
 
 const STANDING_LABEL: Record<CompanyPatternCoverage['standing'], string> = {
   strong: 'Holding',
+  unreviewed: 'Unreviewed',
   developing: 'Developing',
   gap: 'Gap',
 };
 
+// `unreviewed` is neutral ink, not the strong ink: covering a pattern and remembering it are
+// different achievements, and only the second one has been demonstrated when this reads "Holding".
 const STANDING_CLASS: Record<CompanyPatternCoverage['standing'], string> = {
   strong: 'text-easy',
+  unreviewed: 'text-muted-foreground',
   developing: 'text-muted-foreground',
   gap: 'text-hard',
 };
@@ -329,6 +337,17 @@ function CoverageSection({
           );
         })}
       </RuledList>
+
+      {/* "Holding" is the only positive claim on this page, so the page states what earns it.
+          Solving is not remembering: a pattern cleared this morning and never once recalled is
+          reported as unreviewed, not quietly counted as recall that is holding up. */}
+      <p className="max-w-prose text-sm leading-relaxed text-muted-foreground">
+        A pattern only reads as holding once its recalls say so —{' '}
+        <span className="figures">{MIN_PASS_RATE_ATTEMPTS}</span> graded reviews or more, at least{' '}
+        <span className="figures">{Math.round(STRONG_PASS_RATE * 100)}%</span> of them passing.
+        Solved but never revised is marked unreviewed instead: nothing has tested yet whether it
+        stuck.
+      </p>
 
       <p className="max-w-prose text-sm leading-relaxed text-muted-foreground">
         About <span className="figures">{formatMinutes(coverage.remainingMinutes)}</span> of unsolved

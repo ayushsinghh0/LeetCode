@@ -12,6 +12,7 @@ import type {
 import type { RootState } from '@/store/store';
 import { MASTERED_STAGE } from '@/utils/engine/spacedRepetition';
 import { MAX_HINT_LEVEL } from '@/utils/engine/hints';
+import { CAPACITY_MAX, CAPACITY_MIN } from '@/utils/engine/planner';
 
 // Projects the persistable slices (progress, settings, gamification, course) out of RootState.
 // `ui` is deliberately excluded — it holds only ephemeral session state (celebration, toast
@@ -234,13 +235,21 @@ export function validatePersisted(raw: unknown): PersistedStateV1 | null {
   if (typeof settings.revisionEnabled !== 'boolean') return null;
   if (settings.theme !== 'dark' && settings.theme !== 'light') return null;
   if (typeof settings.notifications !== 'boolean') return null;
-  // Optional (predates the daily plan); when present it must be a sane study budget. The floor
-  // is 15, not 30: it must admit every value the product's own chips write (SESSION_PRESETS /
-  // SESSION_BUDGETS start at 15, and setDailyCapacity guards >= 15) — a validator stricter than
-  // the UI quarantines the learner's whole state the first time they tap the smallest chip.
+  // Optional (predates the daily plan); when present it must be a sane study budget. The bounds
+  // are CAPACITY_MIN/CAPACITY_MAX from store/actions.ts, and they must stay in lockstep: this
+  // validator once floored at 30 while the Today and Revision chips wrote 15, so tapping the
+  // smallest chip quarantined the learner's entire state on the next load. A validator stricter
+  // than the UI is a data-loss bug.
   const capacity = settings.dailyCapacityMin;
   if ('dailyCapacityMin' in settings && capacity !== undefined) {
-    if (typeof capacity !== 'number' || !Number.isInteger(capacity) || capacity < 15 || capacity > 960) return null;
+    if (
+      typeof capacity !== 'number' ||
+      !Number.isInteger(capacity) ||
+      capacity < CAPACITY_MIN ||
+      capacity > CAPACITY_MAX
+    ) {
+      return null;
+    }
   }
 
   const gamification = raw.gamification;

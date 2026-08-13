@@ -3,7 +3,7 @@ import { screen, fireEvent, within } from '@testing-library/react';
 import { makeStore, type AppStore } from '@/store/store';
 import { renderWithStore } from '@/test/renderWithStore';
 import { QuestionDetailModal } from '@/components/questions/QuestionDetailModal';
-import { solveQuestion } from '@/store/actions';
+import { reviseQuestion, solveQuestion } from '@/store/actions';
 import { activeQuestionSet } from '@/store/slices/uiSlice';
 import { initialProgress } from '@/utils/engine/spacedRepetition';
 import { MIN_SAMPLES } from '@/utils/engine/timeEstimate';
@@ -86,11 +86,15 @@ describe('the question header', () => {
       store.dispatch(solveQuestion(1));
     });
 
-    expect(
-      within(screen.getByRole('dialog')).getByText(
-        `${q1.complexity!.time} time, ${q1.complexity!.space} space.`,
-      ),
-    ).toBeInTheDocument();
+    const resolved = within(screen.getByRole('dialog'));
+    const bound = resolved.getByText(`${q1.complexity!.time} time, ${q1.complexity!.space} space.`);
+    expect(bound).toBeInTheDocument();
+
+    // And it is labelled as the *intended* bound, deliberately outside the checkmarked "What you
+    // practiced" list. Nothing in the app has seen the learner's code — pressing "Solved" is the
+    // only signal — so a brute force marked solved must never be told it practiced O(n).
+    expect(resolved.getByText('Intended complexity')).toBeInTheDocument();
+    expect(bound.closest('li')).toBeNull();
   });
 });
 
@@ -206,6 +210,46 @@ describe('the hint ladder', () => {
 
     expect(within(dialog).getByText(/Hint 1/)).toBeInTheDocument();
     expect(within(dialog).getByText(/reads the same forwards and backwards/)).toBeInTheDocument();
+  });
+
+  test('opening the ladder on one question does not open it on the next', () => {
+    // The modal is a singleton and does not remount between questions, so a plain "is it open"
+    // boolean survived the switch and the next question arrived with its hints already expanded —
+    // skipping the friction that makes taking a hint a deliberate choice.
+    const store = makeStore();
+    const { dialog } = openQuestion(1, store);
+    fireEvent.click(within(dialog).getByRole('button', { name: /Stuck\? Open the hint ladder/ }));
+    expect(within(dialog).getByRole('button', { name: /Show a hint/ })).toBeInTheDocument();
+
+    act(() => {
+      store.dispatch(activeQuestionSet(2));
+    });
+
+    const next = screen.getByRole('dialog');
+    expect(within(next).getByRole('button', { name: /Stuck\? Open the hint ladder/ })).toBeInTheDocument();
+    expect(within(next).queryByRole('button', { name: /Show a hint/ })).not.toBeInTheDocument();
+  });
+});
+
+describe('grading a revision', () => {
+  test('a question already graded today offers no second grade, and says why', () => {
+    // `reviseQuestion` is idempotent per calendar day, so a second same-day grade is a no-op.
+    // Leaving the buttons on screen made them controls that silently did nothing.
+    const store = makeStore();
+    act(() => {
+      store.dispatch(solveQuestion(1));
+    });
+    const { dialog } = openQuestion(1, store);
+    expect(within(dialog).getByRole('button', { name: /Recalled it/ })).toBeInTheDocument();
+
+    act(() => {
+      store.dispatch(reviseQuestion(1, true));
+    });
+
+    const after = screen.getByRole('dialog');
+    expect(within(after).queryByRole('button', { name: /Recalled it/ })).not.toBeInTheDocument();
+    expect(within(after).queryByRole('button', { name: /Needed to look/ })).not.toBeInTheDocument();
+    expect(within(after).getByText(/Reviewed today/)).toBeInTheDocument();
   });
 });
 

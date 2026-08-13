@@ -94,14 +94,6 @@ export function PostSolvePanel({
               <span>Holding the invariant behind &ldquo;{family.name}&rdquo;.</span>
             </li>
           )}
-          {question.complexity && (
-            <li className="flex items-start gap-2 text-sm text-muted-foreground">
-              <Check className="mt-0.5 h-3.5 w-3.5 shrink-0 text-easy" aria-hidden="true" />
-              <span className="figures">
-                {question.complexity.time} time, {question.complexity.space} space.
-              </span>
-            </li>
-          )}
           {/* Hint use is reported beside the outcome, never folded into it and never priced.
               See the mastery/hints invariants — a support feature that scores you is one people
               stop using, and the signal disappears with it. */}
@@ -111,6 +103,26 @@ export function PostSolvePanel({
           </li>
         </ul>
       </div>
+
+      {/* Deliberately not a checkmarked item above. Nothing in this app has seen the code that
+          was written — pressing "Solved" is the only signal — so listing the authored bound as
+          something practiced tells a learner who brute-forced this problem in O(n^2) that they
+          practiced O(n). It is the target to measure your own solution against, and it is
+          labelled as one. Same wording as QuestionDetailModal: the *intended* complexity. */}
+      {question.complexity && (
+        <div>
+          <p className="figures text-xs uppercase tracking-[0.14em] text-muted-foreground">
+            Intended complexity
+          </p>
+          <p className="mt-2 max-w-prose text-sm text-muted-foreground">
+            <span className="figures text-foreground">
+              {question.complexity.time} time, {question.complexity.space} space.
+            </span>{' '}
+            That is what the intended solution reaches. Compare it with what you wrote — if yours
+            is slower, that is the next thing to work on.
+          </p>
+        </div>
+      )}
 
       <div>
         <p className="text-sm font-medium">How confident are you?</p>

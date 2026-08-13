@@ -137,6 +137,29 @@ describe('ContestPage: the verdict', () => {
     expect(screen.getAllByText('Barely touched')).toHaveLength(4);
   });
 
+  test('leaving the page stops the clock, so time away is never credited as a stall', () => {
+    // Without this the stopwatch kept running while the learner was on another page: come back
+    // forty minutes later and analyzeContest reads an untouched problem as "stalled" and names a
+    // pattern weakness from a navigation. contest.ts promises the opposite in its header.
+    const { store, unmount } = renderContest();
+    startViaUi();
+    const secondId = store.getState().contest.questionIds[1]!;
+
+    fireEvent.click(within(problemRows()[1]!).getByRole('button', { name: /put on the clock/i }));
+    act(() => {
+      vi.advanceTimersByTime(5 * 60_000);
+    });
+
+    unmount(); // navigating away from /contest
+    act(() => {
+      vi.advanceTimersByTime(40 * 60_000);
+    });
+
+    // The five minutes actually spent are kept; the forty spent elsewhere are not.
+    expect(store.getState().contest.attempts[secondId]!.minutesSpent).toBe(5);
+    expect(store.getState().contest.activeQuestionId).toBeNull();
+  });
+
   test('Done clears the sitting and returns to the start screen', () => {
     const { store } = renderContest();
     startViaUi();

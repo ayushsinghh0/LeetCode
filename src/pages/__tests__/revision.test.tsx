@@ -85,30 +85,65 @@ describe('RevisionPage — the page asks how long you have, not what you owe', (
     expect(screen.getByText(/simply waiting/i)).toBeInTheDocument();
   });
 
+  // The footer's two numbers are asserted against fixture counts this file works out for itself.
+  // Deriving them from `selectRevisionSession` — the very selector the page renders — is how the
+  // arithmetic went wrong unnoticed: the expectation moved with the bug.
   test('the total counts deferred work too, and says how much did not fit', () => {
     vi.useFakeTimers();
     const store = makeStore();
     setDate('2026-07-30');
-    for (let id = 1; id <= 20; id++) store.dispatch(solveQuestion(id));
-    setDate('2026-08-20');
-    // A short budget cannot hold twenty overdue items, so most of them defer.
+    // Exactly one question solved, and one course week cleared, on the same day. Both land on the
+    // first rung of their ladders, so on 2026-07-31 there are exactly two due items: 1 + 1.
+    store.dispatch(solveQuestion(1));
+    store.dispatch(completeCourseSession('w00', 1));
+    store.dispatch(completeCourseSession('w00', 2));
+    setDate('2026-07-31');
+    // Fifteen minutes is a retrieval-only shape with no review band, so the course recall — a flat
+    // ten minutes, with no shallower version — cannot be placed however much budget is spare.
     store.dispatch(setDailyCapacity(15));
 
-    const { store: s } = renderWithStore(<RevisionPage />, store);
-    const session = selectRevisionSession(s.getState(), '2026-08-20');
-    expect(session.deferred.length).toBeGreaterThan(0);
+    renderWithStore(<RevisionPage />, store);
 
-    // The footer states the WHOLE due total (placed + deferred), not just what fit, and names
-    // the shortfall — "N items are due in total — M of them are not in this session".
-    const placed = session.rationale.due + session.rationale.overdue;
-    expect(
-      screen.getByText(
-        new RegExp(`${placed + session.deferred.length} items are due in total`, 'i'),
-      ),
-    ).toBeInTheDocument();
-    expect(
-      screen.getByText(new RegExp(`${session.deferred.length} of them are not in this session`, 'i')),
-    ).toBeInTheDocument();
+    // The single question is on screen; the course week is not.
+    const w00 = courseWeekById.get('w00')!;
+    expect(screen.getByRole('button', { name: 'Start session' })).toBeInTheDocument();
+    expect(screen.queryByText(`Week ${w00.week} — ${w00.title}`)).not.toBeInTheDocument();
+
+    // So: two due, one of them absent. The shortfall must count the course recall — a footer that
+    // counts it in the total and omits it from the shortfall claims the session holds more than
+    // it does.
+    expect(screen.getByText(/2 items are due in total/)).toBeInTheDocument();
+    expect(screen.getByText(/1 of them is not in this session/)).toBeInTheDocument();
+  });
+
+  test('the shortfall is never smaller than what the session actually left out', () => {
+    vi.useFakeTimers();
+    const store = makeStore();
+    setDate('2026-07-30');
+    // Twenty questions and two course weeks, all still on their first rung three weeks later:
+    // twenty-two due items, counted from the fixture rather than from the page's own selector.
+    for (let id = 1; id <= 20; id++) store.dispatch(solveQuestion(id));
+    for (const weekId of ['w00', 'w01']) {
+      store.dispatch(completeCourseSession(weekId, 1));
+      store.dispatch(completeCourseSession(weekId, 2));
+    }
+    setDate('2026-08-20');
+    store.dispatch(setDailyCapacity(30));
+
+    renderWithStore(<RevisionPage />, store);
+
+    const footer = screen.getByText(/items are due in total/);
+    expect(footer.textContent).toMatch(/22 items are due in total/);
+    const shortfall = Number(/(\d+) of them are not in this session/.exec(footer.textContent ?? '')?.[1]);
+    // Half of a 30-minute session's review band is nine minutes, so neither course recall fits and
+    // both must be part of the shortfall alongside the questions that missed out.
+    expect(shortfall).toBeGreaterThanOrEqual(2);
+
+    // The arithmetic then has to survive being checked against the session on screen: whatever the
+    // footer does NOT call a shortfall must actually be here, in front of the learner, gradable.
+    fireEvent.click(screen.getByRole('button', { name: 'Start session' }));
+    const gradable = screen.getAllByRole('button', { name: 'Recalled it' }).length;
+    expect(22 - shortfall).toBe(gradable);
   });
 
   test('with spaced revision switched off, the Revision page agrees with Today instead of contradicting it', () => {

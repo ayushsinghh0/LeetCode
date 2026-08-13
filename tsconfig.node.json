@@ -1,6 +1,13 @@
 {
   "compilerOptions": {
     "composite": true,
+    // Emit OUT of the repo root. `composite` requires emit (TS6304 forbids noEmit), and without
+    // an outDir `tsc -b` wrote vite.config.js + vite.config.d.ts next to the source — where Vite
+    // and Vitest resolve `.js` BEFORE `.ts`. Every `npx vite build` / `npx vitest run` that did
+    // not first run `tsc -b` therefore silently used a STALE compiled config: chunk-policy edits
+    // came out as no-ops and test-timeout changes never applied. `npm run build` masked it by
+    // regenerating the .js first. .gitignore hid the artifacts rather than preventing them.
+    "outDir": "./node_modules/.tmp/vite-config",
     "module": "ESNext",
     "moduleResolution": "bundler",
     "strict": true,

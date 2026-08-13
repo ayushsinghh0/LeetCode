@@ -76,6 +76,24 @@ describe('AchievementsPage', () => {
     expect(screen.getAllByRole('img', { name: 'Locked' })).toHaveLength(TOTAL - 1);
   });
 
+  test('an unlocked id this build no longer defines counts for nothing — the header agrees with the rows', () => {
+    const store = makeStore();
+    // Exactly what importing a backup from an older build leaves behind: a live id plus one the
+    // engine has since dropped. The header used to count the persisted key set (`Unlocked 2 /
+    // 59`) while the list rendered only the ids that still exist — a page contradicting itself.
+    store.dispatch(
+      achievementsUnlocked({ ids: ['first-solve', 'retired-from-an-older-build'], date: '2026-07-30' }),
+    );
+    renderWithStore(<AchievementsPage />, store);
+
+    expect(store.getState().gamification.unlocked['retired-from-an-older-build']).toBe('2026-07-30');
+    expect(screen.getByText('Unlocked 1 / 59')).toBeInTheDocument();
+
+    const earned = screen.getByRole('heading', { name: 'Earned' }).closest('section')!;
+    expect(within(earned).getAllByRole('listitem')).toHaveLength(1);
+    expect(within(earned).getByText('First Blood')).toBeInTheDocument();
+  });
+
   test('renders all six group section headings, with a per-group earned tally, without expanding', () => {
     const store = makeStore();
     store.dispatch(achievementsUnlocked({ ids: ['first-solve'], date: '2026-07-30' }));

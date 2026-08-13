@@ -92,6 +92,27 @@ export default function ContestPage() {
     return () => clearInterval(id);
   }, [running]);
 
+  // The clock only counts time the learner is actually here for. Leaving the page or hiding the
+  // tab settles whatever is running onto the active problem and stops it; without this, walking
+  // away for forty minutes credited those minutes to a problem nobody was looking at, and
+  // `analyzeContest` would then read that as a stall and name a pattern weakness from it — the
+  // exact invented claim contest.ts's header promises never to make. Coming back requires
+  // pressing "Put on the clock" again, which is the honest gesture anyway.
+  useEffect(() => {
+    if (!running) return;
+    function stopClock() {
+      dispatch(blurContestProblem());
+    }
+    function onVisibility() {
+      if (document.visibilityState === 'hidden') stopClock();
+    }
+    document.addEventListener('visibilitychange', onVisibility);
+    return () => {
+      document.removeEventListener('visibilitychange', onVisibility);
+      stopClock(); // unmount: navigating away, or the contest ending
+    };
+  }, [running, dispatch]);
+
   const elapsed = contestElapsedMin(contest, nowMs);
   const overTime = running && elapsed > contest.durationMin;
 

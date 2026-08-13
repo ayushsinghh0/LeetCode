@@ -210,7 +210,7 @@ describe('TodayPage — retained surfaces', () => {
     expect(screen.queryByText(/Weekly Revision Day/)).not.toBeInTheDocument();
   });
 
-  test('AI/ML course card shows the next session and marks it done in place', () => {
+  test('AI/ML course card shows the next session, and one a day is the cadence', () => {
     vi.useFakeTimers();
     vi.setSystemTime(new Date('2026-07-30T12:00:00'));
 
@@ -224,7 +224,14 @@ describe('TodayPage — retained surfaces', () => {
 
     expect(store.getState().course.byWeekId.w00!.day1DoneOn).toBe('2026-07-30');
     expect(store.getState().gamification.xp).toBe(20);
-    expect(screen.getByText('Day 2 · Practice')).toBeInTheDocument();
+
+    // This used to assert "Day 2 · Practice" appeared immediately — the card offering the next
+    // session while the plan directly above it had already dropped the course for the day, two
+    // answers to the same question one viewport apart. The card now applies the ranker's
+    // done-today gate: the day's session is finished, and it says so.
+    expect(screen.queryByRole('button', { name: 'Mark done' })).not.toBeInTheDocument();
+    expect(screen.queryByText('Day 2 · Practice')).not.toBeInTheDocument();
+    expect(screen.getByText("Today's session is done")).toBeInTheDocument();
 
     vi.useRealTimers();
   });

@@ -279,8 +279,22 @@ export interface RevisionSession {
    */
   focus: PatternId[];
   rationale: SessionRationale;
-  /** Due work this session did not take. Reported calmly — never as the headline. */
+  /** Due questions this session did not take. Reported calmly — never as the headline. */
   deferred: RevisionCandidate[];
+  /**
+   * Due course reviews this session did not take — a sibling of `deferred`, not a member of it.
+   *
+   * Two reasons it is a separate field. It is a course week rather than a question, so it cannot
+   * wear `RevisionCandidate`; and `deferred` is read elsewhere for a *question* to name (the
+   * completion screen's "Next" fallback), which a course week could not answer.
+   *
+   * It exists because at the shorter budgets it is routinely non-empty — see `courseAllowance`
+   * below, where a flat ten-minute course recall does not fit inside half of a short session's
+   * review band. Without this field the only thing a UI could count as a shortfall was the
+   * question list, so a page that put due course reviews into its "N items are due" total
+   * silently under-reported how many of them the session had left behind.
+   */
+  deferredCourseReviews: CourseReviewCandidate[];
   /** True when due work ran out and the remaining budget was filled with surplus material. */
   usedSurplus: boolean;
 }
@@ -439,6 +453,15 @@ export function buildRevisionSession(input: SessionInput): RevisionSession {
 
   // Course reviews are retention on the other track and belong in the review band, but they may
   // never crowd out question revision — half the band is the ceiling.
+  //
+  // A consequence worth stating rather than discovering: a course recall is a flat ten minutes
+  // (there is no shallower depth for one, unlike a question), so at the two shortest budgets none
+  // can be placed at all. Fifteen minutes is a retrieval-only shape with no review band; thirty
+  // leaves a nine-minute half-band. That is the honest reading of "half the band is the ceiling"
+  // at those lengths, not an off-by-one — a ten-minute fixed-cost item is a third of a
+  // thirty-minute session, and the shape exists to protect question revision from exactly that.
+  // What the numbers must not do is go unreported: anything not placed here lands in
+  // `deferredCourseReviews` so the surface can say so.
   let courseAllowance = Math.floor(allowance.review / 2);
   for (const review of [...courseReviews].sort((a, b) => b.overdueDays - a.overdueDays)) {
     if (review.minutes > courseAllowance || review.minutes > pot) continue;
@@ -634,6 +657,15 @@ export function buildRevisionSession(input: SessionInput): RevisionSession {
     .filter((s) => s.candidate.overdueDays >= 0 && !taken.has(s.candidate.question.id))
     .map((s) => s.candidate);
 
+  // Read off the FINAL activity list rather than the placement loop, for the same reason
+  // `usedSurplus` is recomputed above: whatever the composition passes do to a course review —
+  // today they leave it alone, tomorrow they might not — anything absent from the session is a
+  // thing the learner did not get, and belongs on the list of what is still waiting.
+  const placedWeekIds = new Set(
+    activities.map((a) => a.weekId).filter((id): id is string => id !== undefined),
+  );
+  const deferredCourseReviews = courseReviews.filter((r) => !placedWeekIds.has(r.weekId));
+
   const focus = Array.from(
     new Set(activities.map((a) => a.pattern).filter((p): p is PatternId => Boolean(p))),
   );
@@ -647,6 +679,7 @@ export function buildRevisionSession(input: SessionInput): RevisionSession {
     focus,
     rationale,
     deferred,
+    deferredCourseReviews,
     usedSurplus,
   };
 }

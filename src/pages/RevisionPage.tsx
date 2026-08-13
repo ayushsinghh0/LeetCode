@@ -22,7 +22,6 @@ import {
   uncompleteSessionActivity,
 } from '@/store/actions';
 import {
-  selectCourseDueReviewIds,
   selectForecast,
   selectQuestionById,
   selectRevisionSession,
@@ -67,7 +66,6 @@ export default function RevisionPage() {
   );
   const progressById = useAppSelector((state) => state.progress.byId);
   const courseByWeekId = useAppSelector((state) => state.course.byWeekId);
-  const courseDueIds = useAppSelector((state) => selectCourseDueReviewIds(state, today));
   const forecast = useAppSelector((state) => selectForecast(state, today));
   const todayLog = useAppSelector((state) => selectTodayLog(state, today));
 
@@ -100,10 +98,19 @@ export default function RevisionPage() {
   );
 
   const upcoming = useMemo(() => forecast.filter((d) => d.count > 0).slice(0, 7), [forecast]);
-  // The whole truth, not just what fit: placed due work (rationale counts only placed items),
-  // plus due work the session did not take, plus due course reviews.
+  // The whole truth, not just what fit — and every term of it read off the SAME session, which is
+  // the part that matters. The total used to add due course reviews from a live selector while the
+  // shortfall named only deferred questions, so on any budget that could not place a course recall
+  // (fifteen and thirty cannot place one at all) the page counted work in its total and then left
+  // it out of "N of them are not in this session" — claiming a smaller shortfall than the truth
+  // and implying course reviews were on screen when they were not.
+  //
+  // Sourcing both from the session also makes the footer hold still mid-sitting, like the rest of
+  // a frozen plan: grading a course recall no longer shrinks a total the frozen rationale still
+  // counts.
+  const shortfall = session.deferred.length + session.deferredCourseReviews.length;
   const dueCount =
-    session.rationale.due + session.rationale.overdue + session.deferred.length + courseDueIds.length;
+    session.rationale.due + session.rationale.overdue + session.rationale.retention + shortfall;
 
   function openActivity(activity: SessionActivity) {
     if (activity.questionId !== undefined) dispatch(activeQuestionSet(activity.questionId));
@@ -129,11 +136,15 @@ export default function RevisionPage() {
       {session.activities.length === 0 ? (
         <EmptyState
           icon={Check}
-          title="Nothing to revise right now"
+          title={shortfall > 0 ? "This budget can't hold what's due" : 'Nothing to revise right now'}
           hint={
-            revisionEnabled
-              ? 'Future you says thanks. Solve something new and it will come back around the ladder.'
-              : 'Spaced revision is switched off in Settings, so the ladder is not scheduling reviews.'
+            !revisionEnabled
+              ? 'Spaced revision is switched off in Settings, so the ladder is not scheduling reviews.'
+              : shortfall > 0
+                ? // Work IS due — it just does not fit the chosen length. Saying "nothing to
+                  // revise" here would be the page contradicting its own footer one line below.
+                  'Give it more time above and the session will fill. Nothing is lost in the meantime — a late review costs nothing on the ladder.'
+                : 'Future you says thanks. Solve something new and it will come back around the ladder.'
           }
         />
       ) : finished ? (
@@ -247,10 +258,8 @@ export default function RevisionPage() {
       {revisionEnabled && dueCount > 0 && !finished && (
         <p className="text-sm text-muted-foreground">
           {dueCount} {dueCount === 1 ? 'item is' : 'items are'} due in total
-          {session.deferred.length > 0 &&
-            ` — ${session.deferred.length} of them ${
-              session.deferred.length === 1 ? 'is' : 'are'
-            } not in this session`}
+          {shortfall > 0 &&
+            ` — ${shortfall} of them ${shortfall === 1 ? 'is' : 'are'} not in this session`}
           . The ladder does not penalise a late review — anything the session leaves is simply
           waiting, not lost.
         </p>

@@ -16,8 +16,8 @@ import {
   DialogTitle,
 } from '@/components/ui/dialog';
 import { useAppDispatch, useAppSelector, useAppStore } from '@/store/hooks';
-import { settingsUpdated } from '@/store/slices/settingsSlice';
-import { importProgress, resetProgress } from '@/store/actions';
+import { importProgress, resetProgress, updateSettings } from '@/store/actions';
+import { SESSION_PRESETS } from '@/utils/engine/nextAction';
 import { useTheme } from '@/contexts/ThemeContext';
 import { exportAsJson, validatePersisted } from '@/services/storage/serialize';
 import { totalDays } from '@/utils/engine/roadmap';
@@ -26,8 +26,19 @@ import type { PersistedStateV1, Question } from '@/types';
 
 const TOTAL_QUESTIONS = (questionsData as Question[]).length;
 const PER_DAY_OPTIONS = Array.from({ length: 13 }, (_, i) => i + 4); // 4..16
-// Study budget the daily plan sums against — half-hour steps from a light hour to a long day.
-const CAPACITY_OPTIONS = [60, 90, 120, 150, 180, 240, 300, 360, 480];
+/**
+ * Study budget the daily plan sums against.
+ *
+ * This is `SESSION_PRESETS` — the exact list the Today and Revision chips write — plus the longer
+ * budgets only this page offers. It used to start at 60 while the chips started at 15, and the
+ * two are one setting: tapping "15m" on Today then opening Settings left the Select with a value
+ * matching no option, so the one control whose job is to STATE the budget rendered empty. The
+ * reverse held too — picking a Settings-only value left every chip unchecked on Today.
+ *
+ * A value here that no chip offers is fine (the chips are a quick subset); a value a chip can
+ * write that is missing here is not.
+ */
+const CAPACITY_OPTIONS = [...SESSION_PRESETS, 240, 300, 360, 480];
 const RESET_CONFIRM_TEXT = 'RESET';
 
 interface SettingsFormValues {
@@ -107,7 +118,10 @@ export default function SettingsPage() {
   // before committing. getValues()/reset() give the same result synchronously.
   function handleSave() {
     const values = getValues();
-    dispatch(settingsUpdated(values));
+    // Through the thunk, not the slice action: `store/actions.ts` is the only public mutation API
+    // (the `ui` slice is the documented exception), and it is where the capacity range guard
+    // lives — one guard instead of one per call site.
+    dispatch(updateSettings(values));
     reset(values);
   }
 

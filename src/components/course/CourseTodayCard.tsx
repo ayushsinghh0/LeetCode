@@ -4,7 +4,11 @@ import { Section, Meta } from '@/components/layout/Page';
 import { useToday } from '@/hooks/useToday';
 import { useAppDispatch, useAppSelector } from '@/store/hooks';
 import { completeCourseSession } from '@/store/actions';
-import { selectCourseDueReviewIds, selectCourseNextSession } from '@/store/selectors';
+import {
+  selectCourseDueReviewIds,
+  selectCourseNextSession,
+  selectCourseSessionDoneToday,
+} from '@/store/selectors';
 import { courseWeekById } from '@/data/aimlCourse';
 
 /**
@@ -23,17 +27,30 @@ import { courseWeekById } from '@/data/aimlCourse';
 export function CourseTodayCard() {
   const dispatch = useAppDispatch();
   const today = useToday();
-  const next = useAppSelector(selectCourseNextSession);
+  const nextSession = useAppSelector(selectCourseNextSession);
   const dueReviewIds = useAppSelector((s) => selectCourseDueReviewIds(s, today));
+  const sessionDoneToday = useAppSelector((s) => selectCourseSessionDoneToday(s, today));
 
-  if (next === null && dueReviewIds.length === 0) return null;
+  // Once today's session is done the course is done for the day — the same gate the ranker
+  // applies (see selectRankedWork). Without it this card kept offering the NEXT session while the
+  // plan directly above it had correctly dropped the course for the day: two answers to the same
+  // question, one viewport apart. Due reviews are unaffected; they are retention, not cadence.
+  const next = sessionDoneToday ? null : nextSession;
+
+  if (next === null && dueReviewIds.length === 0 && !sessionDoneToday) return null;
   const week = next ? courseWeekById.get(next.weekId) : undefined;
 
   return (
     <Section
       aria-label="AI/ML course"
       eyebrow="AI/ML · two-day sprint"
-      title={next && week ? `Week ${week.week} — ${week.title}` : 'Course complete'}
+      title={
+        next && week
+          ? `Week ${week.week} — ${week.title}`
+          : sessionDoneToday
+            ? "Today's session is done"
+            : 'Course complete'
+      }
     >
       <Meta
         items={[
@@ -42,7 +59,9 @@ export function CourseTodayCard() {
               ? next.day === 1
                 ? 'Day 1 · Lecture'
                 : 'Day 2 · Practice'
-              : 'Reviews keep it fresh'}
+              : sessionDoneToday
+                ? 'One session a day is the cadence — the next one is tomorrow'
+                : 'Reviews keep it fresh'}
           </span>,
           dueReviewIds.length > 0 ? (
             <span key="due" className="text-foreground">

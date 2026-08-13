@@ -18,7 +18,7 @@ import { Page, PageHeader, Section, Rule, Meta } from '@/components/layout/Page'
 import { useAppDispatch, useAppSelector } from '@/store/hooks';
 import { activeQuestionSet } from '@/store/slices/uiSlice';
 import { selectCourseActivityByDate, selectPerDay, selectQuestionById } from '@/store/selectors';
-import { hasActivity, isPerfectDay } from '@/utils/engine/streak';
+import { isPerfectDay } from '@/utils/engine/streak';
 import { useToday } from '@/hooks/useToday';
 import { toISODate } from '@/utils/dates';
 import { cn } from '@/utils/cn';
@@ -40,8 +40,10 @@ const LEVEL_CLASS: Record<0 | 1 | 2 | 3 | 4, string> = {
 // The eyebrow register, reused for the weekday column heads and the day-dialog group labels.
 const LABEL_CLASS = 'text-xs uppercase tracking-[0.14em] text-muted-foreground';
 
-function activityLevel(count: number): 0 | 1 | 2 | 3 | 4 {
-  if (count === 0) return 0;
+// `active` carries the work that is not a count — focus minutes, XP — so a day the page calls
+// active is never drawn as an empty one.
+function activityLevel(count: number, active: boolean): 0 | 1 | 2 | 3 | 4 {
+  if (count === 0) return active ? 1 : 0;
   if (count <= 2) return 1;
   if (count <= 5) return 2;
   if (count <= 8) return 3;
@@ -50,6 +52,27 @@ function activityLevel(count: number): 0 | 1 | 2 | 3 | 4 {
 
 function dayLogCount(log: DayLog | undefined): number {
   return log ? log.solvedIds.length + log.revisionsPassed.length + log.revisionsFailed.length : 0;
+}
+
+/**
+ * The one definition of "active" on this page — used by the cell shading, the cell's label, the
+ * month caption and the day dialog alike. A day is active when its ledger holds anything the day
+ * dialog can show you: a solve, a revision, course work, focus minutes, or XP.
+ *
+ * `hasActivity` in engine/streak.ts answers a deliberately narrower question — solves and
+ * revisions only — because it is the *streak* rule, shared with the dashboard heatmap; widening
+ * it would move the goalposts on every streak in the app. So the calendar states its own rule
+ * rather than borrowing one written for something else, and the two differ on purpose: a
+ * pomodoro is a day you worked, not a day you practiced.
+ *
+ * The bug this closes: two pomodoros and nothing else creates a DayLog, so the dialog read
+ * "0 solved · … · 50 focus min" while the cell behind it was empty and the caption said
+ * "0 active days".
+ */
+function dayIsActive(log: DayLog | undefined, courseCount: number): boolean {
+  if (courseCount > 0) return true;
+  if (!log) return false;
+  return dayLogCount(log) > 0 || log.focusMinutes > 0 || log.xpEarned > 0;
 }
 
 function titleFor(id: number): string {
@@ -92,6 +115,30 @@ function courseEventsOn(
 }
 
 /**
+ * The month's course work, split the way the day dialog already splits it.
+ *
+ * `courseActivityByDate` collapses two different things into one number: a session stamp
+ * (day1DoneOn/day2DoneOn) and a graded review. A month with no new sessions and four reviews was
+ * captioned "4 course sessions" — a claim this page's own dialog contradicts one click later,
+ * where all four rows read "Review". The traversal here is deliberately identical to
+ * `courseActivityByDate`'s (every week id in the map, whether or not the week still exists), so
+ * `sessions + reviews` is exactly the total the cells are shaded from.
+ */
+function courseTotalsIn(
+  byWeekId: Record<string, CourseWeekProgress>,
+  dates: ReadonlySet<string>,
+): { sessions: number; reviews: number } {
+  let sessions = 0;
+  let reviews = 0;
+  for (const p of Object.values(byWeekId)) {
+    if (p.day1DoneOn !== null && dates.has(p.day1DoneOn)) sessions++;
+    if (p.day2DoneOn !== null && dates.has(p.day2DoneOn)) sessions++;
+    for (const review of p.revisionHistory) if (dates.has(review.date)) reviews++;
+  }
+  return { sessions, reviews };
+}
+
+/**
  * Calendar — one month of activity, read as a page of the course reader rather than a stack of
  * cards. The month name *is* the page title (the stepper in the masthead changes which month
  * you're reading), the grid sits on the page ground because 31 outlined cells already draw their
@@ -120,33 +167,39 @@ export default function CalendarPage() {
 
   const selectedLog = selectedDate ? dayLogs[selectedDate] : undefined;
   const selectedCourseEvents = selectedDate ? courseEventsOn(courseByWeekId, selectedDate) : [];
-  const selectedHasActivity = Boolean(selectedLog) || selectedCourseEvents.length > 0;
+  const selectedHasActivity = dayIsActive(selectedLog, selectedCourseEvents.length);
 
+  const monthDates = new Set<string>();
   let activeDays = 0;
   let totalSolves = 0;
   let totalRevisions = 0;
-  let totalCourse = 0;
   let totalXp = 0;
+  let totalFocusMin = 0;
   for (const day of days) {
     const iso = toISODate(day);
+    monthDates.add(iso);
     const log = dayLogs[iso];
-    const courseCount = courseActivity.get(iso) ?? 0;
-    if (hasActivity(log) || courseCount > 0) activeDays++;
-    totalCourse += courseCount;
+    if (dayIsActive(log, courseActivity.get(iso) ?? 0)) activeDays++;
     if (log) {
       totalSolves += log.solvedIds.length;
       totalRevisions += log.revisionsPassed.length + log.revisionsFailed.length;
       totalXp += log.xpEarned;
+      totalFocusMin += log.focusMinutes;
     }
   }
+  const course = courseTotalsIn(courseByWeekId, monthDates);
 
-  // One caption line, not a strip of five boxed stats. Every value is a counted fact, so every
-  // value wears `.figures`; the words around them stay in the reading voice.
+  // One caption line, not a strip of boxed stats. Every value is a counted fact, so every value
+  // wears `.figures`; the words around them stay in the reading voice. Focus minutes are here
+  // because they are one of the things that makes a day count as active — a month reading
+  // "1 active day" with nothing but zeros beside it would be unreadable.
   const monthTotals: { value: number; label: string }[] = [
     { value: activeDays, label: plural(activeDays, 'active day') },
     { value: totalSolves, label: plural(totalSolves, 'solve') },
     { value: totalRevisions, label: plural(totalRevisions, 'revision') },
-    { value: totalCourse, label: plural(totalCourse, 'course session') },
+    { value: course.sessions, label: plural(course.sessions, 'course session') },
+    { value: course.reviews, label: plural(course.reviews, 'course review') },
+    { value: totalFocusMin, label: 'focus min' },
     { value: totalXp, label: 'XP' },
   ];
 
@@ -199,8 +252,10 @@ export default function CalendarPage() {
             {days.map((day) => {
               const iso = toISODate(day);
               const log = dayLogs[iso];
-              const count = dayLogCount(log) + (courseActivity.get(iso) ?? 0);
-              const level = activityLevel(count);
+              const courseCount = courseActivity.get(iso) ?? 0;
+              const count = dayLogCount(log) + courseCount;
+              const focusMin = log?.focusMinutes ?? 0;
+              const level = activityLevel(count, dayIsActive(log, courseCount));
               const future = isAfter(day, parseISO(today));
               const isToday = iso === today;
               const perfect = isPerfectDay(log, perDay);
@@ -211,7 +266,12 @@ export default function CalendarPage() {
                   type="button"
                   disabled={future}
                   data-level={level}
-                  aria-label={`${format(day, 'MMMM d, yyyy')} — ${count} activities${perfect ? ' — perfect day' : ''}`}
+                  // Focus minutes are named only when there are some: they are not activities
+                  // (they are not a count of anything graded), but a lit cell whose label says
+                  // "0 activities" is the same contradiction in a screen reader's voice.
+                  aria-label={`${format(day, 'MMMM d, yyyy')} — ${count} activities${
+                    focusMin > 0 ? `, ${focusMin} focus min` : ''
+                  }${perfect ? ' — perfect day' : ''}`}
                   onClick={() => setSelectedDate(iso)}
                   className={cn(
                     // Square at phone width (a 37×64 sliver holding one numeral and one dot was

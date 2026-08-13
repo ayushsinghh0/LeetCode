@@ -59,8 +59,54 @@ describe('companyCoverage — the no-mapped-patterns majority', () => {
   test('a mapped pattern with no questions at all reports 0/0 rather than throwing', () => {
     const coverage = coverageOf(['graphs'], [], {});
     expect(coverage.patterns).toEqual([
-      { pattern: 'graphs', solved: 0, total: 0, pct: 0, passRate: null, standing: 'gap' },
+      { pattern: 'graphs', solved: 0, total: 0, pct: 0, passRate: null, reviews: 0, standing: 'gap' },
     ]);
+  });
+});
+
+// The page renders `strong` as "Holding · 60%+ solved, reviews passing", which is a claim about
+// recall performance. It used to be reachable with `passRate === null` — i.e. asserted about a
+// pattern whose recall had never once been tested. Solving is not remembering.
+describe('companyCoverage — "Holding" is a claim about recall, so it needs recalls', () => {
+  const all = Array.from({ length: 10 }, (_, i) => q(i + 1, 'graphs'));
+  const solvedIds = [1, 2, 3, 4, 5, 6, 7, 8]; // 80% — clears STRONG_PCT on its own
+
+  test('a fully-solved pattern with nothing reviewed is unreviewed, never holding', () => {
+    const byId = Object.fromEntries(solvedIds.map((id) => [id, solvedWithReviews([])]));
+    const coverage = coverageOf(['graphs'], all, byId);
+    const row = coverage.patterns[0]!;
+
+    expect(row.pct).toBeGreaterThanOrEqual(STRONG_PCT);
+    expect(row.passRate).toBeNull();
+    expect(row.reviews).toBe(0);
+    expect(row.standing).toBe('unreviewed');
+    expect(coverage.strong).toEqual([]);
+    // Nor is it a gap: the solving genuinely happened. It is simply untested.
+    expect(coverage.gaps).toEqual([]);
+  });
+
+  test('a pass rate too thin to report cannot promote a pattern either', () => {
+    // Two passing reviews is a 100% pass rate and no evidence at all — one more review could
+    // move it to 67%. It reads as developing: no positive claim, and no "unreviewed" either,
+    // because reviews did happen.
+    const byId = Object.fromEntries(solvedIds.map((id) => [id, solvedWithReviews([])]));
+    byId[1] = solvedWithReviews([true, true]);
+
+    const row = coverageOf(['graphs'], all, byId).patterns[0]!;
+    expect(row.reviews).toBe(2);
+    expect(row.passRate).toBe(1);
+    expect(row.standing).toBe('developing');
+  });
+
+  test('once enough reviews pass, the pattern reaches holding', () => {
+    const byId = Object.fromEntries(solvedIds.map((id) => [id, solvedWithReviews([])]));
+    byId[1] = solvedWithReviews([true, true, true]);
+    byId[2] = solvedWithReviews([true, true]);
+
+    const row = coverageOf(['graphs'], all, byId).patterns[0]!;
+    expect(row.reviews).toBe(5);
+    expect(row.passRate).toBeGreaterThanOrEqual(STRONG_PASS_RATE);
+    expect(row.standing).toBe('strong');
   });
 });
 

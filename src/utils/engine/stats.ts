@@ -12,9 +12,32 @@ function inWindow(date: string, today: string, windowDays: number): boolean {
   return delta >= 0 && delta < windowDays;
 }
 
-function revisionPassRateOver(
+/**
+ * How many graded recalls a pass rate must rest on before this app prints it as a percentage.
+ *
+ * passes/attempts has resolution 1/attempts, so at one attempt the only readings are 0% and
+ * 100%: "Pass rate 0%" off a single failed review is indistinguishable from 0% over forty. Five
+ * is the app's existing floor for any personal figure (engine/timeEstimate.ts `MIN_SAMPLES`) and
+ * the point at which one review moves the number by 20 points rather than by all of it.
+ * engine/insights.ts holds a stricter floor of 10, but that one is the account-wide rate being
+ * *compared* against a 15-point threshold; a per-pattern figure withheld until ten reviews land
+ * inside a single pattern would be silence long past the point of usefulness.
+ *
+ * Every surface that reports or acts on a pass rate reads this one threshold — two surfaces
+ * disagreeing about whether recall has been measured is the failure it exists to prevent.
+ */
+export const MIN_PASS_RATE_ATTEMPTS = 5;
+
+/** Whether a pass rate has enough behind it to be stated as a figure rather than as a dash. */
+export function isPassRateReportable(attempts: number): boolean {
+  return attempts >= MIN_PASS_RATE_ATTEMPTS;
+}
+
+// Passes and attempts are returned together: the rate alone cannot say whether it is evidence,
+// and every caller that shows the rate also has to show what it was measured over.
+function revisionTally(
   questions: Question[], byId: Record<number, QuestionProgress>
-): number | null {
+): { passes: number; attempts: number } {
   let passes = 0;
   let attempts = 0;
   for (const q of questions) {
@@ -25,13 +48,13 @@ function revisionPassRateOver(
       if (ev.passed) passes += 1;
     }
   }
-  return attempts === 0 ? null : passes / attempts;
+  return { passes, attempts };
 }
 
 interface GroupAggregate {
   total: number; solved: number; mastered: number; inRevision: number;
   remaining: number; pct: number; avgConfidence: number | null;
-  revisionPassRate: number | null;
+  revisionPassRate: number | null; revisionAttempts: number;
 }
 
 function aggregate(questions: Question[], byId: Record<number, QuestionProgress>): GroupAggregate {
@@ -56,9 +79,13 @@ function aggregate(questions: Question[], byId: Record<number, QuestionProgress>
   const remaining = total - solved;
   const pct = total > 0 ? Math.round((solved / total) * 100) : 0;
   const avgConfidence = confCount === 0 ? null : confSum / confCount;
-  const revisionPassRate = revisionPassRateOver(questions, byId);
+  const { passes, attempts } = revisionTally(questions, byId);
+  const revisionPassRate = attempts === 0 ? null : passes / attempts;
 
-  return { total, solved, mastered, inRevision, remaining, pct, avgConfidence, revisionPassRate };
+  return {
+    total, solved, mastered, inRevision, remaining, pct, avgConfidence,
+    revisionPassRate, revisionAttempts: attempts,
+  };
 }
 
 export interface PatternStat {
@@ -67,6 +94,7 @@ export interface PatternStat {
   remaining: number; pct: number;              // solved/total * 100, rounded
   avgConfidence: number | null;                // over solved with confidence set
   revisionPassRate: number | null;             // passes / attempts across histories
+  revisionAttempts: number;                    // the denominator; never report the rate without it
 }
 
 export function patternStats(
@@ -81,6 +109,7 @@ export function patternStats(
 export interface DifficultyStat {
   difficulty: Difficulty; total: number; solved: number; pct: number;
   revisionPassRate: number | null;
+  revisionAttempts: number;                    // the denominator; never report the rate without it
 }
 
 export function difficultyStats(
@@ -88,8 +117,8 @@ export function difficultyStats(
 ): DifficultyStat[] {
   return DIFFICULTIES.map((difficulty) => {
     const questions = all.filter((q) => q.difficulty === difficulty);
-    const { total, solved, pct, revisionPassRate } = aggregate(questions, byId);
-    return { difficulty, total, solved, pct, revisionPassRate };
+    const { total, solved, pct, revisionPassRate, revisionAttempts } = aggregate(questions, byId);
+    return { difficulty, total, solved, pct, revisionPassRate, revisionAttempts };
   });
 }
 

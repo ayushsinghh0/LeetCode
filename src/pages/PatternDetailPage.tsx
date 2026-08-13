@@ -24,6 +24,7 @@ import { activeQuestionSet } from '@/store/slices/uiSlice';
 import { selectPatternStats } from '@/store/selectors';
 import { useToday } from '@/hooks/useToday';
 import { initialProgress, isDue } from '@/utils/engine/spacedRepetition';
+import { MIN_PASS_RATE_ATTEMPTS, isPassRateReportable } from '@/utils/engine/stats';
 import type { Confidence, Difficulty, PatternId, Question, QuestionProgress } from '@/types';
 
 const questions = questionsData as Question[];
@@ -145,6 +146,8 @@ export default function PatternDetailPage() {
   const stat = stats.find((s) => s.pattern === patternId)!;
   const namingCompanies = companiesNamingPattern(patternId);
   const passRate = stat.revisionPassRate;
+  const reviews = stat.revisionAttempts;
+  const passRateMeasured = passRate !== null && isPassRateReportable(reviews);
   const avgConfidence = stat.avgConfidence !== null ? (Math.round(stat.avgConfidence) as Confidence) : null;
 
   const difficultyCounts = DIFFICULTIES.map((d) => ({
@@ -218,10 +221,20 @@ export default function PatternDetailPage() {
             },
             { label: 'Mastered', value: stat.mastered },
             { label: 'In revision', value: stat.inRevision },
+            // A pass rate is passes/attempts, so its resolution is 1/attempts: one failed recall
+            // renders "0%" in the stat voice, indistinguishable from 0% over forty attempts. The
+            // denominator is therefore never omitted, and below the reporting minimum the figure
+            // is a dash with the shortfall named — the posture engine/timeEstimate.ts and
+            // engine/insights.ts already hold everywhere else.
             {
               label: 'Pass rate',
-              value: passRate !== null ? `${Math.round(passRate * 100)}%` : '—',
-              sub: passRate === null ? 'no reviews yet' : undefined,
+              value: passRateMeasured ? `${Math.round(passRate! * 100)}%` : '—',
+              sub:
+                reviews === 0
+                  ? 'no reviews yet'
+                  : passRateMeasured
+                    ? `over ${reviews} reviews`
+                    : `needs ${MIN_PASS_RATE_ATTEMPTS} reviews — you have ${reviews}`,
             },
           ]}
         />
@@ -290,31 +303,31 @@ export default function PatternDetailPage() {
 
         {filtered.length === 0 ? (
           <EmptyState icon={SearchX} title="No questions match these filters" />
-        ) : sections.length > 0 ? (
-          // Sub-pattern sections: the taxonomy layer that turns "20 stack problems" into
-          // "matching, monotonic, parsing..." — recognition starts with the grouping. They are
-          // sections in their own right, so they sit at the between-sections step, not at the
-          // heading-to-content one.
-          <div className="flex flex-col gap-10">
-            {sections.map(({ id, name, items }) => (
-              <Section
-                key={id}
-                level={3}
-                title={
-                  <>
-                    {name} <span className="figures text-sm font-normal text-muted-foreground">· {items.length}</span>
-                  </>
-                }
-                aria-label={name}
-              >
-                {questionGrid(items)}
-              </Section>
-            ))}
-          </div>
-        ) : (
+        ) : sections.length === 0 ? (
           questionGrid(filtered)
-        )}
+        ) : null}
       </Section>
+
+      {/* Sub-pattern sections: the taxonomy layer that turns "20 stack problems" into "matching,
+          monotonic, parsing..." — recognition starts with the grouping. They are sections in
+          their own right, so they are siblings under `Page` and take the between-sections step
+          from it. They used to sit in a hand-rolled `gap-10` wrapper, which held them 40px apart
+          at every width while every other section on the page moved to 48px at md. `sections` is
+          derived from `filtered`, so it is already empty whenever the filters match nothing. */}
+      {sections.map(({ id, name, items }) => (
+        <Section
+          key={id}
+          level={3}
+          title={
+            <>
+              {name} <span className="figures text-sm font-normal text-muted-foreground">· {items.length}</span>
+            </>
+          }
+          aria-label={name}
+        >
+          {questionGrid(items)}
+        </Section>
+      ))}
     </Page>
   );
 }

@@ -7,6 +7,7 @@
 // problems anyone will be asked.
 import type { PatternId, Question, QuestionProgress } from '@/types';
 import type { PatternStat } from '@/utils/engine/stats';
+import { isPassRateReportable } from '@/utils/engine/stats';
 import { revisionMinutes } from '@/utils/engine/planner';
 
 /** Solved share at or above this reads as covered; the pass rate has to hold up too. */
@@ -22,7 +23,9 @@ export interface CompanyPatternCoverage {
   pct: number;
   /** Recall pass rate across this pattern, or null when nothing has been reviewed yet. */
   passRate: number | null;
-  standing: 'strong' | 'developing' | 'gap';
+  /** Graded recalls behind `passRate` — the reason `standing` can tell measured from untested. */
+  reviews: number;
+  standing: 'strong' | 'unreviewed' | 'developing' | 'gap';
 }
 
 export interface CompanyCoverage {
@@ -36,8 +39,30 @@ export interface CompanyCoverage {
   remainingMinutes: number;
 }
 
-function standingOf(pct: number, passRate: number | null): CompanyPatternCoverage['standing'] {
-  if (pct >= STRONG_PCT && (passRate === null || passRate >= STRONG_PASS_RATE)) return 'strong';
+/**
+ * Where the learner stands in one mapped pattern.
+ *
+ * `strong` is the only *positive* claim in the set — the surface renders it as "Holding · 60%+
+ * solved, reviews passing" — so it is the only one that needs evidence for both halves. It used
+ * to accept `passRate === null`, which meant a pattern solved this morning and never once
+ * recalled was counted as reviews passing: an assertion about recall performance on a pattern
+ * whose recall had never been tested. Solving is not remembering, and this module is not allowed
+ * to claim the second from the first.
+ *
+ * So: nothing recalled yet is `unreviewed` — said plainly rather than folded into either the
+ * good or the bad bucket. A rate too thin to report (`isPassRateReportable`) cannot promote a
+ * pattern either, but it does NOT read as unreviewed, because reviews happened and some of them
+ * may have failed; those patterns sit in the neutral middle where no claim is made at all.
+ */
+function standingOf(
+  pct: number, passRate: number | null, reviews: number,
+): CompanyPatternCoverage['standing'] {
+  if (pct >= STRONG_PCT) {
+    if (reviews === 0) return 'unreviewed';
+    if (passRate !== null && isPassRateReportable(reviews) && passRate >= STRONG_PASS_RATE) {
+      return 'strong';
+    }
+  }
   if (pct < WEAK_PCT) return 'gap';
   return 'developing';
 }
@@ -56,7 +81,11 @@ export function companyCoverage(
     const solved = stat?.solved ?? 0;
     const pct = stat?.pct ?? 0;
     const passRate = stat?.revisionPassRate ?? null;
-    return { pattern, solved, total, pct, passRate, standing: standingOf(pct, passRate) };
+    const reviews = stat?.revisionAttempts ?? 0;
+    return {
+      pattern, solved, total, pct, passRate, reviews,
+      standing: standingOf(pct, passRate, reviews),
+    };
   });
 
   const solved = rows.reduce((sum, r) => sum + r.solved, 0);
@@ -106,7 +135,11 @@ export function practicePicks(
   byId: Record<number, QuestionProgress>,
   limit = 8,
 ): PracticePick[] {
-  const rank: Record<CompanyPatternCoverage['standing'], number> = { gap: 0, developing: 1, strong: 2 };
+  // Weakest first. `unreviewed` sits above `developing`: a pattern that is 60%+ solved needs
+  // recall work more than it needs more solving, and this set only offers unsolved questions.
+  const rank: Record<CompanyPatternCoverage['standing'], number> = {
+    gap: 0, developing: 1, unreviewed: 2, strong: 3,
+  };
   const standingByPattern = new Map(coverage.patterns.map((r) => [r.pattern, r.standing]));
   const difficultyRank = { easy: 0, medium: 1, hard: 2 } as const;
   const orderOf = (q: Question) => rank[standingByPattern.get(q.pattern)!];

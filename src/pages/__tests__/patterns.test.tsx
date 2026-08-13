@@ -4,7 +4,7 @@ import { makeStore, type AppStore } from '@/store/store';
 import { renderWithStore } from '@/test/renderWithStore';
 import PatternsPage, { sortStats } from '@/pages/PatternsPage';
 import PatternDetailPage, { filterPatternQuestions } from '@/pages/PatternDetailPage';
-import { solveQuestion } from '@/store/actions';
+import { reviseQuestion, solveQuestion } from '@/store/actions';
 import { PATTERNS } from '@/data/patterns';
 import questionsData from '@/data/questions.json';
 import type { Question, QuestionProgress, PatternId } from '@/types';
@@ -102,6 +102,38 @@ describe('PatternDetailPage', () => {
     }
     expect(within(progress).getByText('1/34')).toBeInTheDocument();
     expect(within(progress).getByText('no reviews yet')).toBeInTheDocument();
+  });
+
+  // A pass rate is passes/attempts, so at one attempt the only readings are 0% and 100%. Printed
+  // bare in the stat voice, one failed recall read exactly like 0% over forty — the opposite of
+  // the posture timeEstimate (MIN_SAMPLES) and insights (suppress below a stated minimum) hold.
+  test('one failed review reports the shortfall, not a confident 0%', () => {
+    const store = makeStore();
+    store.dispatch(solveQuestion(1)); // two-pointers
+    vi.setSystemTime(new Date('2026-07-31T12:00:00'));
+    store.dispatch(reviseQuestion(1, false));
+    renderDetail('two-pointers', store);
+
+    const progress = screen.getByRole('region', { name: 'Progress' });
+    expect(within(progress).getByText('—')).toBeInTheDocument();
+    expect(within(progress).getByText('needs 5 reviews — you have 1')).toBeInTheDocument();
+    expect(within(progress).queryByText('0%')).toBeNull();
+  });
+
+  test('past the minimum the figure appears, and never without its denominator', () => {
+    const store = makeStore();
+    store.dispatch(solveQuestion(1));
+    // One grade per question per calendar day, and a fail keeps it on the ladder — so five
+    // consecutive days of failed recalls is a real 0%, and now distinguishable from the one above.
+    for (const date of ['2026-07-31', '2026-08-01', '2026-08-02', '2026-08-03', '2026-08-04']) {
+      vi.setSystemTime(new Date(`${date}T12:00:00`));
+      store.dispatch(reviseQuestion(1, false));
+    }
+    renderDetail('two-pointers', store);
+
+    const progress = screen.getByRole('region', { name: 'Progress' });
+    expect(within(progress).getByText('0%')).toBeInTheDocument();
+    expect(within(progress).getByText('over 5 reviews')).toBeInTheDocument();
   });
 
   test('invalid patternId shows a "Pattern not found" empty state with a link back to /patterns', () => {
@@ -205,16 +237,18 @@ describe('sortStats', () => {
       pct: 0,
       avgConfidence: null,
       revisionPassRate: null,
+      revisionAttempts: 0,
       ...overrides,
     };
   }
 
-  // Course order: A, B, C, D, E.
-  const statA = makeStat({ pattern: 'two-pointers', solved: 10, pct: 50, avgConfidence: 3, revisionPassRate: 0.6 }); // eligible (solved >= 3)
+  // Course order: A, B, C, D, E. Every non-null rate carries a coherent attempt count — the two
+  // travel together everywhere else, so a fixture that split them would not be a real PatternStat.
+  const statA = makeStat({ pattern: 'two-pointers', solved: 10, pct: 50, avgConfidence: 3, revisionPassRate: 0.6, revisionAttempts: 10 }); // eligible (solved >= 3)
   const statB = makeStat({ pattern: 'sliding-window', solved: 1, pct: 20 }); // ineligible: solved < 3, no revision attempts
-  const statC = makeStat({ pattern: 'intervals', solved: 6, pct: 50, avgConfidence: 4, revisionPassRate: 0.9 }); // eligible; ties statA on pct
+  const statC = makeStat({ pattern: 'intervals', solved: 6, pct: 50, avgConfidence: 4, revisionPassRate: 0.9, revisionAttempts: 10 }); // eligible; ties statA on pct
   const statD = makeStat({ pattern: 'fast-slow-pointers', solved: 0, pct: 0 }); // ineligible: solved < 3, no revision attempts
-  const statE = makeStat({ pattern: 'greedy', solved: 2, pct: 10, revisionPassRate: 0.2 }); // eligible via revisionPassRate !== null despite solved < 3
+  const statE = makeStat({ pattern: 'greedy', solved: 2, pct: 10, revisionPassRate: 0.2, revisionAttempts: 5 }); // eligible via revisionPassRate !== null despite solved < 3
 
   const stats: PatternStat[] = [statA, statB, statC, statD, statE];
 

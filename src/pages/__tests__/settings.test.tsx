@@ -5,7 +5,8 @@ import { makeStore, type AppStore } from '@/store/store';
 import { TooltipProvider } from '@/components/ui/tooltip';
 import { ThemeProvider } from '@/contexts/ThemeContext';
 import SettingsPage from '@/pages/SettingsPage';
-import { completeCourseSession, solveQuestion } from '@/store/actions';
+import { completeCourseSession, setDailyCapacity, solveQuestion } from '@/store/actions';
+import { SESSION_PRESETS } from '@/utils/engine/nextAction';
 import { settingsUpdated } from '@/store/slices/settingsSlice';
 import { exportAsJson } from '@/services/storage/serialize';
 import { totalDays } from '@/utils/engine/roadmap';
@@ -59,6 +60,44 @@ function readBlobAsText(blob: Blob): Promise<string> {
     reader.readAsText(blob);
   });
 }
+
+describe('SettingsPage: the capacity control and the session chips are one setting', () => {
+  // The Today and Revision chips write SESSION_PRESETS; this page is the surface that STATES the
+  // budget. When its option list started at 60 while the chips started at 15, tapping "15m" left
+  // the Select rendering an empty value — the one control whose job is to say what the budget is,
+  // saying nothing. Every value a chip can write must be representable here.
+  test('offers every capacity the session chips can write', () => {
+    const { container } = renderWithStore();
+    const selects = container.querySelectorAll('select');
+    const capacitySelect = selects[1];
+    if (!capacitySelect) throw new Error('capacity native <select> not found');
+
+    const offered = [...capacitySelect.options].map((o) => Number(o.value));
+    for (const preset of SESSION_PRESETS) {
+      expect(offered, `capacity ${preset} must be selectable in Settings`).toContain(preset);
+    }
+  });
+
+  test('a capacity chosen by a chip displays here rather than rendering blank', () => {
+    const store = makeStore();
+    store.dispatch(setDailyCapacity(15)); // the smallest chip on Today / Revision
+    const { container } = renderWithStore(store);
+
+    const capacitySelect = container.querySelectorAll('select')[1];
+    expect(capacitySelect).toHaveValue('15');
+  });
+
+  test('Save routes through the thunk, so the capacity range guard cannot be bypassed', () => {
+    const { store, container } = renderWithStore();
+    const capacitySelect = container.querySelectorAll('select')[1]!;
+
+    fireEvent.change(capacitySelect, { target: { value: '15' } });
+    fireEvent.click(screen.getByRole('button', { name: 'Save' }));
+
+    // 15 is admitted (it is what the chips write) and lands in the one shared budget.
+    expect(store.getState().settings.dailyCapacityMin).toBe(15);
+  });
+});
 
 describe('SettingsPage: Preferences form', () => {
   test('renders current settings from the store, with Save disabled until dirty', () => {

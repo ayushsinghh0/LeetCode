@@ -26,11 +26,19 @@ export default defineConfig({
             './src/data/companies.json',
           ],
           // The ML curriculum: 11 from-scratch implementation tracks and the 14-project ladder,
-          // ~180 kB of authored content with measured figures in it. Same reasoning as
-          // data-curriculum, and a separate chunk rather than an addition to it because only the
-          // /aiml route reads it — a learner who never opens the AI/ML track never fetches it,
-          // and an edit to either dataset leaves the other one valid in every cache.
-          'data-ml': ['./src/data/mlTracks.json', './src/data/mlProjects.json'],
+          // plus the 130 course recall prompts behind "Check yourself" — ~270 kB of authored
+          // content with measured figures in it. Same reasoning as data-curriculum, and a
+          // separate chunk rather than an addition to it because only the /aiml route reads it —
+          // a learner who never opens the AI/ML track never fetches it, and an edit to either
+          // dataset leaves the other one valid in every cache. courseRecall.json belongs here
+          // rather than in data-curriculum for exactly that reason: it is reachable only from
+          // /aiml (courseRecall.ts → AimlCoursePage/CourseWeekRow), so filing it with the
+          // questions dataset would ship 92 kB of ML content to every DSA-only session.
+          'data-ml': [
+            './src/data/mlTracks.json',
+            './src/data/mlProjects.json',
+            './src/data/courseRecall.json',
+          ],
         },
       },
     },
@@ -39,11 +47,13 @@ export default defineConfig({
     environment: 'jsdom',
     globals: true,
     setupFiles: ['src/test/setup.ts'],
-    // The first test in a worker that mounts the shell (smoke, shell, routes at "/") pays the
-    // whole eager module graph's transform while every other worker is doing the same, and at
-    // the start of a fully parallel run that reliably brushes past vitest's 5s default (~1.7s
-    // in isolation, >5s at peak contention). The ceiling is generous because it is not an
-    // assertion — a genuinely hung test still fails, just later.
-    testTimeout: 15_000,
+    // The first test in a worker that mounts a heavy lazy route (routes.test's Analytics pulls
+    // recharts; the shell tests pull the whole app graph) pays that chunk's transform while every
+    // other worker is doing the same. In isolation those are sub-second; at peak contention they
+    // have been measured past 18s. This is a KILL CEILING, not an assertion — it exists to stop a
+    // genuinely hung test, and it must sit above every per-query `findBy` window in the suite
+    // (the largest is routes.test's CHUNK_TIMEOUT at 8s) or it silently truncates the wait a
+    // query asked for, which is how this suite's "flakes" were manufactured.
+    testTimeout: 30_000,
   },
 });

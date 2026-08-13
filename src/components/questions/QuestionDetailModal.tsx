@@ -25,6 +25,7 @@ import { PostSolvePanel, type NextStep } from '@/components/questions/PostSolveP
 import { ResourcePanel, type ResourceGroup, type ResourceLink } from '@/components/questions/ResourcePanel';
 import { QUESTION_TYPE_LABEL, QUESTION_TYPE_MEANING } from '@/data/questionTypes';
 import { familyById, FAMILY_ROLE_LABEL, FAMILY_ROLE_ORDER, SUBPATTERNS } from '@/data/curriculum';
+import { useToday } from '@/hooks/useToday';
 import { useAppDispatch, useAppSelector } from '@/store/hooks';
 import { reviseQuestion, skipQuestion, solveQuestion, toggleBookmark } from '@/store/actions';
 import { activeQuestionSet } from '@/store/slices/uiSlice';
@@ -68,7 +69,16 @@ export function QuestionDetailModal() {
   const progress = useAppSelector((s) => (activeId !== null ? (s.progress.byId[activeId] ?? initialProgress()) : null));
   const byId = useAppSelector((s) => s.progress.byId);
   const samples = useAppSelector(selectPaceSamples);
-  const [hintsOpen, setHintsOpen] = useState(false);
+  const today = useToday();
+
+  // WHICH question the ladder was opened for, not merely whether it is open. The modal does not
+  // remount between questions (only DialogContent is keyed), so a plain boolean survived the
+  // switch: opening the ladder on one question and then jumping to a sibling via the Explore
+  // links landed on the next question with its hints already expanded, skipping the deliberate
+  // friction that makes taking a hint a choice.
+  const [hintsOpenForId, setHintsOpenForId] = useState<number | null>(null);
+  const hintsOpen = hintsOpenForId !== null && hintsOpenForId === activeId;
+  const setHintsOpen = (open: boolean) => setHintsOpenForId(open ? activeId : null);
 
   const question = activeId !== null ? (questionById.get(activeId) ?? null) : null;
 
@@ -92,7 +102,12 @@ export function QuestionDetailModal() {
   const hints = hintsFor(family);
   const state = masteryState(progress);
   const solved = progress.status === 'solved';
-  const revisable = solved && !isMastered(progress);
+  // A question graded today is NOT revisable again today: `reviseQuestion` is idempotent per
+  // calendar day (a pass schedules days out, a fail reschedules to tomorrow — a second same-day
+  // grade is never legitimate), and offering buttons the thunk will refuse is a control that
+  // silently does nothing.
+  const gradedToday = progress.lastReviewed === today;
+  const revisable = solved && !isMastered(progress) && !gradedToday;
 
   const untouched = (id: number) => {
     const status = byId[id]?.status ?? 'unsolved';
@@ -246,7 +261,14 @@ export function QuestionDetailModal() {
                 {progress.bookmarked ? 'Bookmarked' : 'Bookmark'}
               </Button>
             </div>
-            {solved && !revisable && (
+            {solved && gradedToday && !isMastered(progress) && (
+              <p className="inline-flex items-center gap-2 text-sm text-muted-foreground">
+                <RotateCcw className="h-4 w-4" aria-hidden="true" />
+                Reviewed today
+                {progress.nextRevision ? ` — next review ${progress.nextRevision}.` : '.'}
+              </p>
+            )}
+            {solved && isMastered(progress) && (
               <p className="inline-flex items-center gap-2 text-sm text-muted-foreground">
                 <RotateCcw className="h-4 w-4" aria-hidden="true" />
                 Mastered — off the review schedule.

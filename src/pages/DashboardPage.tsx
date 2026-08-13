@@ -1,3 +1,4 @@
+import { useMemo } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { format, parseISO } from 'date-fns';
 import { Dices } from 'lucide-react';
@@ -7,6 +8,7 @@ import { DailyGoalProgress } from '@/components/shared/DailyGoalProgress';
 import { Heatmap } from '@/components/shared/Heatmap';
 import { StreakFlame } from '@/components/gamification/StreakFlame';
 import { XpBadge } from '@/components/gamification/XpBadge';
+import type { LedgerItem } from '@/components/layout/Page';
 import { Ledger, Meta, Page, PageHeader, RuledItem, RuledList, Section } from '@/components/layout/Page';
 import { patternById } from '@/data/patterns';
 import { quoteForDate } from '@/data/quotes';
@@ -19,7 +21,6 @@ import {
   selectCourseProjectedFinish,
   selectCourseStats,
   selectCurrentDay,
-  selectEstimatedFinish,
   selectHeatmapData,
   selectLevelInfo,
   selectPerDay,
@@ -36,7 +37,8 @@ import {
 } from '@/store/selectors';
 import { courseWeekById } from '@/data/aimlCourse';
 import { seededRandomQuestion } from '@/utils/engine/recommendations';
-import { formatMinutes } from '@/utils/engine/planner';
+import { formatMinutes, formatProjection } from '@/utils/engine/planner';
+import { finishProjection } from '@/utils/engine/roadmap';
 import type { WorkItem } from '@/utils/engine/nextAction';
 
 /**
@@ -67,7 +69,8 @@ export default function DashboardPage() {
   const xp = useAppSelector((s) => s.gamification.xp);
   const streaks = useAppSelector((s) => selectStreaks(s, today));
   const heatmapData = useAppSelector((s) => selectHeatmapData(s, today));
-  const estFinish = useAppSelector((s) => selectEstimatedFinish(s, today));
+  const dayLogs = useAppSelector((s) => s.progress.dayLogs);
+  const startDate = useAppSelector((s) => s.progress.startDate);
   const productivity = useAppSelector((s) => selectProductivityScore(s, today));
   const weakest = useAppSelector((s) => selectPatternWeakness(s, today));
   const revisionQueueIds = useAppSelector((s) => selectRevisionQueueIds(s, today));
@@ -97,8 +100,49 @@ export default function DashboardPage() {
 
   const weakestEntry = weakest[0] ?? null;
 
-  const dueTotal = revisionQueueIds.length + courseDueReviews.length;
+  // The revision figure is the *queue*, not the due set: on a weekly revision day it includes
+  // items pulled forward whose next review is still in the future. Today says "N revisions
+  // queued" for this same number, and the label here says the same word for the same reason.
+  const queuedTotal = revisionQueueIds.length + courseDueReviews.length;
   const courseNextWeek = courseNext ? courseWeekById.get(courseNext.weekId) : undefined;
+
+  // Projected finish, with the basis it was computed from — a figure taken from the
+  // questions-per-day setting must not be labelled "your current pace", and once the roadmap is
+  // finished there is no estimate to make, so the cell leaves rather than renders today's date.
+  const finish = useMemo(
+    () => finishProjection(today, remaining, dayLogs, perDay, startDate),
+    [today, remaining, dayLogs, perDay, startDate],
+  );
+
+  const ledgerItems: LedgerItem[] = [
+    {
+      label: 'Solved',
+      value: `${solvedCount} / ${totalQuestions}`,
+      sub: `${completionPct}% · ${remaining} to go`,
+    },
+    {
+      label: 'Revisions queued',
+      value: queuedTotal,
+      sub:
+        queuedTotal === 0
+          ? 'nothing queued today'
+          : `${revisionQueueIds.length} question${revisionQueueIds.length === 1 ? '' : 's'} · ${courseDueReviews.length} course`,
+    },
+    ...(finish.date !== null
+      ? [
+          {
+            label: 'Est. finish',
+            value: formatProjection(finish.date, today),
+            sub: finish.basis === 'measured' ? 'at your current pace' : 'at your target pace',
+          },
+        ]
+      : []),
+    {
+      label: 'Productivity',
+      value: `${productivity} / 100`,
+      sub: 'last 14 days',
+    },
+  ];
 
   function openWork(item: WorkItem) {
     if (item.questionId !== undefined) {
@@ -131,33 +175,7 @@ export default function DashboardPage() {
         {quoteForDate(today)}
       </p>
 
-      <Ledger
-        items={[
-          {
-            label: 'Solved',
-            value: `${solvedCount} / ${totalQuestions}`,
-            sub: `${completionPct}% · ${remaining} to go`,
-          },
-          {
-            label: 'Revisions due',
-            value: dueTotal,
-            sub:
-              dueTotal === 0
-                ? 'nothing due today'
-                : `${revisionQueueIds.length} question${revisionQueueIds.length === 1 ? '' : 's'} · ${courseDueReviews.length} course`,
-          },
-          {
-            label: 'Est. finish',
-            value: format(parseISO(estFinish), 'MMM d'),
-            sub: 'at your current pace',
-          },
-          {
-            label: 'Productivity',
-            value: `${productivity} / 100`,
-            sub: 'last 14 days',
-          },
-        ]}
-      />
+      <Ledger items={ledgerItems} columns={ledgerItems.length === 3 ? 3 : 4} />
 
       <Section title="Progress">
         <Section
@@ -273,7 +291,7 @@ export default function DashboardPage() {
               {courseStats.sessionsDone} / {courseStats.sessionsTotal} sessions
             </span>,
             courseNextWeek && `Next: Week ${courseNextWeek.week} — ${courseNextWeek.title}`,
-            courseFinish && `Finish ${format(parseISO(courseFinish), 'MMM d')}`,
+            courseFinish && `Finish ${formatProjection(courseFinish, today)}`,
             courseDueReviews.length > 0 &&
               `${courseDueReviews.length} review${courseDueReviews.length === 1 ? '' : 's'} due`,
             courseNext === null && 'Complete',

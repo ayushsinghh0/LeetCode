@@ -1,6 +1,5 @@
 import { useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { format, parseISO } from 'date-fns';
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { InsightLead, InsightList } from '@/components/shared/InsightPanel';
@@ -41,8 +40,13 @@ import {
 } from '@/utils/engine/insights';
 import { MIN_TRANSFER_OBSERVATIONS } from '@/utils/engine/weakness';
 import { MIN_SAMPLES } from '@/utils/engine/timeEstimate';
-import { consistency, solvedPerDaySeries } from '@/utils/engine/stats';
-import { formatMinutes } from '@/utils/engine/planner';
+import {
+  consistency,
+  isPassRateReportable,
+  MIN_PASS_RATE_ATTEMPTS,
+  solvedPerDaySeries,
+} from '@/utils/engine/stats';
+import { formatMinutes, formatProjection } from '@/utils/engine/planner';
 
 const ACTIVE_WINDOW_DAYS = 14;
 type SolvedRange = 30 | 90;
@@ -275,13 +279,21 @@ export default function AnalyticsPage() {
         >
           <Ledger
             columns={3}
+            // Same rule as the pattern page: a pass rate is only shown once enough recalls back
+            // it, and it always carries its denominator. One attempt printed as a confident
+            // "0%" is the padding this section exists not to do.
             items={difficultyStats.map((s) => ({
               label: s.difficulty[0]!.toUpperCase() + s.difficulty.slice(1),
-              value: s.revisionPassRate === null ? DASH : pct(s.revisionPassRate),
+              value:
+                s.revisionPassRate === null || !isPassRateReportable(s.revisionAttempts)
+                  ? DASH
+                  : pct(s.revisionPassRate),
               sub:
-                s.revisionPassRate === null
+                s.revisionAttempts === 0
                   ? `${s.solved} of ${s.total} solved, none recalled`
-                  : `${s.solved} of ${s.total} solved`,
+                  : isPassRateReportable(s.revisionAttempts)
+                    ? `over ${s.revisionAttempts} reviews`
+                    : `needs ${MIN_PASS_RATE_ATTEMPTS} reviews — you have ${s.revisionAttempts}`,
             }))}
           />
         </Section>
@@ -427,7 +439,7 @@ export default function AnalyticsPage() {
             },
             {
               label: 'Projected finish',
-              value: courseFinish ? format(parseISO(courseFinish), 'MMM d') : 'Done',
+              value: courseFinish ? formatProjection(courseFinish, today) : 'Done',
               sub: courseFinish ? 'at your current cadence' : 'every core week cleared',
             },
           ]}

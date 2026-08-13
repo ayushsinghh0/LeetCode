@@ -2,10 +2,11 @@
 // because cross-slice writes (progress + gamification + ui) only happen safely here.
 import type { ThunkDispatch, UnknownAction } from '@reduxjs/toolkit';
 import questionsData from '@/data/questions.json';
-import type { Confidence, PersistedStateV1, Question, TaskCategory } from '@/types';
+import type { Confidence, PersistedStateV1, Question, SettingsState, TaskCategory } from '@/types';
 import type { AppThunk, RootState } from '@/store/store';
 import { addDays, todayISO } from '@/utils/dates';
 import { DAILY_GOAL_BONUS, SOLVE_XP, WEEKLY_CLEAR_BONUS, revisionXp } from '@/utils/engine/xp';
+import { CAPACITY_MAX, CAPACITY_MIN } from '@/utils/engine/planner';
 import { currentDay, isWeeklyRevisionDay } from '@/utils/engine/roadmap';
 import { patternStats } from '@/utils/engine/stats';
 import { evaluateAchievements } from '@/utils/engine/achievements';
@@ -390,9 +391,24 @@ export const deferTaskToTomorrow = (id: string): AppThunk => (dispatch) => {
 // The day's time budget. A thunk rather than a raw `settingsUpdated` dispatch from the UI,
 // because `settings` is not the `ui` slice and the mutation API is the one documented seam —
 // and because the value is range-guarded in exactly one place instead of at each call site.
+//
+// The bounds live in engine/planner.ts because `validatePersisted` must agree with them and the
+// two layers cannot import each other: a value this guard admits must survive a reload, or the
+// learner's whole state is quarantined on next load.
 export const setDailyCapacity = (minutes: number): AppThunk => (dispatch) => {
-  if (!Number.isInteger(minutes) || minutes < 15 || minutes > 960) return;
+  if (!Number.isInteger(minutes) || minutes < CAPACITY_MIN || minutes > CAPACITY_MAX) return;
   dispatch(settingsUpdated({ dailyCapacityMin: minutes }));
+};
+
+/**
+ * The Settings form's Save. Everything except the capacity goes straight through; the capacity
+ * is delegated to `setDailyCapacity` so its range guard cannot be bypassed by editing the one
+ * surface that writes several settings at once.
+ */
+export const updateSettings = (values: Partial<SettingsState>): AppThunk => (dispatch) => {
+  const { dailyCapacityMin, ...rest } = values;
+  if (Object.keys(rest).length > 0) dispatch(settingsUpdated(rest));
+  if (dailyCapacityMin !== undefined) dispatch(setDailyCapacity(dailyCapacityMin));
 };
 
 // --- Revision sessions -----------------------------------------------------------------------

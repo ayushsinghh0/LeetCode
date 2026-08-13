@@ -3,8 +3,8 @@ import type { DayLog, Question, QuestionProgress } from '@/types';
 import { addDays } from '@/utils/dates';
 import { applyRevision, applySolve, initialProgress } from '@/utils/engine/spacedRepetition';
 import {
-  consistency, difficultyStats, goalRate, overallRevisionPassRate, patternStats,
-  productivityScore, solvedPerDaySeries,
+  MIN_PASS_RATE_ATTEMPTS, consistency, difficultyStats, goalRate, isPassRateReportable,
+  overallRevisionPassRate, patternStats, productivityScore, solvedPerDaySeries,
 } from '@/utils/engine/stats';
 import { QF } from '@/test/questionFixture';
 
@@ -62,6 +62,9 @@ test('patternStats: one entry per PATTERNS entry, in order, with correct aggrega
   expect(tp.pct).toBe(67);          // round(2/3 * 100)
   expect(tp.avgConfidence).toBe(4.5); // mean of q1(4) and q2(5)
   expect(tp.revisionPassRate).toBeCloseTo(7 / 8); // (2+5) passes / (3+5) attempts
+  // The rate never travels without its denominator: 7/8 and 70/80 are not the same claim, and a
+  // consumer that only receives 0.875 cannot tell them apart.
+  expect(tp.revisionAttempts).toBe(8);
 
   const sw = stats.find((s) => s.pattern === 'sliding-window')!;
   expect(sw.total).toBe(3);
@@ -72,13 +75,38 @@ test('patternStats: one entry per PATTERNS entry, in order, with correct aggrega
   expect(sw.pct).toBe(0);
   expect(sw.avgConfidence).toBeNull();
   expect(sw.revisionPassRate).toBeNull();
+  expect(sw.revisionAttempts).toBe(0);
 
   // Patterns absent from the fixture dataset must still appear (total 0, no NaN).
   const other = stats.find((s) => s.pattern === 'graphs')!;
   expect(other).toEqual({
     pattern: 'graphs', total: 0, solved: 0, mastered: 0, inRevision: 0,
-    remaining: 0, pct: 0, avgConfidence: null, revisionPassRate: null,
+    remaining: 0, pct: 0, avgConfidence: null, revisionPassRate: null, revisionAttempts: 0,
   });
+});
+
+// The reporting floor for a pass rate. `passes/attempts` has resolution 1/attempts, so a single
+// failed review reads as a confident "0%" in the stat voice unless something stops it — which is
+// the posture timeEstimate (MIN_SAMPLES) and insights (per-builder minimums) already hold.
+test('isPassRateReportable: a rate is a figure only once it has enough attempts behind it', () => {
+  expect(MIN_PASS_RATE_ATTEMPTS).toBe(5); // = timeEstimate's MIN_SAMPLES, the app's floor for a personal figure
+
+  expect(isPassRateReportable(0)).toBe(false);
+  expect(isPassRateReportable(1)).toBe(false); // one failed review is not "0%"
+  expect(isPassRateReportable(MIN_PASS_RATE_ATTEMPTS - 1)).toBe(false);
+  expect(isPassRateReportable(MIN_PASS_RATE_ATTEMPTS)).toBe(true);
+  expect(isPassRateReportable(40)).toBe(true);
+});
+
+test('patternStats: one failed review is counted, but as 1 attempt — not as a measured 0%', () => {
+  let p = applySolve(initialProgress(), '2026-07-01');
+  p = applyRevision(p, '2026-07-02', false);
+
+  const tp = patternStats(questions, { 1: p }).find((s) => s.pattern === 'two-pointers')!;
+
+  expect(tp.revisionPassRate).toBe(0);
+  expect(tp.revisionAttempts).toBe(1);
+  expect(isPassRateReportable(tp.revisionAttempts)).toBe(false);
 });
 
 test('difficultyStats: per-difficulty solved counts and pass rates', () => {

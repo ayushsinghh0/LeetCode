@@ -104,12 +104,15 @@ export default function AchievementsPage() {
   const [showLocked, setShowLocked] = useState(false);
 
   const total = ACHIEVEMENTS.length;
-  const unlockedCount = Object.keys(unlocked).length;
 
   // Most recent first; `sort` is stable, so same-day unlocks keep the engine's own order.
   const unlockedDefs = ACHIEVEMENTS.filter((def) => unlocked[def.id]).sort((a, b) =>
     unlocked[b.id]!.localeCompare(unlocked[a.id]!),
   );
+  // Counted off the rendered list, not off `unlocked`'s key count. A backup imported from an
+  // older build carries ids this build no longer defines; counting keys claimed "Unlocked 14 /
+  // 59" over 12 rows, and the number a page prints must be the number of things it shows.
+  const unlockedCount = unlockedDefs.length;
 
   const groups = groupAchievements(ACHIEVEMENTS).map((group) => ({
     ...group,

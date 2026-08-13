@@ -311,6 +311,68 @@ describe('buildRevisionSession — the other track and the diagnostic', () => {
     expect(course.length).toBeGreaterThan(0);
     expect(questions.length).toBeGreaterThan(0);
     expect(session.rationale.retention).toBe(course.length);
+
+    // Placed and deferred partition the due course reviews: nothing counted twice, nothing lost.
+    expect(course.length + session.deferredCourseReviews.length).toBe(courseReviews.length);
+    const placedIds = new Set(course.map((a) => a.weekId));
+    for (const left of session.deferredCourseReviews) {
+      expect(placedIds.has(left.weekId)).toBe(false);
+    }
+  });
+
+  test('the short budgets cannot place a course recall at all — and report the ones they left', () => {
+    // A course recall is a flat ten minutes; there is no shallower version of one. Half the
+    // review band of a 30-minute session is nine, and a 15-minute session has no review band at
+    // all — so at both lengths every due course review is left behind. That is a real property of
+    // the shapes rather than an accident of this fixture, and the thing being pinned is that the
+    // session SAYS so instead of dropping them on the floor.
+    const courseReviews = [
+      { weekId: 'w01', title: 'Week 1', minutes: 10, overdueDays: 3 },
+      { weekId: 'w02', title: 'Week 2', minutes: 10, overdueDays: 1 },
+    ];
+
+    for (const budgetMin of [15, 30]) {
+      const session = buildRevisionSession({
+        ...base,
+        budgetMin,
+        candidates: [candidate(1, { overdueDays: 2 })],
+        courseReviews,
+      });
+
+      expect(session.activities.filter((a) => a.kind === 'course-review')).toHaveLength(0);
+      expect(session.rationale.retention).toBe(0);
+      expect(session.deferredCourseReviews.map((r) => r.weekId)).toEqual(['w01', 'w02']);
+    }
+  });
+
+  test('an hour places what it can and defers the rest, on both tracks at once', () => {
+    const session = buildRevisionSession({
+      ...base,
+      budgetMin: 60,
+      // Three due course weeks against a 15-minute course allowance: one fits, two wait.
+      courseReviews: Array.from({ length: 3 }, (_, i) => ({
+        weekId: `w0${i + 1}`,
+        title: `Week ${i + 1}`,
+        minutes: 10,
+        overdueDays: 3 - i,
+      })),
+      candidates: [candidate(1, { overdueDays: 4 })],
+    });
+
+    expect(session.rationale.retention).toBe(1);
+    expect(session.deferredCourseReviews).toHaveLength(2);
+  });
+
+  test('a session that placed every due course review reports nothing left on that track', () => {
+    const session = buildRevisionSession({
+      ...base,
+      budgetMin: 180,
+      candidates: [candidate(1)],
+      courseReviews: [{ weekId: 'w01', title: 'Week 1', minutes: 10, overdueDays: 2 }],
+    });
+
+    expect(session.rationale.retention).toBe(1);
+    expect(session.deferredCourseReviews).toEqual([]);
   });
 
   test('the drill opens the session when it is available', () => {

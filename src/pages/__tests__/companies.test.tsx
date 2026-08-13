@@ -162,6 +162,34 @@ describe('CompaniesPage — a company with topic-level evidence', () => {
     }
   });
 
+  // The regression: `strong` used to accept a null pass rate, so a pattern solved this morning
+  // and never once recalled was counted under "Holding · 60%+ solved, reviews passing" — a claim
+  // about recall performance on a pattern whose recall had never been tested. On the page whose
+  // own docstring says the wording is the feature.
+  test('a pattern solved but never recalled reads as unreviewed, not as reviews passing', () => {
+    const store = makeStore();
+    // Google's page names two heaps; 8 of that pattern's 12 questions is 67%, clear of the 60%
+    // coverage gate. Not one of them has been through a graded recall.
+    for (const id of [93, 94, 95, 96, 97, 98, 99, 100]) store.dispatch(solveQuestion(id));
+    renderAt('/companies/google', store);
+
+    const coverage = screen.getByRole('region', { name: 'Your coverage' });
+    const row = within(coverage)
+      .getAllByRole('link')
+      .find((a) => a.getAttribute('href') === '/patterns/two-heaps')!;
+    expect(within(row).getByText('Unreviewed')).toBeInTheDocument();
+    expect(within(row).getByText('8/12')).toBeInTheDocument();
+    expect(within(row).queryByText('Holding')).toBeNull();
+
+    // "Holding" therefore counts it as nothing — and the page says what the word costs rather
+    // than leaving the learner to infer why 67% solved is not being celebrated.
+    const holding = within(coverage).getByText('Holding').closest('div')!;
+    expect(within(holding).getByText('0')).toBeInTheDocument();
+    expect(
+      within(coverage).getByText(/nothing has tested yet whether it stuck/),
+    ).toBeInTheDocument();
+  });
+
   test('solving moves the coverage count', () => {
     const store = makeStore();
     // #231 "Basic Calculator" is the first stacks question — a pattern Google names.

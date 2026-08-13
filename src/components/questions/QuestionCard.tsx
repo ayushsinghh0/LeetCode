@@ -8,6 +8,7 @@ import { PatternChip } from '@/components/questions/PatternChip';
 import { RevisionStagePips } from '@/components/questions/RevisionStagePips';
 import { ConfidenceRating } from '@/components/questions/ConfidenceRating';
 import { patternById } from '@/data/patterns';
+import { QUESTION_TYPE_LABEL, QUESTION_TYPE_MEANING } from '@/data/questionTypes';
 import { useAppDispatch } from '@/store/hooks';
 import {
   reviseQuestion,
@@ -78,9 +79,28 @@ export function QuestionCard({ question, progress, context = 'browse', onOpenDet
           {progress.bookmarked && <BookmarkCheck className="h-4 w-4 shrink-0 text-primary" aria-label="Bookmarked" role="img" />}
         </div>
 
+        {/* What this question teaches, on the card itself. A list of 539 titles asks the reader
+            to remember what each one was for; a list of 539 capability sentences does not.
+
+            Clamped to 3 lines with the full sentence in `title`: these run to a median of ~156
+            characters and the meaning tends to live in the tail, so a 2-line clamp cut most of
+            them mid-clause at phone width. Three lines fits the large majority; the tooltip and
+            the question sheet carry the rest. */}
+        <p className="mt-1.5 line-clamp-3 text-sm text-muted-foreground" title={question.tests}>
+          {question.tests}
+        </p>
+
         <div className="mt-2 flex flex-wrap items-center gap-2">
           <DifficultyBadge difficulty={question.difficulty} />
           <PatternChip pattern={pattern} />
+          {/* The label alone is not decodable — "Variant" means nothing until you know the
+              taxonomy — so the meaning rides along on hover and for assistive tech. */}
+          <span
+            className="rounded-sm border border-border px-1.5 py-0.5 text-xs text-muted-foreground"
+            title={QUESTION_TYPE_MEANING[question.type]}
+          >
+            {QUESTION_TYPE_LABEL[question.type]}
+          </span>
         </div>
 
         <div className="mt-2 flex flex-wrap items-center gap-3 text-xs text-muted-foreground">

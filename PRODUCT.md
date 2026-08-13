@@ -12,7 +12,9 @@ One person: a software engineer preparing for technical interviews, self-directe
 
 ## The job
 
-- Answer instantly: "what do I do today?" (today's new questions + revisions due + today's course session + course reviews due).
+- Answer instantly: "what do I do **next**?" — Today opens on exactly one recommended action with a stated reason and a time estimate, and everything else is demoted below it. The learner can decline it ("Not this one" steps down the same ranked list); they should never be handed fourteen equal-weight choices and asked to prioritize, which is the job they opened the app to avoid.
+- Fit the time actually available: the capacity chips ("I have 15m / 30m / 1h / …") are fixed-time, variable-scope — the plan is cut to the budget, what did not fit is stated rather than hidden, and the choice becomes the sticky default.
+- Make every question legible as a lesson: what it tests, what kind of practice it is, roughly how long it takes, and — after the attempt — the intended complexity and its family of same-idea siblings.
 - Keep the spaced-repetition schedule honest: due queues, overdue flags, weekly top-up revision days (every 7th day), mastery after 5 passes — for questions and course weeks alike.
 - Show honest progress: day X of 68, per-pattern completion, streaks, estimated finish date, weak-pattern signals.
 - Sustain motivation across 68 days: XP/levels, achievements, streaks, small celebrations — the user opted into gamification deliberately; it should feel earned, not noisy.
@@ -30,7 +32,9 @@ One person: a software engineer preparing for technical interviews, self-directe
 - Unreadable persisted state (corrupt JSON, wrong version) is quarantined to `dsa-roadmap:v1:quarantine` before the app boots empty — never silently overwritten.
 - A day counts as active (streak, heatmap, calendar) when either track saw work: solves, question revisions, course sessions, or course reviews.
 - Tech: Vite + React 18 + TypeScript strict + Tailwind 3.4 + vendored shadcn/Radix primitives + Redux Toolkit + Recharts + Framer Motion. The full Vitest suite must stay green; UI copy is asserted in tests — behavior and copy are product truth.
-- Routes: Dashboard `/`, Today, Roadmap, AI/ML course `/aiml`, Patterns (+detail), Revision, Calendar, Analytics, Achievements, Bookmarks, Settings, a 404 catch-all, and a bare distraction-free Focus mode at `/focus` with a pomodoro.
+- Routes: Dashboard `/`, Today, Roadmap, AI/ML course `/aiml`, Patterns (+detail), Companies (+detail), Revision, Drills, Calendar, Analytics, Achievements, Bookmarks, Settings, a 404 catch-all, and a bare distraction-free Focus mode at `/focus` with a pomodoro.
+- **The habit contract.** No streak pressure, no guilt framing, no shame for a missed day, no manufactured urgency, and no reward the learner cannot explain. Returning after two or more days away is met with a fresh-start notice and a plan already trimmed to capacity — never a wall of overdue debt. Overdue reasons state the schedule ("waiting 3 days past its 7-day step"), never a loss ("you're about to lose this"). A finished day says so and offers further work only as explicitly optional.
+- **Honesty about what the app knows.** Personalized time estimates appear only past a stated sample threshold and name what they were measured over. Analytics suppress findings the evidence cannot support rather than padding the section. Company relevance is topic-level and first-party-quoted only; the app makes **no** per-problem company claims and offers no readiness score — coverage is reported as a workload figure and labelled as one.
 - Dark theme is the default (evening desk sessions under lamp light); a light theme exists and must remain first-class. Theme toggle lives in Settings.
 - Mobile matters (phone check-ins): bottom nav on small screens, sidebar on desktop.
 

@@ -6,17 +6,18 @@ import {
   consistency, difficultyStats, goalRate, overallRevisionPassRate, patternStats,
   productivityScore, solvedPerDaySeries,
 } from '@/utils/engine/stats';
+import { QF } from '@/test/questionFixture';
 
 // 6 questions across 2 patterns x 3 difficulties.
 // two-pointers: q1 easy, q2 medium, q3 hard
 // sliding-window: q4 easy, q5 medium, q6 hard
 const questions: Question[] = [
-  { id: 1, title: 'Q1', pattern: 'two-pointers', difficulty: 'easy', estimatedTime: 20 },
-  { id: 2, title: 'Q2', pattern: 'two-pointers', difficulty: 'medium', estimatedTime: 25 },
-  { id: 3, title: 'Q3', pattern: 'two-pointers', difficulty: 'hard', estimatedTime: 30 },
-  { id: 4, title: 'Q4', pattern: 'sliding-window', difficulty: 'easy', estimatedTime: 20 },
-  { id: 5, title: 'Q5', pattern: 'sliding-window', difficulty: 'medium', estimatedTime: 25 },
-  { id: 6, title: 'Q6', pattern: 'sliding-window', difficulty: 'hard', estimatedTime: 30 },
+  { id: 1, title: 'Q1', pattern: 'two-pointers', difficulty: 'easy', estimatedTime: 20, ...QF },
+  { id: 2, title: 'Q2', pattern: 'two-pointers', difficulty: 'medium', estimatedTime: 25, ...QF },
+  { id: 3, title: 'Q3', pattern: 'two-pointers', difficulty: 'hard', estimatedTime: 30, ...QF },
+  { id: 4, title: 'Q4', pattern: 'sliding-window', difficulty: 'easy', estimatedTime: 20, ...QF },
+  { id: 5, title: 'Q5', pattern: 'sliding-window', difficulty: 'medium', estimatedTime: 25, ...QF },
+  { id: 6, title: 'Q6', pattern: 'sliding-window', difficulty: 'hard', estimatedTime: 30, ...QF },
 ];
 
 function buildById(): Record<number, QuestionProgress> {

@@ -11,12 +11,36 @@ export type PatternId =
   | 'hash-maps' | 'tracking' | 'union-find' | 'custom-data-structures'
   | 'bitwise-manipulation' | 'math-geometry';
 
+// What kind of practice a question is — chosen by what the learner has to supply, not by
+// difficulty. Six deliberately, not dozens: the label exists to help someone decide whether
+// this problem is the right next thing, and a taxonomy you have to look up cannot do that.
+export type QuestionType =
+  | 'foundation'      // the base technique in its clearest form
+  | 'recognition'     // spotting a known technique under a disguise
+  | 'implementation'  // approach is obvious; the work is bookkeeping and edge cases
+  | 'optimization'    // a brute force exists; the skill is beating its bound
+  | 'variant'         // one changed constraint breaks the standard solution
+  | 'design';         // build a structure that answers queries, not one answer
+
+export interface Complexity {
+  time: string;   // canonical Big-O of the intended solution, e.g. "O(n log n)"
+  space: string;
+}
+
 export interface Question {
   id: number;
   title: string;
   pattern: PatternId;
   difficulty: Difficulty;
+  // Authored per question in scripts/data/question-intelligence.json and band-checked against
+  // difficulty by the generator (easy 8-20 / medium 20-35 / hard 35-60). This is the "typical
+  // learner, first attempt" figure; QuestionProgress history personalizes it at read time.
   estimatedTime: number; // minutes
+  type: QuestionType;
+  // One sentence answering "what am I actually learning here?", shown BEFORE the attempt —
+  // it names the transferable skill and deliberately stops short of the solution.
+  tests: string;
+  complexity?: Complexity; // intended solution's bounds; absent where not confidently known
   // Curriculum intelligence (hand-verified in scripts/data/curriculum.json, emitted by the
   // generator): the sub-pattern group within the pattern, and the problem family sharing
   // one underlying idea. Both optional — only assigned where they genuinely aid learning.
@@ -64,6 +88,14 @@ export interface QuestionProgress {
   completedAt: string | null;     // ISO date
   confidence: Confidence | null;
   timeSpentMin: number;
+  // --- Attempt quality (optional in persisted payloads; the load boundary defaults them) ----
+  // How deep into the hint ladder this question needed the learner to go: 0 = solved unaided,
+  // 3 = full walkthrough. A mastery signal, never a punishment — it is what lets "solved" and
+  // "solved without help" stop being the same fact.
+  hintLevelUsed?: number;
+  // The learner's own answer to "what did you learn?", captured at the moment of solving when
+  // it is cheapest to write and most worth having later. Markdown, like `notes`.
+  reflection?: string;
 }
 
 export interface DayLog {

@@ -4,6 +4,7 @@ import type { PatternStat } from '@/utils/engine/stats';
 import {
   HeuristicRecommender, seededRandomQuestion, weakestPatterns, type WeakPattern,
 } from '@/utils/engine/recommendations';
+import { QF } from '@/test/questionFixture';
 
 function mkStat(
   pattern: PatternId,
@@ -76,13 +77,13 @@ test('weakestPatterns: ties are broken by pattern id ascending', () => {
 
 // 5 questions in 'two-pointers' (id5 solved, 1-4 unsolved) + 2 in 'sliding-window'.
 const questions: Question[] = [
-  { id: 1, title: 'Q1', pattern: 'two-pointers', difficulty: 'easy', estimatedTime: 20 },
-  { id: 2, title: 'Q2', pattern: 'two-pointers', difficulty: 'easy', estimatedTime: 20 },
-  { id: 3, title: 'Q3', pattern: 'two-pointers', difficulty: 'easy', estimatedTime: 20 },
-  { id: 4, title: 'Q4', pattern: 'two-pointers', difficulty: 'easy', estimatedTime: 20 },
-  { id: 5, title: 'Q5', pattern: 'two-pointers', difficulty: 'easy', estimatedTime: 20 },
-  { id: 6, title: 'Q6', pattern: 'sliding-window', difficulty: 'easy', estimatedTime: 20 },
-  { id: 7, title: 'Q7', pattern: 'sliding-window', difficulty: 'easy', estimatedTime: 20 },
+  { id: 1, title: 'Q1', pattern: 'two-pointers', difficulty: 'easy', estimatedTime: 20, ...QF },
+  { id: 2, title: 'Q2', pattern: 'two-pointers', difficulty: 'easy', estimatedTime: 20, ...QF },
+  { id: 3, title: 'Q3', pattern: 'two-pointers', difficulty: 'easy', estimatedTime: 20, ...QF },
+  { id: 4, title: 'Q4', pattern: 'two-pointers', difficulty: 'easy', estimatedTime: 20, ...QF },
+  { id: 5, title: 'Q5', pattern: 'two-pointers', difficulty: 'easy', estimatedTime: 20, ...QF },
+  { id: 6, title: 'Q6', pattern: 'sliding-window', difficulty: 'easy', estimatedTime: 20, ...QF },
+  { id: 7, title: 'Q7', pattern: 'sliding-window', difficulty: 'easy', estimatedTime: 20, ...QF },
 ];
 
 test('HeuristicRecommender: emits revision, weak-pattern, new — in that order — with non-empty reasons', () => {
@@ -216,7 +217,7 @@ test('HeuristicRecommender: does not mutate its inputs', () => {
 // ---------------------------------------------------------------------------
 
 const pool: Question[] = Array.from({ length: 26 }, (_, i) => ({
-  id: i + 1, title: `Q${i + 1}`, pattern: 'two-pointers' as PatternId, difficulty: 'easy' as const, estimatedTime: 20,
+  id: i + 1, title: `Q${i + 1}`, pattern: 'two-pointers' as PatternId, difficulty: 'easy' as const, estimatedTime: 20, ...QF,
 }));
 
 test('seededRandomQuestion: deterministic for the same seed', () => {

@@ -14,6 +14,17 @@ export default defineConfig({
         manualChunks: {
           'vendor-react': ['react', 'react-dom', 'react-router-dom', 'react-redux', '@reduxjs/toolkit'],
           'vendor-motion': ['framer-motion'],
+          // The curriculum: 539 questions with their authored teaching content, plus the family,
+          // sub-pattern and company tables. It is immutable between releases and roughly a third
+          // of what used to be the app chunk, so pinning it here means shipping an app fix stops
+          // invalidating the dataset in every user's cache — and the browser fetches the two in
+          // parallel instead of blocking on one large file.
+          'data-curriculum': [
+            './src/data/questions.json',
+            './src/data/families.json',
+            './src/data/subpatterns.json',
+            './src/data/companies.json',
+          ],
         },
       },
     },

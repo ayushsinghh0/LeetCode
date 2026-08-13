@@ -1,0 +1,320 @@
+[
+  {
+    "id": "google",
+    "name": "Google",
+    "url": "https://www.google.com/about/careers/applications/candidate-prep/swe",
+    "checkedAt": "2026-08-13",
+    "evidence": "topics",
+    "quote": "Your interviews will cover programming, data structures and algorithms. You may be asked to build and develop algorithms and data structure, solve logic problems, or design systems all in a shared document with your interviewer.",
+    "namedTopics": [
+      "sorting",
+      "binary search",
+      "Big-O notation",
+      "divide and conquer",
+      "Dijkstra's algorithm",
+      "dynamic programming / memoization",
+      "A* algorithm",
+      "greedy algorithms",
+      "recursion",
+      "binary trees",
+      "arrays",
+      "trees",
+      "linked lists",
+      "heaps",
+      "stacks",
+      "graphs",
+      "queues",
+      "hash sets / maps / tables",
+      "NP-complete problems"
+    ],
+    "patterns": [
+      "sort-search",
+      "modified-binary-search",
+      "graphs",
+      "dynamic-programming",
+      "greedy",
+      "tree-dfs",
+      "tree-bfs",
+      "linked-list-inplace",
+      "top-k-elements",
+      "two-heaps",
+      "stacks",
+      "hash-maps"
+    ]
+  },
+  {
+    "id": "meta",
+    "name": "Meta",
+    "url": "https://www.metacareers.com/blog/preparing-for-your-software-engineering-interview-at-meta/",
+    "checkedAt": "2026-08-13",
+    "evidence": "topics",
+    "quote": "data structures, like lists, arrays, hash tables, hash maps, stacks, queues, graphs, trees, heaps, sorts, searches and traversals (BFS, DFS). Also review recursion and iterative approaches.",
+    "namedTopics": [
+      "lists",
+      "arrays",
+      "hash tables",
+      "hash maps",
+      "stacks",
+      "queues",
+      "graphs",
+      "trees",
+      "heaps",
+      "sorts",
+      "searches",
+      "traversals (BFS, DFS)",
+      "recursion",
+      "binary trees"
+    ],
+    "patterns": [
+      "hash-maps",
+      "stacks",
+      "graphs",
+      "tree-dfs",
+      "tree-bfs",
+      "top-k-elements",
+      "two-heaps",
+      "sort-search",
+      "linked-list-inplace"
+    ]
+  },
+  {
+    "id": "microsoft",
+    "name": "Microsoft",
+    "url": "https://careers.microsoft.com/v2/global/en/hiring-tips/technical-interviewing",
+    "checkedAt": "2026-08-13",
+    "evidence": "topics",
+    "quote": "These are some common data structures that tend to come up often in questions: arrays and strings, queues and lists, linked lists, trees/tries, hash maps/hash sets, graphs. You should be familiar with when to use each one and describe their pros and cons.",
+    "namedTopics": [
+      "arrays",
+      "strings",
+      "queues",
+      "lists",
+      "linked lists",
+      "trees",
+      "tries",
+      "hash maps / hash sets",
+      "graphs",
+      "recursion",
+      "n log n sorting (quicksort, merge sort)",
+      "Big-O"
+    ],
+    "patterns": [
+      "linked-list-inplace",
+      "tree-dfs",
+      "tree-bfs",
+      "trie",
+      "hash-maps",
+      "graphs",
+      "sort-search"
+    ]
+  },
+  {
+    "id": "doordash",
+    "name": "DoorDash",
+    "url": "https://careersatdoordash.com/blog/technical-interview-preparation/",
+    "checkedAt": "2026-08-13",
+    "evidence": "topics",
+    "quote": "Candidates should feel comfortable using, as well as understanding, the key differences and applications of the following data structures: Graphs — Directed and undirected, Cyclic and acyclic, BST and BT (DAGs); Stacks; Queues; Lists — Doubly linked lists, Single linked lists; Sets; Arrays; Hash maps; Heaps",
+    "namedTopics": [
+      "graphs (directed/undirected, cyclic/acyclic, DAGs)",
+      "stacks",
+      "queues",
+      "linked lists",
+      "sets",
+      "arrays",
+      "hash maps",
+      "heaps",
+      "Dijkstra's",
+      "BFS",
+      "DFS",
+      "tree traversals (pre/in/post-order)",
+      "recursion",
+      "divide and conquer",
+      "dynamic programming",
+      "merge/insertion/bubble sort",
+      "binary search"
+    ],
+    "patterns": [
+      "graphs",
+      "topological-sort",
+      "stacks",
+      "linked-list-inplace",
+      "hash-maps",
+      "top-k-elements",
+      "two-heaps",
+      "tree-dfs",
+      "tree-bfs",
+      "dynamic-programming",
+      "sort-search",
+      "modified-binary-search"
+    ],
+    "note": "The most specific published list of any company researched — it names algorithms, not just structures."
+  },
+  {
+    "id": "roblox",
+    "name": "Roblox",
+    "url": "https://careers.roblox.com/interviewing-at-roblox",
+    "checkedAt": "2026-08-13",
+    "evidence": "topics",
+    "quote": "Refresh and re-familiarize yourself with data structures, binary trees and sorting algos, hash tables and arrays, Big O-notations (running time or run time complexity), etc.",
+    "namedTopics": [
+      "hashmaps / hashtables",
+      "heaps",
+      "doubly linked lists",
+      "lists",
+      "sets",
+      "trees",
+      "binary trees",
+      "sorting algorithms",
+      "arrays",
+      "Big-O notation",
+      "divide and conquer",
+      "dynamic programming / memoization",
+      "recursion"
+    ],
+    "patterns": [
+      "hash-maps",
+      "top-k-elements",
+      "two-heaps",
+      "linked-list-inplace",
+      "tree-dfs",
+      "sort-search",
+      "dynamic-programming"
+    ]
+  },
+  {
+    "id": "netflix",
+    "name": "Netflix",
+    "url": "https://netflixtechblog.com/demystifying-interviewing-for-backend-engineers-netflix-aceb26a83495",
+    "checkedAt": "2026-08-13",
+    "evidence": "avoids-puzzles",
+    "quote": "We recommend against interview coding practice puzzle-type exercises, as we don't ask those types of questions.",
+    "namedTopics": [],
+    "patterns": [],
+    "note": "Netflix's own engineering blog steers candidates toward medium-difficulty real-world problems instead. Published February 2022."
+  },
+  {
+    "id": "amazon",
+    "name": "Amazon",
+    "url": "https://amazon.jobs/content/en/how-we-hire/interview-prep/software-development-topics",
+    "checkedAt": "2026-08-13",
+    "evidence": "categories",
+    "quote": "Your interviewers won't be evaluating your ability to memorize all of the details for each of these topics. They'll be looking for your ability to apply what you know to solve problems efficiently and effectively.",
+    "namedTopics": [
+      "data structures",
+      "algorithms",
+      "coding",
+      "object-oriented design",
+      "databases",
+      "distributed computing",
+      "operating systems"
+    ],
+    "patterns": []
+  },
+  {
+    "id": "databricks",
+    "name": "Databricks",
+    "url": "https://www.databricks.com/blog/2020/01/22/engineering-intervews-a-hiring-managers-guide.html",
+    "checkedAt": "2026-08-13",
+    "evidence": "categories",
+    "quote": "review common data structures, the runtime and memory utilization of each method, and their interface",
+    "namedTopics": [
+      "data structures",
+      "runtime and memory utilization",
+      "multi-threading",
+      "concurrency",
+      "locks",
+      "transactions"
+    ],
+    "patterns": [],
+    "note": "Published January 2020 — the oldest source in this set."
+  },
+  {
+    "id": "dropbox",
+    "name": "Dropbox",
+    "url": "https://www.dropbox.jobs/teams/emerging-talent",
+    "checkedAt": "2026-08-13",
+    "evidence": "categories",
+    "quote": "Our coding interviews assess code quality, algorithms, problem solving, and testing strategies.",
+    "namedTopics": [
+      "algorithms",
+      "data structures",
+      "code quality",
+      "testing strategies"
+    ],
+    "patterns": []
+  },
+  {
+    "id": "goldman-sachs",
+    "name": "Goldman Sachs",
+    "url": "https://www.goldmansachs.com/careers/blog/guide-to-hackerrank",
+    "checkedAt": "2026-08-13",
+    "evidence": "categories",
+    "quote": "It is also a good idea to review algorithms and basic data structures from your first few computer science courses as a basic refresher.",
+    "namedTopics": [
+      "algorithms",
+      "basic data structures"
+    ],
+    "patterns": []
+  },
+  {
+    "id": "ibm",
+    "name": "IBM",
+    "url": "https://www.ibm.com/careers/blog/entry-level-developer-the-secrets-to-becoming-a-successful-candidate",
+    "checkedAt": "2026-08-13",
+    "evidence": "categories",
+    "quote": "It may be a data structure or networking problem, or it may be focused on a technology where you'll be asked to demonstrate your understanding on how to move or present the data.",
+    "namedTopics": [
+      "data structures",
+      "networking"
+    ],
+    "patterns": []
+  },
+  {
+    "id": "snap",
+    "name": "Snap",
+    "url": "https://careers.snap.com/departments/machine-learning",
+    "checkedAt": "2026-08-13",
+    "evidence": "categories",
+    "quote": "Expect to solve algorithmic problems that test your proficiency in data structures, algorithms, and problem-solving skills.",
+    "namedTopics": [
+      "data structures",
+      "algorithms",
+      "ML theory",
+      "ML system design"
+    ],
+    "patterns": [],
+    "note": "From the machine-learning department page; Snap's general interview page names no technical topics."
+  },
+  {
+    "id": "salesforce",
+    "name": "Salesforce",
+    "url": "https://trailhead.salesforce.com/content/learn/modules/strategies-for-successful-software-engineer-interviews/take-the-remote-programming-test",
+    "checkedAt": "2026-08-13",
+    "evidence": "categories",
+    "quote": "data structures and algorithms that would allow the program to work at high volume",
+    "namedTopics": [
+      "data structures",
+      "algorithms",
+      "scalability"
+    ],
+    "patterns": []
+  },
+  {
+    "id": "lyft",
+    "name": "Lyft",
+    "url": "https://eng.lyft.com/interviewing-with-lyft-engineering-7d3dd65b2001",
+    "checkedAt": "2026-08-13",
+    "evidence": "categories",
+    "quote": "Problem Solving/Data Structures/Algorithms… we pair you with an interviewer who will present a problem, and you'll come up with an algorithm or function to solve it.",
+    "namedTopics": [
+      "data structures",
+      "algorithms",
+      "architecture and design",
+      "code quality",
+      "test coverage"
+    ],
+    "patterns": [],
+    "note": "Published August 2017, and Lyft has since publicly moved parts of its loop to a third-party assessment. Treat as dated."
+  }
+]

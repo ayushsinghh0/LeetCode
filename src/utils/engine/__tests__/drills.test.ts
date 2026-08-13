@@ -1,13 +1,14 @@
 import { describe, expect, test } from 'vitest';
 import { buildDrill } from '@/utils/engine/drills';
 import type { ProblemFamily, Question } from '@/types';
+import { QF } from '@/test/questionFixture';
 
 const q = (id: number, pattern: string): Question => ({
   id,
   title: `Q${id}`,
   pattern: pattern as Question['pattern'],
   difficulty: 'medium',
-  estimatedTime: 25,
+  estimatedTime: 25, ...QF,
 });
 
 const fam = (id: string, pattern: string, questionIds: number[]): ProblemFamily => ({

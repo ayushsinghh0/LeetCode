@@ -1,100 +1,31 @@
-// The daily plan: turns the day's remaining work — both learning tracks plus user tasks —
-// into a small list of lines with explicit minute estimates, summed against the user's
-// capacity setting. Pure and deterministic like every engine module: no clock, no store.
+// What a piece of work costs, and how to print a duration.
 //
-// Estimates are deliberately explicit constants, not fabricated precision: a revision is a
-// quick re-derive (~a third of solving it fresh), a course session is the two-day sprint's
-// evening block, a task without a user estimate gets a small default. The UI presents totals
-// with "~" for exactly this reason.
-import type { DailyTask, Question } from '@/types';
+// The estimates are deliberately explicit constants rather than fabricated precision: a course
+// session is the two-day sprint's evening block, a task without a user estimate gets a small
+// default. Every total is rendered with a leading "~" for exactly this reason.
+//
+// The plan-building that used to live here moved to engine/nextAction.ts when the day's work
+// became one ranked list — `rankWork` + `buildSession` replaced `buildDailyPlan`, which is why
+// only the cost model and the formatter remain.
+import type { Question } from '@/types';
 
+/** Fallback only: the mean-of-the-ladder figure is preferred wherever the ladder is available. */
 export const REVISION_MINUTES = 8;
 export const COURSE_SESSION_MINUTES = 60;
 export const COURSE_REVIEW_MINUTES = 10;
 export const DEFAULT_TASK_MINUTES = 15;
 
-export interface PlanInput {
-  remainingNewQuestions: Question[]; // today's slice, not yet solved/skipped
-  dueRevisionCount: number;
-  courseSessionPending: boolean;
-  courseReviewsDue: number;
-  openTasks: DailyTask[]; // today's not-done user tasks
-  capacityMin: number;
-}
+// A revision is a re-derive, not a re-solve — roughly a third of the first attempt. Derived from
+// the question's own calibrated estimate rather than one flat constant, because "revise Two Sum"
+// and "revise Burst Balloons" are not the same eight minutes. Clamped so the arithmetic can
+// never produce an estimate too small to be worth showing or long enough to distort a plan.
+export const REVISION_FRACTION = 0.35;
+export const MIN_REVISION_MINUTES = 5;
+export const MAX_REVISION_MINUTES = 20;
 
-export interface PlanLine {
-  kind: 'new-questions' | 'revisions' | 'course-session' | 'course-reviews' | 'task';
-  label: string;
-  minutes: number;
-  count: number;
-  taskId?: string; // present for kind 'task'
-}
-
-export interface DailyPlan {
-  lines: PlanLine[];
-  totalMinutes: number;
-  capacityMin: number;
-  overCapacity: boolean;
-}
-
-export function buildDailyPlan(input: PlanInput): DailyPlan {
-  const lines: PlanLine[] = [];
-
-  const newCount = input.remainingNewQuestions.length;
-  if (newCount > 0) {
-    const minutes = input.remainingNewQuestions.reduce((sum, q) => sum + q.estimatedTime, 0);
-    lines.push({
-      kind: 'new-questions',
-      label: `${newCount} new question${newCount === 1 ? '' : 's'}`,
-      minutes,
-      count: newCount,
-    });
-  }
-
-  if (input.dueRevisionCount > 0) {
-    lines.push({
-      kind: 'revisions',
-      label: `${input.dueRevisionCount} revision${input.dueRevisionCount === 1 ? '' : 's'} due`,
-      minutes: input.dueRevisionCount * REVISION_MINUTES,
-      count: input.dueRevisionCount,
-    });
-  }
-
-  if (input.courseSessionPending) {
-    lines.push({
-      kind: 'course-session',
-      label: 'AI/ML session',
-      minutes: COURSE_SESSION_MINUTES,
-      count: 1,
-    });
-  }
-
-  if (input.courseReviewsDue > 0) {
-    lines.push({
-      kind: 'course-reviews',
-      label: `${input.courseReviewsDue} course review${input.courseReviewsDue === 1 ? '' : 's'} due`,
-      minutes: input.courseReviewsDue * COURSE_REVIEW_MINUTES,
-      count: input.courseReviewsDue,
-    });
-  }
-
-  for (const task of input.openTasks) {
-    lines.push({
-      kind: 'task',
-      label: task.title,
-      minutes: task.estMinutes ?? DEFAULT_TASK_MINUTES,
-      count: 1,
-      taskId: task.id,
-    });
-  }
-
-  const totalMinutes = lines.reduce((sum, line) => sum + line.minutes, 0);
-  return {
-    lines,
-    totalMinutes,
-    capacityMin: input.capacityMin,
-    overCapacity: totalMinutes > input.capacityMin,
-  };
+export function revisionMinutes(question: Question): number {
+  const raw = Math.round(question.estimatedTime * REVISION_FRACTION);
+  return Math.min(MAX_REVISION_MINUTES, Math.max(MIN_REVISION_MINUTES, raw));
 }
 
 // "2h 05m" / "45m" — the plan's one time format.

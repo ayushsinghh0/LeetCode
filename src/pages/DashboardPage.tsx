@@ -30,8 +30,8 @@ import {
   selectPatternStats,
   selectPerDay,
   selectProductivityScore,
-  selectQuestionById,
   selectQuestions,
+  selectRankedWork,
   selectRevisionQueueIds,
   selectSolvedNewCount,
   selectStreaks,
@@ -41,7 +41,8 @@ import {
   selectWeakestPatterns,
 } from '@/store/selectors';
 import { courseWeekById } from '@/data/aimlCourse';
-import { HeuristicRecommender, seededRandomQuestion } from '@/utils/engine/recommendations';
+import { seededRandomQuestion } from '@/utils/engine/recommendations';
+import { formatMinutes } from '@/utils/engine/planner';
 
 const heroVariants = {
   hidden: {},
@@ -52,9 +53,6 @@ const itemVariants = {
   hidden: { opacity: 0, y: 12 },
   show: { opacity: 1, y: 0 },
 };
-
-// Stateless — safe as a module-level singleton instead of re-instantiating every render.
-const recommender = new HeuristicRecommender();
 
 export default function DashboardPage() {
   const today = useToday();
@@ -82,6 +80,8 @@ export default function DashboardPage() {
   const courseDueReviews = useAppSelector((s) => selectCourseDueReviewIds(s, today));
   const todaysNew = useAppSelector(selectTodaysNewQuestions);
   const progressById = useAppSelector((s) => s.progress.byId);
+  // The same ranked list Today's hero and session plan read — see the "Up next" plate below.
+  const ranked = useAppSelector((s) => selectRankedWork(s, today));
 
   const totalQuestions = questions.length;
   const remaining = totalQuestions - solvedCount;
@@ -99,20 +99,6 @@ export default function DashboardPage() {
 
   const weakestEntry = weakest[0] ?? null;
   const weakestStat = weakestEntry ? patternStats.find((s) => s.pattern === weakestEntry.pattern) : undefined;
-
-  // `due` is the full queue the Revision surfaces render (due + weekly top-up, [] when revision
-  // is disabled) so the recommendation count always matches the banner beside it.
-  const recommendations = recommender.recommend({
-    all: questions,
-    byId: progressById,
-    due: revisionQueueIds,
-    todaysNew: todaysNew.map((q) => q.id),
-    weakest,
-    course: {
-      dueReviewWeekIds: courseDueReviews,
-      nextSessionWeekId: courseNext?.weekId ?? null,
-    },
-  });
 
   function openQuestion(id: number) {
     dispatch(activeQuestionSet(id));
@@ -244,35 +230,42 @@ export default function DashboardPage() {
             )}
           </div>
 
+          {/* Reads the same ranked list Today's hero and session plan read. The Dashboard used
+              to run a second, category-level recommender, which could tell the learner to
+              "practice your weakest pattern" while Today told them to revise a specific
+              question — two surfaces disagreeing about the same decision. One ranker now. */}
           <div className="glass flex flex-col gap-3 p-5">
-            <h2 className="border-b border-border/70 pb-2 text-base font-medium">Smart Recommendations</h2>
-            {recommendations.length === 0 ? (
-              <EmptyState icon={Lightbulb} title="No recommendations yet" />
+            <h2 className="border-b border-border/70 pb-2 text-base font-medium">Up next</h2>
+            {ranked.length === 0 ? (
+              <EmptyState icon={Lightbulb} title="Today's plan is clear" />
             ) : (
               <ul className="flex flex-col gap-3">
-                {recommendations.map((rec) => (
-                  <li key={rec.kind}>
-                    <p className="text-xs text-muted-foreground">{rec.reason}</p>
-                    <div className="mt-1.5 flex flex-wrap gap-1.5">
-                      {rec.questionIds.slice(0, 3).map((id) => {
-                        const question = selectQuestionById(id);
-                        if (!question) return null;
-                        return (
-                          <Button key={id} size="sm" variant="ghost" onClick={() => openQuestion(id)}>
-                            {question.title}
-                          </Button>
-                        );
-                      })}
-                      {(rec.weekIds ?? []).slice(0, 3).map((weekId) => {
-                        const week = courseWeekById.get(weekId);
-                        if (!week) return null;
-                        return (
-                          <Button key={weekId} size="sm" variant="ghost" onClick={() => navigate('/aiml')}>
-                            Week {week.week} — {week.title}
-                          </Button>
-                        );
-                      })}
+                {ranked.slice(0, 3).map((item, index) => (
+                  <li key={item.id} className="flex flex-col gap-1">
+                    <div className="flex items-baseline gap-2">
+                      <span className="figures text-xs text-muted-foreground">{index + 1}</span>
+                      {item.questionId !== undefined ? (
+                        <button
+                          type="button"
+                          onClick={() => openQuestion(item.questionId!)}
+                          className="min-w-0 flex-1 truncate text-left text-sm font-medium transition-colors duration-150 ease-swift hover:text-primary"
+                        >
+                          {item.title}
+                        </button>
+                      ) : (
+                        <button
+                          type="button"
+                          onClick={() => navigate(item.href)}
+                          className="min-w-0 flex-1 truncate text-left text-sm font-medium transition-colors duration-150 ease-swift hover:text-primary"
+                        >
+                          {item.title}
+                        </button>
+                      )}
+                      <span className="figures shrink-0 text-xs text-muted-foreground">
+                        ~{formatMinutes(item.minutes)}
+                      </span>
                     </div>
+                    <p className="pl-5 text-xs text-muted-foreground">{item.why}</p>
                   </li>
                 ))}
               </ul>

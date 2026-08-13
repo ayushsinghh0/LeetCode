@@ -15,7 +15,6 @@ import { fileURLToPath } from 'node:url';
 
 const root = join(dirname(fileURLToPath(import.meta.url)), '..');
 
-const EST_TIME = { easy: 15, medium: 25, hard: 40 };
 const D = { e: 'easy', m: 'medium', h: 'hard' };
 
 // [patternId, patternName, [[title, difficulty], ...]]
@@ -423,6 +422,205 @@ function validateCurriculum(curriculum, titlesByPattern) {
   return { errors, titleToFamily, titleToSubpattern };
 }
 
+// ── Question intelligence (scripts/data/question-intelligence.json) ────────────────────
+// The per-question educational layer: what the problem tests, what kind of practice it is,
+// how long a first attempt realistically takes, and the intended complexity. Same closed-world
+// rule as everything else — the key set must be EXACTLY the SECTIONS titles, so a renamed or
+// newly added question can never ship without its teaching content, and a stale key can never
+// linger unnoticed.
+//
+// `minutes` replaces the old flat per-difficulty constant. The bands below are the editorial
+// contract: an estimate must stay inside its difficulty's band, and the whole dataset must
+// actually use the band's range (VARIETY_MIN distinct values), because a band collapsed to one
+// value carries no information and silently reverts to the flat table this replaced.
+const QUESTION_TYPES = new Set([
+  'foundation',      // the base technique in its clearest form
+  'recognition',     // spotting a known technique under a disguise
+  'implementation',  // approach is obvious; the work is bookkeeping and edge cases
+  'optimization',    // a brute force exists; the skill is beating its bound
+  'variant',         // one changed constraint breaks the standard solution
+  'design',          // build a structure that answers queries, not one answer
+]);
+const MINUTE_BANDS = { easy: [8, 20], medium: [20, 35], hard: [35, 60] };
+const VARIETY_MIN = 4; // distinct minute values required per difficulty
+const TESTS_WORDS = [8, 45];
+// A Big-O clause, optionally qualified ("O(1) amortized"); a complexity may carry two of them
+// ("O(log n) average, O(n) worst") for problems whose bound genuinely depends on the case.
+// Nesting is checked by counting rather than by pattern, because real bounds nest arbitrarily
+// deep — O(log(max(tx, ty))) and O((n + m) log(n + m)) are both legitimate and neither fits a
+// fixed-depth regex.
+const O_QUALIFIER = /^(amortized|average|expected|worst)$/;
+
+function isBigOClause(text) {
+  if (!text.startsWith('O(')) return false;
+  let depth = 0;
+  let end = -1;
+  for (let i = 1; i < text.length; i++) {
+    if (text[i] === '(') depth++;
+    else if (text[i] === ')') {
+      depth--;
+      if (depth === 0) { end = i; break; }
+    }
+  }
+  if (end === -1) return false;              // unbalanced
+  if (end === 2) return false;               // empty "O()"
+  const rest = text.slice(end + 1).trim();
+  return rest === '' || O_QUALIFIER.test(rest);
+}
+
+function isBigO(value) {
+  if (typeof value !== 'string' || value.trim() === '') return false;
+  // Split on the comma that separates two case-qualified clauses — but only at depth 0, so
+  // commas inside a bound like O(log(max(tx, ty))) do not split it.
+  const clauses = [];
+  let depth = 0;
+  let start = 0;
+  for (let i = 0; i < value.length; i++) {
+    if (value[i] === '(') depth++;
+    else if (value[i] === ')') depth--;
+    else if (value[i] === ',' && depth === 0) {
+      clauses.push(value.slice(start, i).trim());
+      start = i + 1;
+    }
+  }
+  clauses.push(value.slice(start).trim());
+  return clauses.length <= 2 && clauses.every(isBigOClause);
+}
+// `tests` is shown BEFORE the attempt, so it must describe the skill, not restate the prompt.
+const TESTS_BAD_OPENERS = /^(this (problem|question)|the problem|it |asks )/i;
+
+function validateIntelligence(intel, titlesByPattern, difficultyByTitle) {
+  const errors = [];
+  const allTitles = new Set([...titlesByPattern.values()].flatMap((s) => [...s]));
+
+  for (const title of Object.keys(intel)) {
+    if (!allTitles.has(title)) errors.push(`intelligence: "${title}" is not a SECTIONS title`);
+  }
+  for (const title of allTitles) {
+    if (!(title in intel)) errors.push(`intelligence: missing entry for "${title}"`);
+  }
+
+  const minutesByDifficulty = { easy: new Set(), medium: new Set(), hard: new Set() };
+
+  for (const [title, entry] of Object.entries(intel)) {
+    const where = `intelligence "${title}"`;
+    const difficulty = difficultyByTitle.get(title);
+    if (!difficulty) continue; // already reported as an unknown title
+
+    if (!QUESTION_TYPES.has(entry.type)) {
+      errors.push(`${where}: invalid type "${entry.type}"`);
+    }
+
+    if (typeof entry.tests !== 'string' || entry.tests.trim() === '') {
+      errors.push(`${where}: empty tests`);
+    } else {
+      const words = entry.tests.trim().split(/\s+/).length;
+      if (words < TESTS_WORDS[0] || words > TESTS_WORDS[1]) {
+        errors.push(`${where}: tests must be ${TESTS_WORDS[0]}-${TESTS_WORDS[1]} words, got ${words}`);
+      }
+      if (TESTS_BAD_OPENERS.test(entry.tests.trim())) {
+        errors.push(`${where}: tests restates the prompt instead of naming the skill`);
+      }
+    }
+
+    const [lo, hi] = MINUTE_BANDS[difficulty];
+    if (typeof entry.minutes !== 'number' || !Number.isInteger(entry.minutes) || entry.minutes < lo || entry.minutes > hi) {
+      errors.push(`${where}: minutes must be an integer in ${lo}..${hi} for ${difficulty}, got ${entry.minutes}`);
+    } else {
+      minutesByDifficulty[difficulty].add(entry.minutes);
+    }
+
+    if (entry.complexity !== undefined) {
+      const { time, space } = entry.complexity ?? {};
+      if (!isBigO(time)) errors.push(`${where}: complexity.time "${time}" is not Big-O form`);
+      if (!isBigO(space)) errors.push(`${where}: complexity.space "${space}" is not Big-O form`);
+    }
+
+    for (const key of Object.keys(entry)) {
+      if (!['type', 'tests', 'minutes', 'complexity'].includes(key)) {
+        errors.push(`${where}: unknown field "${key}"`);
+      }
+    }
+  }
+
+  for (const [difficulty, values] of Object.entries(minutesByDifficulty)) {
+    if (values.size > 0 && values.size < VARIETY_MIN) {
+      errors.push(
+        `intelligence: ${difficulty} estimates collapsed to ${values.size} distinct value(s) — ` +
+          `the band exists to carry information, not to be a renamed constant`,
+      );
+    }
+  }
+
+  return errors;
+}
+
+// ── Company interview evidence (scripts/data/companies.json) ───────────────────────────
+// Same closed-world discipline as everything else, aimed at the one failure mode that matters
+// here: claiming more than the source says. The rules below are the whole integrity model.
+//
+//  - Every entry needs a live first-party URL, a verbatim quote, and the date it was checked.
+//  - `patterns` may be non-empty ONLY when `evidence === 'topics'` — i.e. only when the company's
+//    own page actually enumerates data structures or algorithms. A page that says "data
+//    structures and algorithms" and stops has no pattern-level content to map, and the schema
+//    refuses to let one be invented for it.
+//  - There is no per-problem field anywhere. See the file's own _readme for why.
+const EVIDENCE_TIERS = new Set(['topics', 'categories', 'avoids-puzzles']);
+const ISO_DATE = /^\d{4}-\d{2}-\d{2}$/;
+const MIN_QUOTE_CHARS = 40;
+
+function validateCompanies(companies, patternIds) {
+  const errors = [];
+  const ids = new Set();
+
+  for (const c of companies) {
+    const where = `company "${c.id}"`;
+    if (!KEBAB.test(c.id ?? '')) errors.push(`${where}: id must be kebab-case`);
+    if (ids.has(c.id)) errors.push(`${where}: duplicate id`);
+    ids.add(c.id);
+
+    if (typeof c.name !== 'string' || c.name.trim() === '') errors.push(`${where}: empty name`);
+    if (typeof c.url !== 'string' || !c.url.startsWith('https://')) {
+      errors.push(`${where}: url must be an https first-party link`);
+    }
+    if (!ISO_DATE.test(c.checkedAt ?? '')) errors.push(`${where}: checkedAt must be yyyy-MM-dd`);
+    if (!EVIDENCE_TIERS.has(c.evidence)) errors.push(`${where}: unknown evidence tier "${c.evidence}"`);
+    if (typeof c.quote !== 'string' || c.quote.trim().length < MIN_QUOTE_CHARS) {
+      errors.push(`${where}: quote must be a real verbatim excerpt (${MIN_QUOTE_CHARS}+ chars)`);
+    }
+    if (!Array.isArray(c.namedTopics) || c.namedTopics.some((t) => typeof t !== 'string' || !t.trim())) {
+      errors.push(`${where}: namedTopics must be an array of non-empty strings`);
+    }
+
+    if (!Array.isArray(c.patterns)) {
+      errors.push(`${where}: patterns must be an array`);
+      continue;
+    }
+    for (const p of c.patterns) {
+      if (!patternIds.has(p)) errors.push(`${where}: unknown pattern "${p}"`);
+    }
+    if (new Set(c.patterns).size !== c.patterns.length) errors.push(`${where}: duplicate pattern`);
+    // The load-bearing rule.
+    if (c.evidence !== 'topics' && c.patterns.length > 0) {
+      errors.push(
+        `${where}: evidence is "${c.evidence}" but ${c.patterns.length} pattern(s) are claimed — ` +
+          `only a source that enumerates topics can support pattern-level relevance`,
+      );
+    }
+    if (c.evidence === 'topics' && c.patterns.length === 0) {
+      errors.push(`${where}: evidence is "topics" but no patterns were mapped`);
+    }
+
+    for (const key of Object.keys(c)) {
+      if (!['id', 'name', 'url', 'checkedAt', 'evidence', 'quote', 'namedTopics', 'patterns', 'note'].includes(key)) {
+        errors.push(`${where}: unknown field "${key}"`);
+      }
+    }
+  }
+
+  return errors;
+}
+
 // Case/punctuation-insensitive title key — LeetCode uses backticks, apostrophes, and
 // spelling variants ("Zeroes") that must not defeat an otherwise-exact match.
 const normalizeTitle = (t) =>
@@ -468,6 +666,30 @@ if (curriculumErrors.length > 0) {
   process.exitCode = 1;
 }
 
+const intelligence = JSON.parse(readFileSync(join(root, 'scripts', 'data', 'question-intelligence.json'), 'utf8'));
+const difficultyByTitle = new Map(SECTIONS.flatMap(([, , items]) => items.map(([t, d]) => [t, D[d]])));
+const intelligenceErrors = validateIntelligence(intelligence, titlesByPattern, difficultyByTitle);
+if (intelligenceErrors.length > 0) {
+  for (const e of intelligenceErrors) console.error(`INTELLIGENCE: ${e}`);
+  process.exitCode = 1;
+}
+
+const companiesSource = JSON.parse(readFileSync(join(root, 'scripts', 'data', 'companies.json'), 'utf8'));
+const companyErrors = validateCompanies(companiesSource.companies, new Set(titlesByPattern.keys()));
+if (companyErrors.length > 0) {
+  for (const e of companyErrors) console.error(`COMPANIES: ${e}`);
+  process.exitCode = 1;
+}
+
+// Abort BEFORE writing anything. Setting exitCode alone let the run continue to the write step,
+// where a missing intelligence entry became `estimatedTime: undefined` — dropped by
+// JSON.stringify — shipping a question with three required fields absent. A failed closed-world
+// check must leave the previous artifact untouched, not corrupt it and report failure afterwards.
+if (process.exitCode === 1) {
+  console.error('Aborting before write: validation failed above. src/data/ left unchanged.');
+  process.exit(1);
+}
+
 let id = 0;
 const questions = [];
 const patterns = [];
@@ -479,12 +701,18 @@ for (const [patternId, patternName, items] of SECTIONS) {
     const problem = resolveLeetCode(title);
     const familyId = titleToFamily.get(title);
     const subpattern = titleToSubpattern.get(`${patternId}::${title}`);
+    // Validation above guarantees an entry exists for every title (or the build already failed).
+    const intel = intelligence[title] ?? {};
     questions.push({
       id: ++id,
       title,
       pattern: patternId,
       difficulty,
-      estimatedTime: EST_TIME[difficulty],
+      // Authored per question, band-checked against difficulty — not a per-difficulty constant.
+      estimatedTime: intel.minutes,
+      type: intel.type,
+      tests: intel.tests,
+      ...(intel.complexity ? { complexity: intel.complexity } : {}),
       ...(subpattern ? { subpattern } : {}),
       ...(familyId ? { familyId } : {}),
       // Present only when the exact LeetCode problem is verified: the URL is constructed
@@ -537,6 +765,13 @@ for (const [patternId, groups] of Object.entries(curriculum.subpatterns)) {
 }
 writeFileSync(join(root, 'src', 'data', 'subpatterns.json'), JSON.stringify(subpatternsOut, null, 2) + '\n');
 
+// Companies pass through unchanged apart from dropping the source file's _readme — the app
+// reads exactly what was validated above, with no derived or inferred fields added.
+writeFileSync(
+  join(root, 'src', 'data', 'companies.json'),
+  JSON.stringify(companiesSource.companies, null, 2) + '\n',
+);
+
 const byDiff = questions.reduce((a, q) => ((a[q.difficulty] = (a[q.difficulty] ?? 0) + 1), a), {});
 const linked = questions.filter((q) => q.url).length;
 const inFamily = questions.filter((q) => q.familyId).length;
@@ -545,6 +780,11 @@ console.log(`total: ${questions.length}`);
 console.log('difficulties:', byDiff);
 console.log(`leetcode-linked: ${linked} (${questions.length - linked} declared not-on-leetcode)`);
 console.log(`families: ${familiesOut.length} (${inFamily} member questions); subpatterned: ${inSubpattern}`);
+const byType = questions.reduce((a, q) => ((a[q.type] = (a[q.type] ?? 0) + 1), a), {});
+const withComplexity = questions.filter((q) => q.complexity).length;
+const estMinutes = questions.reduce((s, q) => s + q.estimatedTime, 0);
+console.log('question types:', byType);
+console.log(`complexity stated: ${withComplexity}/${questions.length}; total estimated ${Math.round(estMinutes / 60)}h`);
 if (difficultyMismatches.length > 0) {
   console.log(`difficulty disagreements vs LeetCode (informational, not applied): ${difficultyMismatches.length}`);
   for (const m of difficultyMismatches) console.log(m);

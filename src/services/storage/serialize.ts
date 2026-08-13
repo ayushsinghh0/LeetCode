@@ -11,6 +11,7 @@ import type {
 } from '@/types';
 import type { RootState } from '@/store/store';
 import { MASTERED_STAGE } from '@/utils/engine/spacedRepetition';
+import { MAX_HINT_LEVEL } from '@/utils/engine/hints';
 
 // Projects the persistable slices (progress, settings, gamification, course) out of RootState.
 // `ui` is deliberately excluded — it holds only ephemeral session state (celebration, toast
@@ -68,6 +69,12 @@ function isRevisionStage(value: unknown): value is number {
   return typeof value === 'number' && Number.isInteger(value) && value >= 0 && value <= MASTERED_STAGE;
 }
 
+// Hint ladder depth: 0 (unaided) .. MAX_HINT_LEVEL (full walkthrough). It indexes the derived
+// hint list and feeds mastery quality, so a float or an out-of-range number must be rejected.
+function isHintLevel(value: unknown): value is number {
+  return typeof value === 'number' && Number.isInteger(value) && value >= 0 && value <= MAX_HINT_LEVEL;
+}
+
 function isQuestionStatus(value: unknown): value is QuestionStatus {
   return value === 'unsolved' || value === 'in_progress' || value === 'solved' || value === 'skipped';
 }
@@ -103,7 +110,11 @@ function isValidProgressEntry(value: unknown): value is QuestionProgress {
     typeof value.bookmarked === 'boolean' &&
     isNullableIsoDate(value.completedAt) &&
     isConfidence(value.confidence) &&
-    isNonNegativeNumber(value.timeSpentMin)
+    isNonNegativeNumber(value.timeSpentMin) &&
+    // Attempt-quality fields shipped after the original shape — optional-when-absent (pre-hint
+    // payloads must keep loading; the load boundary normalizes them in) but strict when present.
+    (!('hintLevelUsed' in value) || isHintLevel(value.hintLevelUsed)) &&
+    (!('reflection' in value) || typeof value.reflection === 'string')
   );
 }
 
@@ -193,6 +204,10 @@ export function validatePersisted(raw: unknown): PersistedStateV1 | null {
       completedAt: entry.completedAt,
       confidence: entry.confidence,
       timeSpentMin: entry.timeSpentMin,
+      // Copied only when present — writing `field: undefined` would later override
+      // normalizeQuestionProgress's spread defaults (same rule as the course ladder fields).
+      ...('hintLevelUsed' in entry ? { hintLevelUsed: entry.hintLevelUsed } : {}),
+      ...('reflection' in entry ? { reflection: entry.reflection } : {}),
     };
   }
   if (!isPlainObject(progress.dayLogs)) return null;

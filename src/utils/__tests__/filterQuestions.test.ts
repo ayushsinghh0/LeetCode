@@ -1,6 +1,7 @@
 import { filterQuestions } from '@/utils/filterQuestions';
 import { initialProgress } from '@/utils/engine/spacedRepetition';
 import type { Question, QuestionProgress } from '@/types';
+import { QF } from '@/test/questionFixture';
 
 const TODAY = '2026-07-30';
 
@@ -8,10 +9,10 @@ const TODAY = '2026-07-30';
 // function over whatever Question[] it's given, so a compact fixture keeps each case's intent
 // obvious. Titles are picked so substring/case-insensitivity is easy to eyeball.
 const FIXTURE: Question[] = [
-  { id: 1, title: '3Sum', pattern: 'two-pointers', difficulty: 'medium', estimatedTime: 25 },
-  { id: 2, title: 'Two Sum', pattern: 'hash-maps', difficulty: 'easy', estimatedTime: 15 },
-  { id: 3, title: 'Valid Palindrome', pattern: 'two-pointers', difficulty: 'easy', estimatedTime: 15 },
-  { id: 4, title: 'Merge K Sorted Lists', pattern: 'k-way-merge', difficulty: 'hard', estimatedTime: 40 },
+  { id: 1, title: '3Sum', pattern: 'two-pointers', difficulty: 'medium', estimatedTime: 25, ...QF },
+  { id: 2, title: 'Two Sum', pattern: 'hash-maps', difficulty: 'easy', estimatedTime: 15, ...QF },
+  { id: 3, title: 'Valid Palindrome', pattern: 'two-pointers', difficulty: 'easy', estimatedTime: 15, ...QF },
+  { id: 4, title: 'Merge K Sorted Lists', pattern: 'k-way-merge', difficulty: 'hard', estimatedTime: 40, ...QF },
 ];
 
 function emptyProgress(): QuestionProgress {

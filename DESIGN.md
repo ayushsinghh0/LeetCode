@@ -148,6 +148,18 @@ Shared 0–4 ink ramp: `bg-muted/40`, `bg-primary/25`, `/45`, `/70`, `bg-primary
 ### Charts (src/components/charts/chartPrimitives.tsx)
 Series come from CHART_COLORS (`--chart-1`/`--chart-2`); grid `--border`, axes `--muted-foreground`, surfaces `--card`. Pass/fail encodings wear STATUS_COLORS (`--easy`/`--hard`), never the categorical pair. Date axes tick weekly (interval 6). Always use ChartTooltip and renderChartLegend.
 
+### Next-action plate (src/components/today/NextActionCard.tsx) — the lead
+The day's one recommendation, and the only plate on Today with `p-6`. Structure is fixed: a ruled xs uppercase eyebrow (`Next · <kind>`) with the estimate right-aligned in `.figures`, then the item title at `text-xl md:text-2xl`, then the reason as `text-sm text-muted-foreground` capped at `max-w-prose`, then chips, then one `default` button. Everything else on the page is `p-5` and quieter — the size difference *is* the hierarchy, so don't promote a sibling plate to match it.
+
+### Capacity chips (src/components/today/SessionPlan.tsx) — the commitment row
+Small `rounded-sm` bordered toggles in `.figures`, `aria-pressed` for state; the active chip is a solid ink fill with `text-primary-foreground`. The only place in the app where several ink fills sit adjacent — permitted because exactly one is ever active. Never render them as pills or a segmented control.
+
+### Insight card (src/components/shared/InsightPanel.tsx) — the reading
+Three fixed bands: a tone icon plus headline, then evidence on a `border-l-2 border-border` rail in `.figures`, then the recommendation and a single `outline` button. Tone colors ride the difficulty inks (`medium` for attention, `easy` for strength) on the icon only — never on the headline text.
+
+### Hint ladder (src/components/questions/HintLadder.tsx) — the escalation rail
+Each revealed rung is a `border-l-2 border-primary/40 pl-3` block with an xs uppercase label. Revealed rungs stack; exactly one button offers the next. The ink rail is the one accent — no badges, no counters, no cost indicator of any kind.
+
 ### Motion
 - **150ms `ease-swift`** (`cubic-bezier(0.23,1,0.32,1)`, = `--ease-out`): every interactive state — buttons, tabs, hover lifts (−2px cards, −4px pattern tiles), page transitions.
 - **300ms ceiling** for all other UI (toasts 0.3s, pomodoro ring 300ms).

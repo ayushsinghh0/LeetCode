@@ -1,6 +1,7 @@
 import type { Question, QuestionProgress } from '@/types';
 import { applyRevision, applySolve, initialProgress } from '@/utils/engine/spacedRepetition';
 import { weeklyTopUp } from '@/utils/engine/weeklyRevision';
+import { QF } from '@/test/questionFixture';
 
 const TODAY = '2026-07-30';
 
@@ -40,7 +41,7 @@ function buildFixture(): { all: Question[]; byId: Record<number, QuestionProgres
   };
 
   const all: Question[] = Object.keys(byId).map((k) => ({
-    id: Number(k), title: `Q${k}`, pattern: 'two-pointers', difficulty: 'easy', estimatedTime: 20,
+    id: Number(k), title: `Q${k}`, pattern: 'two-pointers', difficulty: 'easy', estimatedTime: 20, ...QF,
   }));
 
   return { all, byId };
@@ -96,7 +97,7 @@ test('weeklyTopUp: excludes questions solved today from the pool (first revision
   };
   const allWithFreshSolve: Question[] = [
     ...all,
-    { id: freshlySolvedId, title: 'Q11', pattern: 'two-pointers', difficulty: 'easy', estimatedTime: 20 },
+    { id: freshlySolvedId, title: 'Q11', pattern: 'two-pointers', difficulty: 'easy', estimatedTime: 20, ...QF },
   ];
 
   const result = weeklyTopUp(allWithFreshSolve, byIdWithFreshSolve, due, TODAY, 7, 7);
@@ -133,7 +134,7 @@ test('weeklyTopUp: extras are capped by pool size when the pool cannot fill the 
 
 test('weeklyTopUp: default min=15/max=20 drives the target on a small pool, capped by pool size', () => {
   const smallAll: Question[] = [501, 502, 503].map((id) => ({
-    id, title: `Q${id}`, pattern: 'two-pointers', difficulty: 'easy', estimatedTime: 20,
+    id, title: `Q${id}`, pattern: 'two-pointers', difficulty: 'easy', estimatedTime: 20, ...QF,
   }));
   const smallById: Record<number, QuestionProgress> = {
     501: applySolve(initialProgress(), '2026-07-01'),

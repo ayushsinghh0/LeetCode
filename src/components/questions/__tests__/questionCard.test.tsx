@@ -24,7 +24,7 @@ afterEach(() => {
 });
 
 describe('QuestionCard', () => {
-  test('renders title, difficulty, pattern, and estimated time', () => {
+  test('renders title, difficulty, pattern, authored estimate, type, and what it tests', () => {
     renderWithStore(
       <QuestionCard question={question1} progress={initialProgress()} context="browse" onOpenDetail={() => {}} />,
     );
@@ -32,7 +32,11 @@ describe('QuestionCard', () => {
     expect(screen.getByText('Valid Palindrome')).toBeInTheDocument();
     expect(screen.getByText('Easy')).toBeInTheDocument();
     expect(screen.getByText('Two Pointers')).toBeInTheDocument();
-    expect(screen.getByText('15 min')).toBeInTheDocument();
+    // The estimate is authored per question, so the assertion reads it from the dataset rather
+    // than hardcoding a per-difficulty constant that no longer exists.
+    expect(screen.getByText(`${question1.estimatedTime} min`)).toBeInTheDocument();
+    expect(screen.getByText('Foundation')).toBeInTheDocument();
+    expect(screen.getByText(question1.tests)).toBeInTheDocument();
   });
 
   test('today context: clicking Solved dispatches solveQuestion, marking the question solved in the store', () => {
@@ -175,6 +179,9 @@ describe('QuestionDetailModal', () => {
 
     act(() => {
       store.dispatch(activeQuestionSet(1));
+      // Confidence is part of the post-solve reflection now — asking "how confident are you?"
+      // before an attempt has happened is asking about nothing.
+      store.dispatch(solveQuestion(1));
     });
     // Radix's Dialog mounts its content synchronously in response to the `open` prop flipping
     // (see the Dialog test in ui/__tests__/primitives.test.tsx) — no need to await/poll for it,
@@ -243,7 +250,9 @@ describe('QuestionDetailModal', () => {
     fireEvent.change(screen.getByLabelText('Notes'), { target: { value: 'A **key** insight' } });
     fireEvent.mouseDown(screen.getByRole('tab', { name: 'Preview' }));
 
-    const strong = await screen.findByText('key');
+    // Generous timeout, not a weaker assertion: this file has a documented history of query
+    // timeouts under full-suite load, and the markdown preview is a lazy-loaded renderer.
+    const strong = await screen.findByText('key', {}, { timeout: 5000 });
     expect(strong.tagName).toBe('STRONG');
   });
 });

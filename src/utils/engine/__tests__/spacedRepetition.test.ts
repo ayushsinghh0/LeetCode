@@ -15,7 +15,7 @@ test('initialProgress is a clean unsolved record', () => {
   expect(p).toEqual({
     status: 'unsolved', revisionStage: 0, nextRevision: null, lastReviewed: null,
     revisionHistory: [], notes: '', bookmarked: false, completedAt: null,
-    confidence: null, timeSpentMin: 0,
+    confidence: null, timeSpentMin: 0, hintLevelUsed: 0, reflection: '',
   });
 });
 

@@ -34,13 +34,14 @@ export function initialProgress(): QuestionProgress {
   return {
     status: 'unsolved', revisionStage: 0, nextRevision: null, lastReviewed: null,
     revisionHistory: [], notes: '', bookmarked: false, completedAt: null,
-    confidence: null, timeSpentMin: 0,
+    confidence: null, timeSpentMin: 0, hintLevelUsed: 0, reflection: '',
   };
 }
 
 // Boundary normalizer, mirroring normalizeCourseWeekProgress: imported/loaded entries pass
-// through here so a future optional QuestionProgress field gains its default instead of
-// arriving undefined. Today every field is required, so this is pure forward-compat seam.
+// through here so an optional QuestionProgress field gains its default instead of arriving
+// undefined. hintLevelUsed/reflection shipped after the original shape, so pre-existing
+// payloads reach the store without them and are defaulted here.
 export function normalizeQuestionProgress(raw: Partial<QuestionProgress>): QuestionProgress {
   return { ...initialProgress(), ...raw };
 }

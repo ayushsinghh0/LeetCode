@@ -14,7 +14,9 @@ import {
   bookmarkToggled,
   confidenceSet,
   focusMinutesAdded,
+  hintRevealed,
   notesSet,
+  reflectionSet,
   questionSkipped,
   questionSolved,
   questionStarted,
@@ -35,6 +37,7 @@ import {
   taskToggled,
 } from '@/store/slices/tasksSlice';
 import { drillRecorded } from '@/store/slices/drillsSlice';
+import { settingsUpdated } from '@/store/slices/settingsSlice';
 import { courseWeekById } from '@/data/aimlCourse';
 import {
   COURSE_REVIEW_XP,
@@ -54,6 +57,7 @@ import {
   xpAdded,
 } from '@/store/slices/gamificationSlice';
 import { isMastered } from '@/utils/engine/spacedRepetition';
+import { MAX_HINT_LEVEL } from '@/utils/engine/hints';
 import { celebrationShown, toastPushed } from '@/store/slices/uiSlice';
 import { progressReset, stateImported } from '@/store/sharedActions';
 import { selectAchievementCtx, selectRevisionQueueIds, selectSolvedNewCount } from '@/store/selectors';
@@ -93,6 +97,22 @@ export const saveNotes = (id: number, notes: string): AppThunk => (dispatch) => 
 
 export const setConfidence = (id: number, confidence: Confidence): AppThunk => (dispatch) => {
   dispatch(confidenceSet({ id, confidence }));
+};
+
+// Records that the learner opened rung `level` of the hint ladder. Deliberately has no XP
+// penalty and no visible cost: a support feature people avoid using because it is scored
+// against them stops being a support feature. The signal exists so "solved" and "solved
+// unaided" can be told apart later, nothing more.
+export const revealHint = (id: number, level: number): AppThunk => (dispatch) => {
+  if (!questionById.has(id)) return;
+  if (!Number.isInteger(level) || level < 1 || level > MAX_HINT_LEVEL) return;
+  dispatch(hintRevealed({ id, level }));
+};
+
+// The learner's own answer to "what did you learn?", captured at solve time.
+export const saveReflection = (id: number, reflection: string): AppThunk => (dispatch) => {
+  if (!questionById.has(id)) return;
+  dispatch(reflectionSet({ id, reflection }));
 };
 
 // Records a completed focus phase. DayLog.focusMinutes is the canonical total time ledger;
@@ -334,6 +354,14 @@ export const deleteTask = (id: string): AppThunk => (dispatch) => {
 // "Not today" — pushes an open task to tomorrow's plan.
 export const deferTaskToTomorrow = (id: string): AppThunk => (dispatch) => {
   dispatch(taskRescheduled({ id, date: addDays(todayISO(), 1) }));
+};
+
+// The day's time budget. A thunk rather than a raw `settingsUpdated` dispatch from the UI,
+// because `settings` is not the `ui` slice and the mutation API is the one documented seam —
+// and because the value is range-guarded in exactly one place instead of at each call site.
+export const setDailyCapacity = (minutes: number): AppThunk => (dispatch) => {
+  if (!Number.isInteger(minutes) || minutes < 15 || minutes > 960) return;
+  dispatch(settingsUpdated({ dailyCapacityMin: minutes }));
 };
 
 export const importProgress = (state: PersistedStateV1): AppThunk => (dispatch) => {

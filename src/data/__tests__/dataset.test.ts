@@ -24,12 +24,46 @@ test('per-pattern counts match the approved spec', () => {
   });
 });
 
-test('difficulty distribution and estimatedTime mapping', () => {
-  const est = { easy: 15, medium: 25, hard: 40 } as const;
-  qs.forEach((q) => expect(q.estimatedTime).toBe(est[q.difficulty]));
+test('difficulty distribution, and estimates that stay inside their authored band', () => {
+  // Estimates are authored per question (scripts/data/question-intelligence.json) rather than
+  // mapped from difficulty, so the assertion is the band contract the generator enforces —
+  // not one constant per difficulty, which is exactly what the authored layer replaced.
+  const bands = { easy: [8, 20], medium: [20, 35], hard: [35, 60] } as const;
+  qs.forEach((q) => {
+    const [lo, hi] = bands[q.difficulty];
+    expect(q.estimatedTime).toBeGreaterThanOrEqual(lo);
+    expect(q.estimatedTime).toBeLessThanOrEqual(hi);
+    expect(Number.isInteger(q.estimatedTime)).toBe(true);
+  });
+
+  // …and the band must carry information: a difficulty whose estimates collapsed to one value
+  // would satisfy the range check while silently reverting to the flat table.
+  for (const difficulty of ['easy', 'medium', 'hard'] as const) {
+    const distinct = new Set(qs.filter((q) => q.difficulty === difficulty).map((q) => q.estimatedTime));
+    expect(distinct.size).toBeGreaterThanOrEqual(4);
+  }
+
   const byDiff: Record<string, number> = {};
   qs.forEach((q) => (byDiff[q.difficulty] = (byDiff[q.difficulty] ?? 0) + 1));
   expect(byDiff).toEqual({ easy: 131, medium: 268, hard: 140 });
+});
+
+test('every question carries its authored intelligence: a type and a capability sentence', () => {
+  const types = new Set(['foundation', 'recognition', 'implementation', 'optimization', 'variant', 'design']);
+  qs.forEach((q) => {
+    expect(types.has(q.type)).toBe(true);
+    expect(q.tests.trim().length).toBeGreaterThan(0);
+    // The sentence names a skill; it must not open by restating the prompt.
+    expect(q.tests).not.toMatch(/^(This (problem|question)|The problem)/i);
+  });
+  // Complexity is optional by design — omitted wherever the intended bound is genuinely
+  // contested — but the bulk of the dataset should carry it.
+  expect(qs.filter((q) => q.complexity).length).toBeGreaterThan(450);
+  qs.forEach((q) => {
+    if (!q.complexity) return;
+    expect(q.complexity.time).toMatch(/^O\(/);
+    expect(q.complexity.space).toMatch(/^O\(/);
+  });
 });
 
 test('PATTERNS covers all 28 patterns in dataset order', () => {

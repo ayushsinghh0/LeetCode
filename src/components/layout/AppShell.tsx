@@ -1,10 +1,18 @@
+import { lazy, Suspense, useEffect, useState } from 'react';
 import { Outlet } from 'react-router-dom';
 import { ErrorBoundary } from '@/components/shared/ErrorBoundary';
 import { Sidebar } from '@/components/layout/Sidebar';
 import { MobileNav } from '@/components/layout/MobileNav';
 import { PageTransition } from '@/components/layout/PageTransition';
-import { QuestionDetailModal } from '@/components/questions/QuestionDetailModal';
 import { SearchDialog } from '@/components/shared/SearchDialog';
+import { useAppSelector } from '@/store/hooks';
+
+// The question sheet is the app's heaviest non-route component — hint ladder, post-solve
+// reflection, family panel, and the markdown notes editor behind it. It is also opened on
+// demand rather than on load, so it is deferred out of the shell chunk.
+const QuestionDetailModal = lazy(() =>
+  import('@/components/questions/QuestionDetailModal').then((m) => ({ default: m.QuestionDetailModal })),
+);
 import { AchievementToast } from '@/components/gamification/AchievementToast';
 import { PomodoroWidget } from '@/components/pomodoro/PomodoroWidget';
 import { useCelebration } from '@/hooks/useCelebration';
@@ -19,6 +27,15 @@ export function AppShell() {
   useDueReminder();
   // Tab title follows the route ("Today · DSA Roadmap").
   useRouteTitle();
+
+  // Latch rather than mirror: once the sheet has been opened, it stays mounted so closing it
+  // still plays its exit transition. Mirroring `activeQuestionId` directly would unmount on
+  // close and cut that animation off mid-way.
+  const activeQuestionId = useAppSelector((s) => s.ui.activeQuestionId);
+  const [sheetLoaded, setSheetLoaded] = useState(false);
+  useEffect(() => {
+    if (activeQuestionId !== null) setSheetLoaded(true);
+  }, [activeQuestionId]);
 
   return (
     <div className="flex min-h-screen">
@@ -35,7 +52,11 @@ export function AppShell() {
         </div>
       </main>
       <MobileNav />
-      <QuestionDetailModal />
+      {sheetLoaded && (
+        <Suspense fallback={null}>
+          <QuestionDetailModal />
+        </Suspense>
+      )}
       <SearchDialog />
       <AchievementToast />
       {/* /focus itself never renders AppShell (see src/App.tsx — it's routed outside the AppShell

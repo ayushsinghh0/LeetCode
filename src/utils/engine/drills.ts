@@ -5,6 +5,13 @@ import { hashSeed, mulberry32, seededShuffle } from '@/utils/engine/prng';
 // Pure and deterministic — the same seed (a yyyy-MM-dd date) always builds the same drill,
 // so a day's drill is stable across reloads without persisting anything.
 
+/**
+ * Minutes the daily plan budgets for one drill. A flat constant on purpose: a drill is a fixed
+ * number of one-look recognition calls, so unlike solving, its cost does not vary with the
+ * questions drawn. Roughly 30 seconds per prompt plus reading the result.
+ */
+export const DRILL_MINUTES = 6;
+
 export interface DrillItem {
   questionId: number;
   familyId: string;

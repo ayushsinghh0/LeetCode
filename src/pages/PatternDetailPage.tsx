@@ -15,6 +15,7 @@ import {
 } from '@/components/ui/select';
 import { patternById } from '@/data/patterns';
 import { SUBPATTERNS } from '@/data/curriculum';
+import { companiesNamingPattern } from '@/data/companies';
 import questionsData from '@/data/questions.json';
 import { useAppDispatch, useAppSelector } from '@/store/hooks';
 import { activeQuestionSet } from '@/store/slices/uiSlice';
@@ -134,6 +135,7 @@ export default function PatternDetailPage() {
   const meta = patternById[patternId];
   const Icon = iconByName(meta.icon, Shapes);
   const stat = stats.find((s) => s.pattern === patternId)!;
+  const namingCompanies = companiesNamingPattern(patternId);
 
   const difficultyCounts = DIFFICULTIES.map((d) => ({
     difficulty: d,
@@ -185,6 +187,30 @@ export default function PatternDetailPage() {
           </div>
         </div>
       </header>
+
+      {/* Interview relevance, at the only level the evidence supports: which companies name
+          this topic in their own published prep guidance. Never a per-problem claim. */}
+      {namingCompanies.length > 0 && (
+        <section className="glass flex flex-col gap-2 p-4" aria-label="Interview relevance">
+          <h2 className="text-sm font-medium">Named in company prep guidance</h2>
+          <ul className="flex flex-wrap gap-2">
+            {namingCompanies.map((company) => (
+              <li key={company.id}>
+                <Link
+                  to={`/companies/${company.id}`}
+                  className="inline-flex rounded-sm border border-border px-2 py-1 text-xs transition-colors duration-150 ease-swift hover:border-primary/40 hover:text-primary"
+                >
+                  {company.name}
+                </Link>
+              </li>
+            ))}
+          </ul>
+          <p className="text-xs text-muted-foreground">
+            These companies&apos; own interview-prep pages list topics this pattern covers. That is a
+            statement about the topic, not about any question below.
+          </p>
+        </section>
+      )}
 
       <div className="glass flex flex-wrap items-center gap-4 p-4">
         <div className="flex items-center gap-2">

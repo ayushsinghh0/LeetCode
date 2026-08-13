@@ -52,6 +52,17 @@ const validFixture: PersistedStateV1 = {
   },
 };
 
+// The fixture above predates hintLevelUsed/reflection, exactly like a real payload saved before
+// those fields shipped. Every load path normalizes them in — that IS the optional-with-boundary-
+// default contract — so expectations compare against the normalized shape, not the raw fixture.
+const normalizedFixtureById = () =>
+  Object.fromEntries(
+    Object.entries(validFixture.progress.byId).map(([id, p]) => [
+      Number(id),
+      { hintLevelUsed: 0, reflection: '', ...p },
+    ]),
+  );
+
 // A minimal in-memory adapter used to unit-test the middleware in isolation from real
 // localStorage. `save` is a spy so call counts/args can be asserted directly.
 class FakeAdapter implements StorageAdapter {
@@ -504,6 +515,7 @@ describe('createPersistenceMiddleware immediate flush', () => {
     expect(adapter.saved).toHaveLength(1);
     expect(adapter.saved[0]).toEqual({
       ...validFixture,
+      progress: { ...validFixture.progress, byId: normalizedFixtureById() },
       settings: { ...validFixture.settings, dailyCapacityMin: 180 },
       gamification: { ...validFixture.gamification, dailyGoalBonusDate: null, weeklyClearBonusDay: null },
     });
@@ -557,7 +569,7 @@ describe('loadInitialState', () => {
     const preloaded = loadInitialState(new LoadedAdapter());
 
     expect(preloaded).toEqual({
-      progress: validFixture.progress,
+      progress: { ...validFixture.progress, byId: normalizedFixtureById() },
       // Optional fields default at the load boundary (capacity -> 180, bonus gates -> null).
       settings: { ...validFixture.settings, dailyCapacityMin: 180 },
       gamification: { ...validFixture.gamification, dailyGoalBonusDate: null, weeklyClearBonusDay: null },

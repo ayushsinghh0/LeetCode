@@ -1,0 +1,4729 @@
+{
+  "Valid Palindrome": {
+    "type": "foundation",
+    "tests": "Whether you can verify a mirror property in one inward walk instead of building a reversed copy, while deciding what counts as a comparable character.",
+    "minutes": 12,
+    "complexity": {
+      "time": "O(n)",
+      "space": "O(1)"
+    }
+  },
+  "3Sum": {
+    "type": "optimization",
+    "tests": "Whether you can reduce a triple search to a repeated pair search by imposing order first, and keep duplicate triples out without a post-hoc dedup pass.",
+    "minutes": 28,
+    "complexity": {
+      "time": "O(n^2)",
+      "space": "O(1)"
+    }
+  },
+  "Remove nth Node from End of List": {
+    "type": "foundation",
+    "tests": "Whether you can turn a distance from the end into a position you already hold, by launching a second pointer ahead and getting the offset right by one.",
+    "minutes": 22,
+    "complexity": {
+      "time": "O(n)",
+      "space": "O(1)"
+    }
+  },
+  "Sort Colors": {
+    "type": "implementation",
+    "tests": "Holding three regions invariant in one pass, and knowing which pointer must not advance after a swap because the value it just received has never been examined.",
+    "minutes": 24,
+    "complexity": {
+      "time": "O(n)",
+      "space": "O(1)"
+    }
+  },
+  "Reverse Words in a String": {
+    "type": "implementation",
+    "tests": "Whether you can reorder blocks without a temporary buffer by reversing at two scales, while normalizing the messy spacing that decides where a word actually begins.",
+    "minutes": 24,
+    "complexity": {
+      "time": "O(n)",
+      "space": "O(1)"
+    }
+  },
+  "Valid Word Abbreviation": {
+    "type": "implementation",
+    "tests": "Whether you can validate a compressed encoding by walking both strings forward at once, parsing multi-digit skips and rejecting the malformed ones instead of expanding anything.",
+    "minutes": 16,
+    "complexity": {
+      "time": "O(n)",
+      "space": "O(1)"
+    }
+  },
+  "Valid Palindrome II": {
+    "type": "variant",
+    "tests": "Recognizing that a single allowed deletion turns one mismatch into exactly two candidate continuations, both of which must be tried rather than chosen greedily.",
+    "minutes": 15,
+    "complexity": {
+      "time": "O(n)",
+      "space": "O(1)"
+    }
+  },
+  "Lowest Common Ancestor of a Binary Tree III": {
+    "type": "recognition",
+    "tests": "Recognizing a tree question in parent-pointer disguise as the meeting of two upward chains, where sending each walker onto the other's path equalizes the distances.",
+    "minutes": 20,
+    "complexity": {
+      "time": "O(h)",
+      "space": "O(1)"
+    }
+  },
+  "Strobogrammatic Number": {
+    "type": "variant",
+    "tests": "Whether you can generalize a mirror check from equality to an arbitrary pairing rule, so the two ends must map through a table rather than simply match.",
+    "minutes": 12,
+    "complexity": {
+      "time": "O(n)",
+      "space": "O(1)"
+    }
+  },
+  "Minimum Number of Moves to Make Palindrome": {
+    "type": "variant",
+    "tests": "Whether you can argue that pairing each outer character with its nearest partner from the far end is safe, and count the adjacent swaps that pairing costs.",
+    "minutes": 45,
+    "complexity": {
+      "time": "O(n^2)",
+      "space": "O(1)"
+    }
+  },
+  "Next Palindrome Using Same Digits": {
+    "type": "variant",
+    "tests": "Recognizing that a palindrome is fully determined by its first half, so the next larger one is the next arrangement of that half and nothing else.",
+    "minutes": 38,
+    "complexity": {
+      "time": "O(n)",
+      "space": "O(1)"
+    }
+  },
+  "Count Subarrays With Fixed Bounds": {
+    "type": "optimization",
+    "tests": "Whether you can count qualifying subarrays from the last-seen positions of a few landmark values, instead of re-examining the minimum and maximum of every candidate range.",
+    "minutes": 42,
+    "complexity": {
+      "time": "O(n)",
+      "space": "O(1)"
+    }
+  },
+  "Find the Lexicographically Largest String From Box II": {
+    "type": "optimization",
+    "tests": "Whether you can locate the best starting position among all candidate substrings in linear time by racing two candidates against each other, rather than scoring every start.",
+    "minutes": 55,
+    "complexity": {
+      "time": "O(n)",
+      "space": "O(n)"
+    }
+  },
+  "Get the Maximum Score": {
+    "type": "recognition",
+    "tests": "Recognizing that two sorted paths only interact at their shared values, so the answer is the sum of the better segment between consecutive crossing points.",
+    "minutes": 40,
+    "complexity": {
+      "time": "O(n+m)",
+      "space": "O(1)"
+    }
+  },
+  "Create Maximum Number": {
+    "type": "optimization",
+    "tests": "Whether you can split one intractable joint choice into two independent best-subsequence problems plus a small enumeration over how the length is divided between them.",
+    "minutes": 58
+  },
+  "Append Characters to String to Make Subsequence": {
+    "type": "recognition",
+    "tests": "Recognizing that the answer is just where a greedy subsequence match stops, so the whole question reduces to one forward walk you already know how to run.",
+    "minutes": 20,
+    "complexity": {
+      "time": "O(n+m)",
+      "space": "O(1)"
+    }
+  },
+  "Squares of a Sorted Array": {
+    "type": "recognition",
+    "tests": "Recognizing that with negatives present the largest magnitudes sit at the two ends, so the sorted output can be filled from the outside in.",
+    "minutes": 14,
+    "complexity": {
+      "time": "O(n)",
+      "space": "O(n)"
+    }
+  },
+  "Reverse String": {
+    "type": "foundation",
+    "tests": "Whether you can run an in-place swap walk from both ends, the primitive that every later block-reversal trick is assembled from.",
+    "minutes": 8,
+    "complexity": {
+      "time": "O(n)",
+      "space": "O(1)"
+    }
+  },
+  "Intersection of Two Linked Lists": {
+    "type": "recognition",
+    "tests": "Recognizing that two chains of unequal length can be equalized by letting each walker finish the other's path, so they arrive at the junction together.",
+    "minutes": 16,
+    "complexity": {
+      "time": "O(n+m)",
+      "space": "O(1)"
+    }
+  },
+  "Partition Labels": {
+    "type": "recognition",
+    "tests": "Recognizing that each letter's last occurrence forces a minimum extent, so a part can close only once the scan has passed every commitment it made.",
+    "minutes": 22,
+    "complexity": {
+      "time": "O(n)",
+      "space": "O(1)"
+    }
+  },
+  "Remove Element": {
+    "type": "foundation",
+    "tests": "Whether you can keep a write boundary that separates finished output from unscanned input, the compaction idea in its plainest form.",
+    "minutes": 8,
+    "complexity": {
+      "time": "O(n)",
+      "space": "O(1)"
+    }
+  },
+  "String Compression": {
+    "type": "implementation",
+    "tests": "Whether you can write a variable-length encoding back over the input you are still reading, which only stays safe because the writer can never outrun the reader.",
+    "minutes": 26,
+    "complexity": {
+      "time": "O(n)",
+      "space": "O(1)"
+    }
+  },
+  "Rotate Array": {
+    "type": "foundation",
+    "tests": "Whether you can see a rotation as a composition of reversals, and handle a shift that exceeds the array length before any of it is meaningful.",
+    "minutes": 22,
+    "complexity": {
+      "time": "O(n)",
+      "space": "O(1)"
+    }
+  },
+  "Next Permutation": {
+    "type": "foundation",
+    "tests": "Whether you can find the single position where an arrangement can still grow, and see why everything to its right must then be made as small as possible.",
+    "minutes": 28,
+    "complexity": {
+      "time": "O(n)",
+      "space": "O(1)"
+    }
+  },
+  "Remove Duplicates from Sorted Array": {
+    "type": "foundation",
+    "tests": "Whether you can decide keep-or-skip from a single comparison against the last kept element, and report the answer as a boundary rather than a new array.",
+    "minutes": 10,
+    "complexity": {
+      "time": "O(n)",
+      "space": "O(1)"
+    }
+  },
+  "Reverse Vowels of a String": {
+    "type": "foundation",
+    "tests": "Whether you can drive a converging swap walk with a filter, advancing each pointer past everything irrelevant so only the qualifying positions ever meet.",
+    "minutes": 12,
+    "complexity": {
+      "time": "O(n)",
+      "space": "O(1)"
+    }
+  },
+  "Is Subsequence": {
+    "type": "foundation",
+    "tests": "Whether you can settle a containment question with one forward walk and no extra state, plus what has to change when the same check is repeated for many queries.",
+    "minutes": 12,
+    "complexity": {
+      "time": "O(n+m)",
+      "space": "O(1)"
+    }
+  },
+  "Merge Strings Alternately": {
+    "type": "foundation",
+    "tests": "Whether you can interleave two sequences with independent indices and finish cleanly when one runs out before the other, without special-casing the tail twice.",
+    "minutes": 9,
+    "complexity": {
+      "time": "O(n+m)",
+      "space": "O(n+m)"
+    }
+  },
+  "Compare Version Numbers": {
+    "type": "implementation",
+    "tests": "Whether you can compare two sequences whose segments are neither aligned nor equal in count, treating a missing segment as zero instead of padding the strings.",
+    "minutes": 20,
+    "complexity": {
+      "time": "O(n+m)",
+      "space": "O(1)"
+    }
+  },
+  "Move Zeroes": {
+    "type": "implementation",
+    "tests": "Whether you can compact in place while still accounting for what the vacated positions must become, in one pass rather than a copy-then-fill pair.",
+    "minutes": 20,
+    "complexity": {
+      "time": "O(n)",
+      "space": "O(1)"
+    }
+  },
+  "Longest Subarray of 1's After Deleting One Element": {
+    "type": "recognition",
+    "tests": "Recognizing a deletion budget as a window constraint, and remembering that one element must still be removed even when the array contains no zero at all.",
+    "minutes": 22,
+    "complexity": {
+      "time": "O(n)",
+      "space": "O(1)"
+    }
+  },
+  "Backspace String Compare": {
+    "type": "optimization",
+    "tests": "Whether you can compare two strings under a delete-previous rule without materializing either result, which forces the walk to run in the direction the deletions point.",
+    "minutes": 24,
+    "complexity": {
+      "time": "O(n+m)",
+      "space": "O(1)"
+    }
+  },
+  "Next Greater Element III": {
+    "type": "recognition",
+    "tests": "Recognizing a number as a sequence of digits so a known rearrangement rule applies, with the extra obligation of rejecting results that overflow the allowed range.",
+    "minutes": 24,
+    "complexity": {
+      "time": "O(n)",
+      "space": "O(n)"
+    }
+  },
+  "Rotating the Box": {
+    "type": "implementation",
+    "tests": "Whether you can separate a physical simulation into two independent steps, settling each row against its obstacles and then re-indexing, rather than reasoning about gravity post-rotation.",
+    "minutes": 28,
+    "complexity": {
+      "time": "O(m*n)",
+      "space": "O(m*n)"
+    }
+  },
+  "Happy Number": {
+    "type": "recognition",
+    "tests": "Recognizing that a digit transformation is just a successor function, so asking whether the process loops forever is asking whether that chain contains a cycle.",
+    "minutes": 14,
+    "complexity": {
+      "time": "O(log n)",
+      "space": "O(1)"
+    }
+  },
+  "Linked List Cycle": {
+    "type": "foundation",
+    "tests": "Whether you can prove a loop exists without recording where you have been, by relying on a faster runner necessarily lapping a slower one inside any cycle.",
+    "minutes": 10,
+    "complexity": {
+      "time": "O(n)",
+      "space": "O(1)"
+    }
+  },
+  "Middle of the Linked List": {
+    "type": "foundation",
+    "tests": "Whether you can locate a midpoint in one pass over a structure whose length is unknown, and decide which node counts as the middle when the count is even.",
+    "minutes": 9,
+    "complexity": {
+      "time": "O(n)",
+      "space": "O(1)"
+    }
+  },
+  "Circular Array Loop": {
+    "type": "variant",
+    "tests": "Whether you can run cycle detection where a cycle only counts if every step keeps one direction and the loop is longer than a single self-referencing element.",
+    "minutes": 32,
+    "complexity": {
+      "time": "O(n)",
+      "space": "O(1)"
+    }
+  },
+  "Find The Duplicate Number": {
+    "type": "recognition",
+    "tests": "Recognizing an array as a mapping where each index points to another, so the repeated value is exactly the entrance of a cycle in that mapping.",
+    "minutes": 30,
+    "complexity": {
+      "time": "O(n)",
+      "space": "O(1)"
+    }
+  },
+  "Palindrome Linked List": {
+    "type": "variant",
+    "tests": "Whether you can restore two-directional comparison on a forward-only structure, and whether you notice the cost of the shortcut that copies every value into an array.",
+    "minutes": 18,
+    "complexity": {
+      "time": "O(n)",
+      "space": "O(1)"
+    }
+  },
+  "Linked List Cycle III": {
+    "type": "variant",
+    "tests": "Extending cycle detection past a yes-or-no answer, so the meeting point of the two runners becomes the starting evidence for a further fact about the loop.",
+    "minutes": 26,
+    "complexity": {
+      "time": "O(n)",
+      "space": "O(1)"
+    }
+  },
+  "Linked List Cycle IV": {
+    "type": "variant",
+    "tests": "Whether the constant-space cycle machinery still carries you once the question asks you to act on the loop, not merely to confirm that one exists.",
+    "minutes": 26,
+    "complexity": {
+      "time": "O(n)",
+      "space": "O(1)"
+    }
+  },
+  "Maximum Twin Sum of a Linked List": {
+    "type": "recognition",
+    "tests": "Recognizing that mirrored index pairs become adjacent once the list is halved, turning a random-access pairing into two forward walks over opposite halves.",
+    "minutes": 22,
+    "complexity": {
+      "time": "O(n)",
+      "space": "O(1)"
+    }
+  },
+  "Split a Circular Linked List": {
+    "type": "variant",
+    "tests": "Whether you can find a midpoint when there is no null to stop at, and close both halves back into rings without losing either seam along the way.",
+    "minutes": 24,
+    "complexity": {
+      "time": "O(n)",
+      "space": "O(1)"
+    }
+  },
+  "Repeated DNA Sequences": {
+    "type": "recognition",
+    "tests": "Recognizing that a fixed-length substring can be carried as a cheap rolling summary rather than re-extracted, so duplicate detection costs one pass and one set.",
+    "minutes": 24,
+    "complexity": {
+      "time": "O(n)",
+      "space": "O(n)"
+    }
+  },
+  "Sliding Window Maximum": {
+    "type": "optimization",
+    "tests": "Whether you notice that a maximum cannot be un-added when an element leaves, and what structure has to replace the running summary once it stops being reversible.",
+    "minutes": 40,
+    "complexity": {
+      "time": "O(n)",
+      "space": "O(k)"
+    }
+  },
+  "Minimum Window Subsequence": {
+    "type": "variant",
+    "tests": "Whether you can tell a covering problem where order matters from one where it does not, since counting characters silently accepts windows that scramble the required sequence.",
+    "minutes": 48,
+    "complexity": {
+      "time": "O(n*m)",
+      "space": "O(1)"
+    }
+  },
+  "Longest Repeating Character Replacement": {
+    "type": "variant",
+    "tests": "Whether you can express a replacement budget as window length minus the count of the dominant character, and whether that count may safely be allowed to go stale.",
+    "minutes": 30,
+    "complexity": {
+      "time": "O(n)",
+      "space": "O(1)"
+    }
+  },
+  "Minimum Window Substring": {
+    "type": "foundation",
+    "tests": "Whether you can grow until a covering requirement is met and then shrink while it still holds, tracking satisfaction with one counter instead of rechecking every character.",
+    "minutes": 40,
+    "complexity": {
+      "time": "O(n+m)",
+      "space": "O(m)"
+    }
+  },
+  "Longest Substring without Repeating Characters": {
+    "type": "foundation",
+    "tests": "Whether you can hold a no-duplicates invariant by moving only the left edge when it breaks, and see why neither edge ever needs to move backwards.",
+    "minutes": 25,
+    "complexity": {
+      "time": "O(n)",
+      "space": "O(k)"
+    }
+  },
+  "Minimum Size Subarray Sum": {
+    "type": "foundation",
+    "tests": "Whether you can find a shortest qualifying window without nested loops, once you see that removing elements is the only thing that can break an already satisfied sum.",
+    "minutes": 22,
+    "complexity": {
+      "time": "O(n)",
+      "space": "O(1)"
+    }
+  },
+  "Best Time to Buy and Sell Stock": {
+    "type": "optimization",
+    "tests": "Whether you can replace a search over every pair with one forward pass that carries the best option seen so far and scores each element against it.",
+    "minutes": 12,
+    "complexity": {
+      "time": "O(n)",
+      "space": "O(1)"
+    }
+  },
+  "Fruit Into Baskets": {
+    "type": "recognition",
+    "tests": "Recognizing a story about baskets as the standard at-most-k-distinct window, where the hardest part is translating the rules into a constraint you can shrink against.",
+    "minutes": 22,
+    "complexity": {
+      "time": "O(n)",
+      "space": "O(1)"
+    }
+  },
+  "Frequency of the Most Frequent Element": {
+    "type": "recognition",
+    "tests": "Recognizing that a budget of increments becomes a window constraint once the array is sorted, since raising everything to the window's largest value has a computable cost.",
+    "minutes": 30,
+    "complexity": {
+      "time": "O(n log n)",
+      "space": "O(1)"
+    }
+  },
+  "Maximum Average Subarray I": {
+    "type": "foundation",
+    "tests": "Whether you can maintain a window summary by adding what enters and subtracting what leaves, instead of recomputing the whole window at every position.",
+    "minutes": 10,
+    "complexity": {
+      "time": "O(n)",
+      "space": "O(1)"
+    }
+  },
+  "Diet Plan Performance": {
+    "type": "foundation",
+    "tests": "Whether you can apply a fixed-window running sum when each window produces a verdict rather than a value, accumulating a score across all windows in one pass.",
+    "minutes": 12,
+    "complexity": {
+      "time": "O(n)",
+      "space": "O(1)"
+    }
+  },
+  "Subarrays with K Different Integers": {
+    "type": "foundation",
+    "tests": "Whether you can see that an exact-count condition is not shrinkable, and must be rebuilt from two monotone at-most questions that a window can actually answer.",
+    "minutes": 40,
+    "complexity": {
+      "time": "O(n)",
+      "space": "O(k)"
+    }
+  },
+  "Count Subarrays With Score Less Than K": {
+    "type": "recognition",
+    "tests": "Recognizing that the score only grows as the window grows, which is what licenses the per-right-endpoint count that would be unsound for a non-monotone measure.",
+    "minutes": 36,
+    "complexity": {
+      "time": "O(n)",
+      "space": "O(1)"
+    }
+  },
+  "Count Substrings With K-Frequency Characters II": {
+    "type": "variant",
+    "tests": "Whether you can count an at-least condition from the leftmost position that turns valid, and keep that scan linear when the input size removes every bit of slack.",
+    "minutes": 42,
+    "complexity": {
+      "time": "O(n)",
+      "space": "O(1)"
+    }
+  },
+  "Substring with Concatenation of All Words": {
+    "type": "variant",
+    "tests": "Whether you can slide a window whose unit is a whole word rather than a character, which means running the scan once per starting offset inside a word length.",
+    "minutes": 45
+  },
+  "Binary Subarrays With Sum": {
+    "type": "recognition",
+    "tests": "Recognizing that an exact-sum count can be reached two ways, by differencing two at-most windows or by tallying prefix sums, and why one window alone is not enough.",
+    "minutes": 26,
+    "complexity": {
+      "time": "O(n)",
+      "space": "O(1)"
+    }
+  },
+  "Permutation in String": {
+    "type": "recognition",
+    "tests": "Recognizing that containing a permutation is only a multiset claim over a window of known length, so the order inside the window never has to be examined.",
+    "minutes": 24,
+    "complexity": {
+      "time": "O(n)",
+      "space": "O(1)"
+    }
+  },
+  "Number of Substrings Containing All Three Characters": {
+    "type": "recognition",
+    "tests": "Recognizing that once a window covering all three exists, every earlier start also works, so each right endpoint contributes a whole run of valid substrings.",
+    "minutes": 22,
+    "complexity": {
+      "time": "O(n)",
+      "space": "O(1)"
+    }
+  },
+  "Find the Index of the First Occurrence in a String": {
+    "type": "implementation",
+    "tests": "Whether you can align a fixed-length pattern at every legal start without walking off the end, and what a failed comparison already tells you about the next start.",
+    "minutes": 22,
+    "complexity": {
+      "time": "O(n*m)",
+      "space": "O(1)"
+    }
+  },
+  "Max Consecutive Ones III": {
+    "type": "foundation",
+    "tests": "Whether you can treat a flip budget as the window's only constraint, so the left edge advances exactly when the budget is overspent and never further.",
+    "minutes": 22,
+    "complexity": {
+      "time": "O(n)",
+      "space": "O(1)"
+    }
+  },
+  "Longest Subarray With Diff At Most Limit": {
+    "type": "optimization",
+    "tests": "Whether you can keep both extremes of a growing and shrinking window available in constant time, since a plain running value cannot be undone when an element leaves.",
+    "minutes": 32,
+    "complexity": {
+      "time": "O(n)",
+      "space": "O(n)"
+    }
+  },
+  "Subarray Product Less Than K": {
+    "type": "foundation",
+    "tests": "Whether you can count subarrays by summing each valid window's length instead of enumerating them, and handle the case where not even a single element qualifies.",
+    "minutes": 24,
+    "complexity": {
+      "time": "O(n)",
+      "space": "O(1)"
+    }
+  },
+  "Merge Intervals": {
+    "type": "foundation",
+    "tests": "Whether you can see that ordering intervals by start turns overlap into a purely local question between what you already hold and what arrives next.",
+    "minutes": 22,
+    "complexity": {
+      "time": "O(n log n)",
+      "space": "O(n)"
+    }
+  },
+  "Insert Interval": {
+    "type": "implementation",
+    "tests": "Holding a sorted interval list's structure intact while one new interval forces you to decide, per neighbour, whether it passes, merges, or waits.",
+    "minutes": 25,
+    "complexity": {
+      "time": "O(n)",
+      "space": "O(n)"
+    }
+  },
+  "Interval List Intersections": {
+    "type": "variant",
+    "tests": "Whether you can advance two already-sorted interval lists in step, reading overlap off the pair you hold and knowing which side is safe to discard.",
+    "minutes": 24,
+    "complexity": {
+      "time": "O(n + m)",
+      "space": "O(n + m)"
+    }
+  },
+  "Employee Free Time": {
+    "type": "recognition",
+    "tests": "Recognizing that many separate schedules become one problem once you stop caring who owns each interval, and that the answer lives in what the union leaves out.",
+    "minutes": 40,
+    "complexity": {
+      "time": "O(n log n)",
+      "space": "O(n)"
+    }
+  },
+  "Task Scheduler": {
+    "type": "recognition",
+    "tests": "Recognizing that a scheduling simulation collapses into arithmetic once you see the busiest task dictates the shape of the timeline and everything else fills its gaps.",
+    "minutes": 28,
+    "complexity": {
+      "time": "O(n)",
+      "space": "O(1)"
+    }
+  },
+  "Meeting Rooms II": {
+    "type": "foundation",
+    "tests": "Whether you can stop tracking which meeting uses which room and instead measure how many are alive at the same moment as time advances.",
+    "minutes": 25,
+    "complexity": {
+      "time": "O(n log n)",
+      "space": "O(n)"
+    }
+  },
+  "Remove Covered Intervals": {
+    "type": "variant",
+    "tests": "Whether you can choose a sort order that makes containment decidable from one number, since ties on the start point flip which interval swallows the other.",
+    "minutes": 22,
+    "complexity": {
+      "time": "O(n log n)",
+      "space": "O(1)"
+    }
+  },
+  "Count Days Without Meetings": {
+    "type": "implementation",
+    "tests": "Converting a coverage question into its complement, then surviving the inclusive-day arithmetic at both ends of the calendar where off-by-one errors like to hide.",
+    "minutes": 21,
+    "complexity": {
+      "time": "O(n log n)",
+      "space": "O(1)"
+    }
+  },
+  "Car Pooling": {
+    "type": "recognition",
+    "tests": "Recognizing that capacity questions care only about the net change at each stop, so passengers become events on a timeline rather than trips to track individually.",
+    "minutes": 22,
+    "complexity": {
+      "time": "O(n log n)",
+      "space": "O(n)"
+    }
+  },
+  "Data Stream as Disjoint Intervals": {
+    "type": "design",
+    "tests": "Designing a structure that keeps a set of intervals disjoint under arbitrary single-point insertions, where one new value can bridge two separate blocks into one.",
+    "minutes": 42,
+    "complexity": {
+      "time": "O(log n)",
+      "space": "O(n)"
+    }
+  },
+  "Minimum Interval to Include Each Query": {
+    "type": "optimization",
+    "tests": "Whether you can reorder independent queries so a single ordered pass over the intervals serves them all, instead of re-searching the whole list per query.",
+    "minutes": 48,
+    "complexity": {
+      "time": "O(n log n + q log q)",
+      "space": "O(n + q)"
+    }
+  },
+  "Reverse Linked List": {
+    "type": "foundation",
+    "tests": "Whether you can flip a chain's direction one link at a time without losing hold of the node you are about to orphan.",
+    "minutes": 10,
+    "complexity": {
+      "time": "O(n)",
+      "space": "O(1)"
+    }
+  },
+  "Reverse Nodes in k-Group": {
+    "type": "implementation",
+    "tests": "Whether your pointer bookkeeping survives repeated bounded reversals, including the rule that a trailing partial group must be left exactly as it was found.",
+    "minutes": 45,
+    "complexity": {
+      "time": "O(n)",
+      "space": "O(1)"
+    }
+  },
+  "Reverse Linked List II": {
+    "type": "variant",
+    "tests": "Whether you can confine a reversal to a window and still reattach both seams correctly, given that the window's head becomes its tail.",
+    "minutes": 25,
+    "complexity": {
+      "time": "O(n)",
+      "space": "O(1)"
+    }
+  },
+  "Reorder List": {
+    "type": "recognition",
+    "tests": "Recognizing a weave of front and back as three familiar list routines composed in order, rather than one clever traversal you have never met.",
+    "minutes": 28,
+    "complexity": {
+      "time": "O(n)",
+      "space": "O(1)"
+    }
+  },
+  "Swapping Nodes in a Linked List": {
+    "type": "implementation",
+    "tests": "Whether you can locate two positions measured from opposite ends in a single traversal, staying clear about which end each index counts from.",
+    "minutes": 20,
+    "complexity": {
+      "time": "O(n)",
+      "space": "O(1)"
+    }
+  },
+  "Reverse Nodes In Even Length Groups": {
+    "type": "implementation",
+    "tests": "Whether you can drive a reversal routine from a group size that grows as you walk, while a truncated final group changes whether it qualifies.",
+    "minutes": 33,
+    "complexity": {
+      "time": "O(n)",
+      "space": "O(1)"
+    }
+  },
+  "Swap Nodes in Pairs": {
+    "type": "foundation",
+    "tests": "Whether you can rewire adjacent nodes without touching their values, and handle the head itself being one of the nodes that moves.",
+    "minutes": 20,
+    "complexity": {
+      "time": "O(n)",
+      "space": "O(1)"
+    }
+  },
+  "Split Linked List in Parts": {
+    "type": "implementation",
+    "tests": "Whether you can compute every part's size before cutting anything, then sever once at each boundary under the rule that earlier parts absorb the remainder.",
+    "minutes": 25,
+    "complexity": {
+      "time": "O(n + k)",
+      "space": "O(k)"
+    }
+  },
+  "Remove Linked List Elements": {
+    "type": "foundation",
+    "tests": "Whether you can delete by redirecting a predecessor's pointer rather than touching the node itself, including when the node to drop is the head.",
+    "minutes": 12,
+    "complexity": {
+      "time": "O(n)",
+      "space": "O(1)"
+    }
+  },
+  "Delete N Nodes After M Nodes of a Linked List": {
+    "type": "implementation",
+    "tests": "Keeping two counters honest across a repeating keep-then-drop cycle, so the traversal terminates cleanly when the list runs out in the middle of a cycle.",
+    "minutes": 13,
+    "complexity": {
+      "time": "O(n)",
+      "space": "O(1)"
+    }
+  },
+  "Remove Duplicates from Sorted List": {
+    "type": "implementation",
+    "tests": "Whether you exploit sortedness so equality only ever needs checking against the immediate neighbour, and a whole run of copies collapses without restarting the scan.",
+    "minutes": 12,
+    "complexity": {
+      "time": "O(n)",
+      "space": "O(1)"
+    }
+  },
+  "Insert into a Sorted Circular Linked List": {
+    "type": "implementation",
+    "tests": "Whether you can find an insertion seam in a cycle that has no end, including the cases where every value is equal or the list is empty.",
+    "minutes": 30,
+    "complexity": {
+      "time": "O(n)",
+      "space": "O(1)"
+    }
+  },
+  "Odd Even Linked List": {
+    "type": "foundation",
+    "tests": "Whether you can grow two separate chains during one pass and join them at the end, instead of moving nodes individually into their final positions.",
+    "minutes": 22,
+    "complexity": {
+      "time": "O(n)",
+      "space": "O(1)"
+    }
+  },
+  "Rotate List": {
+    "type": "recognition",
+    "tests": "Recognizing that rotation is really a choice of where to cut, and that the shift count must first be reduced against the list's own length.",
+    "minutes": 24,
+    "complexity": {
+      "time": "O(n)",
+      "space": "O(1)"
+    }
+  },
+  "Maximize Capital": {
+    "type": "foundation",
+    "tests": "Whether you can separate what you can currently afford from what you cannot, and let each new gain move items across that line before you choose again.",
+    "minutes": 40,
+    "complexity": {
+      "time": "O(n log n)",
+      "space": "O(n)"
+    }
+  },
+  "Find Median from a Data Stream": {
+    "type": "design",
+    "tests": "Designing storage where the middle of a growing collection is always immediately readable, rather than something you recompute after every insertion.",
+    "minutes": 38,
+    "complexity": {
+      "time": "O(log n)",
+      "space": "O(n)"
+    }
+  },
+  "Sliding Window Median": {
+    "type": "variant",
+    "tests": "Whether a balanced two-sided structure survives elements leaving as well as arriving, when the container you would reach for cannot remove from its interior.",
+    "minutes": 52,
+    "complexity": {
+      "time": "O(n log n)",
+      "space": "O(n)"
+    }
+  },
+  "Schedule Tasks on Minimum Machines": {
+    "type": "recognition",
+    "tests": "Recognizing that a machine count question is really about peak simultaneous demand, so the earliest finishing task decides whether a new machine is needed.",
+    "minutes": 25,
+    "complexity": {
+      "time": "O(n log n)",
+      "space": "O(n)"
+    }
+  },
+  "Meeting Rooms III": {
+    "type": "implementation",
+    "tests": "Whether you can track free and busy rooms at once with correct tie-breaking, since a delayed meeting must take the lowest-numbered room among those freeing first.",
+    "minutes": 45,
+    "complexity": {
+      "time": "O(m log m + m log n)",
+      "space": "O(n)"
+    }
+  },
+  "Minimum Cost to Connect Sticks": {
+    "type": "foundation",
+    "tests": "Whether you trust that combining the two cheapest pieces first is safe, and that each merged result re-enters the pool as an ordinary candidate.",
+    "minutes": 20,
+    "complexity": {
+      "time": "O(n log n)",
+      "space": "O(n)"
+    }
+  },
+  "Longest Happy String": {
+    "type": "implementation",
+    "tests": "Whether a greedy that spends the most plentiful letter can be constrained by recent history, falling back when the obvious choice would break the run rule.",
+    "minutes": 28,
+    "complexity": {
+      "time": "O(n)",
+      "space": "O(1)"
+    }
+  },
+  "Maximum Average Pass Ratio": {
+    "type": "recognition",
+    "tests": "Recognizing that the right greedy key is how much a single addition improves a class, not how badly the class is currently performing.",
+    "minutes": 26,
+    "complexity": {
+      "time": "O(n + k log n)",
+      "space": "O(n)"
+    }
+  },
+  "The Number of the Smallest Unoccupied Chair": {
+    "type": "implementation",
+    "tests": "Whether you can process arrivals and departures in the correct order while keeping freed resources reusable by lowest index rather than most recently released.",
+    "minutes": 30,
+    "complexity": {
+      "time": "O(n log n)",
+      "space": "O(n)"
+    }
+  },
+  "Largest Number After Digit Swaps by Parity": {
+    "type": "recognition",
+    "tests": "Recognizing that a swap restriction partitions digits into independent pools, so each position can only ever be improved from within its own pool.",
+    "minutes": 14,
+    "complexity": {
+      "time": "O(n log n)",
+      "space": "O(n)"
+    }
+  },
+  "Find Right Interval": {
+    "type": "recognition",
+    "tests": "Recognizing a nearest-thing-that-starts-after-this-ends question as a successor lookup, which needs a searchable order built without losing the original indices.",
+    "minutes": 24,
+    "complexity": {
+      "time": "O(n log n)",
+      "space": "O(n)"
+    }
+  },
+  "Construct Target Array with Multiple Sums": {
+    "type": "recognition",
+    "tests": "Recognizing that a forward construction is hopelessly ambiguous but the final step never is, so the process is only decidable when replayed from the finished array.",
+    "minutes": 50
+  },
+  "Merge Sorted Array": {
+    "type": "implementation",
+    "tests": "Whether you can merge in place by choosing a fill direction in which writing never overwrites data you have not read yet.",
+    "minutes": 15,
+    "complexity": {
+      "time": "O(n + m)",
+      "space": "O(1)"
+    }
+  },
+  "Kth Smallest Number in M Sorted Lists": {
+    "type": "foundation",
+    "tests": "Whether you can hold just one live candidate per sorted source, so the next-smallest element overall is always available without scanning the rest.",
+    "minutes": 22,
+    "complexity": {
+      "time": "O(k log m)",
+      "space": "O(m)"
+    }
+  },
+  "Find K Pairs with Smallest Sums": {
+    "type": "recognition",
+    "tests": "Recognizing that pairs you never actually build still form sorted sequences, so a small frontier of candidates always contains the next-best pair.",
+    "minutes": 30,
+    "complexity": {
+      "time": "O(k log k)",
+      "space": "O(k)"
+    }
+  },
+  "Merge K Sorted Lists": {
+    "type": "foundation",
+    "tests": "Whether you can exploit the order already present inside each input instead of discarding it, keeping the cost tied to the number of lists rather than elements.",
+    "minutes": 35,
+    "complexity": {
+      "time": "O(n log k)",
+      "space": "O(k)"
+    }
+  },
+  "Kth Smallest Element in a Sorted Matrix": {
+    "type": "variant",
+    "tests": "Whether you can use sortedness in two directions at once, since reading the matrix row by row throws away half the guarantee you were handed.",
+    "minutes": 28,
+    "complexity": {
+      "time": "O(k log n)",
+      "space": "O(n)"
+    }
+  },
+  "K-th Smallest Prime Fraction": {
+    "type": "variant",
+    "tests": "Whether you can impose a sorted structure on values built from two arrays, when the ordering you need is not the ordering the arrays came in.",
+    "minutes": 30,
+    "complexity": {
+      "time": "O(k log n)",
+      "space": "O(n)"
+    }
+  },
+  "Super Ugly Number": {
+    "type": "recognition",
+    "tests": "Recognizing that each prime generates its own increasing sequence over answers you have already produced, and that the same value arrives from several directions.",
+    "minutes": 26,
+    "complexity": {
+      "time": "O(n log k)",
+      "space": "O(n + k)"
+    }
+  },
+  "Kth Largest Element in a Stream": {
+    "type": "design",
+    "tests": "Designing a container that only ever needs to remember k values, discarding anything that can no longer influence the answer the moment it arrives.",
+    "minutes": 14,
+    "complexity": {
+      "time": "O(log k)",
+      "space": "O(k)"
+    }
+  },
+  "Reorganize String": {
+    "type": "recognition",
+    "tests": "Recognizing that only the most frequent character can make the arrangement impossible, and that every placement decision depends on counts rather than the letters themselves.",
+    "minutes": 28,
+    "complexity": {
+      "time": "O(n)",
+      "space": "O(1)"
+    }
+  },
+  "K Closest Points to Origin": {
+    "type": "optimization",
+    "tests": "Whether you can beat a full sort when only k winners matter, and notice that a monotone transform of distance is enough for every comparison.",
+    "minutes": 22,
+    "complexity": {
+      "time": "O(n log k)",
+      "space": "O(k)"
+    }
+  },
+  "Top K Frequent Elements": {
+    "type": "foundation",
+    "tests": "Whether you can move a problem off the values and onto their tallies, then apply selection machinery to counts you built in one pass.",
+    "minutes": 24,
+    "complexity": {
+      "time": "O(n log k)",
+      "space": "O(n)"
+    }
+  },
+  "Kth Largest Element in an Array": {
+    "type": "foundation",
+    "tests": "Whether you can find a single order statistic without sorting everything, keeping only the elements that could still turn out to be the answer.",
+    "minutes": 25,
+    "complexity": {
+      "time": "O(n log k)",
+      "space": "O(k)"
+    }
+  },
+  "Maximal Score After Applying K Operations": {
+    "type": "foundation",
+    "tests": "Whether you can let a mutated element compete again, since taking the current largest changes its value but does not remove it from consideration.",
+    "minutes": 20,
+    "complexity": {
+      "time": "O(n + k log n)",
+      "space": "O(n)"
+    }
+  },
+  "Find the Kth Largest Integer in the Array": {
+    "type": "variant",
+    "tests": "Whether you notice numeric ordering must be reconstructed for values too large to convert, where length decides first and content only ever breaks ties.",
+    "minutes": 22,
+    "complexity": {
+      "time": "O(n log k)",
+      "space": "O(k)"
+    }
+  },
+  "Third Maximum Number": {
+    "type": "implementation",
+    "tests": "Whether you can track a fixed number of leaders in one pass while duplicates and a missing third rank quietly change what the answer should be.",
+    "minutes": 15,
+    "complexity": {
+      "time": "O(n)",
+      "space": "O(1)"
+    }
+  },
+  "Find Subsequence of Length K with the Largest Sum": {
+    "type": "implementation",
+    "tests": "Whether you can select by value but emit by position, keeping the chosen survivors in their original order once the selection has been made.",
+    "minutes": 16,
+    "complexity": {
+      "time": "O(n log n)",
+      "space": "O(n)"
+    }
+  },
+  "Minimum Cost to Hire K Workers": {
+    "type": "recognition",
+    "tests": "Recognizing that fixing one worker's pay rate makes every other cost computable, turning a two-variable optimization into a sweep with a bounded selection inside.",
+    "minutes": 55,
+    "complexity": {
+      "time": "O(n log n)",
+      "space": "O(n)"
+    }
+  },
+  "Smallest Range Covering Elements from K Lists": {
+    "type": "recognition",
+    "tests": "Recognizing that a range touching every list is pinned by one element per list, and that only one end of it can usefully move at a time.",
+    "minutes": 45,
+    "complexity": {
+      "time": "O(n log k)",
+      "space": "O(k)"
+    }
+  },
+  "Maximum Performance of a Team": {
+    "type": "recognition",
+    "tests": "Recognizing that a product of two competing quantities becomes tractable once one of them is fixed as the team's limiting factor and the other is selected freely.",
+    "minutes": 45,
+    "complexity": {
+      "time": "O(n log n)",
+      "space": "O(n)"
+    }
+  },
+  "K Maximum Sum Combinations From Two Arrays": {
+    "type": "optimization",
+    "tests": "Whether you can avoid building every pair sum, expanding only the neighbours of combinations you already accepted while refusing to revisit the same one twice.",
+    "minutes": 40,
+    "complexity": {
+      "time": "O(n log n + k log k)",
+      "space": "O(n + k)"
+    }
+  },
+  "K Empty Slots": {
+    "type": "recognition",
+    "tests": "Recognizing that inverting the given mapping turns an evolving picture into a static array, where the condition becomes a statement about one fixed-width span.",
+    "minutes": 50,
+    "complexity": {
+      "time": "O(n)",
+      "space": "O(n)"
+    }
+  },
+  "Find the K-Sum of an Array": {
+    "type": "optimization",
+    "tests": "Whether you can reason about an exponential space of subset sums as deviations from the single best one, generating candidates in order instead of enumerating them.",
+    "minutes": 58,
+    "complexity": {
+      "time": "O(n log n + k log k)",
+      "space": "O(n + k)"
+    }
+  },
+  "Maximum Product After K Increments": {
+    "type": "recognition",
+    "tests": "Recognizing that spending each unit on the currently smallest factor maximizes a product, and being able to argue why that choice is never regretted later.",
+    "minutes": 22,
+    "complexity": {
+      "time": "O(n + k log n)",
+      "space": "O(n)"
+    }
+  },
+  "Least Number of Unique Integers after K Removals": {
+    "type": "recognition",
+    "tests": "Recognizing that eliminating whole groups matters more than removing many elements, so the cheapest groups to erase completely are the ones to spend on first.",
+    "minutes": 20,
+    "complexity": {
+      "time": "O(n log n)",
+      "space": "O(n)"
+    }
+  },
+  "Final Array State After K Multiplication Operations I": {
+    "type": "foundation",
+    "tests": "Whether you can repeatedly serve the current minimum and return the changed value to the pool, with ties resolved by earliest position rather than arbitrarily.",
+    "minutes": 11,
+    "complexity": {
+      "time": "O(n + k log n)",
+      "space": "O(n)"
+    }
+  },
+  "Binary Search": {
+    "type": "foundation",
+    "tests": "Whether you can maintain a shrinking interval that provably still contains the target, and terminate cleanly, without off-by-one drift in the bounds.",
+    "minutes": 10,
+    "complexity": {
+      "time": "O(log n)",
+      "space": "O(1)"
+    }
+  },
+  "Search in Rotated Sorted Array": {
+    "type": "recognition",
+    "tests": "Recognizing that a local check at the midpoint still proves which half is properly ordered, so a broken sort order does not cost you the halving.",
+    "minutes": 28,
+    "complexity": {
+      "time": "O(log n)",
+      "space": "O(1)"
+    }
+  },
+  "First Bad Version": {
+    "type": "foundation",
+    "tests": "Whether you can see an API's yes/no answers as a monotone sequence with one flip point, and search for that boundary instead of for values.",
+    "minutes": 10,
+    "complexity": {
+      "time": "O(log n)",
+      "space": "O(1)"
+    }
+  },
+  "Find K Closest Elements": {
+    "type": "recognition",
+    "tests": "Recognizing that the answer is a contiguous block of the sorted array, so the search is for where that block begins rather than for k separate elements.",
+    "minutes": 28,
+    "complexity": {
+      "time": "O(log n + k)",
+      "space": "O(1)"
+    }
+  },
+  "Single Element in a Sorted Array": {
+    "type": "recognition",
+    "tests": "Recognizing that pairing adjacent positions creates a parity invariant that breaks exactly at the intruder, so index arithmetic rather than value comparison chooses the half.",
+    "minutes": 26,
+    "complexity": {
+      "time": "O(log n)",
+      "space": "O(1)"
+    }
+  },
+  "Split Array Largest Sum": {
+    "type": "recognition",
+    "tests": "Whether you can invert the question and search for the answer value itself, testing feasibility of a guess, when computing the optimal partition directly resists a formula.",
+    "minutes": 40,
+    "complexity": {
+      "time": "O(n log S)",
+      "space": "O(1)"
+    }
+  },
+  "The K Weakest Rows in a Matrix": {
+    "type": "recognition",
+    "tests": "Recognizing that each row's soldier count is itself a boundary lookup, and that ranking only needs the k smallest rather than a full ordering.",
+    "minutes": 14,
+    "complexity": {
+      "time": "O(m log n + m log m)",
+      "space": "O(m)"
+    }
+  },
+  "Maximum Value at a Given Index in a Bounded Array": {
+    "type": "implementation",
+    "tests": "Whether you can compute the total cost of a candidate peak in closed form, handling the clamp at one and the array edges without off-by-one error.",
+    "minutes": 32,
+    "complexity": {
+      "time": "O(log maxSum)",
+      "space": "O(1)"
+    }
+  },
+  "Search in Rotated Sorted Array II": {
+    "type": "variant",
+    "tests": "Holding the rotated-array halving argument while duplicates make the midpoint uninformative, and knowing what that ambiguity costs you in the worst case.",
+    "minutes": 30,
+    "complexity": {
+      "time": "O(log n) average, O(n) worst",
+      "space": "O(1)"
+    }
+  },
+  "Count Pairs Whose Sum is Less than Target": {
+    "type": "optimization",
+    "tests": "Whether you can beat the obvious double loop by sorting first, so each element's valid partners form one contiguous stretch you can count directly.",
+    "minutes": 12,
+    "complexity": {
+      "time": "O(n log n)",
+      "space": "O(1)"
+    }
+  },
+  "Find Minimum in Rotated Sorted Array II": {
+    "type": "variant",
+    "tests": "Whether you can still discard half of a rotated array when equal endpoints hide the rotation, and justify the one safe step left when you cannot.",
+    "minutes": 36,
+    "complexity": {
+      "time": "O(log n) average, O(n) worst",
+      "space": "O(1)"
+    }
+  },
+  "Maximum Running Time of N Computers": {
+    "type": "recognition",
+    "tests": "Recognizing that a scheduling question with swappable batteries is a feasibility test on a guessed runtime, once you see what caps a single battery's usable charge.",
+    "minutes": 40,
+    "complexity": {
+      "time": "O(n log S)",
+      "space": "O(1)"
+    }
+  },
+  "Minimize Max Distance to Gas Station": {
+    "type": "variant",
+    "tests": "Holding the guess-and-check structure while the candidates are real numbers, so termination comes from a precision target rather than from integer bounds collapsing.",
+    "minutes": 42,
+    "complexity": {
+      "time": "O(n log(D/eps))",
+      "space": "O(1)"
+    }
+  },
+  "Divide Chocolate": {
+    "type": "variant",
+    "tests": "Whether you can flip a minimize-the-maximum template into maximize-the-minimum, and keep the feasibility check honest about what a failed cut actually proves.",
+    "minutes": 38,
+    "complexity": {
+      "time": "O(n log S)",
+      "space": "O(1)"
+    }
+  },
+  "Split Array Into Two Arrays to Minimize Sum Difference": {
+    "type": "recognition",
+    "tests": "Recognizing that an exponential subset search splits into two enumerable halves whose sums can be matched by sorted lookup instead of by pairing every combination.",
+    "minutes": 60,
+    "complexity": {
+      "time": "O(n * 2^n)",
+      "space": "O(2^n)"
+    }
+  },
+  "Number of Flowers in Full Bloom": {
+    "type": "recognition",
+    "tests": "Recognizing that how many things are active at a moment is a difference of two counts over sorted event times, making each query a pair of lookups.",
+    "minutes": 38,
+    "complexity": {
+      "time": "O((n + q) log n)",
+      "space": "O(n)"
+    }
+  },
+  "Koko Eating Bananas": {
+    "type": "foundation",
+    "tests": "Whether you can spot that the unknown is a rate whose feasibility only ever improves as it grows, which makes the rate itself the thing to search.",
+    "minutes": 25,
+    "complexity": {
+      "time": "O(n log M)",
+      "space": "O(1)"
+    }
+  },
+  "Search Insert Position": {
+    "type": "foundation",
+    "tests": "Whether you can return the boundary where a missing element would belong, not just a found index, which is the shape most binary searches actually need.",
+    "minutes": 10,
+    "complexity": {
+      "time": "O(log n)",
+      "space": "O(1)"
+    }
+  },
+  "Find Peak Element": {
+    "type": "recognition",
+    "tests": "Recognizing that an uphill neighbor guarantees a peak lies in that direction, so a local slope check discards half of an array that is not sorted at all.",
+    "minutes": 24,
+    "complexity": {
+      "time": "O(log n)",
+      "space": "O(1)"
+    }
+  },
+  "Find First and Last Position of Element in Sorted Array": {
+    "type": "implementation",
+    "tests": "Whether you can write the same search twice with different tie-breaking, so a run of equal values resolves to its left edge once and its right edge the other time.",
+    "minutes": 24,
+    "complexity": {
+      "time": "O(log n)",
+      "space": "O(1)"
+    }
+  },
+  "Kth Smallest Product of Two Sorted Arrays": {
+    "type": "variant",
+    "tests": "Whether you can count values at or below a guess when negative factors reverse every inequality, so the counting oracle needs cases the positive version never had.",
+    "minutes": 55,
+    "complexity": {
+      "time": "O(n log m log M)",
+      "space": "O(1)"
+    }
+  },
+  "Sqrt(x)": {
+    "type": "foundation",
+    "tests": "Whether you can search a numeric range for the largest value whose square still fits, treating the answer itself rather than any array as the search space.",
+    "minutes": 20,
+    "complexity": {
+      "time": "O(log x)",
+      "space": "O(1)"
+    }
+  },
+  "Reaching Points": {
+    "type": "recognition",
+    "tests": "Recognizing that a forward search branching two ways at every step becomes deterministic when replayed backwards from the target, which is what makes it tractable.",
+    "minutes": 32,
+    "complexity": {
+      "time": "O(log(max(tx, ty)))",
+      "space": "O(1)"
+    }
+  },
+  "Kth Missing Positive Number": {
+    "type": "optimization",
+    "tests": "Whether you can express how many values are missing before each index as a monotone quantity, turning a linear walk into a boundary lookup.",
+    "minutes": 22,
+    "complexity": {
+      "time": "O(log n)",
+      "space": "O(1)"
+    }
+  },
+  "Subsets": {
+    "type": "foundation",
+    "tests": "Whether you can see an exponential output as a tree of per-element choices, and keep the shared working list honest by undoing each choice on the way back.",
+    "minutes": 22,
+    "complexity": {
+      "time": "O(n * 2^n)",
+      "space": "O(n)"
+    }
+  },
+  "Permutations": {
+    "type": "foundation",
+    "tests": "Whether you can fill positions from a shrinking pool of unused elements, tracking availability instead of a start index, now that reorderings count as distinct answers.",
+    "minutes": 24,
+    "complexity": {
+      "time": "O(n * n!)",
+      "space": "O(n)"
+    }
+  },
+  "Letter Combinations of a Phone Number": {
+    "type": "recognition",
+    "tests": "Recognizing that a fixed-length product of independent choice sets is the same recursion as subsets, with each position's candidates supplied by a lookup rather than the input.",
+    "minutes": 20,
+    "complexity": {
+      "time": "O(n * 4^n)",
+      "space": "O(n)"
+    }
+  },
+  "Generate Parentheses": {
+    "type": "recognition",
+    "tests": "Recognizing that a validity rule can be checked on partial output, so impossible prefixes die early instead of after a full candidate is built and tested.",
+    "minutes": 26,
+    "complexity": {
+      "time": "O(4^n / sqrt(n))",
+      "space": "O(n)"
+    }
+  },
+  "Find K-Sum Subsets": {
+    "type": "variant",
+    "tests": "Whether an added numeric target turns the include-or-exclude walk from a plain enumeration into a search, where the running total decides which branches stay worth entering.",
+    "minutes": 25
+  },
+  "Letter Case Permutation": {
+    "type": "recognition",
+    "tests": "Recognizing that only letters branch while digits are forced, turning a permutation-sounding ask into an independent two-way choice at a subset of the positions.",
+    "minutes": 20,
+    "complexity": {
+      "time": "O(n * 2^n)",
+      "space": "O(n)"
+    }
+  },
+  "Letter Tile Possibilities": {
+    "type": "variant",
+    "tests": "Holding the slot-filling recursion while repeated tiles threaten identical sequences, which forces branching to key on distinct values rather than on positions.",
+    "minutes": 28,
+    "complexity": {
+      "time": "O(n * n!)",
+      "space": "O(n)"
+    }
+  },
+  "Subsets II": {
+    "type": "variant",
+    "tests": "Whether you can prevent duplicate results at the moment of branching rather than generating them and filtering afterwards, once the input can hold repeated values.",
+    "minutes": 25,
+    "complexity": {
+      "time": "O(n * 2^n)",
+      "space": "O(n)"
+    }
+  },
+  "Jump Game I": {
+    "type": "foundation",
+    "tests": "Whether you can replace which path do I take with how far can I get, a reframing that turns an exponential path search into a single sweep.",
+    "minutes": 22,
+    "complexity": {
+      "time": "O(n)",
+      "space": "O(1)"
+    }
+  },
+  "Boats to Save People": {
+    "type": "foundation",
+    "tests": "Whether you can argue that the hardest item to place should be settled first, and that its best partner is forced once the list is sorted.",
+    "minutes": 24,
+    "complexity": {
+      "time": "O(n log n)",
+      "space": "O(1)"
+    }
+  },
+  "Gas Stations": {
+    "type": "recognition",
+    "tests": "Recognizing that a failed run rules out every start inside it, not just the one you tried, which is what collapses a quadratic check into one pass.",
+    "minutes": 26,
+    "complexity": {
+      "time": "O(n)",
+      "space": "O(1)"
+    }
+  },
+  "Two City Scheduling": {
+    "type": "recognition",
+    "tests": "Recognizing that the decision turns on the difference between two costs rather than either cost alone, so the sort key is a quantity the input never states.",
+    "minutes": 22,
+    "complexity": {
+      "time": "O(n log n)",
+      "space": "O(1)"
+    }
+  },
+  "Minimum Number of Refueling Stops": {
+    "type": "recognition",
+    "tests": "Recognizing that a refuel can be decided in hindsight, since a station you passed stays available, so the choice need not be made when you reach it.",
+    "minutes": 40,
+    "complexity": {
+      "time": "O(n log n)",
+      "space": "O(n)"
+    }
+  },
+  "Largest Palindromic Number": {
+    "type": "implementation",
+    "tests": "Whether you can build half of a mirrored answer from digit counts while leading-zero and middle-digit rules quietly invalidate the obvious construction.",
+    "minutes": 30,
+    "complexity": {
+      "time": "O(n)",
+      "space": "O(1)"
+    }
+  },
+  "Jump Game II": {
+    "type": "variant",
+    "tests": "Holding the reachability frontier while now counting layers, so the move count comes from how often the frontier is exhausted rather than from any chosen route.",
+    "minutes": 26,
+    "complexity": {
+      "time": "O(n)",
+      "space": "O(1)"
+    }
+  },
+  "Number of Steps to Reduce a Binary Number to One": {
+    "type": "recognition",
+    "tests": "Recognizing that a number too large to hold can still be reduced digit by digit, with one carry bit standing in for all the arithmetic.",
+    "minutes": 22,
+    "complexity": {
+      "time": "O(n)",
+      "space": "O(1)"
+    }
+  },
+  "Rearranging Fruits": {
+    "type": "recognition",
+    "tests": "Recognizing that only the mismatched surplus has to move, and that the cheapest way to trade two costly items may route through a third, lighter one.",
+    "minutes": 45,
+    "complexity": {
+      "time": "O(n log n)",
+      "space": "O(n)"
+    }
+  },
+  "Maximum Swap": {
+    "type": "foundation",
+    "tests": "Whether you can find the earliest position a single exchange can improve, and pick among equally good partners the one that leaves the rest of the number best.",
+    "minutes": 24,
+    "complexity": {
+      "time": "O(n)",
+      "space": "O(1)"
+    }
+  },
+  "Can Place Flowers": {
+    "type": "foundation",
+    "tests": "Whether you can commit to each opportunity the moment it is legal, trusting that an early placement never blocks a better arrangement later.",
+    "minutes": 12,
+    "complexity": {
+      "time": "O(n)",
+      "space": "O(1)"
+    }
+  },
+  "Largest Odd Number in String": {
+    "type": "recognition",
+    "tests": "Recognizing that the answer must be a prefix of the input, which reduces an apparent search over substrings to locating one character.",
+    "minutes": 8,
+    "complexity": {
+      "time": "O(n)",
+      "space": "O(1)"
+    }
+  },
+  "Assign Cookies": {
+    "type": "foundation",
+    "tests": "Whether you can spend the smallest sufficient resource on each demand, and see why saving a larger one for later never loses.",
+    "minutes": 12,
+    "complexity": {
+      "time": "O(n log n)",
+      "space": "O(1)"
+    }
+  },
+  "Candy": {
+    "type": "variant",
+    "tests": "Whether you can satisfy a constraint that looks in both directions when a single sweep can only ever enforce one of them.",
+    "minutes": 35,
+    "complexity": {
+      "time": "O(n)",
+      "space": "O(n)"
+    }
+  },
+  "Minimum Replacements to Sort the Array": {
+    "type": "recognition",
+    "tests": "Recognizing that the array must be read from the right, since each element's ceiling is fixed by what follows, and that splitting as evenly as possible minimizes the pieces.",
+    "minutes": 45,
+    "complexity": {
+      "time": "O(n)",
+      "space": "O(1)"
+    }
+  },
+  "Sort an Array": {
+    "type": "implementation",
+    "tests": "Whether you can write a comparison sort end to end yourself, the recursive split, the merge or partition step and the base cases, without a library call.",
+    "minutes": 30,
+    "complexity": {
+      "time": "O(n log n)",
+      "space": "O(n)"
+    }
+  },
+  "Text Justification": {
+    "type": "implementation",
+    "tests": "Whether you can hold a pile of interacting formatting rules, line packing, uneven space distribution and the last line's exception, without one case corrupting another.",
+    "minutes": 50,
+    "complexity": {
+      "time": "O(n)",
+      "space": "O(n)"
+    }
+  },
+  "Best Time to Buy and Sell Stock II": {
+    "type": "recognition",
+    "tests": "Recognizing that unlimited transactions make every upward step independently collectible, so no decision about when to hold is ever needed.",
+    "minutes": 20,
+    "complexity": {
+      "time": "O(n)",
+      "space": "O(1)"
+    }
+  },
+  "Wildcard Matching": {
+    "type": "optimization",
+    "tests": "Whether you can let one wildcard absorb an unknown amount of input while keeping the work polynomial, instead of branching on every length it might take.",
+    "minutes": 50,
+    "complexity": {
+      "time": "O(n*m)",
+      "space": "O(n*m)"
+    }
+  },
+  "Remove K Digits": {
+    "type": "recognition",
+    "tests": "Recognizing that a digit is worth deleting only when a smaller one follows it, and that one deletion can make an earlier digit newly worth deleting.",
+    "minutes": 28,
+    "complexity": {
+      "time": "O(n)",
+      "space": "O(n)"
+    }
+  },
+  "Largest Number": {
+    "type": "recognition",
+    "tests": "Recognizing that the ordering you need is defined by the result of combining two pieces, not by comparing them as numbers, and that it must still be a valid order.",
+    "minutes": 26,
+    "complexity": {
+      "time": "O(n log n)",
+      "space": "O(n)"
+    }
+  },
+  "Strong Password Checker": {
+    "type": "implementation",
+    "tests": "Whether you can reconcile three requirements whose cheapest repairs overlap, so counting each in isolation overstates the work and the length rules change which repair wins.",
+    "minutes": 55,
+    "complexity": {
+      "time": "O(n)",
+      "space": "O(1)"
+    }
+  },
+  "Maximum Points After Enemy Battles": {
+    "type": "recognition",
+    "tests": "Recognizing that one extreme element should carry every scoring move while the rest exist only to be cashed in for the resource that funds them.",
+    "minutes": 28
+  },
+  "Integer to Roman": {
+    "type": "implementation",
+    "tests": "Whether you can encode a value system as an ordered table, subtractive exceptions included, so one descending sweep replaces a pile of special cases.",
+    "minutes": 22,
+    "complexity": {
+      "time": "O(1)",
+      "space": "O(1)"
+    }
+  },
+  "N-Queens II": {
+    "type": "variant",
+    "tests": "Whether you can count arrangements without ever building one, keeping conflicts in occupancy sets so the answer accumulates from the search itself rather than from inspecting finished boards.",
+    "minutes": 40,
+    "complexity": {
+      "time": "O(n!)",
+      "space": "O(n)"
+    }
+  },
+  "Word Search": {
+    "type": "foundation",
+    "tests": "Whether you can reserve a cell for the path you are currently on and release it on the way out, so sibling branches are never wrongly blocked.",
+    "minutes": 28,
+    "complexity": {
+      "time": "O(m*n*3^L)",
+      "space": "O(L)"
+    }
+  },
+  "House Robber III": {
+    "type": "variant",
+    "tests": "Whether you can carry two answers up from every subtree, the best with this node taken and the best without, when there is no linear order to index.",
+    "minutes": 28,
+    "complexity": {
+      "time": "O(n)",
+      "space": "O(h)"
+    }
+  },
+  "Restore IP Addresses": {
+    "type": "implementation",
+    "tests": "Whether you can bound a segmentation search by both piece count and piece legality, catching the leading-zero and range rules that a plain numeric parse quietly accepts.",
+    "minutes": 25
+  },
+  "Flood Fill": {
+    "type": "foundation",
+    "tests": "Whether you can spread through a connected region while making each visit permanent, since a region fill must not undo its marks the way a path search does.",
+    "minutes": 12,
+    "complexity": {
+      "time": "O(m*n)",
+      "space": "O(m*n)"
+    }
+  },
+  "Minimum Moves to Spread Stones Over Grid": {
+    "type": "recognition",
+    "tests": "Recognizing that surplus cells and empty cells pair up independently, so the cost is a matching problem measured in Manhattan distance rather than a sequence of simulated moves.",
+    "minutes": 30
+  },
+  "Sudoku Solver": {
+    "type": "implementation",
+    "tests": "Whether you can keep row, column, and box occupancy updated in step with each placement, so testing a candidate costs nothing and the expense stays in the branching.",
+    "minutes": 45
+  },
+  "Matchsticks to Square": {
+    "type": "optimization",
+    "tests": "Whether you can make an exponential assignment search finish through pruning alone: order items so failures come early, and refuse groups whose partial totals are already identical.",
+    "minutes": 30,
+    "complexity": {
+      "time": "O(4^n)",
+      "space": "O(n)"
+    }
+  },
+  "Binary Watch": {
+    "type": "recognition",
+    "tests": "Recognizing a watch face as a fixed set of bits, so 'exactly n lit' becomes enumeration over a chosen popcount, filtered down to the readings that are legal times.",
+    "minutes": 14
+  },
+  "Optimal Account Balancing": {
+    "type": "recognition",
+    "tests": "Recognizing that the individual transactions stop mattering once each person collapses to a net balance, turning the ask into a fewest-settlements search over a zero-sum multiset.",
+    "minutes": 50
+  },
+  "Split a String Into the Max Number of Unique Substrings": {
+    "type": "variant",
+    "tests": "Whether you can thread the set of already-committed pieces through the recursion, because a cut's legality here depends on the history of the split, not on the segment alone.",
+    "minutes": 26
+  },
+  "Binary Tree Paths": {
+    "type": "foundation",
+    "tests": "Whether you can grow one root-to-here trail, snapshot it at each leaf, and pop on the way back so a sibling branch never inherits a stale suffix.",
+    "minutes": 14,
+    "complexity": {
+      "time": "O(n*h)",
+      "space": "O(h)"
+    }
+  },
+  "All Paths From Source to Target": {
+    "type": "foundation",
+    "tests": "Whether you can enumerate every route without a visited set, seeing that acyclicity is exactly what makes revisiting a node on a different path safe.",
+    "minutes": 22,
+    "complexity": {
+      "time": "O(n*2^n)",
+      "space": "O(n)"
+    }
+  },
+  "Remove Invalid Parentheses": {
+    "type": "optimization",
+    "tests": "Whether you can settle the removal budget before searching, then explore only that depth while suppressing the duplicate results that identical adjacent characters otherwise produce.",
+    "minutes": 50,
+    "complexity": {
+      "time": "O(2^n)",
+      "space": "O(n)"
+    }
+  },
+  "Unique Paths III": {
+    "type": "variant",
+    "tests": "Whether you can tell when a counting grid problem stops being a table: free movement plus a cover-every-cell rule puts the visited set into the state, forcing exhaustive walking.",
+    "minutes": 40
+  },
+  "N-Queens": {
+    "type": "foundation",
+    "tests": "Whether you can convert 'no two attack' into column and diagonal occupancy that you update on the way down and erase on the way back, one row at a time.",
+    "minutes": 45,
+    "complexity": {
+      "time": "O(n!)",
+      "space": "O(n^2)"
+    }
+  },
+  "Combinations": {
+    "type": "foundation",
+    "tests": "Whether you can enforce combinations rather than permutations with a start index, and cut branches that can no longer reach k picks with the candidates that remain.",
+    "minutes": 20,
+    "complexity": {
+      "time": "O(k*C(n,k))",
+      "space": "O(k)"
+    }
+  },
+  "Word Ladder II": {
+    "type": "variant",
+    "tests": "Whether you can separate discovering the shortest distance from enumerating the sequences that achieve it, confining the second search to steps that actually move closer to the target.",
+    "minutes": 60
+  },
+  "Flip Game": {
+    "type": "foundation",
+    "tests": "Whether you can emit each legal move as an independent successor state, rebuilding from the original string every time instead of mutating one shared buffer.",
+    "minutes": 10,
+    "complexity": {
+      "time": "O(n^2)",
+      "space": "O(n)"
+    }
+  },
+  "Additive Number": {
+    "type": "implementation",
+    "tests": "Whether you can see that fixing the first two pieces determines everything after them, then verify the chain with string arithmetic while rejecting pieces that carry a leading zero.",
+    "minutes": 30,
+    "complexity": {
+      "time": "O(n^3)",
+      "space": "O(n)"
+    }
+  },
+  "0/1 Knapsack": {
+    "type": "foundation",
+    "tests": "Whether you can name the two axes of the state, items considered and capacity left, and see every item reduce to one take-or-skip comparison against smaller cells.",
+    "minutes": 30,
+    "complexity": {
+      "time": "O(n*W)",
+      "space": "O(W)"
+    }
+  },
+  "Coin Change": {
+    "type": "foundation",
+    "tests": "Whether you can trust a minimum assembled from every smaller target instead of a largest-coin-first instinct, and represent 'unreachable' as a value that arithmetic cannot accidentally beat.",
+    "minutes": 25,
+    "complexity": {
+      "time": "O(n*amount)",
+      "space": "O(amount)"
+    }
+  },
+  "N-th Tribonacci Number": {
+    "type": "foundation",
+    "tests": "Whether you can carry only the values a transition actually reads, the smallest possible instance of trading a whole table for a rolling window of fixed width.",
+    "minutes": 8,
+    "complexity": {
+      "time": "O(n)",
+      "space": "O(1)"
+    }
+  },
+  "Partition Equal Subset Sum": {
+    "type": "recognition",
+    "tests": "Recognizing an equal-split question as reachability of a single target, so the answer is which sums a subset can hit rather than how the two groups are arranged.",
+    "minutes": 28,
+    "complexity": {
+      "time": "O(n*S)",
+      "space": "O(S)"
+    }
+  },
+  "Counting Bits": {
+    "type": "recognition",
+    "tests": "Recognizing that a bit count never needs recomputing from scratch: every value is one bit away from a strictly smaller value whose answer is already stored.",
+    "minutes": 14,
+    "complexity": {
+      "time": "O(n)",
+      "space": "O(n)"
+    }
+  },
+  "01 Matrix": {
+    "type": "variant",
+    "tests": "Whether you can handle a grid recurrence whose dependencies point in all four directions, where no single sweep can see them all and the pass structure becomes the design decision.",
+    "minutes": 28,
+    "complexity": {
+      "time": "O(m*n)",
+      "space": "O(m*n)"
+    }
+  },
+  "House Robber II": {
+    "type": "variant",
+    "tests": "Whether you can defuse a circular constraint by reducing it to two linear runs that each forbid one endpoint, rather than inventing a wrap-aware recurrence.",
+    "minutes": 24,
+    "complexity": {
+      "time": "O(n)",
+      "space": "O(1)"
+    }
+  },
+  "Maximum Product Subarray": {
+    "type": "variant",
+    "tests": "Whether you can spot an insufficient state: one best value per position is not enough when the worst run so far is a single sign flip from becoming the best.",
+    "minutes": 28,
+    "complexity": {
+      "time": "O(n)",
+      "space": "O(1)"
+    }
+  },
+  "Combination Sum": {
+    "type": "foundation",
+    "tests": "Whether you can let a candidate repeat while still refusing reordered duplicates, the start-index discipline that separates a set of combinations from a list of permutations.",
+    "minutes": 25
+  },
+  "Word Break": {
+    "type": "foundation",
+    "tests": "Whether you can define reachability over prefixes and test every legal final chunk, instead of scanning greedily for the longest dictionary word that happens to fit.",
+    "minutes": 26,
+    "complexity": {
+      "time": "O(n^3)",
+      "space": "O(n)"
+    }
+  },
+  "Palindromic Substrings": {
+    "type": "optimization",
+    "tests": "Whether you can let the answer for a shorter interval decide a longer one, so verifying symmetry stops costing a fresh scan for every substring you consider.",
+    "minutes": 25,
+    "complexity": {
+      "time": "O(n^2)",
+      "space": "O(n^2)"
+    }
+  },
+  "Longest Common Subsequence": {
+    "type": "foundation",
+    "tests": "Whether you can build a table over prefix pairs and let a matching character consume both prefixes at once, the base case every alignment problem is a variation of.",
+    "minutes": 28,
+    "complexity": {
+      "time": "O(n*m)",
+      "space": "O(n*m)"
+    }
+  },
+  "Word Break II": {
+    "type": "variant",
+    "tests": "Whether you can tell feasibility apart from reconstruction, since the same table that answers 'possible' in polynomial time can hide exponentially many sentences behind it.",
+    "minutes": 45
+  },
+  "Decode Ways": {
+    "type": "recognition",
+    "tests": "Recognizing a two-step counting recurrence beneath a decoding story, then finding that zero is not an edge case but the thing that makes a transition illegal.",
+    "minutes": 28,
+    "complexity": {
+      "time": "O(n)",
+      "space": "O(1)"
+    }
+  },
+  "Count the Number of Good Subsequences": {
+    "type": "recognition",
+    "tests": "Recognizing that fixing the shared frequency first makes the letters independent, so a subsequence count becomes a product of per-letter choices summed over that fixed value.",
+    "minutes": 32,
+    "complexity": {
+      "time": "O(n)",
+      "space": "O(n)"
+    }
+  },
+  "Climbing Stairs": {
+    "type": "foundation",
+    "tests": "Whether you can read the answer at a step as a sum over the last move that could have reached it, the smallest complete example of a recurrence with base cases.",
+    "minutes": 10,
+    "complexity": {
+      "time": "O(n)",
+      "space": "O(1)"
+    }
+  },
+  "Binary Tree Cameras": {
+    "type": "recognition",
+    "tests": "Recognizing that 'covered or not' is too coarse a state for a node: holding a camera, covered by a child, and waiting on a parent must be told apart.",
+    "minutes": 55,
+    "complexity": {
+      "time": "O(n)",
+      "space": "O(h)"
+    }
+  },
+  "Number of Ways to Form a Target String Given a Dictionary": {
+    "type": "recognition",
+    "tests": "Recognizing that the individual words stop mattering once each column becomes a letter tally, leaving a prefix-pair walk in which every column may be spent at most once.",
+    "minutes": 50
+  },
+  "Pascal's Triangle": {
+    "type": "foundation",
+    "tests": "Whether you can generate each row purely from the row above it, the plainest case of a table where every entry is a sum of already-final neighbors.",
+    "minutes": 10,
+    "complexity": {
+      "time": "O(n^2)",
+      "space": "O(n^2)"
+    }
+  },
+  "Triangle": {
+    "type": "optimization",
+    "tests": "Whether you can collapse exponentially many descents into one value per cell, and see how the choice of sweep direction removes the final scan across the bottom row.",
+    "minutes": 24,
+    "complexity": {
+      "time": "O(n^2)",
+      "space": "O(n)"
+    }
+  },
+  "Frog Jump": {
+    "type": "variant",
+    "tests": "Whether you can widen a state until it is genuinely sufficient and then store it sparsely, since the stones are scattered and each one is reachable by several jump sizes.",
+    "minutes": 45,
+    "complexity": {
+      "time": "O(n^2)",
+      "space": "O(n^2)"
+    }
+  },
+  "Cherry Pickup": {
+    "type": "variant",
+    "tests": "Whether you can replace a there-and-back trip with two walks made at once, and see why they must be synchronized by step count so a shared cell is credited once.",
+    "minutes": 60,
+    "complexity": {
+      "time": "O(n^3)",
+      "space": "O(n^2)"
+    }
+  },
+  "Regular Expression Matching": {
+    "type": "implementation",
+    "tests": "Whether you can write a transition where one symbol governs a variable number of characters, so each star cell folds together 'use none of it' and 'consume one more'.",
+    "minutes": 55,
+    "complexity": {
+      "time": "O(n*m)",
+      "space": "O(n*m)"
+    }
+  },
+  "Dungeon Game": {
+    "type": "variant",
+    "tests": "Whether you can reverse the direction of a grid recurrence when the forward quantity is not a well-defined subproblem, and clamp cells so a windfall cannot travel backwards.",
+    "minutes": 50,
+    "complexity": {
+      "time": "O(m*n)",
+      "space": "O(m*n)"
+    }
+  },
+  "Burst Balloons": {
+    "type": "recognition",
+    "tests": "Recognizing that intervals only split into independent subproblems under the right choice of pivot event, and that the obvious 'which one goes first' framing is what entangles them.",
+    "minutes": 55,
+    "complexity": {
+      "time": "O(n^3)",
+      "space": "O(n^2)"
+    }
+  },
+  "Shortest Common Supersequence": {
+    "type": "variant",
+    "tests": "Whether you can walk an alignment table backwards to rebuild an actual string, once you see that whatever the two inputs share should be written down only once.",
+    "minutes": 45,
+    "complexity": {
+      "time": "O(n*m)",
+      "space": "O(n*m)"
+    }
+  },
+  "Interleaving String": {
+    "type": "recognition",
+    "tests": "Recognizing that a character available from both sources cannot be assigned greedily, so feasibility has to be tracked across pairs of prefixes rather than by one forward scan.",
+    "minutes": 30,
+    "complexity": {
+      "time": "O(n*m)",
+      "space": "O(n*m)"
+    }
+  },
+  "Maximal Rectangle": {
+    "type": "recognition",
+    "tests": "Recognizing a two-dimensional maximum as a stack of one-dimensional problems, where each row becomes a bar chart of the runs above it and a solved routine is reapplied.",
+    "minutes": 55,
+    "complexity": {
+      "time": "O(m*n)",
+      "space": "O(n)"
+    }
+  },
+  "Longest Increasing Path in a Matrix": {
+    "type": "recognition",
+    "tests": "Recognizing that a strictly increasing requirement makes the grid acyclic, which is precisely what allows each cell's answer to be cached rather than recomputed per path.",
+    "minutes": 45,
+    "complexity": {
+      "time": "O(m*n)",
+      "space": "O(m*n)"
+    }
+  },
+  "Min Cost Climbing Stairs": {
+    "type": "variant",
+    "tests": "Whether you can keep cost attribution straight when a step charges on departure, and admit two legal starting points without special-casing the recurrence around them.",
+    "minutes": 12,
+    "complexity": {
+      "time": "O(n)",
+      "space": "O(1)"
+    }
+  },
+  "Number of Longest Increasing Subsequence": {
+    "type": "variant",
+    "tests": "Whether you can carry a count beside a maximum, resetting it when a strictly better length appears and accumulating it when an equal one does.",
+    "minutes": 32,
+    "complexity": {
+      "time": "O(n^2)",
+      "space": "O(n)"
+    }
+  },
+  "Distinct Subsequences": {
+    "type": "variant",
+    "tests": "Whether you can see that a counting version of alignment adds its two branches together exactly where an optimizing version would pick the better of them.",
+    "minutes": 45,
+    "complexity": {
+      "time": "O(n*m)",
+      "space": "O(m)"
+    }
+  },
+  "Cheapest Flights Within K Stops": {
+    "type": "variant",
+    "tests": "Whether you can add a budget dimension to a shortest-path state, since a node reached cheaply with no stops remaining is not interchangeable with a costlier arrival.",
+    "minutes": 32,
+    "complexity": {
+      "time": "O(k*E)",
+      "space": "O(V)"
+    }
+  },
+  "Minimum Path Sum": {
+    "type": "foundation",
+    "tests": "Whether you can fill a grid in an order that guarantees a cell's inputs are already final, the base case behind every path-cost table you will build later.",
+    "minutes": 20,
+    "complexity": {
+      "time": "O(m*n)",
+      "space": "O(n)"
+    }
+  },
+  "Best Time to Buy and Sell Stock III": {
+    "type": "variant",
+    "tests": "Whether you can model a trader as a small state machine over transactions used and holding or not, instead of hunting for the two best disjoint windows by scanning.",
+    "minutes": 45,
+    "complexity": {
+      "time": "O(n)",
+      "space": "O(1)"
+    }
+  },
+  "Maximal Square": {
+    "type": "recognition",
+    "tests": "Recognizing that anchoring the shape at one corner makes a cell's answer depend only on its immediate neighbors, which turns an area search into a purely local rule.",
+    "minutes": 28,
+    "complexity": {
+      "time": "O(m*n)",
+      "space": "O(n)"
+    }
+  },
+  "The Number of Good Subsets": {
+    "type": "recognition",
+    "tests": "Recognizing that a bounded value range collapses into a small prime-usage bitmask, so 'shares no factor' becomes disjointness of tiny sets rather than a test on every pair.",
+    "minutes": 55
+  },
+  "Freedom Trail": {
+    "type": "recognition",
+    "tests": "Recognizing that the ring's current alignment belongs in the state, so each key character is answered from every position that could precede it, not just the nearest match.",
+    "minutes": 50,
+    "complexity": {
+      "time": "O(m*n^2)",
+      "space": "O(m*n)"
+    }
+  },
+  "Soup Servings": {
+    "type": "optimization",
+    "tests": "Whether you can notice a recursion converging toward a limit and cut the state space at the point where more precision can no longer change the reported answer.",
+    "minutes": 35
+  },
+  "Number of People Aware of a Secret": {
+    "type": "implementation",
+    "tests": "Whether you can maintain a running total over a moving range of past days, getting the inclusive and exclusive boundaries of 'may share' and 'has forgotten' right.",
+    "minutes": 30,
+    "complexity": {
+      "time": "O(n)",
+      "space": "O(n)"
+    }
+  },
+  "Edit Distance": {
+    "type": "foundation",
+    "tests": "Whether you can map each allowed operation onto exactly one neighboring cell of a prefix table, so 'fewest edits' becomes a minimum over three well-defined moves.",
+    "minutes": 30,
+    "complexity": {
+      "time": "O(n*m)",
+      "space": "O(m)"
+    }
+  },
+  "Missing Number": {
+    "type": "foundation",
+    "tests": "Whether you notice that n numbers drawn from a range of size n plus one leave exactly one index unclaimed, and that several constant-space accountings all expose it.",
+    "minutes": 10,
+    "complexity": {
+      "time": "O(n)",
+      "space": "O(1)"
+    }
+  },
+  "First Missing Positive": {
+    "type": "optimization",
+    "tests": "Whether you can hit linear time with no extra memory by treating the input array itself as the lookup table, and by proving which values are safe to ignore.",
+    "minutes": 40,
+    "complexity": {
+      "time": "O(n)",
+      "space": "O(1)"
+    }
+  },
+  "Find the Corrupt Pair": {
+    "type": "recognition",
+    "tests": "Whether you can read two answers out of one broken placement: the duplicate that squats in a foreign slot, and the value that therefore never arrived.",
+    "minutes": 20,
+    "complexity": {
+      "time": "O(n)",
+      "space": "O(1)"
+    }
+  },
+  "Find the First K Missing Positive Numbers": {
+    "type": "variant",
+    "tests": "Extending a single-answer scan into a k-answer one, which forces you to keep collecting after the first gap and to account for missing values beyond the array's length.",
+    "minutes": 18,
+    "complexity": {
+      "time": "O(n + k)",
+      "space": "O(k)"
+    }
+  },
+  "Sort Array By Parity II": {
+    "type": "variant",
+    "tests": "Whether you can relax the rule that each value has one home index into each value having a home class of indices, pairing offenders from the two misplaced streams.",
+    "minutes": 14,
+    "complexity": {
+      "time": "O(n)",
+      "space": "O(1)"
+    }
+  },
+  "Cyclic Sort": {
+    "type": "foundation",
+    "tests": "Whether you can place every element at its own index with swaps that each finish one value permanently, keeping total work linear despite the nested loop's appearance.",
+    "minutes": 9,
+    "complexity": {
+      "time": "O(n)",
+      "space": "O(1)"
+    }
+  },
+  "Compilation Order": {
+    "type": "recognition",
+    "tests": "Recognizing a build-order question as a prerequisite graph, where the deliverable is any consistent ordering and the failure case is a dependency loop you must detect rather than loop on.",
+    "minutes": 25,
+    "complexity": {
+      "time": "O(V + E)",
+      "space": "O(V + E)"
+    }
+  },
+  "Alien Dictionary": {
+    "type": "recognition",
+    "tests": "Whether you can extract ordering evidence from data that only implies it, since each adjacent pair of words yields at most one constraint, and detect when that evidence contradicts itself.",
+    "minutes": 45,
+    "complexity": {
+      "time": "O(C)",
+      "space": "O(1)"
+    }
+  },
+  "Verifying an Alien Dictionary": {
+    "type": "foundation",
+    "tests": "Whether you can compare under a supplied ranking instead of the built-in one, and handle the case where one word runs out before any character disagrees.",
+    "minutes": 12,
+    "complexity": {
+      "time": "O(C)",
+      "space": "O(1)"
+    }
+  },
+  "Course Schedule II": {
+    "type": "foundation",
+    "tests": "Whether you can produce an ordering rather than a yes or no, emitting work as its blockers clear, and read the failure signal off what never becomes emittable.",
+    "minutes": 26,
+    "complexity": {
+      "time": "O(V + E)",
+      "space": "O(V + E)"
+    }
+  },
+  "Course Schedule": {
+    "type": "foundation",
+    "tests": "Whether you can reduce is this achievable to is this graph acyclic, and pick a traversal that distinguishes a genuine loop from merely revisiting a finished node.",
+    "minutes": 22,
+    "complexity": {
+      "time": "O(V + E)",
+      "space": "O(V + E)"
+    }
+  },
+  "Find All Possible Recipes from Given Supplies": {
+    "type": "recognition",
+    "tests": "Recognizing named ingredients and recipes as nodes in a dependency graph whose sources are what you already own, with unobtainable ingredients acting as permanent blockers.",
+    "minutes": 30,
+    "complexity": {
+      "time": "O(V + E)",
+      "space": "O(V + E)"
+    }
+  },
+  "Build a Matrix with Conditions": {
+    "type": "recognition",
+    "tests": "Recognizing that the row constraints and the column constraints never interact, so two independent orderings can be solved separately and then combined into one placement.",
+    "minutes": 45,
+    "complexity": {
+      "time": "O(k^2 + E)",
+      "space": "O(k^2)"
+    }
+  },
+  "Longest Path With Different Adjacent Characters": {
+    "type": "variant",
+    "tests": "Whether you can turn a longest-chain question on a tree into a bottom-up combination at each node, where a path may bend once and a matching label kills a candidate.",
+    "minutes": 42,
+    "complexity": {
+      "time": "O(n)",
+      "space": "O(n)"
+    }
+  },
+  "Parallel Courses III": {
+    "type": "variant",
+    "tests": "Whether you can accumulate a cost along a dependency order rather than count layers, so each item's start time is dictated by its slowest prerequisite.",
+    "minutes": 38,
+    "complexity": {
+      "time": "O(V + E)",
+      "space": "O(V + E)"
+    }
+  },
+  "Parallel Courses": {
+    "type": "foundation",
+    "tests": "Whether you can read minimum semesters as the depth of the deepest prerequisite chain, given that everything currently unblocked can be taken at once.",
+    "minutes": 24,
+    "complexity": {
+      "time": "O(V + E)",
+      "space": "O(V + E)"
+    }
+  },
+  "Sort Items by Groups Respecting Dependencies": {
+    "type": "variant",
+    "tests": "Whether you can order at two levels at once, groups relative to each other and items within a group, by lifting item edges into group edges without losing either constraint.",
+    "minutes": 58,
+    "complexity": {
+      "time": "O(V + E)",
+      "space": "O(V + E)"
+    }
+  },
+  "Collect Coins in a Tree": {
+    "type": "recognition",
+    "tests": "Whether you can shrink a tree to the part that actually matters by repeatedly stripping useless leaves, then reason about the cost of touring what remains.",
+    "minutes": 34,
+    "complexity": {
+      "time": "O(n)",
+      "space": "O(n)"
+    }
+  },
+  "Sum of Mutated Array Closest to Target": {
+    "type": "recognition",
+    "tests": "Whether you can exploit that the resulting sum only ever grows as the threshold grows, turning closest to target into a search over values plus a careful tie rule.",
+    "minutes": 27,
+    "complexity": {
+      "time": "O(n log n)",
+      "space": "O(n)"
+    }
+  },
+  "Contains Duplicate II": {
+    "type": "variant",
+    "tests": "Whether an index-distance constraint changes the tool: a plain seen-set answers the wrong question, and you need memory that forgets entries once they fall out of range.",
+    "minutes": 10,
+    "complexity": {
+      "time": "O(n)",
+      "space": "O(k)"
+    }
+  },
+  "Find K-th Smallest Pair Distance": {
+    "type": "optimization",
+    "tests": "Whether you can rank among quadratically many implicit values without generating them, by asking how many fall below a guess and letting that count steer the guess.",
+    "minutes": 45,
+    "complexity": {
+      "time": "O(n log n + n log W)",
+      "space": "O(1)"
+    }
+  },
+  "Maximum Number of Integers to Choose from a Range I": {
+    "type": "implementation",
+    "tests": "Whether you can argue that taking the cheapest available items first is optimal for a count-maximizing budget, and handle exclusions without rescanning them repeatedly.",
+    "minutes": 20,
+    "complexity": {
+      "time": "O(n)",
+      "space": "O(n)"
+    }
+  },
+  "Find the Distance Value Between Two Arrays": {
+    "type": "foundation",
+    "tests": "Whether you can replace a nested comparison with a locality question: after sorting one side, only the nearest neighbours on either side can violate the distance rule.",
+    "minutes": 12,
+    "complexity": {
+      "time": "O(m log m + n log m)",
+      "space": "O(1)"
+    }
+  },
+  "Find Target Indices After Sorting Array": {
+    "type": "foundation",
+    "tests": "Whether you can compute where a value would land in sorted order by counting what is smaller than it, without ever performing the sort.",
+    "minutes": 8,
+    "complexity": {
+      "time": "O(n)",
+      "space": "O(1)"
+    }
+  },
+  "Russian Doll Envelopes": {
+    "type": "recognition",
+    "tests": "Recognizing a two-dimensional nesting question as a one-dimensional increasing-subsequence question once one dimension is ordered, and that the tie-breaking rule is what makes that reduction sound.",
+    "minutes": 40,
+    "complexity": {
+      "time": "O(n log n)",
+      "space": "O(n)"
+    }
+  },
+  "Minimum Operations to Make All Array Elements Equal": {
+    "type": "optimization",
+    "tests": "Whether you can answer many cost-to-level-everything-to-x queries in log time by splitting the sorted values at x and pricing each side in bulk.",
+    "minutes": 30,
+    "complexity": {
+      "time": "O((n + q) log n)",
+      "space": "O(n)"
+    }
+  },
+  "Longest Subsequence With Limited Sum": {
+    "type": "foundation",
+    "tests": "Whether you can see that a subsequence's order never matters when only its sum and its length do, which makes the cheapest elements the ones to take.",
+    "minutes": 15,
+    "complexity": {
+      "time": "O((n + q) log n)",
+      "space": "O(n)"
+    }
+  },
+  "Range Sum of Sorted Subarray Sums": {
+    "type": "optimization",
+    "tests": "Whether you can reason about a derived collection of quadratically many sums, its ordering and its partial totals, without confusing that sorted view with the original array.",
+    "minutes": 28,
+    "complexity": {
+      "time": "O(n^2 log n)",
+      "space": "O(n^2)"
+    }
+  },
+  "Magnetic Force Between Two Balls": {
+    "type": "recognition",
+    "tests": "Recognizing a maximize-the-minimum-gap request as a feasibility question you can ask about any candidate gap, where feasibility is monotone and cheap to test greedily.",
+    "minutes": 25,
+    "complexity": {
+      "time": "O(n log n + n log W)",
+      "space": "O(1)"
+    }
+  },
+  "Minimum Space Wasted from Packaging": {
+    "type": "optimization",
+    "tests": "Whether you can price a whole supplier in one sweep, grouping packages by which box size serves them, instead of matching package to box one at a time.",
+    "minutes": 42,
+    "complexity": {
+      "time": "O((n + m) log(n + m))",
+      "space": "O(n)"
+    }
+  },
+  "Two Sum Less Than K": {
+    "type": "foundation",
+    "tests": "Whether you can walk two ends of a sorted array inward, using each comparison to eliminate a whole family of pairs rather than a single one.",
+    "minutes": 11,
+    "complexity": {
+      "time": "O(n log n)",
+      "space": "O(1)"
+    }
+  },
+  "Valid Triangle Number": {
+    "type": "optimization",
+    "tests": "Whether you can reduce three inequality checks to one by fixing the largest side, then count qualifying pairs in bulk instead of testing every triple.",
+    "minutes": 28,
+    "complexity": {
+      "time": "O(n^2)",
+      "space": "O(1)"
+    }
+  },
+  "Count Pairs in Two Arrays": {
+    "type": "recognition",
+    "tests": "Recognizing that a condition mixing four values collapses to a condition on one derived value per index, after which the pair count is a sorted-array sweep.",
+    "minutes": 24,
+    "complexity": {
+      "time": "O(n log n)",
+      "space": "O(n)"
+    }
+  },
+  "Put Marbles in Bags": {
+    "type": "recognition",
+    "tests": "Recognizing that only the split points between bags affect the score, so a combinatorial partition question becomes picking extremes from a small derived list.",
+    "minutes": 38,
+    "complexity": {
+      "time": "O(n log n)",
+      "space": "O(n)"
+    }
+  },
+  "H-Index": {
+    "type": "implementation",
+    "tests": "Whether you can pin down a definition that must hold from both sides at once, and search the ranked values for exactly where the two conditions meet.",
+    "minutes": 20,
+    "complexity": {
+      "time": "O(n log n)",
+      "space": "O(1)"
+    }
+  },
+  "Reverse Pairs": {
+    "type": "optimization",
+    "tests": "Counting cross-pairs that a divide-and-conquer merge can tally for free, while keeping the counting step separate from the merging step so neither corrupts the other.",
+    "minutes": 48,
+    "complexity": {
+      "time": "O(n log n)",
+      "space": "O(n)"
+    }
+  },
+  "Minimum Time Difference": {
+    "type": "implementation",
+    "tests": "Whether you can convert a cyclic quantity into a linear one, sort it, and remember that the closest pair may straddle the wrap-around point.",
+    "minutes": 22,
+    "complexity": {
+      "time": "O(n log n)",
+      "space": "O(n)"
+    }
+  },
+  "Set Matrix Zeros": {
+    "type": "optimization",
+    "tests": "Whether you can mark what must change without immediately changing it, and then find somewhere inside the matrix itself to keep those marks.",
+    "minutes": 26,
+    "complexity": {
+      "time": "O(m*n)",
+      "space": "O(1)"
+    }
+  },
+  "Rotate Image": {
+    "type": "foundation",
+    "tests": "Whether you can permute positions in place by moving values around closed cycles, or by composing two simpler reflections that happen to equal the rotation.",
+    "minutes": 24,
+    "complexity": {
+      "time": "O(n^2)",
+      "space": "O(1)"
+    }
+  },
+  "Spiral Matrix": {
+    "type": "implementation",
+    "tests": "Whether you can maintain four shrinking boundaries and stop exactly when they cross, since the last incomplete ring is where every off-by-one hides.",
+    "minutes": 30,
+    "complexity": {
+      "time": "O(m*n)",
+      "space": "O(1)"
+    }
+  },
+  "Where Will the Ball Fall": {
+    "type": "implementation",
+    "tests": "Whether you can translate a physical rule into a per-cell transition and identify the exact local configurations that trap a ball instead of passing it on.",
+    "minutes": 28,
+    "complexity": {
+      "time": "O(m*n)",
+      "space": "O(1)"
+    }
+  },
+  "Island Perimeter": {
+    "type": "recognition",
+    "tests": "Recognizing that a global measurement decomposes into independent per-cell contributions, so no traversal of the shape is needed at all.",
+    "minutes": 12,
+    "complexity": {
+      "time": "O(m*n)",
+      "space": "O(1)"
+    }
+  },
+  "Convert 1D Array Into 2D Array": {
+    "type": "foundation",
+    "tests": "Whether you can express the bijection between a flat position and a row-and-column pair with division and remainder, and reject sizes that cannot fit.",
+    "minutes": 10,
+    "complexity": {
+      "time": "O(m*n)",
+      "space": "O(1)"
+    }
+  },
+  "Spiral Matrix II": {
+    "type": "implementation",
+    "tests": "Writing the same ring-walk as a filling operation rather than a reading one, where a known cell count gives you a second, independent stopping condition.",
+    "minutes": 22,
+    "complexity": {
+      "time": "O(n^2)",
+      "space": "O(1)"
+    }
+  },
+  "Flip Columns For Maximum Number of Equal Rows": {
+    "type": "recognition",
+    "tests": "Recognizing that column flips can only ever unite rows that already agree everywhere or disagree everywhere, which turns the search into counting normalized row signatures.",
+    "minutes": 27,
+    "complexity": {
+      "time": "O(m*n)",
+      "space": "O(m*n)"
+    }
+  },
+  "Number of Spaces Cleaning Robot Cleaned": {
+    "type": "implementation",
+    "tests": "Whether you can simulate a deterministic walk and prove it terminates, which requires remembering position together with heading rather than position alone.",
+    "minutes": 32,
+    "complexity": {
+      "time": "O(m*n)",
+      "space": "O(m*n)"
+    }
+  },
+  "Transpose Matrix": {
+    "type": "foundation",
+    "tests": "Whether you can state a coordinate swap precisely, and notice why the in-place trick that works for square grids cannot work for rectangular ones.",
+    "minutes": 8,
+    "complexity": {
+      "time": "O(m*n)",
+      "space": "O(1)"
+    }
+  },
+  "Count Negative Numbers in a Sorted Matrix": {
+    "type": "foundation",
+    "tests": "Whether you can walk a single monotone boundary across a doubly sorted grid, counting whole rows or columns per step instead of visiting every cell.",
+    "minutes": 13,
+    "complexity": {
+      "time": "O(m + n)",
+      "space": "O(1)"
+    }
+  },
+  "Minimum Time Takes to Reach Destination Without Drowning": {
+    "type": "variant",
+    "tests": "Whether you can layer two spreading processes: precompute when each cell becomes unusable, then search for a path that always arrives strictly ahead of it.",
+    "minutes": 45,
+    "complexity": {
+      "time": "O(m*n)",
+      "space": "O(m*n)"
+    }
+  },
+  "Smallest Rectangle Enclosing Black Pixels": {
+    "type": "optimization",
+    "tests": "Whether connectivity plus a known interior point makes each of the four edges a monotone predicate, so boundaries can be located by search rather than by scanning.",
+    "minutes": 44,
+    "complexity": {
+      "time": "O(m log n + n log m)",
+      "space": "O(1)"
+    }
+  },
+  "Minimize Maximum Value in a Grid": {
+    "type": "recognition",
+    "tests": "Whether you can process cells in increasing value order so that each assignment only needs to respect what its own row and column have already committed to.",
+    "minutes": 47,
+    "complexity": {
+      "time": "O(m*n log(m*n))",
+      "space": "O(m*n)"
+    }
+  },
+  "Kth Smallest Number in Multiplication Table": {
+    "type": "optimization",
+    "tests": "Whether you can count how many entries fall below a candidate using arithmetic per row, so a table far too large to build can still be ranked.",
+    "minutes": 40,
+    "complexity": {
+      "time": "O(m log(m*n))",
+      "space": "O(1)"
+    }
+  },
+  "Swim in Rising Water": {
+    "type": "recognition",
+    "tests": "Whether you can turn minimize the largest obstacle on a path into a reachability question at a fixed threshold, or into a shortest path whose cost is a maximum.",
+    "minutes": 38,
+    "complexity": {
+      "time": "O(n^2 log n)",
+      "space": "O(n^2)"
+    }
+  },
+  "Best Meeting Point": {
+    "type": "recognition",
+    "tests": "Recognizing that a Manhattan objective separates into independent one-dimensional problems, each minimized at a positional statistic rather than at an average.",
+    "minutes": 35,
+    "complexity": {
+      "time": "O(m*n)",
+      "space": "O(m*n)"
+    }
+  },
+  "Game of Life": {
+    "type": "variant",
+    "tests": "Whether you can make every cell's update read old neighbours despite writing new ones, by carrying two states per cell through one pass and decoding in another.",
+    "minutes": 25,
+    "complexity": {
+      "time": "O(m*n)",
+      "space": "O(1)"
+    }
+  },
+  "Toeplitz Matrix": {
+    "type": "foundation",
+    "tests": "Whether you can express a global property as one purely local check per cell, and consider what changes when the matrix arrives one row at a time.",
+    "minutes": 9,
+    "complexity": {
+      "time": "O(m*n)",
+      "space": "O(1)"
+    }
+  },
+  "Diagonal Traverse": {
+    "type": "implementation",
+    "tests": "Whether you can keep a direction as state and enumerate the corner rules that flip it, since the turn at each boundary depends on which boundary you hit.",
+    "minutes": 31,
+    "complexity": {
+      "time": "O(m*n)",
+      "space": "O(1)"
+    }
+  },
+  "Basic Calculator": {
+    "type": "implementation",
+    "tests": "Whether you can suspend a partially built result when a nested scope opens and fold the inner value back in, while sign context survives the boundary.",
+    "minutes": 45,
+    "complexity": {
+      "time": "O(n)",
+      "space": "O(n)"
+    }
+  },
+  "Remove All Adjacent Duplicates In String": {
+    "type": "foundation",
+    "tests": "Whether you see that only the most recent unresolved character can be annihilated, so one pass absorbs every cascade a repeated rescan would need.",
+    "minutes": 10,
+    "complexity": {
+      "time": "O(n)",
+      "space": "O(n)"
+    }
+  },
+  "Minimum Remove to Make Valid Parentheses": {
+    "type": "implementation",
+    "tests": "Whether you can record which positions are unmatched rather than just whether the string is valid, then rebuild the answer from that surviving index set.",
+    "minutes": 22,
+    "complexity": {
+      "time": "O(n)",
+      "space": "O(n)"
+    }
+  },
+  "Exclusive Time of Functions": {
+    "type": "recognition",
+    "tests": "Recognizing that call logs are nested brackets in disguise, and that a paused caller must be charged only for the time its callee did not consume.",
+    "minutes": 28,
+    "complexity": {
+      "time": "O(n)",
+      "space": "O(n)"
+    }
+  },
+  "Flatten Nested List Iterator": {
+    "type": "design",
+    "tests": "Whether you can convert recursive structure into a resumable iterator, keeping just enough saved position to answer the next call without flattening everything up front.",
+    "minutes": 25,
+    "complexity": {
+      "time": "O(n)",
+      "space": "O(n)"
+    }
+  },
+  "Implement Queue Using Stacks": {
+    "type": "design",
+    "tests": "Whether you can see that pouring one stack into another reverses order, and that deferring that pour until forced keeps each operation amortized constant.",
+    "minutes": 16,
+    "complexity": {
+      "time": "O(1)",
+      "space": "O(n)"
+    }
+  },
+  "Valid Parentheses": {
+    "type": "foundation",
+    "tests": "Whether you can hold an unresolved prefix and check each closer against only the newest opener, plus remembering that leftovers at the end mean failure.",
+    "minutes": 12,
+    "complexity": {
+      "time": "O(n)",
+      "space": "O(n)"
+    }
+  },
+  "Decode String": {
+    "type": "foundation",
+    "tests": "Whether you can push the outer partial result aside when a new repeat group opens, so nested multipliers compose instead of needing recursive string search.",
+    "minutes": 26
+  },
+  "Daily Temperatures": {
+    "type": "foundation",
+    "tests": "Whether you can keep unanswered elements waiting in decreasing order so each arrival resolves everything it beats, turning a quadratic forward search into one pass.",
+    "minutes": 22,
+    "complexity": {
+      "time": "O(n)",
+      "space": "O(n)"
+    }
+  },
+  "Minimum String Length After Removing Substrings": {
+    "type": "recognition",
+    "tests": "Recognizing that repeated substring deletions cascade exactly like bracket cancellation, so checking each character against the single element beneath it replaces repeated full-string rescans.",
+    "minutes": 12,
+    "complexity": {
+      "time": "O(n)",
+      "space": "O(n)"
+    }
+  },
+  "Number of Valid Subarrays": {
+    "type": "recognition",
+    "tests": "Recognizing that each starting index contributes a run of subarrays bounded by the first smaller value to its right, so one span computation counts them all.",
+    "minutes": 38,
+    "complexity": {
+      "time": "O(n)",
+      "space": "O(n)"
+    }
+  },
+  "Number of Visible People in a Queue": {
+    "type": "variant",
+    "tests": "Whether you can read the answer off the eviction step itself: how many waiters an arrival removes, not which single one finally resolves it.",
+    "minutes": 38,
+    "complexity": {
+      "time": "O(n)",
+      "space": "O(n)"
+    }
+  },
+  "Parsing A Boolean Expression": {
+    "type": "implementation",
+    "tests": "Whether you can evaluate a small grammar bottom-up, collecting each operator's arguments until its scope closes and folding them by the rule that scope names.",
+    "minutes": 40,
+    "complexity": {
+      "time": "O(n)",
+      "space": "O(n)"
+    }
+  },
+  "Remove Duplicate Letters": {
+    "type": "variant",
+    "tests": "Holding lexicographic greed in check with a feasibility guard: popping a bigger letter is only safe while a later copy of it still remains.",
+    "minutes": 32,
+    "complexity": {
+      "time": "O(n)",
+      "space": "O(1)"
+    }
+  },
+  "Longest Valid Parentheses": {
+    "type": "variant",
+    "tests": "Whether you can measure valid spans instead of merely validating one, which means the stack must remember boundary positions rather than the bracket characters themselves.",
+    "minutes": 45,
+    "complexity": {
+      "time": "O(n)",
+      "space": "O(n)"
+    }
+  },
+  "Next Greater Element IV": {
+    "type": "variant",
+    "tests": "Whether you can stage elements through two waiting queues, since an element that has already been resolved once must keep waiting for a second resolver.",
+    "minutes": 48,
+    "complexity": {
+      "time": "O(n)",
+      "space": "O(n)"
+    }
+  },
+  "Maximum Width Ramp": {
+    "type": "recognition",
+    "tests": "Recognizing that only a decreasing prefix of candidates can ever start a widest pair, so a backward sweep against that shortlist beats checking every pair.",
+    "minutes": 30,
+    "complexity": {
+      "time": "O(n)",
+      "space": "O(n)"
+    }
+  },
+  "Basic Calculator II": {
+    "type": "implementation",
+    "tests": "Whether you can defer addition while resolving higher-precedence operations immediately, so precedence is handled by when you commit a term rather than by a parser.",
+    "minutes": 28,
+    "complexity": {
+      "time": "O(n)",
+      "space": "O(n)"
+    }
+  },
+  "Remove All Adjacent Duplicates in String II": {
+    "type": "variant",
+    "tests": "Whether you can extend annihilation from pairs to runs by storing a count beside each stacked character, so partial runs survive until they complete.",
+    "minutes": 24,
+    "complexity": {
+      "time": "O(n)",
+      "space": "O(n)"
+    }
+  },
+  "Simplify Path": {
+    "type": "implementation",
+    "tests": "Whether you can treat path components as a stack where a parent reference cancels the last entry, and enumerate every degenerate token the input may contain.",
+    "minutes": 22,
+    "complexity": {
+      "time": "O(n)",
+      "space": "O(n)"
+    }
+  },
+  "Network Delay Time": {
+    "type": "foundation",
+    "tests": "Whether you can expand a frontier in order of accumulated cost rather than hop count, and see that the answer is the last node to be settled.",
+    "minutes": 30,
+    "complexity": {
+      "time": "O(E log V)",
+      "space": "O(V + E)"
+    }
+  },
+  "Paths in Maze That Lead to Same Room": {
+    "type": "recognition",
+    "tests": "Recognizing that a fixed-length cycle question is really about shared neighbours between connected pairs, which counting adjacency overlaps answers without walking any paths.",
+    "minutes": 30
+  },
+  "Clone Graph": {
+    "type": "foundation",
+    "tests": "Whether you can let one map serve as both the visited marker and the copy registry, so cycles resolve to already-created nodes instead of looping forever.",
+    "minutes": 24,
+    "complexity": {
+      "time": "O(V + E)",
+      "space": "O(V)"
+    }
+  },
+  "Graph Valid Tree": {
+    "type": "recognition",
+    "tests": "Recognizing that a tree is exactly connectivity plus an edge count, so verifying two cheap global properties can replace hunting for a cycle explicitly.",
+    "minutes": 24,
+    "complexity": {
+      "time": "O(V + E)",
+      "space": "O(V)"
+    }
+  },
+  "Bus Routes": {
+    "type": "recognition",
+    "tests": "Recognizing that the thing you count is buses taken, so the nodes of the search should be routes rather than the stops the story hands you.",
+    "minutes": 45
+  },
+  "Reconstruct Itinerary": {
+    "type": "recognition",
+    "tests": "Recognizing that using every edge exactly once is an Eulerian walk, where a greedy lexicographic descent must append nodes only after their exits are exhausted.",
+    "minutes": 42,
+    "complexity": {
+      "time": "O(E log E)",
+      "space": "O(E)"
+    }
+  },
+  "Lucky Numbers in a Matrix": {
+    "type": "optimization",
+    "tests": "Whether you can replace a per-cell double check with two independent aggregate passes, then intersect the row minimums against the column maximums.",
+    "minutes": 12,
+    "complexity": {
+      "time": "O(n*m)",
+      "space": "O(n + m)"
+    }
+  },
+  "Path with Maximum Probability": {
+    "type": "variant",
+    "tests": "Whether you can see that the settle-once argument survives when costs multiply and you maximize, because probabilities only shrink along a path just as distances only grow.",
+    "minutes": 30,
+    "complexity": {
+      "time": "O(E log V)",
+      "space": "O(V + E)"
+    }
+  },
+  "Reorder Routes to Make All Paths Lead to the City Zero": {
+    "type": "recognition",
+    "tests": "Recognizing that direction should become a label on an otherwise undirected traversal, so one walk outward from the target counts every edge pointing the wrong way.",
+    "minutes": 26,
+    "complexity": {
+      "time": "O(n)",
+      "space": "O(n)"
+    }
+  },
+  "Tree Diameter": {
+    "type": "optimization",
+    "tests": "Whether you can find the longest path in a tree without testing all pairs, using either the two-sweep endpoint argument or the best two branches meeting at a node.",
+    "minutes": 28,
+    "complexity": {
+      "time": "O(n)",
+      "space": "O(n)"
+    }
+  },
+  "Find the Town Judge": {
+    "type": "foundation",
+    "tests": "Whether you can express a role definition purely as in-degree and out-degree arithmetic, so a single counting pass identifies the node without any traversal.",
+    "minutes": 12,
+    "complexity": {
+      "time": "O(n + e)",
+      "space": "O(n)"
+    }
+  },
+  "Find Center of Star Graph": {
+    "type": "foundation",
+    "tests": "Whether you notice the guarantee in the statement collapses the work: if a center is promised to exist, two edges already pin down which node it is.",
+    "minutes": 8,
+    "complexity": {
+      "time": "O(1)",
+      "space": "O(1)"
+    }
+  },
+  "Longest Cycle in a Graph": {
+    "type": "recognition",
+    "tests": "Recognizing that one outgoing edge per node makes every walk funnel into a single loop, so visit timestamps let you measure a cycle the moment you re-enter it.",
+    "minutes": 40,
+    "complexity": {
+      "time": "O(n)",
+      "space": "O(n)"
+    }
+  },
+  "Minimum Cost to Make at Least One Valid Path in a Grid": {
+    "type": "recognition",
+    "tests": "Recognizing that when every move costs zero or one, a deque keeps the frontier sorted for free and free moves must be explored ahead of paid ones.",
+    "minutes": 45,
+    "complexity": {
+      "time": "O(n*m)",
+      "space": "O(n*m)"
+    }
+  },
+  "Shortest Cycle in a Graph": {
+    "type": "variant",
+    "tests": "Whether you can see why plain cycle detection cannot measure girth, and that a bounded search launched from every vertex is what makes the length trustworthy.",
+    "minutes": 42,
+    "complexity": {
+      "time": "O(n*e)",
+      "space": "O(n + e)"
+    }
+  },
+  "Shortest Path Visiting All Nodes": {
+    "type": "foundation",
+    "tests": "Whether you can enlarge a search state beyond position, since revisiting a node is legitimate when the set of nodes already covered has changed.",
+    "minutes": 50,
+    "complexity": {
+      "time": "O(2^n * n^2)",
+      "space": "O(2^n * n)"
+    }
+  },
+  "Max Area of Island": {
+    "type": "foundation",
+    "tests": "Whether you can treat a grid as an implicit graph and let one flood fill both measure a component and mark it so it is never recounted.",
+    "minutes": 20,
+    "complexity": {
+      "time": "O(n*m)",
+      "space": "O(n*m)"
+    }
+  },
+  "Shortest Path in a Grid with Obstacles Elimination": {
+    "type": "variant",
+    "tests": "Whether you can add a budget dimension to the visited marker, so a cell reached with more removals left is still worth exploring again.",
+    "minutes": 33,
+    "complexity": {
+      "time": "O(n*m*k)",
+      "space": "O(n*m*k)"
+    }
+  },
+  "Flatten Binary Tree to Linked List": {
+    "type": "implementation",
+    "tests": "Whether you can rewrite a node's links only after its children are final, and see why the original subtrees must be captured before any pointer moves.",
+    "minutes": 26,
+    "complexity": {
+      "time": "O(n)",
+      "space": "O(h)"
+    }
+  },
+  "Diameter of Binary Tree": {
+    "type": "foundation",
+    "tests": "Whether you can separate what a node reports upward from what it records globally, since a path bending through a node cannot be extended by its parent.",
+    "minutes": 18,
+    "complexity": {
+      "time": "O(n)",
+      "space": "O(h)"
+    }
+  },
+  "Serialize and Deserialize Binary Tree": {
+    "type": "design",
+    "tests": "Whether you can choose an encoding that makes the tree recoverable, which means deciding what marks absence so the decoder never has to guess where subtrees end.",
+    "minutes": 40,
+    "complexity": {
+      "time": "O(n)",
+      "space": "O(n)"
+    }
+  },
+  "Invert Binary Tree": {
+    "type": "foundation",
+    "tests": "Whether you can express a whole-tree transformation as one node-in, node-out rule applied to already-transformed children, rather than as a manual traversal with swaps.",
+    "minutes": 8,
+    "complexity": {
+      "time": "O(n)",
+      "space": "O(h)"
+    }
+  },
+  "Binary Tree Maximum Path Sum": {
+    "type": "variant",
+    "tests": "Holding the return-one-side discipline while negative values make extension optional, so a branch that hurts the total must be dropped rather than reluctantly included.",
+    "minutes": 42,
+    "complexity": {
+      "time": "O(n)",
+      "space": "O(h)"
+    }
+  },
+  "Convert Sorted Array to Binary Search Tree": {
+    "type": "foundation",
+    "tests": "Whether you see that sortedness already is an inorder traversal, and that choosing the middle element as root is what buys the balance requirement.",
+    "minutes": 14,
+    "complexity": {
+      "time": "O(n)",
+      "space": "O(log n)"
+    }
+  },
+  "Build Binary Tree from Preorder and Inorder Traversal": {
+    "type": "foundation",
+    "tests": "Whether you can use one traversal to name the next root and the other to bound each subtree's span, then avoid re-scanning by advancing a single shared cursor.",
+    "minutes": 32,
+    "complexity": {
+      "time": "O(n)",
+      "space": "O(n)"
+    }
+  },
+  "Binary Tree Right Side View": {
+    "type": "recognition",
+    "tests": "Recognizing that a visual framing reduces to first-arrival at each depth, so the traversal order you choose decides which node claims a level.",
+    "minutes": 22,
+    "complexity": {
+      "time": "O(n)",
+      "space": "O(h)"
+    }
+  },
+  "Lowest Common Ancestor of a Binary Tree": {
+    "type": "foundation",
+    "tests": "Whether you can let a subtree report only whether it contains a target, and see that the node where two separate reports meet is necessarily the answer.",
+    "minutes": 26,
+    "complexity": {
+      "time": "O(n)",
+      "space": "O(h)"
+    }
+  },
+  "Validate Binary Search Tree": {
+    "type": "foundation",
+    "tests": "Whether you can carry an inherited range down instead of comparing each node with its immediate children, since ancestors far above still constrain a deep node.",
+    "minutes": 22,
+    "complexity": {
+      "time": "O(n)",
+      "space": "O(h)"
+    }
+  },
+  "Nested List Weight Sum II": {
+    "type": "variant",
+    "tests": "Whether you can handle a weight that depends on a total depth you have not measured yet, either by two passes or by accumulating running sums repeatedly.",
+    "minutes": 26,
+    "complexity": {
+      "time": "O(n)",
+      "space": "O(n)"
+    }
+  },
+  "Inorder Successor in BST": {
+    "type": "implementation",
+    "tests": "Whether you can prune half the tree at every comparison while remembering the best candidate seen so far, instead of materializing the whole inorder sequence.",
+    "minutes": 24,
+    "complexity": {
+      "time": "O(h)",
+      "space": "O(1)"
+    }
+  },
+  "Height of Binary Tree After Subtree Removal Queries": {
+    "type": "optimization",
+    "tests": "Whether you can precompute each node's answer once so queries become lookups, using the best height achievable while deliberately ignoring one branch of the tree.",
+    "minutes": 55,
+    "complexity": {
+      "time": "O(n + q)",
+      "space": "O(n)"
+    }
+  },
+  "Maximum Depth of Binary Tree": {
+    "type": "foundation",
+    "tests": "Whether you can define a whole-tree quantity as one plus the better of its two children, which is the base shape every post-order aggregation reuses.",
+    "minutes": 8,
+    "complexity": {
+      "time": "O(n)",
+      "space": "O(h)"
+    }
+  },
+  "Kth Smallest Element in a BST": {
+    "type": "recognition",
+    "tests": "Recognizing that a BST already streams its keys in sorted order, so a rank query is a counted walk you can abandon the moment the count lands.",
+    "minutes": 24,
+    "complexity": {
+      "time": "O(h + k)",
+      "space": "O(h)"
+    }
+  },
+  "Delete Nodes And Return Forest": {
+    "type": "implementation",
+    "tests": "Whether you can decide at each node whether it is deleted, becomes a new root, or stays attached, using information its parent passed down before recursing.",
+    "minutes": 28,
+    "complexity": {
+      "time": "O(n)",
+      "space": "O(n)"
+    }
+  },
+  "Sum of Distances in a Tree": {
+    "type": "optimization",
+    "tests": "Whether you can turn one root's answer into every other root's answer by reasoning about exactly what changes when you step across a single edge.",
+    "minutes": 55,
+    "complexity": {
+      "time": "O(n)",
+      "space": "O(n)"
+    }
+  },
+  "Recover a Tree From Preorder Traversal": {
+    "type": "implementation",
+    "tests": "Whether you can let an explicit depth marker replace the second traversal, popping the ancestor chain back to the right parent before attaching each new node.",
+    "minutes": 40,
+    "complexity": {
+      "time": "O(n)",
+      "space": "O(n)"
+    }
+  },
+  "Binary Tree Preorder Traversal": {
+    "type": "foundation",
+    "tests": "Whether you can state a traversal order as a rule about when the node itself is emitted relative to its subtrees, recursively or with an explicit stack.",
+    "minutes": 10,
+    "complexity": {
+      "time": "O(n)",
+      "space": "O(h)"
+    }
+  },
+  "Univalued Binary Tree": {
+    "type": "foundation",
+    "tests": "Whether you can fold a whole-tree predicate out of a local check plus both children's verdicts, and let a single failure short-circuit the rest.",
+    "minutes": 10,
+    "complexity": {
+      "time": "O(n)",
+      "space": "O(h)"
+    }
+  },
+  "Path Sum": {
+    "type": "foundation",
+    "tests": "Whether you can thread a shrinking remainder down each branch and test it only where both children are absent, since internal nodes are not path ends.",
+    "minutes": 12,
+    "complexity": {
+      "time": "O(n)",
+      "space": "O(h)"
+    }
+  },
+  "Closest Binary Search Tree Value": {
+    "type": "optimization",
+    "tests": "Whether you can use the ordering to descend toward the target while tracking the best value seen, instead of visiting every node the tree contains.",
+    "minutes": 15,
+    "complexity": {
+      "time": "O(h)",
+      "space": "O(1)"
+    }
+  },
+  "Level Order Traversal of Binary Tree": {
+    "type": "foundation",
+    "tests": "Whether you can turn a single queue into depth-grouped output, the base shape that every later per-level aggregation, reversal, or linking problem reuses unchanged.",
+    "minutes": 20,
+    "complexity": {
+      "time": "O(n)",
+      "space": "O(n)"
+    }
+  },
+  "Binary Tree Zigzag Level Order Traversal": {
+    "type": "implementation",
+    "tests": "Whether you keep the traversal itself uniform and vary only how each level is emitted, instead of letting alternating direction leak into the queue's push order.",
+    "minutes": 22,
+    "complexity": {
+      "time": "O(n)",
+      "space": "O(n)"
+    }
+  },
+  "Populating Next Right Pointers in Each Node": {
+    "type": "optimization",
+    "tests": "Whether you notice the level you already linked can serve as the queue for the next one, letting you drop the explicit queue and its extra space.",
+    "minutes": 25,
+    "complexity": {
+      "time": "O(n)",
+      "space": "O(1)"
+    }
+  },
+  "Vertical Order Traversal of a Binary Tree": {
+    "type": "implementation",
+    "tests": "Whether you can define a total ordering over nodes from coordinates plus a value tiebreak, and resist assuming traversal order already sorts what lands in the same cell.",
+    "minutes": 38,
+    "complexity": {
+      "time": "O(n log n)",
+      "space": "O(n)"
+    }
+  },
+  "Symmetric Tree": {
+    "type": "foundation",
+    "tests": "Whether you compare two mirrored positions in lockstep rather than checking a level's values are a palindrome, which quietly ignores where the nulls sit.",
+    "minutes": 12,
+    "complexity": {
+      "time": "O(n)",
+      "space": "O(h)"
+    }
+  },
+  "Word Ladder": {
+    "type": "recognition",
+    "tests": "Recognizing a word puzzle as an unweighted shortest-path search, where the real cost is how you generate one-edit neighbors without comparing every pair of words.",
+    "minutes": 45,
+    "complexity": {
+      "time": "O(n*m^2)",
+      "space": "O(n*m^2)"
+    }
+  },
+  "Connect All Siblings of a Binary Tree": {
+    "type": "variant",
+    "tests": "Whether you can see that removing the level boundary turns per-level linking into one continuous chain, so the traversal order alone dictates every pointer.",
+    "minutes": 25,
+    "complexity": {
+      "time": "O(n)",
+      "space": "O(n)"
+    }
+  },
+  "Two Sum IV - Input is a BST": {
+    "type": "recognition",
+    "tests": "Recognizing a familiar complement-lookup problem wearing a tree costume, and weighing whether the sorted structure buys anything over simply visiting every node.",
+    "minutes": 14,
+    "complexity": {
+      "time": "O(n)",
+      "space": "O(n)"
+    }
+  },
+  "Find Minimum Diameter After Merging Two Trees": {
+    "type": "optimization",
+    "tests": "Whether you can argue about the optimal joining point structurally instead of testing candidate pairs, and recall what the center of a tree guarantees about its longest path.",
+    "minutes": 50,
+    "complexity": {
+      "time": "O(n+m)",
+      "space": "O(n+m)"
+    }
+  },
+  "Closest Node to Path in Tree": {
+    "type": "implementation",
+    "tests": "Whether you read the constraints as permission to precompute all-pairs distances, then reduce each query to scanning one path instead of searching the tree again.",
+    "minutes": 45,
+    "complexity": {
+      "time": "O(n^2 + q*n)",
+      "space": "O(n^2)"
+    }
+  },
+  "Frog Position After T Seconds": {
+    "type": "implementation",
+    "tests": "Whether you can carry a multiplicative weight down a traversal and handle the two termination rules honestly: arriving early and stuck, versus arriving early and forced onward.",
+    "minutes": 40,
+    "complexity": {
+      "time": "O(n)",
+      "space": "O(n)"
+    }
+  },
+  "Average of Levels in Binary Tree": {
+    "type": "foundation",
+    "tests": "Whether a level can be reduced to a single number as it is drained, showing that per-level aggregation needs no second pass over the collected values.",
+    "minutes": 10,
+    "complexity": {
+      "time": "O(n)",
+      "space": "O(n)"
+    }
+  },
+  "Open the Lock": {
+    "type": "recognition",
+    "tests": "Recognizing a puzzle with no visible graph as one anyway, where states are strings, neighbors are single-wheel turns, and blocked codes are just pre-visited nodes.",
+    "minutes": 30,
+    "complexity": {
+      "time": "O(10^4)",
+      "space": "O(10^4)"
+    }
+  },
+  "Shortest Distance from All Buildings": {
+    "type": "optimization",
+    "tests": "Whether you flip which side of the problem you search from, and how you prove a candidate cell was actually reachable from every building rather than just some.",
+    "minutes": 34,
+    "complexity": {
+      "time": "O(m*n*b)",
+      "space": "O(m*n)"
+    }
+  },
+  "Implement Trie": {
+    "type": "design",
+    "tests": "Whether you can express a set of words as a shared-path structure and decide, per node, what must be stored so both kinds of lookup stay honest.",
+    "minutes": 25,
+    "complexity": {
+      "time": "O(L)",
+      "space": "O(n*L)"
+    }
+  },
+  "Search Suggestions System": {
+    "type": "implementation",
+    "tests": "Whether you exploit that each typed character can only shrink the candidate set, so suggestions narrow incrementally instead of being recomputed from the full list every keystroke.",
+    "minutes": 28,
+    "complexity": {
+      "time": "O(n*L)",
+      "space": "O(n*L)"
+    }
+  },
+  "Replace Words": {
+    "type": "foundation",
+    "tests": "Whether you can let a single walk down a dictionary structure stop at the first complete root, instead of testing each word against every prefix candidate separately.",
+    "minutes": 22,
+    "complexity": {
+      "time": "O(n*L)",
+      "space": "O(n*L)"
+    }
+  },
+  "Design Add and Search Words Data Structure": {
+    "type": "design",
+    "tests": "Whether your structure survives a query that refuses to commit to a letter, forcing search to branch at a position where insertion never had to.",
+    "minutes": 30,
+    "complexity": {
+      "time": "O(26^L)",
+      "space": "O(n*L)"
+    }
+  },
+  "Word Search II": {
+    "type": "optimization",
+    "tests": "Whether you invert the search so the board is walked once against all words at once, and prune dead branches the moment no dictionary path continues.",
+    "minutes": 55,
+    "complexity": {
+      "time": "O(m*n*3^L)",
+      "space": "O(k)"
+    }
+  },
+  "Top K Frequent Words": {
+    "type": "implementation",
+    "tests": "Whether you can hold two ordering rules at once, and keep the tiebreak direction straight when a heap discards from the opposite end of the order you want.",
+    "minutes": 25,
+    "complexity": {
+      "time": "O(n log k)",
+      "space": "O(n)"
+    }
+  },
+  "Lexicographical Numbers": {
+    "type": "recognition",
+    "tests": "Recognizing that the numbers themselves already form a tree ordered by digits, so dictionary order falls out of a traversal rather than a sort.",
+    "minutes": 25,
+    "complexity": {
+      "time": "O(n)",
+      "space": "O(1)"
+    }
+  },
+  "Longest Common Prefix": {
+    "type": "foundation",
+    "tests": "Whether you see a shared prefix as something that can only shrink as more words arrive, so the answer is fixed by the first divergence anywhere.",
+    "minutes": 12,
+    "complexity": {
+      "time": "O(n*L)",
+      "space": "O(1)"
+    }
+  },
+  "Index Pairs of a String": {
+    "type": "foundation",
+    "tests": "Whether you can start one dictionary walk from each position in the text and report every word that ends along the way, rather than searching per dictionary word.",
+    "minutes": 16,
+    "complexity": {
+      "time": "O(n*L)",
+      "space": "O(m*L)"
+    }
+  },
+  "K-th Smallest in Lexicographical Order": {
+    "type": "optimization",
+    "tests": "Whether you can count how many keys live under a prefix without visiting them, turning a step-by-step walk into leaps over entire subtrees.",
+    "minutes": 55,
+    "complexity": {
+      "time": "O((log n)^2)",
+      "space": "O(1)"
+    }
+  },
+  "Palindrome Pairs": {
+    "type": "optimization",
+    "tests": "Whether you can turn \"does some other word complete me\" into a lookup, by splitting each word and asking what the missing half would have to look like.",
+    "minutes": 55,
+    "complexity": {
+      "time": "O(n*L^2)",
+      "space": "O(n*L)"
+    }
+  },
+  "Longest Common Suffix Queries": {
+    "type": "variant",
+    "tests": "Whether you notice a suffix question is a prefix question read backwards, and what tiebreak information each node must carry so the best answer is already there.",
+    "minutes": 45,
+    "complexity": {
+      "time": "O(n*L + q*L)",
+      "space": "O(n*L)"
+    }
+  },
+  "Map Sum Pairs": {
+    "type": "design",
+    "tests": "Whether you can decide what a prefix node should store so a sum query is one walk, and handle a key being reinserted with a different value.",
+    "minutes": 22,
+    "complexity": {
+      "time": "O(L)",
+      "space": "O(n*L)"
+    }
+  },
+  "Check If a Word is a Prefix of Any Word in a Sentence": {
+    "type": "foundation",
+    "tests": "Whether you can express \"is a prefix of\" precisely enough to compare against each token directly, without reaching for a structure this input size does not need.",
+    "minutes": 8,
+    "complexity": {
+      "time": "O(n)",
+      "space": "O(1)"
+    }
+  },
+  "Longest Word With All Prefixes": {
+    "type": "implementation",
+    "tests": "Whether you enforce a condition at every node along a path instead of only at its end, so an invalid prefix prunes everything beneath it immediately.",
+    "minutes": 26,
+    "complexity": {
+      "time": "O(n*L)",
+      "space": "O(n*L)"
+    }
+  },
+  "Design HashMap": {
+    "type": "design",
+    "tests": "Whether you can build the structure you normally get for free, choosing how keys land in buckets and what happens when two of them land together.",
+    "minutes": 20,
+    "complexity": {
+      "time": "O(1)",
+      "space": "O(n)"
+    }
+  },
+  "Fraction to Recurring Decimal": {
+    "type": "recognition",
+    "tests": "Recognizing that a repeating decimal is a repeated remainder, and that knowing a repeat happened is useless unless you also remember where it first occurred.",
+    "minutes": 32
+  },
+  "Logger Rate Limiter": {
+    "type": "design",
+    "tests": "Whether you store a timestamp rather than a flag per key, and decide exactly when the stored value should advance so the window measures from the right event.",
+    "minutes": 12,
+    "complexity": {
+      "time": "O(1)",
+      "space": "O(n)"
+    }
+  },
+  "Next Greater Element I": {
+    "type": "optimization",
+    "tests": "Whether you answer every query from a table built in one pass over the reference array, instead of restarting the search through it for each element.",
+    "minutes": 18,
+    "complexity": {
+      "time": "O(n+m)",
+      "space": "O(n)"
+    }
+  },
+  "Isomorphic Strings": {
+    "type": "foundation",
+    "tests": "Whether you test a structural correspondence in both directions at once, since a mapping that is consistent one way can still collapse two distinct characters the other.",
+    "minutes": 14,
+    "complexity": {
+      "time": "O(n)",
+      "space": "O(1)"
+    }
+  },
+  "Find Duplicate File in System": {
+    "type": "implementation",
+    "tests": "Whether you can see past a messy input format to the one field that should be the key, and keep the parsing separate from the grouping it feeds.",
+    "minutes": 25,
+    "complexity": {
+      "time": "O(n*L)",
+      "space": "O(n*L)"
+    }
+  },
+  "Longest Palindrome": {
+    "type": "recognition",
+    "tests": "Recognizing that only pair counts matter, so the length follows from summing the even portion of each letter's frequency and allowing at most one leftover center.",
+    "minutes": 12,
+    "complexity": {
+      "time": "O(n)",
+      "space": "O(1)"
+    }
+  },
+  "Continuous Subarray Sum": {
+    "type": "variant",
+    "tests": "Whether you can replace the prefix sum with a coarser state that still separates the cases, and respect a length requirement that a plain seen-map ignores.",
+    "minutes": 28,
+    "complexity": {
+      "time": "O(n)",
+      "space": "O(n)"
+    }
+  },
+  "Unique Number of Occurrences": {
+    "type": "foundation",
+    "tests": "Whether you can treat the frequency table as data in its own right, asking a question about the counts rather than about the values that produced them.",
+    "minutes": 10,
+    "complexity": {
+      "time": "O(n)",
+      "space": "O(n)"
+    }
+  },
+  "High Five": {
+    "type": "implementation",
+    "tests": "Whether you can bucket records by a key and keep only the small slice of each bucket that matters, instead of sorting everything you were handed.",
+    "minutes": 15,
+    "complexity": {
+      "time": "O(n log n)",
+      "space": "O(n)"
+    }
+  },
+  "Bulls and Cows": {
+    "type": "implementation",
+    "tests": "Whether you can count two overlapping relationships without letting an exact match also be counted as a misplaced one, ideally in a single pass over both strings.",
+    "minutes": 22,
+    "complexity": {
+      "time": "O(n)",
+      "space": "O(1)"
+    }
+  },
+  "Number of Wonderful Substrings": {
+    "type": "recognition",
+    "tests": "Recognizing that only each letter's parity matters, which compresses a substring property into a small state whose earlier occurrences you can tally as you sweep.",
+    "minutes": 35,
+    "complexity": {
+      "time": "O(n)",
+      "space": "O(1)"
+    }
+  },
+  "Number of Distinct Islands": {
+    "type": "variant",
+    "tests": "Whether you can turn a set of cells into a signature that ignores absolute position but preserves shape, so two identical islands hash to the same key.",
+    "minutes": 30,
+    "complexity": {
+      "time": "O(m*n)",
+      "space": "O(m*n)"
+    }
+  },
+  "Custom Sort String": {
+    "type": "implementation",
+    "tests": "Whether you can express an arbitrary ordering as a lookup from character to rank, and decide where characters absent from that ordering are allowed to land.",
+    "minutes": 20,
+    "complexity": {
+      "time": "O(n+m)",
+      "space": "O(1)"
+    }
+  },
+  "Total Appeal of a String": {
+    "type": "optimization",
+    "tests": "Whether you can stop enumerating substrings and instead total each position's own contribution, using how far back the same character last appeared.",
+    "minutes": 45,
+    "complexity": {
+      "time": "O(n)",
+      "space": "O(1)"
+    }
+  },
+  "Dot Product of Two Sparse Vectors": {
+    "type": "design",
+    "tests": "Whether you choose a representation that stores only what exists, and make the pairing step iterate the stored entries instead of the vector's full logical length.",
+    "minutes": 20,
+    "complexity": {
+      "time": "O(n+m)",
+      "space": "O(n)"
+    }
+  },
+  "Longest Happy Prefix": {
+    "type": "optimization",
+    "tests": "Whether you can compare a prefix against a suffix without re-reading either, by carrying a value that updates in constant time as the window extends.",
+    "minutes": 45,
+    "complexity": {
+      "time": "O(n)",
+      "space": "O(n)"
+    }
+  },
+  "Find Longest Self-Contained Substring": {
+    "type": "optimization",
+    "tests": "Whether you can shrink the search to boundaries that some character's full occurrence range forces, instead of testing every substring for leakage outside it.",
+    "minutes": 55
+  },
+  "Intersection of Two Arrays": {
+    "type": "foundation",
+    "tests": "Whether you convert membership testing into a constant-time question by loading one side into a set, and let the same structure handle deduplication for free.",
+    "minutes": 10,
+    "complexity": {
+      "time": "O(n+m)",
+      "space": "O(n)"
+    }
+  },
+  "Word Pattern": {
+    "type": "recognition",
+    "tests": "Recognizing a bijection check under new clothing, where the two sides are different kinds of token and both directions of the mapping still have to hold.",
+    "minutes": 14,
+    "complexity": {
+      "time": "O(n)",
+      "space": "O(n)"
+    }
+  },
+  "Valid Sudoku": {
+    "type": "implementation",
+    "tests": "Whether you can validate three independent constraint families in one pass, and derive a cell's block identity arithmetically instead of scanning each block separately.",
+    "minutes": 22,
+    "complexity": {
+      "time": "O(n^2)",
+      "space": "O(n^2)"
+    }
+  },
+  "Roman to Integer": {
+    "type": "foundation",
+    "tests": "Whether you can encode symbol values as a lookup and handle subtraction by comparing each symbol with its neighbor, rather than enumerating every special two-letter case.",
+    "minutes": 12,
+    "complexity": {
+      "time": "O(n)",
+      "space": "O(1)"
+    }
+  },
+  "Contiguous Array": {
+    "type": "recognition",
+    "tests": "Recognizing that an equal-counts condition becomes a running-balance condition once the two values are weighted against each other, turning the search into matching earlier states.",
+    "minutes": 28,
+    "complexity": {
+      "time": "O(n)",
+      "space": "O(n)"
+    }
+  },
+  "Jewels and Stones": {
+    "type": "foundation",
+    "tests": "Whether you notice a nested membership scan collapses the moment one side is loaded into a set, the cheapest possible instance of trading space for lookups.",
+    "minutes": 8,
+    "complexity": {
+      "time": "O(n+m)",
+      "space": "O(n)"
+    }
+  },
+  "Vowel Spellchecker": {
+    "type": "implementation",
+    "tests": "Whether you can layer several normalizations in strict precedence, each answering a more forgiving question, while keeping the earliest matching entry for every key.",
+    "minutes": 30,
+    "complexity": {
+      "time": "O(n*L + q*L)",
+      "space": "O(n*L)"
+    }
+  },
+  "N-Repeated Element in Size 2N Array": {
+    "type": "foundation",
+    "tests": "Whether the first repeat you encounter is enough, once you notice how the guaranteed multiplicity constrains where two copies can hide relative to each other.",
+    "minutes": 8,
+    "complexity": {
+      "time": "O(n)",
+      "space": "O(n)"
+    }
+  },
+  "Powerful Integers": {
+    "type": "implementation",
+    "tests": "Whether you can bound a double enumeration by the answer's own limit and notice the degenerate base that makes the loop never terminate.",
+    "minutes": 22,
+    "complexity": {
+      "time": "O((log b)^2)",
+      "space": "O((log b)^2)"
+    }
+  },
+  "Before and After Puzzle": {
+    "type": "implementation",
+    "tests": "Whether you index phrases by their joinable endpoints so pairing becomes a lookup, and handle a phrase never pairing with itself while duplicate results still collapse.",
+    "minutes": 28,
+    "complexity": {
+      "time": "O(n^2 log n)",
+      "space": "O(n^2)"
+    }
+  },
+  "Intersection of Two Arrays II": {
+    "type": "variant",
+    "tests": "Whether you can tell when multiplicity is part of the answer, and pick the counting version of the membership oracle instead of the one that silently deduplicates.",
+    "minutes": 12,
+    "complexity": {
+      "time": "O(n+m)",
+      "space": "O(n)"
+    }
+  },
+  "Subarray Sum Equals K": {
+    "type": "optimization",
+    "tests": "Whether you can rewrite a range condition as a difference between two running totals, so counting qualifying ranges becomes one pass and a tally of earlier states.",
+    "minutes": 28,
+    "complexity": {
+      "time": "O(n)",
+      "space": "O(n)"
+    }
+  },
+  "Identify the Largest Outlier in an Array": {
+    "type": "recognition",
+    "tests": "Recognizing that the defining equation fixes each candidate's partner, so the search becomes one lookup per element with counts guarding against reusing a single element twice.",
+    "minutes": 25,
+    "complexity": {
+      "time": "O(n)",
+      "space": "O(n)"
+    }
+  },
+  "Find the Length of the Longest Common Prefix": {
+    "type": "optimization",
+    "tests": "Whether you avoid comparing every pair by storing one side's prefixes in a set, so each candidate is tested by shrinking it until something matches.",
+    "minutes": 25,
+    "complexity": {
+      "time": "O(n*L + m*L)",
+      "space": "O(n*L)"
+    }
+  },
+  "Palindrome Permutation": {
+    "type": "foundation",
+    "tests": "Whether you can decide a rearrangement question from parity alone, testing the letters' counts rather than searching the arrangements they could produce.",
+    "minutes": 10,
+    "complexity": {
+      "time": "O(n)",
+      "space": "O(1)"
+    }
+  },
+  "Valid Anagram": {
+    "type": "foundation",
+    "tests": "Whether you can replace sorting with counting when order is irrelevant, and see that two strings match exactly when their small count tables do.",
+    "minutes": 10,
+    "complexity": {
+      "time": "O(n)",
+      "space": "O(1)"
+    }
+  },
+  "Design Tic-Tac-Toe": {
+    "type": "design",
+    "tests": "Whether you can answer a win query in constant time by maintaining summary counters as moves arrive, instead of rescanning the board after each one.",
+    "minutes": 25,
+    "complexity": {
+      "time": "O(1)",
+      "space": "O(n)"
+    }
+  },
+  "Group Anagrams": {
+    "type": "foundation",
+    "tests": "Whether you can derive a canonical key from each element so that grouping becomes a single hash-map bucketing pass rather than pairwise comparison.",
+    "minutes": 22,
+    "complexity": {
+      "time": "O(n*k)",
+      "space": "O(n*k)"
+    }
+  },
+  "Maximum Frequency Stack": {
+    "type": "design",
+    "tests": "Whether you can serve a most-frequent-then-most-recent pop in constant time, which needs state organized by count rather than a single stack or a recomputed maximum.",
+    "minutes": 40,
+    "complexity": {
+      "time": "O(1)",
+      "space": "O(n)"
+    }
+  },
+  "First Unique Character in a String": {
+    "type": "foundation",
+    "tests": "Whether you can pair a completed count table with a second ordered scan, since the earliest qualifying element cannot be identified while counts are still changing.",
+    "minutes": 9,
+    "complexity": {
+      "time": "O(n)",
+      "space": "O(1)"
+    }
+  },
+  "Find All Anagrams in a String": {
+    "type": "optimization",
+    "tests": "Whether you can beat rebuilding a comparison from scratch at every position by updating a fixed-size summary as one element enters and one leaves.",
+    "minutes": 26,
+    "complexity": {
+      "time": "O(n)",
+      "space": "O(1)"
+    }
+  },
+  "Longest Palindrome by Concatenating Two-Letter Words": {
+    "type": "recognition",
+    "tests": "Recognizing that the answer depends only on how many units pair with their reverse, and that self-mirrored units obey a stricter rule than the rest.",
+    "minutes": 24,
+    "complexity": {
+      "time": "O(n)",
+      "space": "O(n)"
+    }
+  },
+  "Ransom Note": {
+    "type": "foundation",
+    "tests": "Whether you can express containment as a budget check over counts, spending from a tally of available characters instead of searching the source string repeatedly.",
+    "minutes": 8,
+    "complexity": {
+      "time": "O(n + m)",
+      "space": "O(1)"
+    }
+  },
+  "Minimum Number of Pushes to Type Word II": {
+    "type": "recognition",
+    "tests": "Recognizing a cost-assignment problem behind a keypad story, where the cheapest slots must go to the most frequent letters and only the counts matter.",
+    "minutes": 22,
+    "complexity": {
+      "time": "O(n)",
+      "space": "O(1)"
+    }
+  },
+  "Rank Teams by Votes": {
+    "type": "implementation",
+    "tests": "Whether you can build a comparison key that is itself a vector of tallies, with every tiebreak level encoded explicitly rather than left to the default ordering.",
+    "minutes": 28,
+    "complexity": {
+      "time": "O(n*m + m^2 log m)",
+      "space": "O(m^2)"
+    }
+  },
+  "Pairs of Songs With Total Durations Divisible by 60": {
+    "type": "optimization",
+    "tests": "Whether you can replace the nested pair scan with a single pass that counts, for each element, the earlier partners that complete it under modular arithmetic.",
+    "minutes": 20,
+    "complexity": {
+      "time": "O(n)",
+      "space": "O(1)"
+    }
+  },
+  "Count Anagrams": {
+    "type": "implementation",
+    "tests": "Whether you can count arrangements without enumerating them, and handle the division that formula demands inside modular arithmetic where dividing is not allowed.",
+    "minutes": 45,
+    "complexity": {
+      "time": "O(n)",
+      "space": "O(n)"
+    }
+  },
+  "Divide Array Into Increasing Sequences": {
+    "type": "recognition",
+    "tests": "Recognizing that a partition feasibility question collapses to a single inequality about the most repeated value, so no actual partition ever needs constructing.",
+    "minutes": 35,
+    "complexity": {
+      "time": "O(n)",
+      "space": "O(1)"
+    }
+  },
+  "Max Consecutive Ones": {
+    "type": "foundation",
+    "tests": "Whether you can track a current run and a best-so-far in one sweep, resetting cleanly at each break instead of re-measuring streaks from every index.",
+    "minutes": 8,
+    "complexity": {
+      "time": "O(n)",
+      "space": "O(1)"
+    }
+  },
+  "Count and Say": {
+    "type": "implementation",
+    "tests": "Whether you can implement a run-length description precisely and iterate it, keeping the boundary handling correct when a run ends exactly at the string's end.",
+    "minutes": 24
+  },
+  "Find Words That Can Be Formed by Characters": {
+    "type": "variant",
+    "tests": "Whether you can reuse one budget table across many independent checks without letting an earlier word's consumption corrupt the counts available to the next.",
+    "minutes": 12,
+    "complexity": {
+      "time": "O(n + m)",
+      "space": "O(1)"
+    }
+  },
+  "Check if One String Swap Can Make Strings Equal": {
+    "type": "implementation",
+    "tests": "Whether you can reason exhaustively about how few positions are allowed to differ, and what must hold between them, before any comparison code is written.",
+    "minutes": 14,
+    "complexity": {
+      "time": "O(n)",
+      "space": "O(1)"
+    }
+  },
+  "Find Pivot Index": {
+    "type": "foundation",
+    "tests": "Whether you can decide a left-versus-right balance at every index using one running total and a fixed grand total, rather than summing both sides repeatedly.",
+    "minutes": 20,
+    "complexity": {
+      "time": "O(n)",
+      "space": "O(1)"
+    }
+  },
+  "Sort Array by Increasing Frequency": {
+    "type": "foundation",
+    "tests": "Whether you can sort by a key that lives outside the elements themselves, built from a finished count table with the tiebreak direction stated deliberately.",
+    "minutes": 21,
+    "complexity": {
+      "time": "O(n log n)",
+      "space": "O(n)"
+    }
+  },
+  "Concatenation of Array": {
+    "type": "foundation",
+    "tests": "Whether you can construct an output array by index arithmetic in a single allocation, keeping the mapping from source position to destination position obvious.",
+    "minutes": 20,
+    "complexity": {
+      "time": "O(n)",
+      "space": "O(n)"
+    }
+  },
+  "Zigzag Conversion": {
+    "type": "implementation",
+    "tests": "Whether you can translate a visual layout into a row assignment rule, tracking direction reversals at the boundaries instead of literally drawing the grid.",
+    "minutes": 30,
+    "complexity": {
+      "time": "O(n)",
+      "space": "O(n)"
+    }
+  },
+  "Zero Array Transformation I": {
+    "type": "recognition",
+    "tests": "Recognizing that many overlapping range updates need only their per-index coverage, which a marker-at-the-edges sweep produces without touching each element of each range.",
+    "minutes": 27,
+    "complexity": {
+      "time": "O(n + q)",
+      "space": "O(n)"
+    }
+  },
+  "Count Binary Substrings": {
+    "type": "optimization",
+    "tests": "Whether you can beat checking every substring by noticing the answer decomposes over adjacent runs, so only consecutive run lengths need comparing.",
+    "minutes": 25,
+    "complexity": {
+      "time": "O(n)",
+      "space": "O(1)"
+    }
+  },
+  "Redundant Connection": {
+    "type": "foundation",
+    "tests": "Whether you can detect a cycle as it forms by asking, before each edge is added, whether its endpoints already belong to the same component.",
+    "minutes": 26,
+    "complexity": {
+      "time": "O(n)",
+      "space": "O(n)"
+    }
+  },
+  "Number of Islands": {
+    "type": "foundation",
+    "tests": "Whether you can convert an adjacency picture into component counting, deciding deliberately between traversal and merging when the grid will not change afterward.",
+    "minutes": 25,
+    "complexity": {
+      "time": "O(m*n)",
+      "space": "O(m*n)"
+    }
+  },
+  "Most Stones Removed with Same Row or Column": {
+    "type": "recognition",
+    "tests": "Recognizing a removal-count question as a component-count question, where sharing a coordinate is the only relationship that matters and the order of removals does not.",
+    "minutes": 32,
+    "complexity": {
+      "time": "O(n)",
+      "space": "O(n)"
+    }
+  },
+  "Longest Consecutive Sequence": {
+    "type": "optimization",
+    "tests": "Whether you can beat the sorting solution by treating consecutive values as a grouping relation, and by knowing which elements are safe to start counting from.",
+    "minutes": 28,
+    "complexity": {
+      "time": "O(n)",
+      "space": "O(n)"
+    }
+  },
+  "Last Day Where You Can Still Cross": {
+    "type": "recognition",
+    "tests": "Recognizing that union-find can absorb additions but not deletions, which forces you to choose a direction to process time in before writing any code.",
+    "minutes": 48,
+    "complexity": {
+      "time": "O(m*n)",
+      "space": "O(m*n)"
+    }
+  },
+  "Regions Cut by Slashes": {
+    "type": "recognition",
+    "tests": "Recognizing that a cell cannot be a single node once a diagonal cuts through it, so the modeling decision carries this problem rather than the merging code.",
+    "minutes": 35,
+    "complexity": {
+      "time": "O(n^2)",
+      "space": "O(n^2)"
+    }
+  },
+  "Accounts Merge": {
+    "type": "foundation",
+    "tests": "Whether you can group records through a shared attribute without comparing every pair, then reassemble each finished component back into the output format required.",
+    "minutes": 33,
+    "complexity": {
+      "time": "O(n*k log(n*k))",
+      "space": "O(n*k)"
+    }
+  },
+  "Minimize Malware Spread": {
+    "type": "implementation",
+    "tests": "Whether you can attribute a global outcome back to single nodes, which turns on how many infected nodes a component already contains and on the stated tiebreak.",
+    "minutes": 42,
+    "complexity": {
+      "time": "O(n^2)",
+      "space": "O(n)"
+    }
+  },
+  "Evaluate Division": {
+    "type": "recognition",
+    "tests": "Recognizing chained ratios as a graph where each edge carries a multiplier, so answering a query means composing multipliers along a connection rather than solving equations.",
+    "minutes": 32
+  },
+  "Find if Path Exists in Graph": {
+    "type": "foundation",
+    "tests": "Whether you can answer reachability without producing a path, reducing the question to whether two vertices end up in the same component after all edges are absorbed.",
+    "minutes": 15,
+    "complexity": {
+      "time": "O(n + e)",
+      "space": "O(n)"
+    }
+  },
+  "The Skyline Problem": {
+    "type": "implementation",
+    "tests": "Whether you can turn overlapping rectangles into an ordered stream of boundary events and emit a point only when the tallest active height actually changes.",
+    "minutes": 58,
+    "complexity": {
+      "time": "O(n log n)",
+      "space": "O(n)"
+    }
+  },
+  "Similar String Groups": {
+    "type": "variant",
+    "tests": "Whether you can group by a relation that has no exact shared key, accepting a quadratic pairwise test when the alternative depends on which input dimension is smaller.",
+    "minutes": 44,
+    "complexity": {
+      "time": "O(n^2*k)",
+      "space": "O(n)"
+    }
+  },
+  "Optimize Water Distribution in a Village": {
+    "type": "recognition",
+    "tests": "Recognizing a minimum spanning tree under a story with two kinds of cost, and finding a way to express the second kind in the same currency as the first.",
+    "minutes": 45,
+    "complexity": {
+      "time": "O((n + m) log(n + m))",
+      "space": "O(n + m)"
+    }
+  },
+  "Number of Islands II": {
+    "type": "variant",
+    "tests": "Whether you can maintain a region count incrementally as cells appear, when a single new cell may join several existing regions at once.",
+    "minutes": 40,
+    "complexity": {
+      "time": "O(m*n + k)",
+      "space": "O(m*n)"
+    }
+  },
+  "Snapshot Array": {
+    "type": "design",
+    "tests": "Whether you can make versioning cheap by recording only what actually changed, so a snapshot costs nothing and a historical read pays a small search instead.",
+    "minutes": 28,
+    "complexity": {
+      "time": "O(log s)",
+      "space": "O(n + s)"
+    }
+  },
+  "Time-Based Key-Value Store": {
+    "type": "design",
+    "tests": "Whether you can exploit the fact that writes arrive in increasing time order, turning a get-as-of query into a search over already-sorted history rather than a scan.",
+    "minutes": 26,
+    "complexity": {
+      "time": "O(log n)",
+      "space": "O(n)"
+    }
+  },
+  "Implement LRU Cache": {
+    "type": "design",
+    "tests": "Whether you can hold two views of the same data in sync, so that lookup and eviction are both constant time instead of one of them degrading to a scan.",
+    "minutes": 32,
+    "complexity": {
+      "time": "O(1)",
+      "space": "O(n)"
+    }
+  },
+  "Insert Delete GetRandom O(1)": {
+    "type": "design",
+    "tests": "Whether you can keep uniform random access alive under deletion, which means deciding what an array is allowed to do when a hole opens in its middle.",
+    "minutes": 24,
+    "complexity": {
+      "time": "O(1)",
+      "space": "O(n)"
+    }
+  },
+  "Min Stack": {
+    "type": "design",
+    "tests": "Whether you can answer a minimum query in constant time on a structure whose contents keep leaving, which rules out storing a single current minimum.",
+    "minutes": 20,
+    "complexity": {
+      "time": "O(1)",
+      "space": "O(n)"
+    }
+  },
+  "Range Module": {
+    "type": "design",
+    "tests": "Whether you can maintain a set of intervals under both addition and removal, keeping them disjoint and merged so a containment query stays a single lookup.",
+    "minutes": 55
+  },
+  "Shortest Word Distance II": {
+    "type": "design",
+    "tests": "Whether you can pay once at construction so repeated queries stay cheap, comparing two already-ordered position lists rather than rescanning the words each time.",
+    "minutes": 23,
+    "complexity": {
+      "time": "O(a + b)",
+      "space": "O(n)"
+    }
+  },
+  "LFU Cache": {
+    "type": "design",
+    "tests": "Whether you can evict by frequency and break ties by recency in constant time, which needs the counts themselves to become an addressable part of the structure.",
+    "minutes": 52,
+    "complexity": {
+      "time": "O(1)",
+      "space": "O(n)"
+    }
+  },
+  "Moving Average from Data Stream": {
+    "type": "foundation",
+    "tests": "Whether you can maintain an aggregate by adjusting it with each arrival and departure, so no query ever re-adds the elements currently inside the window.",
+    "minutes": 10,
+    "complexity": {
+      "time": "O(1)",
+      "space": "O(k)"
+    }
+  },
+  "Two Sum III - Data structure design": {
+    "type": "design",
+    "tests": "Whether you can choose where a structure's cost should sit, since making insertion cheap and lookup cheap at the same time is not free here.",
+    "minutes": 14
+  },
+  "Range Sum Query - Immutable": {
+    "type": "foundation",
+    "tests": "Whether you can recognize that immutable data invites precomputation, so every range answer becomes a difference of two stored totals rather than a fresh loop.",
+    "minutes": 11,
+    "complexity": {
+      "time": "O(1)",
+      "space": "O(n)"
+    }
+  },
+  "Design HashSet": {
+    "type": "design",
+    "tests": "Whether you can build the primitive you normally import, choosing a bucket scheme and a collision policy and defending both against adversarial key distributions.",
+    "minutes": 18,
+    "complexity": {
+      "time": "O(1)",
+      "space": "O(n)"
+    }
+  },
+  "Max Stack": {
+    "type": "design",
+    "tests": "Whether you can support removing the maximum, not just reading it, which breaks the simple companion-stack trick that makes reading a maximum easy.",
+    "minutes": 45
+  },
+  "Stream of Characters": {
+    "type": "design",
+    "tests": "Whether you can answer suffix-matching queries on an unbounded stream, which forces a decision about which end of the stored words you index them by.",
+    "minutes": 40,
+    "complexity": {
+      "time": "O(k)",
+      "space": "O(n)"
+    }
+  },
+  "All O'one Data Structures": {
+    "type": "design",
+    "tests": "Whether you can keep both extremes of a frequency distribution reachable in constant time while counts move by one, which no single sorted container gives you.",
+    "minutes": 50,
+    "complexity": {
+      "time": "O(1)",
+      "space": "O(n)"
+    }
+  },
+  "Finding MK Average": {
+    "type": "design",
+    "tests": "Whether you can maintain a trimmed aggregate under a sliding window, where each arrival and eviction may shift which elements are excluded from the total.",
+    "minutes": 57,
+    "complexity": {
+      "time": "O(log n)",
+      "space": "O(n)"
+    }
+  },
+  "Find the Difference": {
+    "type": "recognition",
+    "tests": "Whether you can see two nearly identical letter multisets as one stream where matched items annihilate, leaving the intruder, without building a frequency table.",
+    "minutes": 10,
+    "complexity": {
+      "time": "O(n)",
+      "space": "O(1)"
+    }
+  },
+  "Complement of Base 10 Integer": {
+    "type": "implementation",
+    "tests": "Whether you can build a mask that spans exactly the number's own bit width, rather than assuming a fixed 32-bit word, before inverting anything.",
+    "minutes": 12,
+    "complexity": {
+      "time": "O(log n)",
+      "space": "O(1)"
+    }
+  },
+  "Flipping an Image": {
+    "type": "foundation",
+    "tests": "Whether you can fuse two stated passes into one inward walk, noticing that a mirrored pair whose values already agree needs different handling from one that does not.",
+    "minutes": 11,
+    "complexity": {
+      "time": "O(n^2)",
+      "space": "O(1)"
+    }
+  },
+  "Single Number": {
+    "type": "foundation",
+    "tests": "Whether you can find the unpaired element using an operation that is order-blind and self-cancelling, instead of counting occurrences in extra memory.",
+    "minutes": 8,
+    "complexity": {
+      "time": "O(n)",
+      "space": "O(1)"
+    }
+  },
+  "Single Number II": {
+    "type": "variant",
+    "tests": "Whether you can rebuild the cancellation idea when duplicates arrive in threes, which forces you to count evidence per bit position rather than keep one running total.",
+    "minutes": 28,
+    "complexity": {
+      "time": "O(n)",
+      "space": "O(1)"
+    }
+  },
+  "Encode and Decode Strings": {
+    "type": "design",
+    "tests": "Designing a self-delimiting wire format so arbitrary string content, including your own separator characters, survives a round trip through a single flat string.",
+    "minutes": 22,
+    "complexity": {
+      "time": "O(n)",
+      "space": "O(n)"
+    }
+  },
+  "Reverse Bits": {
+    "type": "implementation",
+    "tests": "Whether you can move bits between two numbers one position at a time while holding the width fixed, and what you would change if the function were called repeatedly.",
+    "minutes": 13,
+    "complexity": {
+      "time": "O(1)",
+      "space": "O(1)"
+    }
+  },
+  "Find the Longest Substring Having Vowels in Even Counts": {
+    "type": "recognition",
+    "tests": "Recognizing that a parity requirement over a tiny alphabet is really a small state carried along the string, and that two positions sharing a state delimit a valid stretch.",
+    "minutes": 32,
+    "complexity": {
+      "time": "O(n)",
+      "space": "O(1)"
+    }
+  },
+  "Longest Subarray With Maximum Bitwise AND": {
+    "type": "recognition",
+    "tests": "Whether you can reason about what bitwise AND can never do to a value, which collapses an apparent search over subarrays into a much simpler scan.",
+    "minutes": 21,
+    "complexity": {
+      "time": "O(n)",
+      "space": "O(1)"
+    }
+  },
+  "Count Triplets That Can Form Two Arrays of Equal XOR": {
+    "type": "recognition",
+    "tests": "Recognizing that requiring two adjacent halves to match makes the split point irrelevant, turning a triple loop into a question about equal range endpoints.",
+    "minutes": 26,
+    "complexity": {
+      "time": "O(n)",
+      "space": "O(n)"
+    }
+  },
+  "Sum of All Subset XOR Totals": {
+    "type": "optimization",
+    "tests": "Whether you can replace enumerating every subset with a per-bit argument about how often a given bit can survive across all of them.",
+    "minutes": 14,
+    "complexity": {
+      "time": "O(n)",
+      "space": "O(1)"
+    }
+  },
+  "Find The K-th Lucky Number": {
+    "type": "recognition",
+    "tests": "Recognizing that a language built from exactly two symbols is indexed by counting, so the kth string is read off an arithmetic value instead of generated.",
+    "minutes": 24,
+    "complexity": {
+      "time": "O(log k)",
+      "space": "O(log k)"
+    }
+  },
+  "Minimum Number of K Consecutive Bit Flips": {
+    "type": "optimization",
+    "tests": "Holding a running count of how many earlier flips still cover the current index, so a greedy left-to-right sweep never has to touch k cells per operation.",
+    "minutes": 45,
+    "complexity": {
+      "time": "O(n)",
+      "space": "O(1)"
+    }
+  },
+  "Minimum One Bit Operations to Make Integers Zero": {
+    "type": "recognition",
+    "tests": "Whether you can find the hidden ordering the two allowed moves impose on all integers, turning an apparent search over states into a rank computation.",
+    "minutes": 55,
+    "complexity": {
+      "time": "O(log n)",
+      "space": "O(1)"
+    }
+  },
+  "Triples with Bitwise AND Equal To Zero": {
+    "type": "optimization",
+    "tests": "Whether you can precompute over the bounded value space instead of the input, so a cubic triple search becomes counting pairs once and reusing that table.",
+    "minutes": 42,
+    "complexity": {
+      "time": "O(n^2 + n*2^16)",
+      "space": "O(2^16)"
+    }
+  },
+  "Power of Two": {
+    "type": "foundation",
+    "tests": "Whether you can express exactly-one-bit-set as a single arithmetic identity, and remember that zero and negative inputs must not sneak through it.",
+    "minutes": 8,
+    "complexity": {
+      "time": "O(1)",
+      "space": "O(1)"
+    }
+  },
+  "Hamming Distance": {
+    "type": "foundation",
+    "tests": "Whether you can turn positions-where-two-numbers-differ into one derived value whose set bits are exactly what needs counting.",
+    "minutes": 9,
+    "complexity": {
+      "time": "O(1)",
+      "space": "O(1)"
+    }
+  },
+  "Minimum Operations to Make the Integer Zero": {
+    "type": "recognition",
+    "tests": "Whether you can fix the operation count first and then test feasibility, using how few and how many powers of two a given value can decompose into.",
+    "minutes": 30,
+    "complexity": {
+      "time": "O(log n)",
+      "space": "O(1)"
+    }
+  },
+  "Minimum Area Rectangle": {
+    "type": "optimization",
+    "tests": "Whether you can pin a rectangle down by one diagonal pair and let a membership test supply the remaining corners, avoiding a search over four-point combinations.",
+    "minutes": 28,
+    "complexity": {
+      "time": "O(n^2)",
+      "space": "O(n)"
+    }
+  },
+  "Maximum Area Rectangle With Point Constraints I": {
+    "type": "implementation",
+    "tests": "Whether you can enumerate candidate corner pairs and still verify the nothing-inside-or-on-the-border rule, without letting that verification quietly become the dominant cost.",
+    "minutes": 30
+  },
+  "Reverse Integer": {
+    "type": "implementation",
+    "tests": "Whether you can detect overflow before it happens while peeling digits, since the reversed value need not fit the same type the input comfortably did.",
+    "minutes": 20,
+    "complexity": {
+      "time": "O(log n)",
+      "space": "O(1)"
+    }
+  },
+  "Minimum Number of Lines to Cover Points": {
+    "type": "recognition",
+    "tests": "Reading a tiny input bound as permission to search over subsets, while testing collinearity exactly rather than through slopes that break on vertical pairs.",
+    "minutes": 33,
+    "complexity": {
+      "time": "O(2^n * n^2)",
+      "space": "O(2^n)"
+    }
+  },
+  "Minimize Manhattan Distances": {
+    "type": "recognition",
+    "tests": "Whether you can change coordinates so Manhattan distance becomes a per-axis extreme, making remove-the-one-worst-point a question about a handful of boundary candidates.",
+    "minutes": 55,
+    "complexity": {
+      "time": "O(n log n)",
+      "space": "O(n)"
+    }
+  },
+  "Convex Polygon": {
+    "type": "foundation",
+    "tests": "Whether you can express convexity as every consecutive turn agreeing in direction, using an integer test that never divides and never measures an angle.",
+    "minutes": 24,
+    "complexity": {
+      "time": "O(n)",
+      "space": "O(1)"
+    }
+  },
+  "Check If It Is a Straight Line": {
+    "type": "foundation",
+    "tests": "Whether you can test collinearity with a comparison that stays in exact integers, instead of a slope that blows up the moment two points share an x.",
+    "minutes": 10,
+    "complexity": {
+      "time": "O(n)",
+      "space": "O(1)"
+    }
+  },
+  "Minimum Cuts to Divide a Circle": {
+    "type": "foundation",
+    "tests": "Whether you can resist drawing the cuts and reason about parity instead, noticing that one small input refuses to follow whatever formula the rest obey.",
+    "minutes": 9,
+    "complexity": {
+      "time": "O(1)",
+      "space": "O(1)"
+    }
+  },
+  "Valid Square": {
+    "type": "implementation",
+    "tests": "Whether you can pick an invariant that identifies a square regardless of the order the four points arrive in, and never take a square root to check it.",
+    "minutes": 25,
+    "complexity": {
+      "time": "O(1)",
+      "space": "O(1)"
+    }
+  },
+  "Rectangle Overlap": {
+    "type": "foundation",
+    "tests": "Whether you can decompose a two-dimensional overlap question into two independent one-dimensional ones, and decide deliberately whether touching edges should count.",
+    "minutes": 10,
+    "complexity": {
+      "time": "O(1)",
+      "space": "O(1)"
+    }
+  },
+  "Minimum Time Visiting All Points": {
+    "type": "recognition",
+    "tests": "Recognizing that when a diagonal step costs the same as a straight one, the two axis gaps stop adding together and one of them alone dictates the cost.",
+    "minutes": 12,
+    "complexity": {
+      "time": "O(n)",
+      "space": "O(1)"
+    }
+  },
+  "Rectangle Area": {
+    "type": "foundation",
+    "tests": "Whether you can compute a union by adding both areas and subtracting what they share, with the shared part measured per axis and clamped at zero.",
+    "minutes": 22,
+    "complexity": {
+      "time": "O(1)",
+      "space": "O(1)"
+    }
+  },
+  "Queries on Number of Points Inside a Circle": {
+    "type": "foundation",
+    "tests": "Whether you can compare distances without square roots, keeping every containment test in exact integer arithmetic once the input bounds make direct checking acceptable.",
+    "minutes": 20,
+    "complexity": {
+      "time": "O(n*m)",
+      "space": "O(1)"
+    }
+  },
+  "Max Points on a Line": {
+    "type": "optimization",
+    "tests": "Whether you can fix one point as an anchor and group the rest by direction, choosing a direction key that survives vertical lines and repeated points.",
+    "minutes": 42,
+    "complexity": {
+      "time": "O(n^2)",
+      "space": "O(n)"
+    }
+  },
+  "Maximum Number of Visible Points": {
+    "type": "recognition",
+    "tests": "Whether you can sort by angle and treat a field of view as a window sliding over that order, handling the wraparound past a full turn and points underfoot.",
+    "minutes": 48,
+    "complexity": {
+      "time": "O(n log n)",
+      "space": "O(n)"
+    }
+  },
+  "Detonate the Maximum Bombs": {
+    "type": "recognition",
+    "tests": "Recognizing a one-way reachability graph inside a geometry statement, since one bomb covering another says nothing at all about the reverse direction.",
+    "minutes": 32,
+    "complexity": {
+      "time": "O(n^3)",
+      "space": "O(n^2)"
+    }
+  },
+  "Self Crossing": {
+    "type": "implementation",
+    "tests": "Whether you can argue that only a small, complete set of local configurations can cause a self-touch, so no segment is ever compared against all earlier ones.",
+    "minutes": 50,
+    "complexity": {
+      "time": "O(n)",
+      "space": "O(1)"
+    }
+  },
+  "Erect the Fence": {
+    "type": "foundation",
+    "tests": "Building the boundary of a point set by walking sorted points and undoing any turn that bends the wrong way, then deciding what collinear points deserve.",
+    "minutes": 55,
+    "complexity": {
+      "time": "O(n log n)",
+      "space": "O(n)"
+    }
+  },
+  "Nth Magical Number": {
+    "type": "recognition",
+    "tests": "Whether you can count how many qualifying numbers lie at or below a guess, then search over that monotone count instead of enumerating multiples one by one.",
+    "minutes": 45,
+    "complexity": {
+      "time": "O(log n)",
+      "space": "O(1)"
+    }
+  },
+  "Add Strings": {
+    "type": "foundation",
+    "tests": "Whether you can perform schoolbook addition from the least significant end without ever parsing to a native integer, including the carry that outlives the loop.",
+    "minutes": 14,
+    "complexity": {
+      "time": "O(n+m)",
+      "space": "O(n+m)"
+    }
+  },
+  "Perfect Squares": {
+    "type": "recognition",
+    "tests": "Recognizing fewest-terms-summing-to-n as a coin-change shape whose denominations happen to be squares, rather than a search over combinations of them.",
+    "minutes": 27,
+    "complexity": {
+      "time": "O(n*sqrt(n))",
+      "space": "O(n)"
+    }
+  },
+  "Palindrome Number": {
+    "type": "implementation",
+    "tests": "Whether you can mirror-test a number arithmetically, choosing how much of it to rebuild so the reconstruction cannot overflow a type the input itself fits in.",
+    "minutes": 13,
+    "complexity": {
+      "time": "O(log n)",
+      "space": "O(1)"
+    }
+  },
+  "Fibonacci Number": {
+    "type": "foundation",
+    "tests": "Whether you can turn a two-term recurrence into a pair of rolling variables, so nothing is recomputed and nothing is stored beyond the last two values.",
+    "minutes": 8,
+    "complexity": {
+      "time": "O(n)",
+      "space": "O(1)"
+    }
+  },
+  "Integer to English Words": {
+    "type": "implementation",
+    "tests": "Whether you can carve a number into repeating three-digit groups and name each identically, keeping irregular teens and empty groups from corrupting the spacing.",
+    "minutes": 50,
+    "complexity": {
+      "time": "O(log n)",
+      "space": "O(log n)"
+    }
+  },
+  "Add Two Numbers": {
+    "type": "implementation",
+    "tests": "Whether you can carry across two lists of unequal length in a single pass, treating the exhausted list as zeros and the leftover carry as one more node.",
+    "minutes": 23,
+    "complexity": {
+      "time": "O(n+m)",
+      "space": "O(n+m)"
+    }
+  },
+  "Plus One": {
+    "type": "foundation",
+    "tests": "Whether you can reason about how far a carry can propagate, and recognize the single family of inputs that forces the result to be longer than the input.",
+    "minutes": 10,
+    "complexity": {
+      "time": "O(n)",
+      "space": "O(1)"
+    }
+  },
+  "Confusing Number": {
+    "type": "implementation",
+    "tests": "Whether you can separate digits that survive a 180-degree rotation from those that do not, and account for that rotation also reversing their order.",
+    "minutes": 13,
+    "complexity": {
+      "time": "O(log n)",
+      "space": "O(1)"
+    }
+  },
+  "Nim Game": {
+    "type": "recognition",
+    "tests": "Recognizing that a game with a fixed small move set has losing positions in a repeating cycle, so the winner is decided by a remainder rather than a search.",
+    "minutes": 10,
+    "complexity": {
+      "time": "O(1)",
+      "space": "O(1)"
+    }
+  },
+  "Bulb Switcher": {
+    "type": "optimization",
+    "tests": "Whether you can count how many toggles a position receives without performing any, noticing that divisors normally pair up and asking which positions break the pairing.",
+    "minutes": 22,
+    "complexity": {
+      "time": "O(1)",
+      "space": "O(1)"
+    }
+  },
+  "Water and Jug Problem": {
+    "type": "recognition",
+    "tests": "Recognizing that pouring back and forth can only ever reach multiples of a shared divisor, which replaces a state-space search with a divisibility check.",
+    "minutes": 26,
+    "complexity": {
+      "time": "O(log n)",
+      "space": "O(1)"
+    }
+  },
+  "Poor Pigs": {
+    "type": "recognition",
+    "tests": "Whether you can treat each subject as a digit of information and ask how many outcomes a schedule can distinguish, instead of designing a concrete strategy first.",
+    "minutes": 45,
+    "complexity": {
+      "time": "O(log n)",
+      "space": "O(1)"
+    }
+  },
+  "Add to Array-Form of Integer": {
+    "type": "implementation",
+    "tests": "Whether you can fold an ordinary integer into the carry of a digit-array addition, letting one loop absorb both operands even when their lengths differ wildly.",
+    "minutes": 15,
+    "complexity": {
+      "time": "O(n + log k)",
+      "space": "O(n)"
+    }
+  },
+  "Greatest Common Divisor of Strings": {
+    "type": "recognition",
+    "tests": "Recognizing that a repeated-block relationship between two strings mirrors divisibility between their lengths, plus one cheap test that a shared block exists at all.",
+    "minutes": 16,
+    "complexity": {
+      "time": "O(n+m)",
+      "space": "O(n+m)"
+    }
+  },
+  "Count Substrings with Only One Distinct Letter": {
+    "type": "foundation",
+    "tests": "Whether you can count run by run using a closed form for how many substrings a run of equal characters contains, instead of enumerating those substrings.",
+    "minutes": 12,
+    "complexity": {
+      "time": "O(n)",
+      "space": "O(1)"
+    }
+  },
+  "Equal Rational Numbers": {
+    "type": "implementation",
+    "tests": "Whether you can convert a notation containing a repeating part into an exact value, and accept that two visibly different notations can denote the same number.",
+    "minutes": 55
+  },
+  "Adding Two Negabinary Numbers": {
+    "type": "variant",
+    "tests": "Whether the carry rule you already know survives a negative base, where an overflowing digit propagates differently and a borrow can travel in the opposite direction.",
+    "minutes": 33,
+    "complexity": {
+      "time": "O(n+m)",
+      "space": "O(n+m)"
+    }
+  },
+  "Power of Three": {
+    "type": "variant",
+    "tests": "Whether you can test membership in a geometric sequence when the base offers no bit-level shortcut, and what a fixed integer range lets you exploit instead.",
+    "minutes": 10,
+    "complexity": {
+      "time": "O(log n)",
+      "space": "O(1)"
+    }
+  },
+  "Base 7": {
+    "type": "foundation",
+    "tests": "Whether you can convert between bases with repeated division and remainders, and handle the sign and the zero case that the loop itself never produces.",
+    "minutes": 11,
+    "complexity": {
+      "time": "O(log n)",
+      "space": "O(log n)"
+    }
+  },
+  "Sum of k-Mirror Numbers": {
+    "type": "optimization",
+    "tests": "Whether you can generate candidates that already satisfy one constraint by construction rather than filtering every integer, then test the second constraint on that thin stream.",
+    "minutes": 58
+  },
+  "Sum of Squares of Special Elements": {
+    "type": "foundation",
+    "tests": "Whether you can translate an index-divisibility condition into a single pass, keeping the statement's one-based indexing from drifting against a zero-based array.",
+    "minutes": 8,
+    "complexity": {
+      "time": "O(n)",
+      "space": "O(1)"
+    }
+  },
+  "Add Digits": {
+    "type": "recognition",
+    "tests": "Whether you can find what stays invariant as digits are repeatedly summed, turning an iterative collapse into a remainder with one awkward boundary case.",
+    "minutes": 20,
+    "complexity": {
+      "time": "O(1)",
+      "space": "O(1)"
+    }
+  },
+  "Count Primes": {
+    "type": "optimization",
+    "tests": "Whether you can eliminate composites in bulk by marking multiples rather than testing each number for divisibility, and where that marking loop can safely start.",
+    "minutes": 25,
+    "complexity": {
+      "time": "O(n log log n)",
+      "space": "O(n)"
+    }
+  },
+  "Pow(x, n)": {
+    "type": "optimization",
+    "tests": "Whether you can halve the exponent instead of decrementing it, and handle a negative exponent whose magnitude may not be representable once simply negated.",
+    "minutes": 26,
+    "complexity": {
+      "time": "O(log n)",
+      "space": "O(1)"
+    }
+  }
+}

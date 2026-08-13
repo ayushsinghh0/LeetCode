@@ -10,6 +10,7 @@ import {
   type AchievementCtx,
 } from '@/utils/engine/achievements';
 import { initialCourseProgress } from '@/utils/engine/aimlCourse';
+import { QF } from '@/test/questionFixture';
 
 const questions = questionsJson as Question[];
 
@@ -97,8 +98,8 @@ test('streak achievements read streak.longest, not streak.current, so a past str
 
 test('buildAchievementCtx: solvedCount/masteredCount/streak/pattern & difficulty stats reflect the real engines', () => {
   const qs: Question[] = [
-    { id: 1, title: 'Q1', pattern: 'two-pointers', difficulty: 'easy', estimatedTime: 15 },
-    { id: 2, title: 'Q2', pattern: 'two-pointers', difficulty: 'medium', estimatedTime: 25 },
+    { id: 1, title: 'Q1', pattern: 'two-pointers', difficulty: 'easy', estimatedTime: 15, ...QF },
+    { id: 2, title: 'Q2', pattern: 'two-pointers', difficulty: 'medium', estimatedTime: 25, ...QF },
   ];
   const today = '2026-07-30';
 

@@ -1,151 +1,103 @@
 import { Link } from 'react-router-dom';
-import { motion } from 'framer-motion';
 import { format, parseISO } from 'date-fns';
-import { CheckCircle2 } from 'lucide-react';
-import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { DailyGoalProgress } from '@/components/shared/DailyGoalProgress';
 import { WeeklyRevisionBanner } from '@/components/shared/WeeklyRevisionBanner';
-import { TodayPlan } from '@/components/tasks/TodayPlan';
-import { QuestionCard } from '@/components/questions/QuestionCard';
+import { TodayTasks } from '@/components/tasks/TodayTasks';
 import { CourseTodayCard } from '@/components/course/CourseTodayCard';
+import { NextActionCard } from '@/components/today/NextActionCard';
+import { SessionPlan } from '@/components/today/SessionPlan';
+import { ReturnNotice } from '@/components/today/ReturnNotice';
+import { DayCleared } from '@/components/today/DayCleared';
 import { useToday } from '@/hooks/useToday';
-import { useAppDispatch, useAppSelector } from '@/store/hooks';
-import { activeQuestionSet } from '@/store/slices/uiSlice';
+import { useAppSelector } from '@/store/hooks';
 import {
   selectCurrentDay,
+  selectDaysAway,
   selectIsWeeklyDay,
   selectPerDay,
-  selectQuestionById,
+  selectRankedWork,
   selectRevisionQueueIds,
   selectTodayLog,
-  selectTodaysNewQuestions,
   selectTotalDays,
 } from '@/store/selectors';
-import { initialProgress } from '@/utils/engine/spacedRepetition';
-import { diffDays } from '@/utils/dates';
-import { overdueLabel } from '@/utils/overdueLabel';
-import type { Question } from '@/types';
+import { buildSession } from '@/utils/engine/nextAction';
 
-const gridVariants = {
-  hidden: {},
-  show: { transition: { staggerChildren: 0.05 } },
-};
-
-const cardVariants = {
-  hidden: { opacity: 0, y: 12 },
-  show: { opacity: 1, y: 0 },
-};
-
+/**
+ * Today — the daily execution surface.
+ *
+ * The page answers one question in its first screenful: what should I do right now, and why.
+ * Everything below the hero is support for that answer, ordered by how much it changes the
+ * decision. Full question inventories deliberately live on /roadmap and /revision rather than
+ * here; listing the same eight problems on three surfaces was the thing that made this page read
+ * as a dashboard rather than a plan.
+ */
 export default function TodayPage() {
   const today = useToday();
-  const dispatch = useAppDispatch();
 
   const currentDay = useAppSelector(selectCurrentDay);
   const totalDays = useAppSelector(selectTotalDays);
   const isWeeklyDay = useAppSelector(selectIsWeeklyDay);
   const perDay = useAppSelector(selectPerDay);
-  const newQuestions = useAppSelector(selectTodaysNewQuestions);
   const revisionIds = useAppSelector((state) => selectRevisionQueueIds(state, today));
   const todayLog = useAppSelector((state) => selectTodayLog(state, today));
-  // Single subscription to the whole byId map — cards read their own entry out of it below,
-  // instead of each card mounting its own useAppSelector.
-  const progressById = useAppSelector((state) => state.progress.byId);
+  const ranked = useAppSelector((state) => selectRankedWork(state, today));
+  const daysAway = useAppSelector((state) => selectDaysAway(state, today));
+  const capacityMin = useAppSelector((s) => s.settings.dailyCapacityMin);
 
   const solvedToday = todayLog ? todayLog.solvedIds.length : 0;
+  const minutesToday = todayLog ? todayLog.focusMinutes : 0;
+  const activeToday = solvedToday > 0 || minutesToday > 0;
 
-  const openDetail = (id: number) => dispatch(activeQuestionSet(id));
-
-  const revisionQuestions = revisionIds
-    .map((id) => selectQuestionById(id))
-    .filter((q): q is Question => q !== undefined);
+  // Shown only on a genuine return: two or more days away, and nothing logged yet today.
+  const returning = daysAway !== null && daysAway >= 2 && !activeToday;
+  const plannedMinutes = buildSession(capacityMin, ranked).totalMinutes;
 
   return (
     <div className="flex flex-col gap-6">
-      <header className="glass flex flex-col gap-4 p-6">
-        <h1 className="text-2xl font-bold text-gradient">Today</h1>
-        <div className="flex flex-wrap items-center justify-between gap-3">
-          <div>
-            <p className="text-lg font-semibold">
-              Day {currentDay} of {totalDays}
-            </p>
-            <p className="text-sm text-muted-foreground">{format(parseISO(today), 'EEEE, MMMM d')}</p>
-          </div>
-          <Button asChild variant="outline">
-            <Link to="/focus">Focus mode</Link>
-          </Button>
+      <header className="flex flex-wrap items-end justify-between gap-3">
+        <div>
+          <h1 className="text-2xl font-bold text-gradient">Today</h1>
+          <p className="figures text-sm text-muted-foreground">
+            {format(parseISO(today), 'EEEE, MMMM d')} &middot; Day {currentDay} of {totalDays}
+          </p>
         </div>
+        <Button asChild variant="outline" size="sm">
+          <Link to="/focus">Focus mode</Link>
+        </Button>
       </header>
+
+      {returning && <ReturnNotice daysAway={daysAway} plannedMinutes={plannedMinutes} />}
 
       {isWeeklyDay && <WeeklyRevisionBanner count={revisionIds.length} />}
 
-      <div className="glass p-6">
+      {ranked.length > 0 ? (
+        <NextActionCard ranked={ranked} />
+      ) : (
+        <DayCleared solvedToday={solvedToday} minutesToday={minutesToday} />
+      )}
+
+      <SessionPlan ranked={ranked} />
+
+      <div className="glass p-5">
         <DailyGoalProgress solvedToday={solvedToday} perDay={perDay} />
       </div>
 
-      <TodayPlan />
-
       <CourseTodayCard />
 
-      <section>
-        <h2 className="mb-3 text-lg font-semibold">New Questions</h2>
-        <motion.div
-          className="grid grid-cols-1 gap-4 xl:grid-cols-2"
-          variants={gridVariants}
-          initial="hidden"
-          animate="show"
-        >
-          {newQuestions.map((question) => (
-            <motion.div key={question.id} variants={cardVariants}>
-              <QuestionCard
-                question={question}
-                progress={progressById[question.id] ?? initialProgress()}
-                context="today"
-                onOpenDetail={openDetail}
-              />
-            </motion.div>
-          ))}
-        </motion.div>
-      </section>
+      <TodayTasks />
 
-      <section>
-        <div className="mb-3 flex items-center gap-2">
-          <h2 className="text-lg font-semibold">Revision Due</h2>
-          <Badge variant="secondary">{revisionIds.length}</Badge>
-        </div>
-
-        {revisionQuestions.length === 0 ? (
-          <div className="glass flex flex-col items-center gap-2 p-10 text-center text-muted-foreground">
-            <CheckCircle2 className="h-8 w-8" aria-hidden="true" />
-            <p>No revisions due — enjoy the clean slate</p>
-          </div>
-        ) : (
-          <motion.div
-            className="grid grid-cols-1 gap-4 xl:grid-cols-2"
-            variants={gridVariants}
-            initial="hidden"
-            animate="show"
-          >
-            {revisionQuestions.map((question) => {
-              const progress = progressById[question.id] ?? initialProgress();
-              const overdueDays = progress.nextRevision ? diffDays(today, progress.nextRevision) : 0;
-              return (
-                <motion.div key={question.id} variants={cardVariants} className="relative">
-                  {overdueDays > 0 && (
-                    <Badge
-                      variant="outline"
-                      className="absolute right-3 top-3 z-10 border-medium bg-medium/15 text-medium"
-                    >
-                      {overdueLabel(overdueDays)}
-                    </Badge>
-                  )}
-                  <QuestionCard question={question} progress={progress} context="revision" onOpenDetail={openDetail} />
-                </motion.div>
-              );
-            })}
-          </motion.div>
-        )}
-      </section>
+      <p className="text-center text-xs text-muted-foreground">
+        Looking for the full lists?{' '}
+        <Link to="/roadmap" className="underline underline-offset-2">
+          Roadmap
+        </Link>{' '}
+        has every question,{' '}
+        <Link to="/revision" className="underline underline-offset-2">
+          Revision
+        </Link>{' '}
+        has the whole queue.
+      </p>
     </div>
   );
 }

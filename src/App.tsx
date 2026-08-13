@@ -11,6 +11,7 @@ const TodayPage = lazy(() => import('@/pages/TodayPage'));
 const RoadmapPage = lazy(() => import('@/pages/RoadmapPage'));
 const AimlCoursePage = lazy(() => import('@/pages/AimlCoursePage'));
 const PatternsPage = lazy(() => import('@/pages/PatternsPage'));
+const CompaniesPage = lazy(() => import('@/pages/CompaniesPage'));
 const PatternDetailPage = lazy(() => import('@/pages/PatternDetailPage'));
 const RevisionPage = lazy(() => import('@/pages/RevisionPage'));
 const DrillsPage = lazy(() => import('@/pages/DrillsPage'));
@@ -53,6 +54,8 @@ export function AppRoutes() {
           <Route path="/aiml" element={<AimlCoursePage />} />
           <Route path="/patterns" element={<PatternsPage />} />
           <Route path="/patterns/:patternId" element={<PatternDetailPage />} />
+          <Route path="/companies" element={<CompaniesPage />} />
+          <Route path="/companies/:companyId" element={<CompaniesPage />} />
           <Route path="/revision" element={<RevisionPage />} />
           <Route path="/drills" element={<DrillsPage />} />
           <Route path="/calendar" element={<CalendarPage />} />

@@ -120,6 +120,25 @@ const progressSlice = createSlice({
       log.xpEarned += xp;
     },
 
+    // Monotonic: the record is how deep the learner ever went, so closing and reopening a lower
+    // rung can never walk the signal back down. Revealing a hint also counts as starting the
+    // question — you cannot ask for help with something you have not begun.
+    hintRevealed(state, action: PayloadAction<{ id: number; level: number }>) {
+      const { id, level } = action.payload;
+      const prev = state.byId[id] ?? initialProgress();
+      state.byId[id] = {
+        ...prev,
+        status: prev.status === 'unsolved' ? 'in_progress' : prev.status,
+        hintLevelUsed: Math.max(prev.hintLevelUsed ?? 0, level),
+      };
+    },
+
+    reflectionSet(state, action: PayloadAction<{ id: number; reflection: string }>) {
+      const { id, reflection } = action.payload;
+      const prev = state.byId[id] ?? initialProgress();
+      state.byId[id] = { ...prev, reflection };
+    },
+
     timeSpentAdded(state, action: PayloadAction<{ id: number; minutes: number }>) {
       const { id, minutes } = action.payload;
       const prev = state.byId[id] ?? initialProgress();
@@ -155,6 +174,8 @@ export const {
   focusMinutesAdded,
   timeSpentAdded,
   bonusXpLogged,
+  hintRevealed,
+  reflectionSet,
 } = progressSlice.actions;
 
 export default progressSlice.reducer;

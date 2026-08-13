@@ -15,6 +15,7 @@ import {
 } from 'lucide-react';
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { StatCard } from '@/components/shared/StatCard';
+import { InsightPanel } from '@/components/shared/InsightPanel';
 import { EmptyState } from '@/components/shared/EmptyState';
 import { SolvedPerDayChart } from '@/components/charts/SolvedPerDayChart';
 import { PatternCompletionChart } from '@/components/charts/PatternCompletionChart';
@@ -30,6 +31,7 @@ import {
   selectCourseStats,
   selectDifficultyStats,
   selectForecast,
+  selectInsights,
   selectPatternStats,
   selectProductivityScore,
   selectStreaks,
@@ -57,6 +59,7 @@ export default function AnalyticsPage() {
   const today = useToday();
   const [range, setRange] = useState<SolvedRange>(30);
 
+  const insights = useAppSelector((s) => selectInsights(s, today));
   const streaks = useAppSelector((s) => selectStreaks(s, today));
   const productivity = useAppSelector((s) => selectProductivityScore(s, today));
   const patternStats = useAppSelector(selectPatternStats);
@@ -133,10 +136,17 @@ export default function AnalyticsPage() {
 
   return (
     <div className="flex flex-col gap-6">
-      <header className="glass p-6">
+      <header>
         <h1 className="text-2xl font-bold text-gradient">Analytics</h1>
-        <p className="mt-1 text-sm text-muted-foreground">Your progress, activity, and patterns at a glance</p>
+        <p className="mt-1 max-w-prose text-sm text-muted-foreground">
+          What changed, what it means, and what to do next. The charts below are the evidence —
+          the readings come first.
+        </p>
       </header>
+
+      {/* Findings before figures. A learner who opens this page has a decision to make, and a
+          wall of charts hands the interpreting work straight back to them. */}
+      <InsightPanel insights={insights} />
 
       <motion.div className="flex flex-col gap-6" variants={sectionVariants} initial="hidden" animate="show">
         {/* Row: streak/consistency/productivity stat cards */}

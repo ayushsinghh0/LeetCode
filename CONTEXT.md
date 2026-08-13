@@ -84,7 +84,7 @@ src/store/         store, actions.ts (thunks = mutation API), selectors.ts, shar
 src/services/storage/  StorageAdapter, LocalStorageAdapter, persistence (middleware), serialize
 src/pages/         12 route pages + tests
 src/components/    layout/ (AppShell, Sidebar, MobileNav, navItems registry), questions/, course/,
-                   charts/, gamification/, shared/ (Heatmap, SearchDialog, StatCard…), pomodoro/, ui/ (shadcn)
+                   charts/, gamification/, shared/ (Heatmap, SearchDialog, EmptyState…), pomodoro/, ui/ (shadcn)
 src/contexts/      ThemeContext
 src/hooks/         useToday, usePomodoro, useCelebration
 docs/superpowers/  original plan + design specs (DSA app, AI/ML course, unified activity system)

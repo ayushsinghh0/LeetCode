@@ -64,6 +64,22 @@ export function Page({ children, width = 'default', className }: PageProps) {
 /* PageHeader                                                                                   */
 /* ------------------------------------------------------------------------------------------- */
 
+/**
+ * The eyebrow register: quiet mono capitals above a title.
+ *
+ * This exists as a component because the register was being re-declared inline on eight surfaces,
+ * and half of them omitted `.figures` — so the identical eyebrow rendered in the mono face on
+ * some pages and the body face on others. That is invisible in any single file and plainly wrong
+ * across the product. `PageHeader` and `Section` use it too, so there is exactly one definition.
+ */
+export function Eyebrow({ children, className }: { children: ReactNode; className?: string }) {
+  return (
+    <p className={cn('figures text-xs uppercase tracking-[0.14em] text-muted-foreground', className)}>
+      {children}
+    </p>
+  );
+}
+
 export interface PageHeaderProps {
   /** Quiet context above the title — a date, a chapter number, a count. Never the title again. */
   eyebrow?: ReactNode;
@@ -85,9 +101,7 @@ export function PageHeader({ eyebrow, title, support, action, rule = true }: Pag
     <header className="flex flex-col gap-4">
       <div className="flex flex-wrap items-end justify-between gap-x-6 gap-y-3">
         <div className="flex min-w-0 flex-col gap-1.5">
-          {eyebrow && (
-            <p className="figures text-xs uppercase tracking-[0.14em] text-muted-foreground">{eyebrow}</p>
-          )}
+          {eyebrow && <Eyebrow>{eyebrow}</Eyebrow>}
           <h1 className="text-3xl font-semibold leading-tight md:text-4xl">{title}</h1>
         </div>
         {action && <div className="flex shrink-0 items-center gap-2">{action}</div>}
@@ -143,11 +157,7 @@ export function Section({
         <div className="flex flex-col gap-1.5">
           <div className="flex flex-wrap items-baseline justify-between gap-x-4 gap-y-1">
             <div className="flex min-w-0 flex-col gap-1">
-              {eyebrow && (
-                <p className="figures text-xs uppercase tracking-[0.14em] text-muted-foreground">
-                  {eyebrow}
-                </p>
-              )}
+              {eyebrow && <Eyebrow>{eyebrow}</Eyebrow>}
               {title && (
                 <Heading className={cn('font-semibold', level === 2 ? 'text-xl' : 'text-base')}>
                   {title}

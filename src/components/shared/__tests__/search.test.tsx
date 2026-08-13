@@ -98,6 +98,26 @@ describe('SearchDialog', () => {
     expect(screen.getAllByRole('option', { name: /Sum/i })).toHaveLength(1);
   });
 
+  // One listbox, one row grammar. Question results used to be `.glass` plates — a plate per row
+  // inside DialogContent, which is itself a plate — while the page/action/week/task rows directly
+  // above them were plain. Two row designs stacked on each other in a single list.
+  test('question rows use the same row grammar as the command rows, not a plate of their own', () => {
+    const store = makeStore();
+    store.dispatch(searchOpenSet(true));
+    renderWithStore(<SearchDialog />, store);
+
+    // Both rows are captured while highlighted (each is index 0 of its own render), so this
+    // compares like with like: the highlighted row must look the same whatever kind of thing it is.
+    const pageRow = screen.getByRole('option', { name: 'Dashboard' });
+    fireEvent.change(screen.getByPlaceholderText(/search/i), { target: { value: '3Sum' } });
+    const questionRow = screen.getByRole('option', { name: /3Sum/i });
+
+    expect(pageRow).toHaveAttribute('aria-selected', 'true');
+    expect(questionRow).toHaveAttribute('aria-selected', 'true');
+    expect(questionRow.className).not.toContain('glass');
+    expect(questionRow.className).toBe(pageRow.className);
+  });
+
   test('difficulty chip narrows the live query results further (AND, not OR)', () => {
     const store = makeStore();
     store.dispatch(searchOpenSet(true));

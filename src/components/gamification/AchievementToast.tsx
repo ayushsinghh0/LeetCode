@@ -2,6 +2,7 @@ import { useEffect, useRef } from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
 import { Award, X } from 'lucide-react';
 import { iconByName } from '@/components/shared/iconMap';
+import { Plate } from '@/components/layout/Page';
 import { useAppDispatch, useAppSelector } from '@/store/hooks';
 import { toastPopped } from '@/store/slices/uiSlice';
 import { ACHIEVEMENTS } from '@/utils/engine/achievements';
@@ -64,23 +65,29 @@ export function AchievementToast() {
             animate={{ opacity: 1, x: 0 }}
             transition={{ duration: 0.3, ease: 'easeOut' }}
             role="status"
-            className="glass pointer-events-auto flex items-center gap-3 p-4 pr-3 shadow-lg"
+            className="pointer-events-auto"
           >
-            <span className="inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-accent-gradient text-primary-foreground">
-              <Icon className="h-5 w-5" aria-hidden="true" />
-            </span>
-            <div className="min-w-0">
-              <p className="text-xs font-medium text-muted-foreground">Achievement unlocked!</p>
-              <p className="truncate text-sm font-semibold">{def.title}</p>
-            </div>
-            <button
-              type="button"
-              aria-label="Dismiss"
-              onClick={handleDismiss}
-              className="ml-1 shrink-0 rounded-full p-1 text-muted-foreground transition-colors hover:text-foreground"
-            >
-              <X className="h-4 w-4" aria-hidden="true" />
-            </button>
+            {/* `Plate size="sm"` rather than a hand-rolled `p-4 pr-3`: 16px is not one of the
+                three padding steps the system has (DESIGN.md § The rhythm), and this is a row-
+                scale surface, so it takes the row step. `shadow-md` is the overlay shadow — the
+                old `shadow-lg` was a fourth elevation nobody else uses. */}
+            <Plate size="sm" className="flex items-center gap-3 shadow-md">
+              <span className="inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-accent-gradient text-primary-foreground">
+                <Icon className="h-5 w-5" aria-hidden="true" />
+              </span>
+              <div className="min-w-0">
+                <p className="text-xs font-medium text-muted-foreground">Achievement unlocked!</p>
+                <p className="truncate text-sm font-semibold">{def.title}</p>
+              </div>
+              <button
+                type="button"
+                aria-label="Dismiss"
+                onClick={handleDismiss}
+                className="shrink-0 rounded-full p-1 text-muted-foreground transition-colors hover:text-foreground"
+              >
+                <X className="h-4 w-4" aria-hidden="true" />
+              </button>
+            </Plate>
           </motion.div>
         )}
       </AnimatePresence>

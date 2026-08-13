@@ -1,3 +1,4 @@
+import { act } from 'react';
 import { describe, expect, test, vi, beforeEach, afterEach } from 'vitest';
 import { screen, fireEvent } from '@testing-library/react';
 import { renderWithStore } from '@/test/renderWithStore';
@@ -6,6 +7,7 @@ import questionsData from '@/data/questions.json';
 import { familyById } from '@/data/curriculum';
 import { patternById } from '@/data/patterns';
 import { makeStore } from '@/store/store';
+import { revealHint } from '@/store/actions';
 import type { InterviewState } from '@/store/slices/interviewSlice';
 import { hashSeed, mulberry32, seededShuffle } from '@/utils/engine/prng';
 import { followUpsFor } from '@/utils/engine/interview';
@@ -24,6 +26,8 @@ const subject = questions.find((q) => q.familyId !== undefined && q.complexity !
 const family = familyById[subject.familyId!]!;
 const patternName = patternById[subject.pattern].name;
 const followUps = followUpsFor(subject, family);
+// 101 of the 539 questions sit outside the family map, so they have no hint ladder at all.
+const familyless = questions.find((q) => q.familyId === undefined)!;
 
 beforeEach(() => {
   vi.useFakeTimers({ shouldAdvanceTime: true });
@@ -41,6 +45,10 @@ function interviewStore(overrides: Partial<InterviewState> = {}) {
       stageOutcomes: {},
       selfAssessment: {},
       elapsedSec: 0,
+      // null = no segment running; the page opens one on mount and settles it on the way out.
+      startedAtMs: null,
+      hintsAtStart: 0,
+      hintsTaken: 0,
       startedOn: TODAY,
       finishedOn: null,
       ...overrides,
@@ -187,6 +195,80 @@ describe('InterviewPage — the reveal gates', () => {
   });
 });
 
+describe('InterviewPage — the hint gate', () => {
+  test('the button is disabled by the gate and never by a missing family', () => {
+    // `canTakeHint` used to include `hintLevelUsed < hints.length`, so a question outside the
+    // family map — no ladder, length 0 — kept the button disabled the instant the approach stage
+    // unlocked hints. That announced "this one has no mapped family" three stages before the
+    // family gate opens, through a control nobody had pressed.
+    const store = makeStore({
+      interview: {
+        questionId: familyless.id,
+        stage: 'approach',
+        stageOutcomes: {},
+        selfAssessment: {},
+        elapsedSec: 0,
+        startedAtMs: null,
+        hintsAtStart: 0,
+        hintsTaken: 0,
+        startedOn: TODAY,
+        finishedOn: null,
+      },
+    });
+    renderWithStore(<InterviewPage />, store);
+
+    const button = screen.getByRole('button', { name: /need a hint/i });
+    expect(button).not.toBeDisabled();
+
+    // Pressing it says so out loud instead of encoding the fact in a dead control.
+    fireEvent.click(button);
+    expect(screen.getByText(/no mapped family/)).toBeInTheDocument();
+  });
+
+  test('a ladder opened on another day starts closed, and is not billed to this sitting', () => {
+    // `hintLevelUsed` is the all-time deepest rung. Reading it as the sitting's position rendered
+    // the whole ladder open the moment the gate lifted — defeating the one mechanism interview
+    // mode has — and then reported three hints taken in a sitting that took none.
+    const store = interviewStore({ stage: 'approach', hintsAtStart: 3 });
+    act(() => {
+      store.dispatch(revealHint(subject.id, 3)); // as if from the question sheet, weeks ago
+    });
+    renderWithStore(<InterviewPage />, store);
+
+    expect(screen.queryByText(family.signals[0]!)).not.toBeInTheDocument();
+    expect(screen.getByText(/the ladder is closed/i)).toBeInTheDocument();
+
+    // And it still opens, one rung at a time, from the gated control.
+    fireEvent.click(screen.getByRole('button', { name: /need a hint/i }));
+    expect(screen.getByText(family.signals[0]!)).toBeInTheDocument();
+    expect(store.getState().interview.hintsTaken).toBe(1);
+  });
+
+  test('the debrief counts the rungs this sitting opened, not the ones the question remembers', () => {
+    const store = interviewStore({ finishedOn: TODAY, hintsAtStart: 3, hintsTaken: 0 });
+    act(() => {
+      store.dispatch(revealHint(subject.id, 3));
+    });
+    renderWithStore(<InterviewPage />, store);
+
+    expect(screen.getByText('0 of 3')).toBeInTheDocument();
+    expect(screen.getByText('Untouched this sitting')).toBeInTheDocument();
+  });
+
+  test('beginning an interview snapshots the hint record the question already carried', () => {
+    const store = makeStore();
+    act(() => {
+      store.dispatch(revealHint(proposed.id, 2));
+    });
+    renderWithStore(<InterviewPage />, store);
+
+    fireEvent.click(screen.getByRole('button', { name: /begin interview/i }));
+
+    expect(store.getState().interview.hintsAtStart).toBe(2);
+    expect(store.getState().interview.hintsTaken).toBe(0);
+  });
+});
+
 describe('InterviewPage — the timer', () => {
   test('shows the question\'s own recommendation and counts elapsed time up', () => {
     renderWithStore(<InterviewPage />, interviewStore());
@@ -203,6 +285,31 @@ describe('InterviewPage — the timer', () => {
     expect(
       screen.getByText(/past the ~12 min recommendation. That is information, not a failure/),
     ).toBeInTheDocument();
+  });
+
+  test('leaving the page keeps the minutes worked and drops the minutes away', () => {
+    // The clock used to be rebuilt on mount from `elapsedSec`, which was written only at stage
+    // transitions — so on this lazy route, navigating away and back discarded everything since
+    // the last one, and a thirty-minute sitting was debriefed as ten. It also kept counting while
+    // the learner was elsewhere, which is the opposite error.
+    const store = interviewStore();
+    const first = renderWithStore(<InterviewPage />, store);
+
+    act(() => {
+      vi.advanceTimersByTime(5 * 60_000);
+    });
+    expect(screen.getByText('5:00')).toBeInTheDocument();
+
+    first.unmount(); // navigating to another route
+    expect(store.getState().interview.elapsedSec).toBe(300);
+    expect(store.getState().interview.startedAtMs).toBeNull();
+
+    act(() => {
+      vi.advanceTimersByTime(40 * 60_000); // forty minutes somewhere else
+    });
+
+    renderWithStore(<InterviewPage />, store);
+    expect(screen.getByText('5:00')).toBeInTheDocument();
   });
 });
 

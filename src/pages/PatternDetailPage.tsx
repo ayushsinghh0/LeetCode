@@ -3,18 +3,12 @@ import { Link, useParams } from 'react-router-dom';
 import { SearchX, Shapes } from 'lucide-react';
 import { iconByName } from '@/components/shared/iconMap';
 import { EmptyState } from '@/components/shared/EmptyState';
-import { Ledger, Meta, Page, PageHeader, Section } from '@/components/layout/Page';
+import { Ledger, Meta, Page, PageHeader, RuledList, Section } from '@/components/layout/Page';
 import { DifficultyBadge } from '@/components/questions/DifficultyBadge';
 import { ConfidenceRating } from '@/components/questions/ConfidenceRating';
-import { QuestionCard } from '@/components/questions/QuestionCard';
+import { QuestionRow } from '@/components/questions/QuestionCard';
+import { ALL_STATUS_OPTIONS, QuestionFilterRow } from '@/components/shared/QuestionFilterRow';
 import { Progress } from '@/components/ui/progress';
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select';
 import { patternById } from '@/data/patterns';
 import { SUBPATTERNS } from '@/data/curriculum';
 import { companiesNamingPattern } from '@/data/companies';
@@ -38,25 +32,6 @@ export interface PatternFilters {
   status: StatusFilter;
   difficulty: DifficultyFilterValue;
 }
-
-const STATUS_LABEL: Record<StatusFilter, string> = {
-  all: 'All',
-  solved: 'Solved',
-  unsolved: 'Unsolved',
-  'needs-revision': 'Needs Revision',
-  bookmarked: 'Bookmarked',
-};
-
-const DIFFICULTY_FILTER_LABEL: Record<DifficultyFilterValue, string> = {
-  all: 'All',
-  easy: 'Easy',
-  medium: 'Medium',
-  hard: 'Hard',
-};
-
-// The filter row is chrome, not content: it already has its own boundary (two bordered controls),
-// so it sits on the page ground rather than inside a plate that drew a second one around it.
-const FILTER_LABEL_CLASS = 'figures text-xs uppercase tracking-[0.14em] text-muted-foreground';
 
 function isPatternId(id: string): id is PatternId {
   return Object.prototype.hasOwnProperty.call(patternById, id);
@@ -159,18 +134,21 @@ export default function PatternDetailPage() {
     dispatch(activeQuestionSet(id));
   }
 
-  const questionGrid = (items: Question[]) => (
-    <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-3">
+  // Hairline-ruled rows, not a grid of cards. Thirty questions in a pattern used to render thirty
+  // bordered rectangles of identical weight (and, at xl, three to a line inside a 60rem measure —
+  // 309px for a title, a sentence, a pattern and an estimate). A browse list is an index, and an
+  // index entry is a row: DESIGN.md § The plate rule, "a list does not become plates".
+  const questionList = (items: Question[], label: string) => (
+    <RuledList aria-label={label}>
       {items.map((q) => (
-        <QuestionCard
+        <QuestionRow
           key={q.id}
           question={q}
           progress={progressById[q.id] ?? initialProgress()}
-          context="browse"
-          onOpenDetail={openQuestion}
+          onOpen={openQuestion}
         />
       ))}
-    </div>
+    </RuledList>
   );
 
   return (
@@ -195,9 +173,11 @@ export default function PatternDetailPage() {
       <Section aria-label="Progress">
         <Meta
           items={[
+            // Borderless inside a Meta line: the counts and the difficulties describe one
+            // breakdown, and a bordered chip here would box one fact inside a line of plain text.
             ...difficultyCounts.map(({ difficulty: d, count }) => (
               <span key={d} className="inline-flex items-center gap-1.5">
-                <DifficultyBadge difficulty={d} />
+                <DifficultyBadge difficulty={d} variant="bare" />
                 <span className="figures">{count}</span>
               </span>
             )),
@@ -267,44 +247,21 @@ export default function PatternDetailPage() {
         title="Questions"
         support={`Showing ${filtered.length} of ${patternQuestions.length}.`}
       >
-        <div className="flex flex-wrap items-center gap-x-5 gap-y-3">
-          <div className="flex items-center gap-2">
-            <span className={FILTER_LABEL_CLASS}>Status</span>
-            <Select value={status} onValueChange={(v) => setStatus(v as StatusFilter)}>
-              <SelectTrigger aria-label="Filter by status" className="w-40">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                {(Object.keys(STATUS_LABEL) as StatusFilter[]).map((s) => (
-                  <SelectItem key={s} value={s}>
-                    {STATUS_LABEL[s]}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
-
-          <div className="flex items-center gap-2">
-            <span className={FILTER_LABEL_CLASS}>Difficulty</span>
-            <Select value={difficulty} onValueChange={(v) => setDifficulty(v as DifficultyFilterValue)}>
-              <SelectTrigger aria-label="Filter by difficulty" className="w-32">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                {(Object.keys(DIFFICULTY_FILTER_LABEL) as DifficultyFilterValue[]).map((d) => (
-                  <SelectItem key={d} value={d}>
-                    {DIFFICULTY_FILTER_LABEL[d]}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
-        </div>
+        {/* The same filter row Bookmarks and the search palette use. This page used to roll its
+            own pair of Selects for the identical job, so two adjacent surfaces had two designs
+            for one control. Chips clear by re-clicking, which is why there is no "All" option. */}
+        <QuestionFilterRow
+          difficulty={difficulty}
+          onDifficultyChange={setDifficulty}
+          status={status}
+          onStatusChange={setStatus}
+          statusOptions={ALL_STATUS_OPTIONS}
+        />
 
         {filtered.length === 0 ? (
           <EmptyState icon={SearchX} title="No questions match these filters" />
         ) : sections.length === 0 ? (
-          questionGrid(filtered)
+          questionList(filtered, 'Questions')
         ) : null}
       </Section>
 
@@ -325,7 +282,7 @@ export default function PatternDetailPage() {
           }
           aria-label={name}
         >
-          {questionGrid(items)}
+          {questionList(items, `${name} questions`)}
         </Section>
       ))}
     </Page>

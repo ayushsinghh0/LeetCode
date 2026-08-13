@@ -9,7 +9,6 @@ import { combinedRevisionLoadForecast, revisionLoadForecast } from '@/utils/engi
 import { COURSE_WEEKS } from '@/data/aimlCourse';
 import { weeklyTopUp } from '@/utils/engine/weeklyRevision';
 import { buildAchievementCtx } from '@/utils/engine/achievements';
-import { estimatedFinishDate } from '@/utils/engine/roadmap';
 import { makeStore } from '@/store/store';
 import { completeCourseSession, importProgress, solveQuestion } from '@/store/actions';
 import { settingsUpdated } from '@/store/slices/settingsSlice';
@@ -19,7 +18,6 @@ import {
   selectCurrentDay,
   selectDifficultyStats,
   selectDueRevisionIds,
-  selectEstimatedFinish,
   selectForecast,
   selectHeatmapData,
   selectIsWeeklyDay,
@@ -244,17 +242,12 @@ test('selectAchievementCtx delegates to buildAchievementCtx', () => {
   );
 });
 
-test('selectEstimatedFinish/selectProductivityScore/selectForecast delegate correctly', () => {
+test('selectProductivityScore/selectForecast delegate correctly', () => {
   const store = makeStore();
   importFixture(store, {
     1: progressFixture({ status: 'solved', completedAt: '2026-07-01', nextRevision: '2026-07-29', confidence: 3 }),
   });
   const state = store.getState();
-
-  const remaining = questions.length - selectSolvedNewCount(state);
-  expect(selectEstimatedFinish(state, TODAY)).toBe(
-    estimatedFinishDate(TODAY, remaining, state.progress.dayLogs, selectPerDay(state)),
-  );
 
   expect(selectProductivityScore(state, TODAY)).toBe(
     productivityScore(state.progress.dayLogs, state.progress.byId, selectPerDay(state), TODAY),

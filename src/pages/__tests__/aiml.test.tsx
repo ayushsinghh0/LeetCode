@@ -27,10 +27,13 @@ describe('AimlCoursePage', () => {
     expect(screen.getByText('Sep 19')).toBeInTheDocument();
   });
 
+  // "Up next" labels its landmark rather than printing an h2 above the page's `Lead`: every other
+  // `Lead` in the app sits bare, and a heading one step above the thing the page most wants you to
+  // do was the composition break. The region is still named, so the section is still addressable.
   test('up next starts at Week 0 · Day 1 with a lecture deep link', () => {
     renderWithStore(<AimlCoursePage />);
 
-    const upNext = screen.getByRole('heading', { name: 'Up next' }).closest('section')!;
+    const upNext = screen.getByRole('region', { name: 'Up next' });
     expect(within(upNext).getByText('Week 0 — Orientation')).toBeInTheDocument();
     expect(within(upNext).getByText('Day 1 · Lecture')).toBeInTheDocument();
     expect(within(upNext).getByRole('link', { name: /open lecture/i })).toHaveAttribute(
@@ -42,7 +45,7 @@ describe('AimlCoursePage', () => {
   test('marking the up-next session done awards XP and advances to Day 2 · Practice', () => {
     const { store } = renderWithStore(<AimlCoursePage />);
 
-    const upNext = screen.getByRole('heading', { name: 'Up next' }).closest('section')!;
+    const upNext = screen.getByRole('region', { name: 'Up next' });
     fireEvent.click(within(upNext).getByRole('button', { name: 'Mark session done' }));
 
     expect(store.getState().gamification.xp).toBe(20);
@@ -169,22 +172,57 @@ describe('AimlCoursePage', () => {
     expect(within(tracks).getByText(/LinAlgError: Singular matrix/)).toBeInTheDocument();
   });
 
-  test('a project states its baseline and its metric justification without being opened', () => {
+  // The baseline and the metric argument used to render on the CLOSED row. Fourteen rows each
+  // printing four lines of baseline prose and two of metric prose is ~8 identical-weight
+  // paragraphs per screen with no scannable spine — and the disclosure sat unused directly above
+  // them. Closed, a project now states what a project IS, exactly as a track does; the argument
+  // opens the document rather than being shouted fourteen times over.
+  test('a closed project row states tier, title and cost — not its baseline prose', () => {
     renderWithStore(<AimlCoursePage />);
 
     const projects = screen.getByRole('heading', { name: 'Ship something measurable' }).closest('section')!;
+    const row = within(projects).getByRole('button', { name: /California Housing — beat the mean/ });
+    expect(row).toHaveAccessibleName(/Beginner · 1/);
+    expect(row).toHaveAccessibleName(/~8h/);
+
+    expect(
+      within(projects).queryByText("Predict the training mean for every block (DummyRegressor(strategy='mean'))"),
+    ).not.toBeInTheDocument();
+    expect(
+      within(projects).queryByText(/RMSE rather than MAE because the cost of mispricing a house/),
+    ).not.toBeInTheDocument();
+  });
+
+  test('opening a project leads with the baseline and the metric argument, ahead of the objective', () => {
+    renderWithStore(<AimlCoursePage />);
+
+    const projects = screen.getByRole('heading', { name: 'Ship something measurable' }).closest('section')!;
+    fireEvent.click(within(projects).getByRole('button', { name: /California Housing/ }));
+
     expect(within(projects).getByText("Predict the training mean for every block (DummyRegressor(strategy='mean'))")).toBeInTheDocument();
     expect(within(projects).getByText('RMSE 1.1539 (≈ $115,393) · MAE 0.9117 · R² 0.000')).toBeInTheDocument();
-    // The argument against the obvious alternative is the teaching, so it is never hidden.
+    // The argument against the obvious alternative is the teaching, not a footnote.
     expect(within(projects).getByText(/RMSE rather than MAE because the cost of mispricing a house/)).toBeInTheDocument();
-    // The working detail is.
-    expect(within(projects).queryByText(/Ridge on the raw 8 features/)).not.toBeInTheDocument();
+
+    // Order is the claim: what you must beat, and how it is measured, before what you are building.
+    const baseline = within(projects).getByText('Baseline to beat');
+    const metric = within(projects).getByText('Metric');
+    const objective = within(projects).getByText('Objective');
+    expect(baseline.compareDocumentPosition(metric) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+    expect(metric.compareDocumentPosition(objective) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
   });
 
   test('an unmeasurable baseline says the learner must establish it rather than hiding the field', () => {
     renderWithStore(<AimlCoursePage />);
 
     const projects = screen.getByRole('heading', { name: 'Ship something measurable' }).closest('section')!;
+    for (const title of [
+      'An eval harness you trust before a system you tune',
+      'An LLM endpoint you can afford and explain',
+    ]) {
+      fireEvent.click(within(projects).getByRole('button', { name: new RegExp(title) }));
+    }
+
     expect(
       within(projects).getAllByText('No published number exists — you have to establish this one first.'),
     ).toHaveLength(2);

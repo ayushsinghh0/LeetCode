@@ -1,7 +1,7 @@
 import { Link } from 'react-router-dom';
 import { AlertCircle, CheckCircle2, Minus } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { Lead, RuledItem, RuledList } from '@/components/layout/Page';
+import { Eyebrow, Lead, RuledItem, RuledList } from '@/components/layout/Page';
 import type { Insight, InsightTone } from '@/utils/engine/insights';
 
 const TONE_ICON: Record<InsightTone, typeof AlertCircle> = {
@@ -52,9 +52,7 @@ export function InsightLead({ insight }: { insight: Insight | null }) {
     return (
       <Lead>
         <div className="flex flex-col gap-3">
-          <p className="figures text-xs uppercase tracking-[0.14em] text-muted-foreground">
-            Primary finding
-          </p>
+          <Eyebrow>Primary finding</Eyebrow>
           <h2 className="text-xl font-semibold leading-snug md:text-2xl">Not enough history yet.</h2>
           <p className="max-w-prose text-sm leading-relaxed text-muted-foreground">
             Findings appear once there are enough graded recalls and recorded drills to say
@@ -73,9 +71,7 @@ export function InsightLead({ insight }: { insight: Insight | null }) {
       <article className="flex flex-col gap-4">
         <div className="flex items-center gap-2">
           <Icon className={`h-4 w-4 shrink-0 ${TONE_CLASS[insight.tone]}`} aria-hidden="true" />
-          <p className="figures text-xs uppercase tracking-[0.14em] text-muted-foreground">
-            Primary finding
-          </p>
+          <Eyebrow>Primary finding</Eyebrow>
         </div>
 
         <h2 className="text-xl font-semibold leading-snug md:text-2xl">{insight.headline}</h2>

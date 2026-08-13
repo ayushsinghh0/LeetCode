@@ -8,11 +8,14 @@ import {
   STRONG_PCT,
   STRONG_PASS_RATE,
   WEAK_PCT,
+  companiesNamingPatternTopics,
   companyCoverage,
   companyPracticeSet,
   practicePicks,
   practiceSetMinutes,
 } from '@/utils/engine/companies';
+import { PATTERNS } from '@/data/patterns';
+import type { Company } from '@/data/companies';
 import { applyRevision, applySolve, initialProgress } from '@/utils/engine/spacedRepetition';
 import { patternStats } from '@/utils/engine/stats';
 import type { Difficulty, PatternId, Question, QuestionProgress } from '@/types';
@@ -214,5 +217,65 @@ describe('practiceSetMinutes', () => {
   test('sums the questions\' own authored estimates', () => {
     expect(practiceSetMinutes([q(1, 'graphs', 'easy', 12), q(2, 'graphs', 'hard', 48)])).toBe(60);
     expect(practiceSetMinutes([])).toBe(0);
+  });
+});
+
+/* --------------------------------------------------------------------------------------------- */
+/* companiesNamingPatternTopics                                                                    */
+/* --------------------------------------------------------------------------------------------- */
+
+/** A company at a weaker evidence tier that nonetheless carries patterns — what the gate is for. */
+const stub = (
+  id: string,
+  name: string,
+  evidence: Company['evidence'],
+  patterns: Company['patterns'],
+): Company => ({
+  id,
+  name,
+  sourceLabel: `${name} — careers page`,
+  url: `https://example.invalid/${id}`,
+  checkedAt: '2026-08-13',
+  evidence,
+  quote: 'Irrelevant to this test.',
+  namedTopics: [],
+  patterns,
+});
+
+describe('companiesNamingPatternTopics — pattern relevance, gated at the evidence tier', () => {
+  test('returns the companies whose own page enumerates topics mapped to this pattern', () => {
+    const named = companiesNamingPatternTopics('tree-dfs');
+
+    expect(named.map((c) => c.name)).toEqual(['Google', 'Meta', 'Microsoft', 'DoorDash', 'Roblox']);
+    expect(named.every((c) => c.evidence === 'topics')).toBe(true);
+  });
+
+  test('a pattern no company enumerates yields nothing at all', () => {
+    // Absence, not a "no companies" claim: the caller renders nothing rather than a null state.
+    expect(companiesNamingPatternTopics('two-pointers')).toEqual([]);
+  });
+
+  test('the evidence gate is re-checked here, so a weaker tier carrying patterns is still excluded', () => {
+    // The generator and validate:data already guarantee `patterns` is empty below the topics
+    // tier. This function re-checks anyway, because it is the one whose output becomes a sentence
+    // with a company name in it — a dataset regression must make this surface go silent, not
+    // make it start attributing.
+    const hostile: Company[] = [
+      stub('weak', 'Area Only Co', 'categories', ['graphs']),
+      stub('none', 'No Puzzles Co', 'avoids-puzzles', ['graphs']),
+      stub('good', 'Named Topics Co', 'topics', ['graphs']),
+    ];
+
+    expect(companiesNamingPatternTopics('graphs', hostile).map((c) => c.name)).toEqual([
+      'Named Topics Co',
+    ]);
+  });
+
+  test('across every pattern in the roadmap, nothing below the topics tier is ever returned', () => {
+    for (const pattern of PATTERNS) {
+      for (const company of companiesNamingPatternTopics(pattern.id)) {
+        expect(company.evidence).toBe('topics');
+      }
+    }
   });
 });

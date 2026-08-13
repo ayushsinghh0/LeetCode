@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { format, parseISO } from 'date-fns';
 import {
   ArrowRight,
@@ -16,7 +16,6 @@ import { patternById } from '@/data/patterns';
 import { Button } from '@/components/ui/button';
 import { DifficultyBadge } from '@/components/questions/DifficultyBadge';
 import { PatternChip } from '@/components/questions/PatternChip';
-import { HintLadder } from '@/components/questions/HintLadder';
 import { EmptyState } from '@/components/shared/EmptyState';
 import {
   Page,
@@ -28,6 +27,7 @@ import {
   RuledItem,
   Ledger,
   Meta,
+  Eyebrow,
 } from '@/components/layout/Page';
 import { useAppDispatch, useAppSelector } from '@/store/hooks';
 import { revealHint } from '@/store/actions';
@@ -35,6 +35,9 @@ import {
   interviewAdvanced,
   interviewCleared,
   interviewFinished,
+  interviewHintTaken,
+  interviewPaused,
+  interviewResumed,
   interviewStarted,
   selectInterviewPhase,
   selectRatedStages,
@@ -67,9 +70,6 @@ import type { Question } from '@/types';
 
 const questions = questionsData as Question[];
 const questionById = new Map(questions.map((q) => [q.id, q]));
-
-// The eyebrow register (DESIGN.md § The type ladder).
-const LABEL_CLASS = 'text-xs uppercase tracking-[0.14em] text-muted-foreground';
 
 // The capacity-chip idiom (DESIGN.md § Capacity chips): small bordered toggles, ink fill for the
 // one that is active. Reused here for the stage self-report and the self-assessment scale, both
@@ -105,36 +105,52 @@ export default function InterviewPage() {
 
   const [rerolls, setRerolls] = useState(0);
   const [checkOpen, setCheckOpen] = useState(false);
+  // Set when "Need a hint" is pressed with nothing left to give. See takeHint.
+  const [hintNote, setHintNote] = useState(false);
 
   // --- The clock -----------------------------------------------------------------------------
-  // Counts up from a wall-clock reading held in a ref — the same idiom usePomodoro uses for
-  // `endsAt`, and for the same reason: a decrementing counter in the store would be a dispatch
-  // per second (and, through the debounced persistence middleware, a storage write per second).
-  // The store receives the reading at the moments that matter: each stage change, and the finish.
+  // The elapsed reading lives in the slice as `elapsedSec` (settled segments) plus `startedAtMs`
+  // (the running one), so it survives this lazy route unmounting — navigating to /drills and back
+  // used to resume from the last stage transition and silently discard everything since. This
+  // component only ticks a display value off that pair; no per-second dispatch happens.
   const question = interview.questionId !== null ? questionById.get(interview.questionId) : undefined;
   // The landing screen is also the recovery: a stored id with no question behind it (a dataset
   // regeneration mid-sitting) has nothing to interview on, so it falls back rather than blanks.
   const showLanding = question === undefined;
+  const ticking = phase === 'running' && !showLanding;
 
-  const startedAtRef = useRef<number | null>(null);
-  const [elapsedSec, setElapsedSec] = useState(interview.elapsedSec);
+  const [nowMs, setNowMs] = useState(() => Date.now());
 
   useEffect(() => {
-    if (phase !== 'running' || showLanding) {
-      startedAtRef.current = null;
-      return;
+    if (!ticking) return;
+    // Mount (or return from a background tab) opens a segment; leaving closes it. Time the
+    // learner was not here is not time they spent — ContestPage settles for the same reason, and
+    // here an unsettled hour would put the pace note and the debrief's "what it cost" both wrong.
+    dispatch(interviewResumed({ nowMs: Date.now() }));
+    setNowMs(Date.now());
+    const id = setInterval(() => setNowMs(Date.now()), 1000);
+    function onVisibility() {
+      const now = Date.now();
+      setNowMs(now);
+      dispatch(
+        document.visibilityState === 'hidden'
+          ? interviewPaused({ nowMs: now })
+          : interviewResumed({ nowMs: now }),
+      );
     }
-    // On a remount mid-interview (navigating away and back), rebuild the start instant from the
-    // last recorded reading rather than restarting the clock at zero.
-    if (startedAtRef.current === null) {
-      startedAtRef.current = Date.now() - interview.elapsedSec * 1000;
-    }
-    const started = startedAtRef.current;
-    const tick = () => setElapsedSec(Math.floor((Date.now() - started) / 1000));
-    tick();
-    const id = setInterval(tick, 1000);
-    return () => clearInterval(id);
-  }, [phase, showLanding, interview.elapsedSec]);
+    document.addEventListener('visibilitychange', onVisibility);
+    return () => {
+      clearInterval(id);
+      document.removeEventListener('visibilitychange', onVisibility);
+      dispatch(interviewPaused({ nowMs: Date.now() }));
+    };
+  }, [ticking, dispatch]);
+
+  const elapsedSec =
+    interview.elapsedSec +
+    (interview.startedAtMs !== null
+      ? Math.max(0, Math.floor((nowMs - interview.startedAtMs) / 1000))
+      : 0);
 
   // --- The problem on offer ------------------------------------------------------------------
   // Unsolved first: an interview on a problem you have already solved is a rehearsal of your own
@@ -157,28 +173,36 @@ export default function InterviewPage() {
   const family = question?.familyId !== undefined ? familyById[question.familyId] : undefined;
   const hints = hintsFor(family);
   const followUps = question ? followUpsFor(question, family) : [];
-  const hintLevelUsed = question ? (progressById[question.id]?.hintLevelUsed ?? 0) : 0;
 
   const stage = stageById[interview.stage];
   const finished = phase === 'finished';
   const revealed = (id: RevealId) => isRevealed(id, interview.stage, finished);
 
-  const pace = paceReading(finished ? interview.elapsedSec : elapsedSec, question?.estimatedTime ?? 0);
+  const pace = paceReading(elapsedSec, question?.estimatedTime ?? 0);
   const note = question ? paceNote(pace) : null;
 
   const upcoming = nextStage(interview.stage);
   const hintsUnlocked = revealed('hints');
-  const canTakeHint = hintsUnlocked && hintLevelUsed < hints.length;
+  // What THIS sitting has opened — not `progress.byId[id].hintLevelUsed`, which is the all-time
+  // deepest rung and would hand a returning learner the whole ladder the moment the gate opened.
+  const hintsTaken = interview.hintsTaken;
+  const ladderSpent = hintsTaken >= hints.length; // also true when there is no ladder at all
 
   function begin(id: number) {
-    startedAtRef.current = Date.now();
-    setElapsedSec(0);
     setCheckOpen(false);
-    dispatch(interviewStarted({ questionId: id, date: today }));
+    setHintNote(false);
+    dispatch(
+      interviewStarted({
+        questionId: id,
+        date: today,
+        nowMs: Date.now(),
+        hintsAtStart: progressById[id]?.hintLevelUsed ?? 0,
+      }),
+    );
   }
 
   function finish() {
-    dispatch(interviewFinished({ date: today, elapsedSec }));
+    dispatch(interviewFinished({ date: today, nowMs: Date.now() }));
   }
 
   function advance() {
@@ -187,12 +211,76 @@ export default function InterviewPage() {
       return;
     }
     setCheckOpen(false);
-    dispatch(interviewAdvanced({ stage: upcoming, elapsedSec }));
+    setHintNote(false);
+    dispatch(interviewAdvanced({ stage: upcoming }));
   }
 
   function takeHint() {
-    if (!question || !canTakeHint) return;
-    dispatch(revealHint(question.id, hintLevelUsed + 1));
+    // Enabled whenever the gate is open, on purpose. Disabling it because the ladder is empty
+    // encoded "this question has no mapped family" in the button's state — a fact the `family`
+    // gate does not open for another three stages, disclosed by a control nobody pressed. The
+    // honest version says it out loud, and only once asked.
+    if (!question || !hintsUnlocked) return;
+    if (ladderSpent) {
+      setHintNote(true);
+      return;
+    }
+    dispatch(interviewHintTaken({ max: hints.length }));
+    // The persistent record is monotonic: this raises it only where the sitting goes deeper than
+    // the question has ever been taken, which is exactly what "how much scaffolding did this
+    // problem need" means.
+    dispatch(revealHint(question.id, hintsTaken + 1));
+  }
+
+  /**
+   * The rungs this sitting has opened, in the ladder's rail idiom (DESIGN.md § Hint ladder).
+   *
+   * Rendered here rather than through `HintLadder` because interview mode has exactly one hint
+   * control — the gated "Need a hint" button above — and the shared component carries its own.
+   * Two controls where one dispatches through the sitting's counter and the other does not is how
+   * a rung silently fails to open. The CONTENT is still the one derived ladder (`hintsFor`); only
+   * the presentation is local.
+   */
+  function hintRungs() {
+    if (hints.length === 0) {
+      return (
+        <p className="max-w-prose text-sm leading-relaxed text-muted-foreground">
+          No hint ladder for this one — it sits outside the mapped problem families, so there is
+          nothing verified to give you, and inventing guidance would be worse than saying so.
+        </p>
+      );
+    }
+    return (
+      <div className="flex flex-col gap-3">
+        {hints
+          .filter((hint) => hint.level <= hintsTaken)
+          .map((hint) => (
+            <div key={hint.level} className="border-l-2 border-primary/40 pl-3">
+              <Eyebrow>
+                Hint {hint.level} &middot; {hint.label}
+              </Eyebrow>
+              <ul className="mt-1 flex flex-col gap-1">
+                {hint.lines.map((line) => (
+                  <li key={line} className="max-w-prose text-sm text-muted-foreground">
+                    {line}
+                  </li>
+                ))}
+              </ul>
+            </div>
+          ))}
+        {hintsTaken === 0 ? (
+          <p className="max-w-prose text-sm leading-relaxed text-muted-foreground">
+            The ladder is closed. Open a rung from &ldquo;Need a hint&rdquo; when you want one — it
+            costs nothing, and taking one is a signal, never a penalty.
+          </p>
+        ) : hintsTaken >= hints.length ? (
+          <p className="max-w-prose text-sm leading-relaxed text-muted-foreground">
+            That is the whole ladder — it is derived from this problem&rsquo;s family, so there is
+            no fourth rung to invent.
+          </p>
+        ) : null}
+      </div>
+    );
   }
 
   /** The content behind one gate. Only ever called once `revealed(id)` is true. */
@@ -200,7 +288,7 @@ export default function InterviewPage() {
     if (!question) return null;
     switch (id) {
       case 'hints':
-        return <HintLadder questionId={question.id} hints={hints} revealedLevel={hintLevelUsed} />;
+        return hintRungs();
       case 'pattern':
         return (
           <div className="flex flex-wrap items-center gap-2">
@@ -261,7 +349,7 @@ export default function InterviewPage() {
             )}
             {followUps.map((followUp) => (
               <div key={followUp.axis} className="flex flex-col gap-1.5">
-                <p className={LABEL_CLASS}>{followUp.label}</p>
+                <Eyebrow>{followUp.label}</Eyebrow>
                 <p className="max-w-prose text-sm leading-relaxed">{followUp.question}</p>
                 <p className="max-w-prose text-xs leading-relaxed text-muted-foreground">
                   {followUp.because}
@@ -280,7 +368,7 @@ export default function InterviewPage() {
         {REVEALS.map((reveal) => (
           <RuledItem key={reveal.id}>
             <div className="flex flex-col gap-2">
-              <p className={LABEL_CLASS}>{reveal.label}</p>
+              <Eyebrow>{reveal.label}</Eyebrow>
               {revealed(reveal.id) ? (
                 revealContent(reveal.id)
               ) : (
@@ -318,7 +406,7 @@ export default function InterviewPage() {
             <Section aria-label="The problem on offer">
               <Lead className="flex flex-col gap-6">
                 <div className="flex flex-col gap-3">
-                  <p className={LABEL_CLASS}>Your problem</p>
+                  <Eyebrow>Your problem</Eyebrow>
                   <h2 className="text-xl font-semibold md:text-2xl">{proposed.title}</h2>
                   <Meta
                     items={[
@@ -413,7 +501,7 @@ export default function InterviewPage() {
         <Section aria-label="Your self-assessment">
           <Lead className="flex flex-col gap-6">
             <div className="flex flex-col gap-3">
-              <p className={LABEL_CLASS}>Self-assessment</p>
+              <Eyebrow>Self-assessment</Eyebrow>
               <h2 className="text-xl font-semibold md:text-2xl">How do you think that went?</h2>
               {/* The honesty clause. Nothing in this app saw the attempt: there is no judge, no
                   score and no verdict, and the copy has to say so plainly or the numbers will be
@@ -477,14 +565,19 @@ export default function InterviewPage() {
               },
               {
                 label: 'Hints taken',
-                value: `${hintLevelUsed} of ${hints.length}`,
+                // THIS sitting's rungs. Billing the all-time record to one attempt reported
+                // "3 of 3" for a sitting in which the learner took none, purely because they had
+                // opened the ladder on this problem some other day.
+                value: `${hintsTaken} of ${hints.length}`,
                 // Reported, never scored. Taking the ladder costs nothing here either.
                 sub:
                   hints.length === 0
                     ? 'No ladder for this one'
-                    : hintLevelUsed === 0
-                      ? 'Ladder untouched'
-                      : `Through rung ${hintLevelUsed}`,
+                    : hintsTaken > 0
+                      ? `Through rung ${hintsTaken}`
+                      : interview.hintsAtStart > 0
+                        ? 'Untouched this sitting'
+                        : 'Ladder untouched',
               },
             ]}
           />
@@ -497,7 +590,7 @@ export default function InterviewPage() {
                 <RuledItem key={stageId}>
                   <div className="flex flex-wrap items-baseline justify-between gap-x-4 gap-y-1">
                     <p className="text-sm font-medium">{stageById[stageId].label}</p>
-                    <p className={cn('figures', LABEL_CLASS)}>{STAGE_OUTCOME_LABEL[outcome]}</p>
+                    <Eyebrow>{STAGE_OUTCOME_LABEL[outcome]}</Eyebrow>
                   </div>
                 </RuledItem>
               ))}
@@ -537,14 +630,14 @@ export default function InterviewPage() {
       <Section aria-label="Current stage">
         <Lead className="flex flex-col gap-6">
           <div className="flex items-center justify-between gap-4 border-b border-border pb-3">
-            <p className={cn('figures', LABEL_CLASS)}>
+            <Eyebrow>
               Stage {index + 1} / {STAGES.length} &middot; {stage.label}
-            </p>
+            </Eyebrow>
             {/* Counts up, never down, and never changes colour. See engine/interview.ts § Timer. */}
-            <p className={cn('figures', LABEL_CLASS)}>
+            <Eyebrow>
               <span className="sr-only">Elapsed </span>
               {formatElapsed(elapsedSec)}
-            </p>
+            </Eyebrow>
           </div>
 
           <div className="flex flex-col gap-2">
@@ -592,7 +685,10 @@ export default function InterviewPage() {
             <Button onClick={advance}>
               {stage.advance} <ArrowRight />
             </Button>
-            <Button variant="outline" onClick={takeHint} disabled={!canTakeHint}>
+            {/* Disabled by the GATE and nothing else. Whether a ladder exists behind it is the
+                answer to a different question, which the `family` gate does not open for another
+                three stages — see takeHint. */}
+            <Button variant="outline" onClick={takeHint} disabled={!hintsUnlocked}>
               <Lightbulb /> Need a hint
             </Button>
             <Button variant="ghost" onClick={() => setCheckOpen((open) => !open)} aria-expanded={checkOpen}>
@@ -605,11 +701,19 @@ export default function InterviewPage() {
             )}
           </div>
 
-          {!hintsUnlocked && (
+          {!hintsUnlocked ? (
             <p className="max-w-prose text-sm leading-relaxed text-muted-foreground">
               {revealById.hints.locked}
             </p>
-          )}
+          ) : hintNote ? (
+            // Said only when asked, and said once: the reveal below carries the full explanation,
+            // so this line answers the press rather than repeating the paragraph.
+            <p className="max-w-prose text-sm leading-relaxed text-muted-foreground">
+              {hints.length === 0
+                ? 'Nothing to give — this problem has no mapped family, so the ladder below is empty.'
+                : 'Every rung is already open below.'}
+            </p>
+          ) : null}
         </Lead>
       </Section>
 

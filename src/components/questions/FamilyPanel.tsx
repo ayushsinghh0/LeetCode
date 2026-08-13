@@ -3,6 +3,7 @@ import { ChevronDown, Lightbulb } from 'lucide-react';
 import questionsData from '@/data/questions.json';
 import { FAMILY_ROLE_LABEL, FAMILY_ROLE_ORDER } from '@/data/curriculum';
 import { DifficultyBadge } from '@/components/questions/DifficultyBadge';
+import { Eyebrow } from '@/components/layout/Page';
 import { useAppDispatch, useAppSelector } from '@/store/hooks';
 import { activeQuestionSet } from '@/store/slices/uiSlice';
 import { cn } from '@/utils/cn';
@@ -83,8 +84,9 @@ export function FamilyPanel({ family, currentQuestionId }: { family: ProblemFami
     (a, b) => FAMILY_ROLE_ORDER.indexOf(a.role) - FAMILY_ROLE_ORDER.indexOf(b.role),
   );
 
+  // `gap-4` — the one interior step this sheet uses (DESIGN.md § The rhythm, "inside a group").
   return (
-    <div className="flex flex-col gap-3">
+    <div className="flex flex-col gap-4">
       <div>
         <p className="text-sm font-medium">Same idea: {family.name}</p>
         <p className="mt-1 max-w-prose text-sm leading-relaxed text-muted-foreground">{family.idea}</p>
@@ -111,15 +113,13 @@ export function FamilyPanel({ family, currentQuestionId }: { family: ProblemFami
           open={open.ladder}
           onToggle={toggle('ladder')}
         >
-          <div className="flex flex-col gap-3">
+          <div className="flex flex-col gap-4">
             {FAMILY_ROLE_ORDER.map((role) => {
               const inRole = members.filter((m) => m.role === role && questionById.has(m.questionId));
               if (inRole.length === 0) return null;
               return (
                 <div key={role}>
-                  <p className="figures text-xs uppercase tracking-[0.14em] text-muted-foreground">
-                    {FAMILY_ROLE_LABEL[role]}
-                  </p>
+                  <Eyebrow>{FAMILY_ROLE_LABEL[role]}</Eyebrow>
                   <p className="mt-0.5 max-w-prose text-sm text-muted-foreground">{ROLE_MEANING[role]}</p>
                   <ul className="mt-1.5 space-y-0.5">
                     {inRole.map(({ questionId }) => {

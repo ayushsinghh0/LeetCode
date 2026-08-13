@@ -1,7 +1,17 @@
 import { useEffect, useMemo } from 'react';
 import { Link } from 'react-router-dom';
-import { CheckCircle2, ExternalLink, GraduationCap, RotateCcw, SkipForward, X, XCircle } from 'lucide-react';
+import {
+  CheckCircle2,
+  ExternalLink,
+  GraduationCap,
+  Hourglass,
+  RotateCcw,
+  SkipForward,
+  X,
+  XCircle,
+} from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { Eyebrow, Lead, Page } from '@/components/layout/Page';
 import { DifficultyBadge } from '@/components/questions/DifficultyBadge';
 import { PatternChip } from '@/components/questions/PatternChip';
 import { NotesEditor } from '@/components/questions/NotesEditor';
@@ -26,6 +36,8 @@ import {
   selectQuestionById,
   selectRankedWork,
 } from '@/store/selectors';
+import { buildSession, type ActionKind, type WorkItem } from '@/utils/engine/nextAction';
+import { formatMinutes } from '@/utils/engine/planner';
 import { initialProgress } from '@/utils/engine/spacedRepetition';
 import { initialCourseProgress, type CourseDay } from '@/utils/engine/aimlCourse';
 import type { Question } from '@/types';
@@ -43,12 +55,29 @@ import type { Question } from '@/types';
 //   - it read `selectCourseNextSession` without the done-today gate, so "Session done" re-rendered
 //     the NEXT session instantly and all 52 sessions could be cleared in one sitting for 2340 XP.
 //
-// Deriving from the ranker fixes all three by construction and keeps them fixed.
+// Deriving from the ranker fixed all three by construction — but it stopped one step short of the
+// contract it was written for. The ranker answers "in what order", and Today asks it a second
+// question on top: "and how much of that fits the time I have", via `buildSession(capacityMin, …)`.
+// Focus skipped that step, so under a 15-minute budget Today printed "nothing fits 15m" while the
+// Focus button on that same page opened a 60-minute course session. Same list, same packer, same
+// `settings.dailyCapacityMin` — a hero and a plan that disagree is precisely the failure this
+// design exists to prevent, and the budget is part of the plan.
 type FocusItem =
   | { kind: 'new-question'; question: Question }
   | { kind: 'question-revision'; question: Question }
   | { kind: 'course-session'; week: CourseWeek; day: CourseDay }
   | { kind: 'course-review'; week: CourseWeek };
+
+// A drill is its own surface and a task is the learner's own note — neither is a studyable unit
+// here, so they are stepped over rather than allowed to block the queue.
+const STUDYABLE: ReadonlySet<ActionKind> = new Set<ActionKind>([
+  'new-question',
+  'revision',
+  'course-session',
+  'course-review',
+]);
+
+const isStudyable = (work: WorkItem): boolean => STUDYABLE.has(work.kind);
 
 // Distraction-free session view — /focus is routed outside AppShell (see src/App.tsx), so this
 // renders with no sidebar/nav chrome at all.
@@ -61,17 +90,22 @@ export default function FocusPage() {
   const courseByWeekId = useAppSelector((s) => s.course.byWeekId);
   const ranked = useAppSelector((s) => selectRankedWork(s, today));
   const courseNext = useAppSelector(selectCourseNextSession);
+  // The one time budget — the same number the Today capacity chips, the Revision length chooser
+  // and the Settings field all write.
+  const capacityMin = useAppSelector((s) => s.settings.dailyCapacityMin);
 
-  // The ranker's order, filtered to what this page can actually render. A drill is its own
-  // surface and a task is the learner's own note — neither is a studyable unit here, so they are
-  // stepped over rather than allowed to block the queue.
-  const next = ranked.find(
-    (work) =>
-      work.kind === 'new-question' ||
-      work.kind === 'revision' ||
-      work.kind === 'course-session' ||
-      work.kind === 'course-review',
-  );
+  // The exact call SessionPlan makes, on the exact list it makes it on. Focus opens the first
+  // thing in Today's plan that it can render; it can therefore never offer work Today has already
+  // said does not fit.
+  const session = useMemo(() => buildSession(capacityMin, ranked), [capacityMin, ranked]);
+
+  const next = session.items.find(isStudyable);
+  // What the budget pushed out, so an empty screen can say which of the two reasons it is
+  // empty for. "All caught up" when six hours of work is queued behind a 15-minute window is a
+  // surface that lies about the state of the plan.
+  const overBudget = session.skipped.filter(isStudyable);
+  const shortestOverBudgetMin =
+    overBudget.length > 0 ? Math.min(...overBudget.map((work) => work.minutes)) : null;
 
   const item: FocusItem | null = useMemo(() => {
     if (!next) return null;
@@ -113,42 +147,76 @@ export default function FocusPage() {
 
   return (
     // /focus has no AppShell, so it carries its own `main` landmark — otherwise the page has no
-    // landmark at all. p-4 on phones, not p-6: with the card's own p-6 that is 40px of chrome per
-    // side rather than 56px, which is 295px of title measure at 375px instead of 263px.
-    <main className="mx-auto flex min-h-screen w-full max-w-3xl flex-col gap-6 p-4 md:p-6">
-      <div className="flex justify-end">
-        <Button asChild variant="ghost">
-          <Link to="/today">
-            <X /> Exit
-          </Link>
-        </Button>
-      </div>
-
-      {item === null ? (
-        // No plate: "nothing to do" is not a liftable surface, and boxing it drew a near
-        // full-viewport outline around one icon and one sentence (DESIGN.md § Composition).
-        <div className="flex flex-1 flex-col items-center justify-center gap-3 py-16 text-center text-muted-foreground">
-          <CheckCircle2 className="h-7 w-7 text-muted-foreground/50" aria-hidden="true" />
-          <p className="font-serif text-base text-foreground">All caught up — nothing queued for focus right now.</p>
+    // landmark at all — and its own gutter, which is the shell's exactly (px-4 / md:px-8) so the
+    // column lines up with the other seventeen pages rather than starting at its own margin.
+    // `Page` then supplies the measure and the one section rhythm; this page does not set either.
+    <main className="mx-auto w-full max-w-6xl px-4 py-6 md:px-8 md:py-10">
+      <Page width="reading">
+        <div className="flex justify-end">
+          <Button asChild variant="ghost">
+            <Link to="/today">
+              <X /> Exit
+            </Link>
+          </Button>
         </div>
-      ) : item.kind === 'new-question' || item.kind === 'question-revision' ? (
-        <QuestionFocus
-          question={item.question}
-          isRevision={item.kind === 'question-revision'}
-          notes={(progressById[item.question.id] ?? initialProgress()).notes}
-        />
-      ) : (
-        <CourseFocus
-          week={item.week}
-          day={item.kind === 'course-session' ? item.day : null}
-          notes={(courseByWeekId[item.week.id] ?? initialCourseProgress()).notes}
-        />
-      )}
 
-      <div className="flex justify-center py-4">
-        <PomodoroWidget variant="inline" />
-      </div>
+        {item === null ? (
+          <FocusEmpty capacityMin={capacityMin} shortestOverBudgetMin={shortestOverBudgetMin} />
+        ) : item.kind === 'new-question' || item.kind === 'question-revision' ? (
+          <QuestionFocus
+            question={item.question}
+            isRevision={item.kind === 'question-revision'}
+            notes={(progressById[item.question.id] ?? initialProgress()).notes}
+          />
+        ) : (
+          <CourseFocus
+            week={item.week}
+            day={item.kind === 'course-session' ? item.day : null}
+            notes={(courseByWeekId[item.week.id] ?? initialCourseProgress()).notes}
+          />
+        )}
+
+        <div className="flex justify-center">
+          <PomodoroWidget variant="inline" />
+        </div>
+      </Page>
     </main>
+  );
+}
+
+/**
+ * Two ways for this screen to be empty, and they are not the same news.
+ *
+ * No plate on either: "nothing to do" is not a liftable surface, and boxing it drew a near
+ * full-viewport outline around one icon and one sentence (DESIGN.md § Composition).
+ */
+function FocusEmpty({
+  capacityMin,
+  shortestOverBudgetMin,
+}: {
+  capacityMin: number;
+  shortestOverBudgetMin: number | null;
+}) {
+  if (shortestOverBudgetMin !== null) {
+    return (
+      <div className="flex flex-col items-center gap-3 py-16 text-center text-muted-foreground">
+        <Hourglass className="h-7 w-7 text-muted-foreground/50" aria-hidden="true" />
+        <p className="font-serif text-base text-foreground">
+          Nothing here fits {formatMinutes(capacityMin)}.
+        </p>
+        <p className="max-w-prose text-sm">
+          The shortest thing queued for focus is ~{formatMinutes(shortestOverBudgetMin)}. Set a
+          longer window on Today, or come back when you have one.
+        </p>
+      </div>
+    );
+  }
+
+  return (
+    <div className="flex flex-col items-center gap-3 py-16 text-center text-muted-foreground">
+      <CheckCircle2 className="h-7 w-7 text-muted-foreground/50" aria-hidden="true" />
+      <p className="font-serif text-base text-foreground">All caught up — nothing queued for focus right now.</p>
+    </div>
   );
 }
 
@@ -165,8 +233,14 @@ function QuestionFocus({
   const pattern = patternById[question.pattern];
 
   return (
-    // This is the page's `Lead` — p-6 md:p-8, the one plate padding reserved for it.
-    <div className="glass flex flex-1 flex-col items-center justify-center gap-6 p-6 text-center md:p-8">
+    // The page's one plate. `Lead` owns the p-6 md:p-8 reserved for it — spelling those out here
+    // meant a change to the lead register silently skipped focus mode, which is the only surface
+    // in the product where the lead is the entire screen.
+    //
+    // Height is the content's, not the viewport's: the old `flex-1` inside a `min-h-screen`
+    // column stretched this into a ~750px bordered box holding a title, three buttons and a
+    // textarea — the largest empty rectangle in the app.
+    <Lead className="flex flex-col items-center gap-4 text-center">
       <div className="flex flex-wrap items-center justify-center gap-2">
         <DifficultyBadge difficulty={question.difficulty} />
         {pattern && <PatternChip pattern={pattern} />}
@@ -220,12 +294,12 @@ function QuestionFocus({
         )}
       </div>
 
-      <div className="w-full text-left">
-        <p className="mb-1 text-sm font-medium">Notes</p>
+      <div className="flex w-full flex-col gap-2 text-left">
+        <p className="text-sm font-medium">Notes</p>
         {/* key: switching questions must reset the editor's form baseline */}
         <NotesEditor key={question.id} questionId={question.id} initialNotes={notes} />
       </div>
-    </div>
+    </Lead>
   );
 }
 
@@ -236,15 +310,17 @@ function CourseFocus({ week, day, notes }: { week: CourseWeek; day: CourseDay | 
   const isReview = day === null;
 
   return (
-    <div className="glass flex flex-1 flex-col items-center justify-center gap-6 p-6 text-center md:p-8">
-      <div className="flex flex-wrap items-center justify-center gap-2 text-xs font-medium uppercase tracking-wide text-muted-foreground">
+    <Lead className="flex flex-col items-center gap-4 text-center">
+      {/* The shared eyebrow register — this line used to run `tracking-wide` with no `.figures`,
+          so the identical context line rendered differently here than on every other surface. */}
+      <Eyebrow className="flex flex-wrap items-center justify-center gap-2">
         <GraduationCap className="h-4 w-4" aria-hidden="true" />
         <span>
           {isReview
             ? `AI/ML · Week ${week.week} review`
             : `AI/ML · Week ${week.week} · ${day === 1 ? 'Day 1 — Lecture' : 'Day 2 — Practice'}`}
         </span>
-      </div>
+      </Eyebrow>
 
       <h1 className="max-w-2xl font-serif text-3xl font-semibold leading-tight tracking-tight md:text-4xl">
         {week.title}
@@ -269,11 +345,11 @@ function CourseFocus({ week, day, notes }: { week: CourseWeek; day: CourseDay | 
         )}
       </div>
 
-      <div className="w-full text-left">
-        <p className="mb-1 text-sm font-medium">Notes</p>
+      <div className="flex w-full flex-col gap-2 text-left">
+        <p className="text-sm font-medium">Notes</p>
         {/* key: switching weeks must reset the editor's form baseline */}
         <CourseNotesEditor key={week.id} weekId={week.id} initialNotes={notes} />
       </div>
-    </div>
+    </Lead>
   );
 }

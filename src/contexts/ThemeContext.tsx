@@ -1,6 +1,6 @@
 import { createContext, useContext, useEffect, useMemo, type ReactNode } from 'react';
 import { useAppDispatch, useAppSelector } from '@/store/hooks';
-import { settingsUpdated } from '@/store/slices/settingsSlice';
+import { updateSettings } from '@/store/actions';
 import type { SettingsState } from '@/types';
 
 type Theme = SettingsState['theme'];
@@ -30,7 +30,12 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
   const value = useMemo<ThemeContextValue>(
     () => ({
       theme,
-      toggle: () => dispatch(settingsUpdated({ theme: theme === 'dark' ? 'light' : 'dark' })),
+      // Through the thunk, not the slice action: `store/actions.ts` is the only public mutation
+      // API (the documented exception is the `ui` slice, which this is not). The value written
+      // here is always valid, so this was convention drift rather than a live bug — but the
+      // convention is what stops the next settings write from bypassing `setDailyCapacity`'s
+      // range guard, and a lone exception is how that erodes.
+      toggle: () => dispatch(updateSettings({ theme: theme === 'dark' ? 'light' : 'dark' })),
     }),
     [theme, dispatch],
   );

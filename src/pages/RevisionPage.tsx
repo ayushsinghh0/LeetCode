@@ -1,11 +1,23 @@
-import { useMemo, useState } from 'react';
+import { useMemo, useRef, useState, type KeyboardEvent } from 'react';
 import { Link } from 'react-router-dom';
 import { format, parseISO } from 'date-fns';
 import { Check, GraduationCap, RotateCcw } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Progress } from '@/components/ui/progress';
 import { EmptyState } from '@/components/shared/EmptyState';
-import { Page, PageHeader, Section, Lead, Rule, RuledList, RuledItem, Ledger, Meta } from '@/components/layout/Page';
+import {
+  Page,
+  PageHeader,
+  Section,
+  Lead,
+  Rule,
+  RuledList,
+  RuledItem,
+  Ledger,
+  Meta,
+  Eyebrow,
+} from '@/components/layout/Page';
+import { cn } from '@/utils/cn';
 import { patternById } from '@/data/patterns';
 import { CORE_WEEKS } from '@/data/aimlCourse';
 import { useToday } from '@/hooks/useToday';
@@ -21,12 +33,7 @@ import {
   startRevisionSession,
   uncompleteSessionActivity,
 } from '@/store/actions';
-import {
-  selectForecast,
-  selectQuestionById,
-  selectRevisionSession,
-  selectTodayLog,
-} from '@/store/selectors';
+import { selectForecast, selectQuestionById, selectRevisionSession } from '@/store/selectors';
 import { initialCourseProgress, isWeekRetained } from '@/utils/engine/aimlCourse';
 import { isMastered } from '@/utils/engine/spacedRepetition';
 import { formatMinutes } from '@/utils/engine/planner';
@@ -59,15 +66,9 @@ export default function RevisionPage() {
   const { frozen, doneIds, grades, startedOn, completedOn } = useAppSelector((state) => state.session);
   const budgetMin = useAppSelector((state) => state.settings.dailyCapacityMin);
   const revisionEnabled = useAppSelector((state) => state.settings.revisionEnabled);
-  // The sitting may straddle midnight: grades land in the day log of whatever date each dispatch
-  // saw, so the completion summary reads the started-on log as well as today's.
-  const startedLog = useAppSelector((state) =>
-    startedOn !== null ? state.progress.dayLogs[startedOn] : undefined,
-  );
   const progressById = useAppSelector((state) => state.progress.byId);
   const courseByWeekId = useAppSelector((state) => state.course.byWeekId);
   const forecast = useAppSelector((state) => selectForecast(state, today));
-  const todayLog = useAppSelector((state) => selectTodayLog(state, today));
 
   const [showMastered, setShowMastered] = useState(false);
 
@@ -116,9 +117,34 @@ export default function RevisionPage() {
     if (activity.questionId !== undefined) dispatch(activeQuestionSet(activity.questionId));
   }
 
+  /**
+   * Has the ladder already taken a grade for this item today?
+   *
+   * Both `reviseQuestion` and `reviseCourseWeek` refuse a second grade on the same calendar day —
+   * one grade per day is the ladder's idempotency rule. A session can still contain such an item:
+   * once due work runs out the session engine pulls upcoming reviews forward, and a review graded
+   * from Today's hero this morning is exactly that. Offering "Recalled it" there produced no XP,
+   * no ladder movement and no day-log entry while the row went on to report "Recalled" — the app
+   * telling the learner work happened that did not. So the row states the fact instead, the same
+   * treatment `QuestionCard` gives a question already reviewed today.
+   */
+  function reviewedToday(activity: SessionActivity): { nextRevision: string | null } | null {
+    if (activity.questionId !== undefined) {
+      const p = progressById[activity.questionId];
+      return p !== undefined && p.lastReviewed === today ? { nextRevision: p.nextRevision } : null;
+    }
+    if (activity.weekId !== undefined) {
+      const c = courseByWeekId[activity.weekId];
+      return c !== undefined && c.lastReviewed === today ? { nextRevision: c.nextRevision } : null;
+    }
+    return null;
+  }
+
   // Grading and ticking are one gesture: a graded review is by definition done, and asking the
   // learner to both answer "did you recall it" and then tick a box is bookkeeping, not learning.
   function gradeActivity(activity: SessionActivity, passed: boolean) {
+    // Never record a completion the ladder is going to refuse (see reviewedToday).
+    if (reviewedToday(activity)) return;
     if (activity.questionId !== undefined) dispatch(reviseQuestion(activity.questionId, passed));
     else if (activity.weekId !== undefined) dispatch(reviseCourseWeek(activity.weekId, passed));
     // The grade rides along so the row can show the recorded outcome — final for the sitting.
@@ -151,12 +177,7 @@ export default function RevisionPage() {
         <SessionComplete
           session={session}
           doneIds={doneIds}
-          passedToday={Array.from(
-            new Set([...(startedLog?.revisionsPassed ?? []), ...(todayLog?.revisionsPassed ?? [])]),
-          )}
-          failedToday={Array.from(
-            new Set([...(startedLog?.revisionsFailed ?? []), ...(todayLog?.revisionsFailed ?? [])]),
-          )}
+          grades={grades}
           onRestart={() => dispatch(clearRevisionSession())}
         />
       ) : running ? (
@@ -165,6 +186,7 @@ export default function RevisionPage() {
           doneIds={doneIds}
           grades={grades}
           progress={progress}
+          reviewedToday={reviewedToday}
           onToggle={(id, done) =>
             dispatch(done ? uncompleteSessionActivity(id) : completeSessionActivity(id))
           }
@@ -283,6 +305,7 @@ function SessionPreview({
 }) {
   const focusNames = session.focus.map((id) => patternById[id]?.name ?? id);
   const { due, overdue, weakness, retention, transfer } = session.rationale;
+  const chipRefs = useRef<(HTMLButtonElement | null)[]>([]);
 
   // "2 due + 1 weak pattern + 2 retention checks" — the composition, in the learner's terms.
   const because = [
@@ -293,27 +316,81 @@ function SessionPreview({
     transfer > 0 && `${transfer} unfamiliar ${transfer === 1 ? 'problem' : 'problems'}`,
   ].filter((x): x is string => Boolean(x));
 
+  // The chip the keyboard enters the group on. A capacity set from the Settings field need not be
+  // one of the six presets, so with nothing matching, the first chip stays tabbable — a
+  // radiogroup every one of whose radios is tabIndex -1 cannot be reached at all.
+  const selectedIndex = SESSION_BUDGETS.findIndex((min) => min === budgetMin);
+  const focusIndex = selectedIndex === -1 ? 0 : selectedIndex;
+
+  function moveTo(index: number) {
+    const min = SESSION_BUDGETS[index];
+    if (min === undefined) return;
+    onBudget(min);
+    chipRefs.current[index]?.focus();
+  }
+
+  // Arrow keys move selection inside a radiogroup — that is the contract the role promises, and a
+  // group that only responds to Tab and click is announcing one thing and behaving as another.
+  function onChipKeyDown(event: KeyboardEvent<HTMLDivElement>) {
+    const last = SESSION_BUDGETS.length - 1;
+    let next: number;
+    switch (event.key) {
+      case 'ArrowRight':
+      case 'ArrowDown':
+        next = selectedIndex === -1 ? 0 : (selectedIndex + 1) % SESSION_BUDGETS.length;
+        break;
+      case 'ArrowLeft':
+      case 'ArrowUp':
+        next = selectedIndex === -1 ? last : (selectedIndex + last) % SESSION_BUDGETS.length;
+        break;
+      case 'Home':
+        next = 0;
+        break;
+      case 'End':
+        next = last;
+        break;
+      default:
+        return;
+    }
+    event.preventDefault();
+    moveTo(next);
+  }
+
   return (
     <div className="flex flex-col gap-6">
-      <fieldset className="flex flex-col gap-3">
+      <fieldset className="flex flex-col gap-2">
         <legend className="text-xs font-medium tracking-wide text-muted-foreground">
           How long have you got?
         </legend>
-        <div className="flex flex-wrap gap-2">
-          {SESSION_BUDGETS.map((min) => {
+        {/* A radiogroup, not six independent toggles — the same correction Today's capacity chips
+            already carry (components/today/SessionPlan.tsx). `aria-pressed` announced six
+            switches, five of them "not pressed", for a control where exactly one option is ever
+            true. Same idiom, same ink fill, same written capacity: one time budget, not two. */}
+        <div
+          className="flex flex-wrap gap-2"
+          role="radiogroup"
+          aria-label="How long have you got?"
+          onKeyDown={onChipKeyDown}
+        >
+          {SESSION_BUDGETS.map((min, i) => {
             const active = min === budgetMin;
             return (
               <button
                 key={min}
                 type="button"
-                aria-pressed={active}
+                role="radio"
+                aria-checked={active}
+                tabIndex={i === focusIndex ? 0 : -1}
+                ref={(node) => {
+                  chipRefs.current[i] = node;
+                }}
                 onClick={() => onBudget(min)}
-                className={
-                  'figures rounded-sm border px-2.5 py-1 text-xs transition-colors duration-150 ease-swift ' +
-                  (active
+                className={cn(
+                  'figures inline-flex min-h-[44px] items-center justify-center rounded-sm border px-3 text-xs transition-colors duration-150 ease-swift',
+                  active
                     ? 'border-primary bg-primary text-primary-foreground'
-                    : 'border-border hover:border-primary/40')
-                }
+                    : 'border-border text-muted-foreground hover:border-primary/40 hover:text-foreground',
+                )}
               >
                 {formatMinutes(min)}
               </button>
@@ -322,11 +399,9 @@ function SessionPreview({
         </div>
       </fieldset>
 
-      <Lead className="flex flex-col gap-5">
+      <Lead className="flex flex-col gap-6">
         <div className="flex flex-col gap-1">
-          <p className="figures text-xs uppercase tracking-[0.14em] text-muted-foreground">
-            {formatMinutes(session.budgetMin)} session
-          </p>
+          <Eyebrow>{formatMinutes(session.budgetMin)} session</Eyebrow>
           <h2 className="text-2xl font-semibold">{session.shape.label}</h2>
           <p className="max-w-prose text-sm text-muted-foreground">{session.shape.blurb}</p>
         </div>
@@ -383,6 +458,7 @@ function SessionRun({
   doneIds,
   grades,
   progress,
+  reviewedToday,
   onToggle,
   onGrade,
   onOpen,
@@ -393,6 +469,7 @@ function SessionRun({
   doneIds: string[];
   grades: Record<string, boolean>;
   progress: ReturnType<typeof sessionProgress>;
+  reviewedToday: (activity: SessionActivity) => { nextRevision: string | null } | null;
   onToggle: (id: string, done: boolean) => void;
   onGrade: (activity: SessionActivity, passed: boolean) => void;
   onOpen: (activity: SessionActivity) => void;
@@ -403,23 +480,27 @@ function SessionRun({
   const pct = progress.totalMinutes === 0 ? 0 : Math.round((progress.doneMinutes / progress.totalMinutes) * 100);
 
   return (
-    <div className="flex flex-col gap-6">
-      <Lead className="flex flex-col gap-4">
-        <div className="flex flex-wrap items-baseline justify-between gap-x-4 gap-y-1">
-          <h2 className="text-2xl font-semibold">{session.shape.label}</h2>
-          {/* Minutes AND activities: "3 of 10" says nothing about whether the evening is nearly
-              over, which is the thing someone mid-session actually wants to know. */}
-          <p className="figures text-sm text-muted-foreground">
-            {formatMinutes(progress.doneMinutes)} of {formatMinutes(progress.totalMinutes)} &middot;{' '}
-            {progress.doneCount} of {progress.totalCount} activities
-          </p>
-        </div>
-        <Progress value={pct} aria-label="Session progress" />
-      </Lead>
+    // Not a plate. DESIGN.md § The plate rule: a progress bar already draws its own boundary, and
+    // wrapping one bar plus two lines of text in `p-6 md:p-8` produced a very wide, very short box
+    // that added an outline and no hierarchy. The running session IS the activity list; the shape
+    // name and the two figures are its heading, which is what a `Section` is for.
+    <Section
+      title={session.shape.label}
+      action={
+        // Minutes AND activities: "3 of 10" says nothing about whether the evening is nearly
+        // over, which is the thing someone mid-session actually wants to know.
+        <p className="figures text-sm text-muted-foreground">
+          {formatMinutes(progress.doneMinutes)} of {formatMinutes(progress.totalMinutes)} &middot;{' '}
+          {progress.doneCount} of {progress.totalCount} activities
+        </p>
+      }
+    >
+      <Progress value={pct} aria-label="Session progress" />
 
       <RuledList aria-label="Session activities">
         {session.activities.map((activity) => {
           const isDone = done.has(activity.id);
+          const alreadyReviewed = reviewedToday(activity);
           return (
             <RuledItem key={activity.id} className="flex flex-col gap-2">
               <div className="flex items-start justify-between gap-3">
@@ -467,6 +548,16 @@ function SessionRun({
                             ? 'Recalled'
                             : 'Needs another pass'}
                       </p>
+                    ) : alreadyReviewed ? (
+                      // Graded earlier today — from Today's hero, or a previous sitting. The
+                      // ladder takes one grade per day, so there is no control to offer here;
+                      // saying when it next comes round is the useful, true thing to say.
+                      <p className="text-right text-sm text-muted-foreground">
+                        Reviewed today
+                        {alreadyReviewed.nextRevision !== null
+                          ? ` · next review ${format(parseISO(alreadyReviewed.nextRevision), 'MMM d')}`
+                          : ' · no further reviews'}
+                      </p>
                     ) : (
                       <div className="flex gap-2">
                         <Button variant="outline" size="sm" onClick={() => onGrade(activity, true)}>
@@ -510,7 +601,7 @@ function SessionRun({
           Stop here
         </Button>
       </div>
-    </div>
+    </Section>
   );
 }
 
@@ -519,28 +610,29 @@ function SessionRun({
 function SessionComplete({
   session,
   doneIds,
-  passedToday,
-  failedToday,
+  grades,
   onRestart,
 }: {
   session: ReturnType<typeof selectRevisionSession>;
   doneIds: string[];
-  passedToday: number[];
-  failedToday: number[];
+  grades: Record<string, boolean>;
   onRestart: () => void;
 }) {
   const progress = sessionProgress(session, doneIds);
-  // Held / needs another pass come from today's actual graded reviews, not from which rows were
-  // ticked. Ticking a row says "I did this"; only a graded review says how it went, and inventing
-  // a verdict from the former would be the page telling the learner something it does not know.
-  const held = passedToday.map((id) => selectQuestionById(id)).filter((q): q is Question => q !== undefined);
-  const shaky = failedToday.map((id) => selectQuestionById(id)).filter((q): q is Question => q !== undefined);
+  // Held / needs another pass come from THIS SITTING's graded activities, not from which rows were
+  // ticked and not from the day's ledger. Ticking a row says "I did this"; only a grade says how
+  // it went. And the ledger is the wrong scope: it holds every review graded anywhere today, so
+  // three reviews graded from Today at breakfast were reported as the output of a two-item session
+  // in the evening, under a heading that counts two activities. `grades` is exactly the sitting —
+  // and it covers course recalls too, which the DSA-only day log never recorded.
+  const held = session.activities.filter((a) => grades[a.id] === true);
+  const shaky = session.activities.filter((a) => grades[a.id] === false);
   const nextUp = session.activities.find((a) => !doneIds.includes(a.id)) ?? session.deferred[0]?.question;
 
   return (
-    <Lead className="flex flex-col gap-5">
+    <Lead className="flex flex-col gap-6">
       <div className="flex flex-col gap-1">
-        <p className="figures text-xs uppercase tracking-[0.14em] text-muted-foreground">Session complete</p>
+        <Eyebrow>Session complete</Eyebrow>
         <h2 className="text-2xl font-semibold">
           {formatMinutes(progress.doneMinutes)} of revision
         </h2>
@@ -554,14 +646,14 @@ function SessionComplete({
       {held.length > 0 && (
         <div className="flex flex-col gap-1.5">
           <p className="text-xs font-medium tracking-wide text-muted-foreground">Held</p>
-          <p className="text-sm">{held.map((q) => q.title).join(', ')}</p>
+          <p className="text-sm">{held.map((a) => a.title).join(', ')}</p>
         </div>
       )}
 
       {shaky.length > 0 && (
         <div className="flex flex-col gap-1.5">
           <p className="text-xs font-medium tracking-wide text-muted-foreground">Needs another pass</p>
-          <p className="text-sm">{shaky.map((q) => q.title).join(', ')}</p>
+          <p className="text-sm">{shaky.map((a) => a.title).join(', ')}</p>
           <p className="text-xs text-muted-foreground">
             Back on the ladder tomorrow — a missed review resets the interval, which is the point of it.
           </p>

@@ -138,11 +138,17 @@ Corollaries, each of which was a real defect:
 
 ### Figures, not stat cards
 
-Four `StatCard`s in a grid is four bordered rectangles each holding one word and one number — the single loudest source of the box problem. Counted facts go in **`Ledger`**: one open row of label-over-figure pairs, hairline-separated, no per-item border or icon. The serif stat voice (1.75rem, 600) is unchanged. `StatCard` survives only where a single figure genuinely stands alone.
+Four stat cards in a grid is four bordered rectangles each holding one word and one number — the single loudest source of the box problem. Counted facts go in **`Ledger`**: one open row of label-over-figure pairs, hairline-separated, no per-item border or icon. The serif stat voice (1.75rem, 600) is unchanged. `Ledger` is now the **only** figure primitive — `StatCard` was deleted once its last call site went, because a dead plate primitive is a re-entry point for the box problem: the next surface wanting a quick figure finds it and uses four.
 
 ### Related facts look like one fact
 
 Pattern · difficulty · estimate · relevance describe *one object*, so they render as one line — **`Meta`**, interpunct-separated — not as four chips in four plates.
+
+A chip that sits *inside* a `Meta` line must be **borderless**, or the line contradicts itself: two of its four items arrive as their own tinted rectangles and it says "four things" again. `DifficultyBadge` and `PatternChip` therefore take `variant="bare"` — difficulty renders as the word in its difficulty ink, a pattern as a 10px ink dot plus its name. The bordered variant is still correct where the chip stands alone as an object (the question sheet masthead, focus mode), never in a row or a `Meta` line.
+
+### One eyebrow, one definition
+
+The eyebrow register — `figures text-xs uppercase tracking-[0.14em] text-muted-foreground` — is the **`Eyebrow`** component exported from `Page.tsx`, and `PageHeader`/`Section` use it too. It was previously re-declared inline on eight surfaces, half of them omitting `.figures`, so the identical eyebrow rendered in the mono face on some pages and the body face on others — invisible in any single file, plainly wrong across the product. `Eyebrow` renders a `<p>`; the two places that need phrasing content (inside a `<button>`, or run-in within a paragraph) use the class constant directly and say why.
 
 ### The measure
 
@@ -200,11 +206,10 @@ Quiet and pressable. 6px radius; sizes h-10 default, h-9 `sm` (text-xs), h-11 `l
 ### Tabs (tabs.tsx) — the underline idiom
 TabsList is a hairline baseline (`border-b border-border`); triggers carry a transparent 2px bottom border and muted text, and the active tab inks the border (`border-primary`) and lifts to `foreground`. Never pill or segmented fills.
 
+**Navigation obeys the same refusal.** The sidebar and bottom-nav active states were solid `bg-primary` blocks — the loudest object on all eighteen screens, out-weighing each page's own primary button and spending the ink budget twice in one viewport. Active nav is now a 2px ink margin mark (`border-l-2 border-primary`), an ink icon, and a weight step to `font-semibold` — never a filled block. The state rests on three independent carriers so it never depends on colour alone: `aria-current="page"`, the presence-vs-absence of the 2px stroke (inactive items carry `border-transparent`, so nothing shifts), and the weight change. The solid ink fill stays reserved for the capacity chips.
+
 ### Progress (progress.tsx) — the ruled bar
 8px tall, 3px radius, `muted` track, ink indicator translating in over 500ms `ease-swift`. Semester and pattern arcs are this bar, not rings or gauges (ProgressRing exists for the pomodoro/level dial only).
-
-### StatCard (src/components/shared/StatCard.tsx) — the ledger entry
-On a plate: an xs muted label ruled underneath (`border-b border-border/70 pb-2`), a serif 1.75rem value below, a 16px icon pinned top-right at `muted-foreground/50` (ink when `accent`, which also inks the plate border at 50%).
 
 ### Activity intensity (Heatmap.tsx + CalendarPage.tsx)
 Shared 0–4 ink ramp: `bg-muted/40`, `bg-primary/25`, `/45`, `/70`, `bg-primary`. The LEVEL_CLASS map is duplicated in CalendarPage.tsx **by convention** — change both together.
@@ -216,14 +221,18 @@ Series come from CHART_COLORS (`--chart-1`/`--chart-2`); grid `--border`, axes `
 The day's one recommendation, and the only plate on Today with `p-6`. Structure is fixed: a ruled xs uppercase eyebrow (`Next · <kind>`) with the estimate right-aligned in `.figures`, then the item title at `text-xl md:text-2xl`, then the reason as `text-sm text-muted-foreground` capped at `max-w-prose`, then chips, then one `default` button. Everything else on the page is `p-5` and quieter — the size difference *is* the hierarchy, so don't promote a sibling plate to match it.
 
 ### Capacity chips (src/components/today/SessionPlan.tsx) — the commitment row
-Small `rounded-sm` bordered toggles in `.figures`, `aria-pressed` for state; the active chip is a solid ink fill with `text-primary-foreground`. The only place in the app where several ink fills sit adjacent — permitted because exactly one is ever active. Never render them as pills or a segmented control.
+Small `rounded-sm` bordered toggles in `.figures`; the active chip is a solid ink fill with `text-primary-foreground`. The only place in the app where several ink fills sit adjacent — permitted because exactly one is ever active. Never render them as pills or a segmented control.
+
+Because exactly one is ever active, the row is a **`role="radiogroup"` with `aria-checked`**, not a set of independent `aria-pressed` toggles — six toggle buttons announce six independent on/off controls for what is one choice, and arrow-key selection is the contract the radio role promises. Today and Revision both carry this; they are the same setting, so they are the same control.
 
 ### Insight card (src/components/shared/InsightPanel.tsx) — the reading
 Three fixed bands: a tone icon plus headline, then evidence on a `border-l-2 border-border` rail in `.figures`, then the recommendation and a single `outline` button. Tone colors ride the difficulty inks (`medium` for attention, `easy` for strength) on the icon only — never on the headline text.
 
 ### Revision session (src/pages/RevisionPage.tsx) — the three states
 
-One surface, three states, and exactly one `Lead` in each: **preview** (length chips → shape name, a 3-column `Ledger` of activities/planned/focus, a "Why these:" line, one `Start session` button), **run** (shape name with minutes-and-activities progress on the same baseline, a `Progress` bar, then the activities as a `RuledList` — never as cards), and **complete** (what was worked through, then held / needs-another-pass read from the day's *graded* reviews). The length chips reuse the capacity-chip idiom exactly; they write the same `settings.dailyCapacityMin`.
+One surface, three states: **preview** (length chips → shape name, a 3-column `Ledger` of activities/planned/focus, a "Why these:" line, one `Start session` button) carries the page's one `Lead`; **run** is an open `Section` — shape name as its title, minutes-and-activities progress as its `action`, then the `Progress` bar and the activities as a `RuledList`, never as cards — because a progress bar already draws its own boundary and wrapping it in a `p-6 md:p-8` plate makes a very wide, very short box holding one bar; and **complete** (what was worked through, then held / needs-another-pass) reads **the sitting's own grades**, not the day's — the summary says "Session complete", so counting reviews graded from Today that morning would report five outcomes for a sitting that held two. The length chips reuse the capacity-chip idiom exactly; they write the same `settings.dailyCapacityMin`.
+
+An item already graded today renders "Reviewed today · next review …" instead of grade buttons. The `reviseQuestion` thunk refuses a second grade on the same date, so offering the control anyway meant a button that recorded a grade in the UI while the ladder, the XP and the day log all ignored it.
 
 The register is factual throughout. An activity states its depth, its cost, its instruction, and why it was chosen — in that order, at descending weight. Deferred work is one quiet sentence at the foot of the page, never a badge and never a headline.
 

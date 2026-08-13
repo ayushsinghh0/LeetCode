@@ -15,7 +15,7 @@ import { patternById } from '@/data/patterns';
 import { iconByName } from '@/components/shared/iconMap';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
-import { Meta, Rule } from '@/components/layout/Page';
+import { Eyebrow, Meta, Section } from '@/components/layout/Page';
 import { DifficultyBadge } from '@/components/questions/DifficultyBadge';
 import { RevisionStagePips } from '@/components/questions/RevisionStagePips';
 import { NotesEditor } from '@/components/questions/NotesEditor';
@@ -32,6 +32,8 @@ import { activeQuestionSet } from '@/store/slices/uiSlice';
 import { selectPaceSamples } from '@/store/selectors';
 import { initialProgress, isMastered } from '@/utils/engine/spacedRepetition';
 import { hintsFor } from '@/utils/engine/hints';
+import { followUpsFor } from '@/utils/engine/interview';
+import { companiesNamingPatternTopics } from '@/utils/engine/companies';
 import { MASTERY_LABEL, MASTERY_MEANING, masteryState } from '@/utils/engine/mastery';
 import { BASIS_LABEL, estimateFor } from '@/utils/engine/timeEstimate';
 import type { FamilyRole, ProblemFamily, Question, SubpatternGroup } from '@/types';
@@ -56,6 +58,11 @@ const GROUP_LIMIT = 3;
  *    recorded as a signal, never priced.
  *  - The intended complexity and the family's full write-up appear only AFTER the attempt is
  *    resolved. Showing a target bound up front converts a problem into a lookup.
+ *  - The last two rungs are also post-attempt: the interview follow-up round (derived by
+ *    engine/interview.ts, the same function /interview uses) names the axes the intended answer
+ *    is weakest on, which is the shape of the answer if shown early; and one line of company
+ *    context, which is a claim about the PATTERN and never about this problem — see the gate on
+ *    `companiesNamingPatternTopics` and the comment beside the line itself.
  *
  * The head of the document is one conceptual group, not four plates: chapter line, title,
  * metadata on a single interpunct-separated row, then the one sentence saying what is being
@@ -127,6 +134,12 @@ export function QuestionDetailModal() {
   const groups = resourceGroups({ question, family, subpattern, openSiblings, solved, untouched });
   const next = nextStep({ family, subpattern, openSiblings, untouched, currentId: question.id });
 
+  // Both are post-attempt rungs: a follow-up round names the axes the intended solution is weak
+  // on, and naming them before the attempt hands over the shape of the answer. Computed only when
+  // they will render, so the disclosure rule is enforced here rather than trusted to the JSX.
+  const followUps = solved ? followUpsFor(question, family) : [];
+  const namingCompanies = solved ? companiesNamingPatternTopics(question.pattern) : [];
+
   return (
     <Dialog open onOpenChange={handleOpenChange}>
       <DialogContent key={question.id} className="max-h-[85vh] overflow-y-auto sm:max-w-2xl">
@@ -138,7 +151,7 @@ export function QuestionDetailModal() {
           <div className="flex flex-col gap-1.5">
             {/* Where this sits in the course: pattern, then the sub-pattern inside it. The
                 pattern's ink rides the icon only — labels wear the text token. */}
-            <p className="figures flex flex-wrap items-center gap-x-2 gap-y-0.5 pr-8 text-xs uppercase tracking-[0.14em] text-muted-foreground">
+            <Eyebrow className="flex flex-wrap items-center gap-x-2 gap-y-0.5 pr-8">
               <PatternIcon className="h-3.5 w-3.5 shrink-0" style={{ color: pattern.color }} aria-hidden="true" />
               <span>{pattern.name}</span>
               {subpattern && (
@@ -149,7 +162,7 @@ export function QuestionDetailModal() {
                   <span>{subpattern.name}</span>
                 </>
               )}
-            </p>
+            </Eyebrow>
             <DialogTitle className="pr-8 font-serif text-2xl font-semibold leading-tight tracking-tight">
               {question.title}
             </DialogTitle>
@@ -184,35 +197,40 @@ export function QuestionDetailModal() {
               above the fold and deliberately short of the solution. It doubles as the dialog's
               accessible description. */}
           <div className="flex flex-col gap-1 pt-1">
-            <p className="figures text-xs uppercase tracking-[0.14em] text-muted-foreground">
-              What this tests
-            </p>
+            <Eyebrow>What this tests</Eyebrow>
             <DialogDescription className="max-w-prose text-sm leading-relaxed text-foreground">
               {question.tests}
             </DialogDescription>
           </div>
         </DialogHeader>
 
-        <div className="flex flex-col gap-6">
+        {/* The blocks below are the document's sections, and they are separated by space and a
+            heading register rather than by hairlines. Seven rules used to divide eight
+            same-weight bands, which gave the reader no map of a very long scroll; three remain,
+            each marking a genuine document break (the decision, the post-attempt half, and the
+            learner's own record). `gap-10` is the section step from DESIGN.md § The rhythm — flat
+            rather than `md:gap-12`, because this column is capped at 42rem and never widens into
+            the desktop measure that bump exists for. */}
+        <div className="flex flex-col gap-10">
           {/* --- Where this stands ----------------------------------------------------------- */}
-          <div className="flex flex-col gap-1">
-            <div className="flex flex-wrap items-center gap-3">
-              <span className="text-sm font-medium">{MASTERY_LABEL[state]}</span>
-              {solved && <RevisionStagePips stage={progress.revisionStage} />}
+          <Section level={3} title="Where this stands">
+            <div className="flex flex-col gap-2">
+              <div className="flex flex-wrap items-center gap-3">
+                <span className="text-sm font-medium">{MASTERY_LABEL[state]}</span>
+                {solved && <RevisionStagePips stage={progress.revisionStage} />}
+              </div>
+              <p className="max-w-prose text-sm text-muted-foreground">{MASTERY_MEANING[state]}</p>
             </div>
-            <p className="max-w-prose text-sm text-muted-foreground">{MASTERY_MEANING[state]}</p>
-          </div>
+          </Section>
 
           {/* --- Where to go ---------------------------------------------------------------- */}
-          <div className="flex flex-col gap-4">
-            <Rule />
+          <Section level={3} title="Where to go">
             <ResourcePanel question={question} groups={groups} />
-          </div>
+          </Section>
 
           {/* --- Help, on request only ------------------------------------------------------ */}
           {!solved && (
-            <div className="flex flex-col gap-4">
-              <Rule />
+            <Section level={3} title="Hints">
               {hintsOpen || (progress.hintLevelUsed ?? 0) > 0 ? (
                 <HintLadder
                   questionId={question.id}
@@ -224,13 +242,13 @@ export function QuestionDetailModal() {
                   Stuck? Open the hint ladder
                 </Button>
               )}
-            </div>
+            </Section>
           )}
 
           {/* --- The mutation. On an unsolved question this is the whole decision; on a solved
-                  one it becomes the recall grade. ------------------------------------------- */}
-          <div className="flex flex-col gap-4">
-            <Rule />
+                  one it becomes the recall grade. Untitled on purpose: a row of labelled buttons
+                  names itself, and the hairline above is one of the three real breaks. ------- */}
+          <Section divider>
             <div className="flex flex-wrap gap-2">
               {!solved && (
                 <>
@@ -265,7 +283,9 @@ export function QuestionDetailModal() {
               <p className="inline-flex items-center gap-2 text-sm text-muted-foreground">
                 <RotateCcw className="h-4 w-4" aria-hidden="true" />
                 Reviewed today
-                {progress.nextRevision ? ` — next review ${progress.nextRevision}.` : '.'}
+                {progress.nextRevision
+                  ? ` — next review ${format(parseISO(progress.nextRevision), 'MMM d')}.`
+                  : '.'}
               </p>
             )}
             {solved && isMastered(progress) && (
@@ -274,66 +294,110 @@ export function QuestionDetailModal() {
                 Mastered — off the review schedule.
               </p>
             )}
-          </div>
+          </Section>
 
           {/* --- Everything below appears only after the attempt is resolved. ---------------- */}
           {solved && (
             <>
-              <div className="flex flex-col gap-4">
-                <Rule />
+              <Section level={3} title="The debrief" divider>
                 <PostSolvePanel question={question} progress={progress} family={family} next={next} />
-              </div>
+              </Section>
 
               {family && (
-                <div className="flex flex-col gap-4">
-                  <Rule />
-                  <div className="flex flex-col gap-1">
-                    <p className="figures text-xs uppercase tracking-[0.14em] text-muted-foreground">
-                      Same idea, different disguise
-                    </p>
-                    <p className="max-w-prose text-sm text-muted-foreground">
-                      These keep the technique and move the constraint or the objective. Recognizing
-                      the idea through the disguise is the transferable half of the skill.
-                    </p>
-                  </div>
+                <Section
+                  level={3}
+                  title="Same idea, different disguise"
+                  support="These keep the technique and move the constraint or the objective. Recognizing the idea through the disguise is the transferable half of the skill."
+                >
                   <FamilyPanel family={family} currentQuestionId={question.id} />
-                </div>
+                </Section>
+              )}
+
+              {/* --- The follow-up round -------------------------------------------------- */}
+              {/* Derived by engine/interview.ts from this question's own family, bounds, pattern
+                  and type — the same function /interview uses, so the two surfaces cannot drift
+                  into asking different things about the same problem. A question with no mapped
+                  family genuinely gets a shorter round, and that is said rather than padded. */}
+              <Section
+                level={3}
+                title="If this came up in an interview"
+                support="A working solution is where the round starts, not where it ends. These are the moves an interviewer makes next."
+                aria-label="Interview follow-ups"
+              >
+                {followUps.length === 0 ? (
+                  <p className="max-w-prose text-sm leading-relaxed text-muted-foreground">
+                    Nothing in this question&rsquo;s record — no family, no recorded bounds, no
+                    pattern that invites one — supports a follow-up worth asking, so none is
+                    invented.
+                  </p>
+                ) : (
+                  <div className="flex flex-col gap-4">
+                    {!family && (
+                      <p className="max-w-prose text-sm leading-relaxed text-muted-foreground">
+                        A shorter round than usual: this problem sits outside the mapped families,
+                        so only the follow-ups its own pattern, type and bounds support are listed.
+                      </p>
+                    )}
+                    {followUps.map((followUp) => (
+                      <div key={followUp.axis} className="flex flex-col gap-2">
+                        <Eyebrow>{followUp.label}</Eyebrow>
+                        <p className="max-w-prose text-sm leading-relaxed">{followUp.question}</p>
+                        <p className="max-w-prose text-xs leading-relaxed text-muted-foreground">
+                          {followUp.because}
+                        </p>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </Section>
+
+              {/* --- Company context ------------------------------------------------------ */}
+              {/* PATTERN RELEVANCE, NEVER PROBLEM ATTRIBUTION. The subject of the sentence is the
+                  pattern, and the second clause says outright what is not being claimed. No
+                  company publishes the problems it asks (CLAUDE.md; scripts/data/companies.json
+                  `_readme`), so this line may never acquire a verb that attaches a company to
+                  this question. It is one Meta line for the same reason — a heading and a list
+                  would give a footnote the weight of a finding. */}
+              {namingCompanies.length > 0 && (
+                <Meta
+                  items={[
+                    <span key="claim">
+                      Companies whose own interview pages name topics this pattern covers:{' '}
+                      <span className="text-foreground">
+                        {namingCompanies.map((c) => c.name).join(', ')}
+                      </span>
+                    </span>,
+                    <span key="scope">a statement about the topic, not about this problem</span>,
+                  ]}
+                />
               )}
             </>
           )}
 
           {/* --- The learner's own record --------------------------------------------------- */}
-          <div className="flex flex-col gap-4">
-            <Rule />
-            <div className="flex flex-col gap-2">
-              <p className="text-sm font-medium">Notes</p>
-              <NotesEditor questionId={question.id} initialNotes={progress.notes} />
-            </div>
-          </div>
+          <Section level={3} title="Notes" divider>
+            <NotesEditor questionId={question.id} initialNotes={progress.notes} />
+          </Section>
 
-          <div className="flex flex-col gap-4">
-            <Rule />
-            <div className="flex flex-col gap-2">
-              <p className="text-sm font-medium">Revision History</p>
-              {progress.revisionHistory.length === 0 ? (
-                <p className="text-sm text-muted-foreground">No revisions yet.</p>
-              ) : (
-                <ul className="space-y-1">
-                  {progress.revisionHistory.map((ev, i) => (
-                    <li key={i} className="flex items-center gap-2 text-sm">
-                      {ev.passed ? (
-                        <CheckCircle2 className="h-4 w-4 text-easy" aria-hidden="true" />
-                      ) : (
-                        <XCircle className="h-4 w-4 text-hard" aria-hidden="true" />
-                      )}
-                      <span className="figures">{format(parseISO(ev.date), 'MMM d, yyyy')}</span>
-                      <span>{ev.passed ? 'Passed' : 'Failed'}</span>
-                    </li>
-                  ))}
-                </ul>
-              )}
-            </div>
-          </div>
+          <Section level={3} title="Revision History">
+            {progress.revisionHistory.length === 0 ? (
+              <p className="text-sm text-muted-foreground">No revisions yet.</p>
+            ) : (
+              <ul className="flex flex-col gap-2">
+                {progress.revisionHistory.map((ev, i) => (
+                  <li key={i} className="flex items-center gap-2 text-sm">
+                    {ev.passed ? (
+                      <CheckCircle2 className="h-4 w-4 text-easy" aria-hidden="true" />
+                    ) : (
+                      <XCircle className="h-4 w-4 text-hard" aria-hidden="true" />
+                    )}
+                    <span className="figures">{format(parseISO(ev.date), 'MMM d, yyyy')}</span>
+                    <span>{ev.passed ? 'Passed' : 'Failed'}</span>
+                  </li>
+                ))}
+              </ul>
+            )}
+          </Section>
         </div>
       </DialogContent>
     </Dialog>

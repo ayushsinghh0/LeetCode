@@ -23,6 +23,23 @@ describe('MobileNav', () => {
     expect(within(bar).getByRole('button', { name: 'More' })).toBeInTheDocument();
   });
 
+  // Same removal as the sidebar's, and the same three carriers have to replace it: the bottom
+  // bar's active tab was a solid ink block, which spent on navigation chrome the ink budget that
+  // belongs to the page's own primary action.
+  test('the active tab is marked for assistive tech and weighted, not filled', () => {
+    renderWithStore(<MobileNav />, undefined, '/roadmap');
+
+    const bar = screen.getByRole('navigation', { name: /mobile navigation/i });
+    const active = within(bar).getByRole('link', { name: 'Roadmap' });
+    const inactive = within(bar).getByRole('link', { name: 'Today' });
+
+    expect(active).toHaveAttribute('aria-current', 'page');
+    expect(inactive).not.toHaveAttribute('aria-current');
+    expect(active.className).toContain('font-semibold');
+    expect(inactive.className).toContain('font-medium');
+    expect(active.className).not.toContain('bg-primary');
+  });
+
   test('the "More" control describes the sheet it opens', () => {
     renderWithStore(<MobileNav />);
 

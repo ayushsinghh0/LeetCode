@@ -145,10 +145,28 @@ export const saveReflection = (id: number, reflection: string): AppThunk => (dis
 // semantics itself; this thunk only supplies the date. `missedPatterns` lists the correct
 // pattern of every wrongly answered item (duplicates allowed — two misses in one family's
 // pattern are two pieces of evidence).
+//
+// The normalization below is the same class of guard as `setDailyCapacity`'s bounds, and it is
+// here for the same reason: `validatePersisted` hard-rejects a drill entry with `total < 1`,
+// `correct > total`, a blank pattern id, or more missed patterns than there were misses — and a
+// rejected payload quarantines the learner's ENTIRE state on the next load. Today the invariant
+// happens to be held by DrillsPage's render flow, which answers every item exactly once; that is
+// a property of one caller, not of the API. A validator stricter than its write path is a
+// data-loss bug waiting for a second caller, so the thunk guarantees a persistable payload
+// itself rather than trusting whoever calls it.
 export const logDrillResult =
   (correct: number, total: number, missedPatterns: string[]): AppThunk =>
   (dispatch) => {
-    dispatch(drillRecorded({ date: todayISO(), correct, total, missedPatterns }));
+    const safeTotal = Math.floor(total);
+    // Nothing was asked, so there is no result to record — writing one would be a fiction.
+    if (!Number.isFinite(safeTotal) || safeTotal < 1) return;
+    const safeCorrect = Math.min(Math.max(Math.floor(correct) || 0, 0), safeTotal);
+    const safeMissed = missedPatterns
+      .filter((p): p is string => typeof p === 'string' && p !== '')
+      .slice(0, safeTotal - safeCorrect);
+    dispatch(
+      drillRecorded({ date: todayISO(), correct: safeCorrect, total: safeTotal, missedPatterns: safeMissed }),
+    );
   };
 
 export const logFocusSession = (minutes: number): AppThunk => (dispatch, getState) => {

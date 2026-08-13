@@ -14,7 +14,7 @@ const task = (id: string, estMinutes: number | null = null): DailyTask => ({
 const base: WorkInput = {
   revisions: [],
   newQuestions: [],
-  drill: { eligible: true, doneToday: true, weakestPattern: null, weakestPatternName: null, minutes: 6 },
+  drill: { eligible: true, doneToday: true, missedMostPatternName: null, minutes: 6 },
   course: { dueReviews: [], nextSession: null },
   openTasks: [],
   taskDefaultMinutes: 15,
@@ -100,15 +100,19 @@ describe('rankWork ordering', () => {
     expect(items).toEqual([]);
   });
 
-  test('the drill names the weak pattern when one is known', () => {
+  test('the drill names its own basis — the most-missed drill pattern — and claims nothing wider', () => {
     const items = rankWork({
       ...base,
-      drill: {
-        eligible: true, doneToday: false, weakestPattern: 'sliding-window',
-        weakestPatternName: 'Sliding Window', minutes: 6,
-      },
+      drill: { eligible: true, doneToday: false, missedMostPatternName: 'Sliding Window', minutes: 6 },
     });
     expect(items[0]!.why).toContain('Sliding Window');
+    // The drill is weighted by raw cumulative drill misses, which carry no recency decay and are
+    // NOT the product's weakness model (`selectPatternWeakness` is, and it is the only one). This
+    // sentence used to read "where your recent answers have been shakiest" — a weakness claim,
+    // worded identically to the one `session.ts` emits from that other source, so Today and
+    // Revision could name different weakest patterns in the same sitting.
+    expect(items[0]!.why).toContain('recognition drills');
+    expect(items[0]!.why).not.toMatch(/shakiest|weakest|recent/i);
   });
 
   test("the learner's own tasks rank last — the ranker does not second-guess their urgency", () => {

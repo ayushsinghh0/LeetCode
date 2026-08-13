@@ -15,7 +15,7 @@ import {
 import { companyCoverage, companyPracticeSet } from '@/utils/engine/companies';
 import { applyRevision, applySolve, initialProgress } from '@/utils/engine/spacedRepetition';
 import { patternStats } from '@/utils/engine/stats';
-import { patternWeakness } from '@/utils/engine/weakness';
+import { MIN_TRANSFER_OBSERVATIONS, patternWeakness } from '@/utils/engine/weakness';
 import { COMPANIES } from '@/data/companies';
 import { PATTERNS } from '@/data/patterns';
 import type {
@@ -232,7 +232,11 @@ describe('buildInsights — weak pattern', () => {
     expect(finding!.headline).toMatch(/Graphs is the pattern your record says to work on/);
     // Verbatim from the model — every line carries its numbers.
     expect(finding!.evidence).toEqual(weakness[0]!.signals.slice(0, 3).map((s) => s.detail));
-    expect(finding!.evidence.join(' ')).toMatch(/recognition drills/);
+    // The drill misses in the fixture must be among the reasons shown, asserted by signal
+    // identity rather than by the model's wording: this card renders whatever prose the weakness
+    // model writes, so pinning that prose here would test weakness.ts's copy from a second file.
+    expect(weakness[0]!.signals.slice(0, 3).map((s) => s.id)).toContain('recognition');
+    expect(finding!.evidence.join(' ')).toMatch(/\d+ recognition/);
     expect(finding!.action.href).toBe('/patterns/graphs');
   });
 
@@ -382,6 +386,120 @@ describe('accuracy trend', () => {
       w00: courseWeek({ revisionHistory: events(11, 10, () => false) }),
     })!;
     expect(withCourse.verdict).toBe('declining');
+  });
+});
+
+// These two describes sit below the fixture helpers rather than up with the other builder suites:
+// `withHistory`, `events` and `courseWeek` are const declarations, and a describe body runs at
+// collection time, so referencing them from above would be a temporal-dead-zone error.
+describe('buildInsights — am I improving?', () => {
+  // The measurement has been implemented and tested since the start; without a builder it could
+  // never become a *finding*, which left the page's own headline question unanswerable.
+  const split = (priorPasses: number, recentPasses: number): Record<number, QuestionProgress> => ({
+    1: withHistory([
+      ...events(1, MIN_TREND_ATTEMPTS, (i) => i < priorPasses),
+      ...events(11, MIN_TREND_ATTEMPTS, (i) => i < recentPasses),
+    ]),
+  });
+
+  test('one recall short of the floor there is no finding at all', () => {
+    const byId = { 1: withHistory(events(1, MIN_TREND_ATTEMPTS * 2 - 1, () => true)) };
+
+    expect(buildInsights({ ...base, byId }).find((i) => i.id === 'accuracy-trend')).toBeUndefined();
+  });
+
+  test('a decline is reported as two measured rates, never as a score', () => {
+    const finding = buildInsights({ ...base, byId: split(10, 3) }).find(
+      (i) => i.id === 'accuracy-trend',
+    )!;
+
+    expect(finding.headline).toMatch(/passing less often than it used to/);
+    expect(finding.evidence[0]).toBe(
+      '30% over your last 10 graded recalls; 100% over the 10 before them.',
+    );
+    // The movement is stated against what the samples can resolve, so the reader can see the
+    // claim is bigger than the noise rather than being told to trust it.
+    expect(finding.evidence[1]).toMatch(/70-point move, against the 20 points/);
+    expect(finding.recommendation).toMatch(/fewer new questions/);
+    expect(finding.action).toEqual({ label: 'Open revisions', href: '/revision' });
+    expect(finding.tone).toBe('attention');
+  });
+
+  test('improvement points at the one dimension recall was never tested on', () => {
+    const finding = buildInsights({ ...base, byId: split(3, 10) }).find(
+      (i) => i.id === 'accuracy-trend',
+    )!;
+
+    expect(finding.headline).toMatch(/holding up better than it used to/);
+    expect(finding.action).toEqual({ label: 'Sit a timed round', href: '/contest' });
+    expect(finding.tone).toBe('strength');
+  });
+
+  test('a move inside the noise floor is reported as holding, not as progress', () => {
+    const finding = buildInsights({ ...base, byId: split(8, 9) }).find(
+      (i) => i.id === 'accuracy-trend',
+    )!;
+
+    expect(finding.headline).toMatch(/holding, not moving/);
+    expect(finding.evidence[1]).toMatch(/10-point move, against the 20 points/);
+    expect(finding.tone).toBe('steady');
+  });
+
+  test('course-week reviews are graded into the same finding — one ladder, one verdict', () => {
+    const byId = { 1: withHistory(events(1, MIN_TREND_ATTEMPTS, () => true)) };
+    // Question revisions alone are one recall short of two halves.
+    expect(buildInsights({ ...base, byId }).find((i) => i.id === 'accuracy-trend')).toBeUndefined();
+
+    const finding = buildInsights({
+      ...base,
+      byId,
+      courseByWeekId: { w00: courseWeek({ revisionHistory: events(11, MIN_TREND_ATTEMPTS, () => false) }) },
+    }).find((i) => i.id === 'accuracy-trend')!;
+
+    expect(finding.headline).toMatch(/passing less often/);
+    expect(finding.evidence.join(' ')).toMatch(/course-week reviews climb the same ladder/);
+  });
+});
+
+describe('buildInsights — can I carry an idea into a problem I have not seen?', () => {
+  test('below the observation floor there is a count and no card', () => {
+    // `transferRecord` suppresses its own rate under MIN_TRANSFER_OBSERVATIONS; the card inherits
+    // that floor rather than inventing a second one.
+    const insights = buildInsights({
+      ...base,
+      transfer: { met: MIN_TRANSFER_OBSERVATIONS - 1, carried: 0, rate: null },
+    });
+
+    expect(insights.find((i) => i.id === 'transfer')).toBeUndefined();
+  });
+
+  test('names the failure when an idea does not survive a change of disguise', () => {
+    const finding = buildInsights({
+      ...base,
+      transfer: { met: 10, carried: 3, rate: 0.3 },
+    }).find((i) => i.id === 'transfer')!;
+
+    expect(finding.headline).toMatch(/not carrying into their next disguise/);
+    expect(finding.evidence[0]).toMatch(/^3 of 10 problems from families you had already solved/);
+    expect(finding.action).toEqual({ label: 'Start a drill', href: '/drills' });
+    expect(finding.tone).toBe('attention');
+  });
+
+  test('a holding record points at rehearsal rather than at more volume', () => {
+    const finding = buildInsights({
+      ...base,
+      transfer: { met: 10, carried: 9, rate: 0.9 },
+    }).find((i) => i.id === 'transfer')!;
+
+    expect(finding.headline).toMatch(/carrying into problems you had not seen/);
+    expect(finding.action).toEqual({ label: 'Run an interview round', href: '/interview' });
+    expect(finding.tone).toBe('strength');
+  });
+
+  test('the middle of the range carries no claim — five observations cannot pay for one', () => {
+    const insights = buildInsights({ ...base, transfer: { met: 10, carried: 6, rate: 0.6 } });
+
+    expect(insights.find((i) => i.id === 'transfer')).toBeUndefined();
   });
 });
 

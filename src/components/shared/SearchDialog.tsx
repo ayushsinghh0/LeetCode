@@ -405,7 +405,7 @@ export function SearchDialog() {
               )}
 
               {questionItems.length > 0 && (
-                <div role="group" aria-label="Questions" data-testid="search-results" className="flex flex-col gap-2">
+                <div role="group" aria-label="Questions" data-testid="search-results" className="flex flex-col gap-1">
                   {(pageItems.length > 0 || actionItems.length > 0 || weekItems.length > 0 || taskItems.length > 0) && (
                     <p aria-hidden="true" className="px-1 text-xs font-medium uppercase tracking-wide text-muted-foreground">
                       Questions
@@ -424,10 +424,12 @@ export function SearchDialog() {
                         role="option"
                         id={`palette-option-${index}`}
                         aria-selected={index === activeIndex}
-                        className={cn(
-                          'glass flex w-full items-center gap-3 rounded-md p-3 text-left transition-colors duration-150 ease-swift',
-                          index === activeIndex ? 'border-primary/40 bg-muted' : 'hover:border-primary/40',
-                        )}
+                        // The same row grammar as the four groups above. This was a `.glass` plate
+                        // per result — a plate inside DialogContent, which is itself a plate
+                        // (DESIGN.md § Composition: never nest a plate inside a plate) — so one
+                        // listbox ran two different row designs stacked on each other. Selection
+                        // is `bg-muted`, exactly as it is for pages, actions, weeks and tasks.
+                        className={optionRowClass(index)}
                         onClick={() => selectItem(item)}
                         onMouseMove={() => setActiveIndex(index)}
                       >

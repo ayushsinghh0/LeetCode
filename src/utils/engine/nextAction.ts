@@ -13,7 +13,7 @@
 // (and this ranker) which patterns are actually weak.
 //
 // Pure and deterministic like every engine module: no clock, no store, ISO date strings in.
-import type { DailyTask, PatternId, Question } from '@/types';
+import type { DailyTask, Question } from '@/types';
 
 export type ActionKind =
   | 'revision'
@@ -65,8 +65,13 @@ export interface WorkInput {
   drill: {
     eligible: boolean;
     doneToday: boolean;
-    weakestPattern: PatternId | null;
-    weakestPatternName: string | null;
+    /**
+     * The pattern with the most cumulative recognition-drill misses — i.e. what actually weights
+     * `buildDrill`. Deliberately NOT the product's weakness signal: `selectPatternWeakness` is the
+     * one place weakness is claimed, and this field must never be described as one (see the copy
+     * in `rankWork`). It is named for what it measures so the two cannot be confused again.
+     */
+    missedMostPatternName: string | null;
     minutes: number;
   };
   course: {
@@ -124,8 +129,15 @@ export function rankWork(input: WorkInput): WorkItem[] {
       id: 'drill',
       kind: 'drill',
       title: 'Recognition drill',
-      why: input.drill.weakestPatternName
-        ? `Weighted toward ${input.drill.weakestPatternName}, where your recent answers have been shakiest.`
+      // This sentence names the drill's OWN basis and nothing wider. It used to read "where your
+      // recent answers have been shakiest" — a weakness claim, worded identically to the one
+      // `session.ts` emits, but resolved from a different source: the drill is weighted by raw
+      // cumulative drill misses (locked spec), while every weakness claim in the product comes
+      // from `selectPatternWeakness`. The two disagree the moment an old drill miss outweighs a
+      // fresh failure, and the learner read Today and Revision naming different weakest patterns
+      // in the same sitting. "Recent" was false too: the drill tally has no recency decay.
+      why: input.drill.missedMostPatternName
+        ? `Weighted toward ${input.drill.missedMostPatternName} — the pattern you have missed most in past recognition drills.`
         : 'A few minutes of naming patterns on sight — the skill an interview actually starts with.',
       minutes: input.drill.minutes,
       href: '/drills',

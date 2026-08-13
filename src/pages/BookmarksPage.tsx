@@ -1,8 +1,8 @@
 import { useMemo, useState } from 'react';
 import { Bookmark, SearchX } from 'lucide-react';
 import { EmptyState } from '@/components/shared/EmptyState';
-import { Page, PageHeader, Section } from '@/components/layout/Page';
-import { QuestionCard } from '@/components/questions/QuestionCard';
+import { Page, PageHeader, RuledList, Section } from '@/components/layout/Page';
+import { QuestionRow } from '@/components/questions/QuestionCard';
 import {
   QuestionFilterRow,
   type DifficultyFilterValue,
@@ -94,19 +94,19 @@ export default function BookmarksPage() {
           {filtered.length === 0 ? (
             <EmptyState icon={SearchX} title="No bookmarks match these filters" />
           ) : (
-            // Two columns at the 60rem measure, not three: a question card carries a title, a
-            // pattern, a difficulty and an estimate, and none of that reads at 320px wide.
-            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+            // Hairline-ruled rows, not a grid of cards. A bookmark list is something you scan and
+            // pick from, so each entry is an index row on the page ground — boxing every one of
+            // them was the "list becomes plates" defect DESIGN.md § The plate rule names.
+            <RuledList>
               {filtered.map((q) => (
-                <QuestionCard
+                <QuestionRow
                   key={q.id}
                   question={q}
                   progress={progressById[q.id] ?? initialProgress()}
-                  context="browse"
-                  onOpenDetail={openQuestion}
+                  onOpen={openQuestion}
                 />
               ))}
-            </div>
+            </RuledList>
           )}
         </Section>
       )}

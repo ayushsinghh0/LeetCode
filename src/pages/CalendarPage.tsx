@@ -14,7 +14,7 @@ import { ChevronLeft, ChevronRight, CheckCircle2, XCircle, Zap, Timer, CalendarX
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { EmptyState } from '@/components/shared/EmptyState';
-import { Page, PageHeader, Section, Rule, Meta } from '@/components/layout/Page';
+import { Eyebrow, Page, PageHeader, Section, Rule, Meta } from '@/components/layout/Page';
 import { useAppDispatch, useAppSelector } from '@/store/hooks';
 import { activeQuestionSet } from '@/store/slices/uiSlice';
 import { selectCourseActivityByDate, selectPerDay, selectQuestionById } from '@/store/selectors';
@@ -36,9 +36,6 @@ const LEVEL_CLASS: Record<0 | 1 | 2 | 3 | 4, string> = {
   3: 'bg-primary/70',
   4: 'bg-primary',
 };
-
-// The eyebrow register, reused for the weekday column heads and the day-dialog group labels.
-const LABEL_CLASS = 'text-xs uppercase tracking-[0.14em] text-muted-foreground';
 
 // `active` carries the work that is not a count — focus minutes, XP — so a day the page calls
 // active is never drawn as an empty one.
@@ -208,7 +205,10 @@ export default function CalendarPage() {
   }
 
   return (
-    <Page width="wide">
+    // The default measure, like every other page. `wide` was the only use of it in the app, and
+    // all it bought was 150×64 cells: one date numeral and an 8px dot spread across a gutter that
+    // matched nothing else in the product.
+    <Page>
       <PageHeader
         eyebrow="Calendar"
         title={format(viewMonth, 'MMMM yyyy')}
@@ -240,9 +240,9 @@ export default function CalendarPage() {
 
       <Section aria-label="Month activity">
         <div className="flex flex-col gap-2">
-          <div className={cn('grid grid-cols-7 gap-2 text-center', LABEL_CLASS)}>
+          <div className="grid grid-cols-7 gap-2 text-center">
             {WEEKDAY_LABELS.map((label) => (
-              <div key={label}>{label}</div>
+              <Eyebrow key={label}>{label}</Eyebrow>
             ))}
           </div>
           <div className="grid grid-cols-7 gap-2">
@@ -274,9 +274,10 @@ export default function CalendarPage() {
                   }${perfect ? ' — perfect day' : ''}`}
                   onClick={() => setSelectedDate(iso)}
                   className={cn(
-                    // Square at phone width (a 37×64 sliver holding one numeral and one dot was
-                    // the worst thing on this page), a calm landscape cell from sm up.
-                    'relative flex aspect-square flex-col items-center justify-center gap-1.5 rounded-md border border-transparent text-sm transition-colors duration-150 ease-swift sm:aspect-auto sm:h-16',
+                    // Square at every width. The landscape variant above `sm` stretched one date
+                    // numeral and one 8px dot across 150×64 — tiny information in a large area,
+                    // and a shape nothing else in the product uses.
+                    'relative flex aspect-square flex-col items-center justify-center gap-1.5 rounded-md border border-transparent text-sm transition-colors duration-150 ease-swift',
                     future ? 'cursor-not-allowed opacity-40' : 'hover:bg-muted',
                     isToday && 'border-primary',
                     perfect && 'ring-2 ring-primary',
@@ -324,7 +325,7 @@ export default function CalendarPage() {
               <div className="flex flex-col gap-5">
                 {selectedLog && selectedLog.solvedIds.length > 0 && (
                   <div className="flex flex-col gap-2">
-                    <p className={LABEL_CLASS}>Solved</p>
+                    <Eyebrow>Solved</Eyebrow>
                     <ul className="flex flex-col gap-1.5">
                       {selectedLog.solvedIds.map((id) => (
                         <li key={id}>
@@ -343,7 +344,7 @@ export default function CalendarPage() {
 
                 {selectedLog && (selectedLog.revisionsPassed.length > 0 || selectedLog.revisionsFailed.length > 0) && (
                   <div className="flex flex-col gap-2">
-                    <p className={LABEL_CLASS}>Revisions</p>
+                    <Eyebrow>Revisions</Eyebrow>
                     <ul className="flex flex-col gap-1.5">
                       {selectedLog.revisionsPassed.map((id) => (
                         <li key={`p-${id}`} className="flex items-center gap-2 text-sm">
@@ -363,7 +364,7 @@ export default function CalendarPage() {
 
                 {selectedCourseEvents.length > 0 && (
                   <div className="flex flex-col gap-2">
-                    <p className={LABEL_CLASS}>Course</p>
+                    <Eyebrow>Course</Eyebrow>
                     <ul className="flex flex-col gap-1.5">
                       {selectedCourseEvents.map((event) => (
                         <li key={event.key} className="flex items-center gap-2 text-sm">

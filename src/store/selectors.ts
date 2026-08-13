@@ -45,7 +45,7 @@ import {
 } from '@/utils/engine/session';
 import { FAMILIES } from '@/data/curriculum';
 import { courseWeekById } from '@/data/aimlCourse';
-import { currentDay, daySlice, isWeeklyRevisionDay, totalDays, estimatedFinishDate } from '@/utils/engine/roadmap';
+import { currentDay, daySlice, isWeeklyRevisionDay, totalDays } from '@/utils/engine/roadmap';
 import { computeStreaks, hasActivity } from '@/utils/engine/streak';
 import { levelProgress } from '@/utils/engine/xp';
 import { difficultyStats, patternStats, productivityScore } from '@/utils/engine/stats';
@@ -187,11 +187,10 @@ export const selectHeatmapData = createSelector(
   },
 );
 
-export const selectEstimatedFinish = createSelector(
-  [selectDayLogs, selectPerDay, selectSolvedNewCount, selectTodayArg],
-  (dayLogs, perDay, solvedNewCount, today) =>
-    estimatedFinishDate(today, questions.length - solvedNewCount, dayLogs, perDay),
-);
+// `selectEstimatedFinish` used to live here, returning a bare date string. It was deleted rather
+// than kept: DashboardPage reads `finishProjection` directly because a bare date cannot express
+// the basis it was computed from, nor suppress itself once the roadmap is complete. Two paths to
+// the same fact is how two surfaces come to disagree about it.
 
 export const selectProductivityScore = createSelector(
   [selectDayLogs, selectProgressById, selectPerDay, selectTodayArg],
@@ -367,7 +366,9 @@ export const selectRankedWork = createSelector(
       .slice(0, remainingAllowance)
       .map((question) => ({ question, minutes: plannedMinutes(estimateFor(question, samples)) }));
 
-    const weakest = mostMissed[0]?.pattern as PatternId | undefined;
+    // The pattern `buildDrill` is actually weighted toward. It is NOT a weakness claim — that is
+    // `selectPatternWeakness`'s job and nowhere else's — so it is named for what it measures.
+    const missedMost = mostMissed[0]?.pattern as PatternId | undefined;
 
     return rankWork({
       revisions,
@@ -375,8 +376,9 @@ export const selectRankedWork = createSelector(
       drill: {
         eligible: solvedNewCount >= DRILL_MIN_SOLVED,
         doneToday: drillsByDate[today] !== undefined,
-        weakestPattern: weakest ?? null,
-        weakestPatternName: weakest ? (PATTERNS.find((p) => p.id === weakest)?.name ?? null) : null,
+        missedMostPatternName: missedMost
+          ? (PATTERNS.find((p) => p.id === missedMost)?.name ?? null)
+          : null,
         minutes: DRILL_MINUTES,
       },
       course: {
@@ -453,6 +455,15 @@ function meanRevisionMinutes(byId: Record<number, QuestionProgress>): number {
 }
 
 /**
+ * Transfer, measured once. Declared above `selectInsights` because the insight and the figure on
+ * the analytics page must quote the same record — the card reads this selector rather than
+ * re-deriving, exactly as it does for the weakness model.
+ */
+export const selectTransferRecord = createSelector([selectProgressById], (byId) =>
+  transferRecord(questions, byId, FAMILIES),
+);
+
+/**
  * The findings the current evidence actually supports, most actionable first.
  *
  * Returns [] freely: each builder in the insights engine states its own minimum sample and
@@ -468,9 +479,11 @@ export const selectInsights = createSelector(
     selectForecast,
     (state: RootState) => state.settings.dailyCapacityMin,
     selectCourseActiveDates,
+    selectCourseByWeekId,
+    selectTransferRecord,
     selectTodayArg,
   ],
-  (byId, dayLogs, drills, weakness, forecast, capacityMin, courseActiveDates, today) =>
+  (byId, dayLogs, drills, weakness, forecast, capacityMin, courseActiveDates, courseByWeekId, transfer, today) =>
     buildInsights(
       {
         today,
@@ -486,6 +499,11 @@ export const selectInsights = createSelector(
         // figure is unavoidable here; it must at least be the same figure the session plan
         // would arrive at, or the schedule-risk card quotes minutes the plan contradicts.
         revisionMinutes: meanRevisionMinutes(byId),
+        // Both tracks climb one ladder, so the accuracy card grades both — the same blend
+        // `selectAccuracyTrend` feeds the figure with, or the card and the figure would print
+        // different numbers about the same recalls on the same screen.
+        courseByWeekId,
+        transfer,
       },
       courseActiveDates,
     ),
@@ -499,10 +517,6 @@ export const selectInsights = createSelector(
  * yet", and the page is required to say so rather than render a zero.
  */
 export const selectSolveCoverage = createSelector([selectProgressById], (byId) => solveCoverage(byId));
-
-export const selectTransferRecord = createSelector([selectProgressById], (byId) =>
-  transferRecord(questions, byId, FAMILIES),
-);
 
 export const selectCalibration = createSelector([selectProgressById], (byId) =>
   confidenceCalibration(byId),
@@ -575,7 +589,11 @@ const selectLadderCandidates = createSelector(
         stage: progress.revisionStage,
         failures: progress.revisionHistory.filter((r) => !r.passed).length,
         confidence: progress.confidence,
-        daysSinceSeen: progress.lastReviewed ? diffDays(today, progress.lastReviewed) : 0,
+        // "Days since the learner last touched it" — so a question solved but never yet reviewed
+        // counts from the day it was solved, not from zero. Reading only `lastReviewed` reported
+        // a question solved a month ago and never revisited as freshly seen, which zeroed the
+        // staleness tiebreak on precisely the work most at risk of being forgotten.
+        daysSinceSeen: diffDays(today, progress.lastReviewed ?? progress.completedAt ?? today),
       });
     }
     return out;

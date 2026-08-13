@@ -164,28 +164,35 @@ export default function AchievementsPage() {
           )
         }
       >
+        {/* One rule system, not three. The catalogue was a RuledList's hairlines around a
+            RuledItem's dividers around a per-group left border — three kinds of line for what is,
+            collapsed, six rows reading "Name … 3 / 9". The list keeps its hairlines; the group is
+            a real `Section level={3}` so the outline is truthful; and the locked items are held
+            together by indentation, which is all that grouping ever needed here. */}
         <div id={LOCKED_LIST_ID}>
           <RuledList>
             {groups.map((group) => (
-              <RuledItem key={group.name} className="flex flex-col gap-3">
-                <div className="flex flex-wrap items-baseline justify-between gap-x-4 gap-y-1">
-                  <h3 className="text-base font-semibold">{group.name}</h3>
-                  <p className="figures text-xs text-muted-foreground">
-                    {group.items.length - group.locked.length} / {group.items.length}
-                  </p>
-                </div>
-                {showLocked &&
-                  (group.locked.length === 0 ? (
-                    <p className="border-l border-border pl-4 text-sm text-muted-foreground">
-                      All earned.
-                    </p>
-                  ) : (
-                    <ul className="flex flex-col gap-2 border-l border-border pl-4">
-                      {group.locked.map((def) => (
-                        <LockedRow key={def.id} def={def} />
-                      ))}
-                    </ul>
-                  ))}
+              <RuledItem key={group.name}>
+                <Section
+                  level={3}
+                  title={group.name}
+                  action={
+                    <span className="figures text-xs text-muted-foreground">
+                      {group.items.length - group.locked.length} / {group.items.length}
+                    </span>
+                  }
+                >
+                  {showLocked &&
+                    (group.locked.length === 0 ? (
+                      <p className="pl-6 text-sm text-muted-foreground">All earned.</p>
+                    ) : (
+                      <ul className="flex flex-col gap-2 pl-6">
+                        {group.locked.map((def) => (
+                          <LockedRow key={def.id} def={def} />
+                        ))}
+                      </ul>
+                    ))}
+                </Section>
               </RuledItem>
             ))}
           </RuledList>

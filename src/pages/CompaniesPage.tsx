@@ -4,7 +4,16 @@ import { ExternalLink } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Progress } from '@/components/ui/progress';
 import { DifficultyBadge } from '@/components/questions/DifficultyBadge';
-import { Ledger, Page, PageHeader, RuledItem, RuledList, Section } from '@/components/layout/Page';
+import {
+  Eyebrow,
+  Ledger,
+  Meta,
+  Page,
+  PageHeader,
+  RuledItem,
+  RuledList,
+  Section,
+} from '@/components/layout/Page';
 import { COMPANIES, EVIDENCE_LABEL, EVIDENCE_MEANING, companyById } from '@/data/companies';
 import type { Company } from '@/data/companies';
 import { patternById } from '@/data/patterns';
@@ -66,13 +75,11 @@ const STANDING_CLASS: Record<CompanyPatternCoverage['standing'], string> = {
   gap: 'text-hard',
 };
 
-const EYEBROW = 'figures text-xs uppercase tracking-[0.14em] text-muted-foreground';
-
 /** A quiet block of qualifying prose on a hairline rail — scope, dates, what was inferred. */
 function Caveat({ label, children }: { label: string; children: ReactNode }) {
   return (
     <div className="flex flex-col gap-1.5">
-      <p className={EYEBROW}>{label}</p>
+      <Eyebrow>{label}</Eyebrow>
       <p className="max-w-prose border-l-2 border-border pl-4 text-sm leading-relaxed text-muted-foreground">
         {children}
       </p>
@@ -222,7 +229,7 @@ function SourceSection({ company }: { company: Company }) {
 
       {company.namedTopics.length > 0 && (
         <div className="flex flex-col gap-1.5">
-          <p className={EYEBROW}>Topics named across that page</p>
+          <Eyebrow>Topics named across that page</Eyebrow>
           <p className="text-sm leading-relaxed">{company.namedTopics.join(' · ')}</p>
           {/* The quote above is one excerpt; these are collected from the whole page. Saying so
               matters — otherwise the list reads as an expansion of the sentence above it, which
@@ -292,8 +299,12 @@ function CoverageSection({
         </span>
       }
     >
+      {/* Three figures: how much was mapped, how much of it is holding, how much is not. The
+          fourth was the unsolved-minutes total, which the paragraph below already states — and
+          states better, because there it arrives with the sentence that says it is a workload
+          figure rather than a score. */}
       <Ledger
-        columns={4}
+        columns={3}
         items={[
           {
             label: 'Patterns mapped',
@@ -306,11 +317,6 @@ function CoverageSection({
             sub: `${STRONG_PCT}%+ solved, reviews passing`,
           },
           { label: 'Gaps', value: coverage.gaps.length, sub: `under ${WEAK_PCT}% solved` },
-          {
-            label: 'Unsolved here',
-            value: formatMinutes(coverage.remainingMinutes),
-            sub: 'at the authored estimates',
-          },
         ]}
       />
 
@@ -371,19 +377,60 @@ function PracticeSection({
   const all = selectQuestions();
 
   const picks = practicePicks(coverage, all, byId);
-  if (picks.length === 0) return null;
+
+  // Silence used to be the empty state: with every mapped question solved the section vanished,
+  // which reads as a missing feature. It is a real outcome and it has a real limit — running out
+  // of roadmap material inside these patterns says something about this roadmap's coverage of
+  // them and nothing whatsoever about being prepared, which is a claim this page never makes.
+  if (picks.length === 0) {
+    return (
+      <Section title="Where to start" aria-label="Practice set">
+        <p className="max-w-prose text-sm leading-relaxed text-muted-foreground">
+          Every roadmap question inside the patterns mapped above is already solved, so there is
+          nothing left here to hand you. That is a fact about this roadmap's stock of questions in
+          those patterns — it is not a statement that you are prepared for {company.name}, and
+          this app has no basis for making one.
+        </p>
+        <p className="max-w-prose text-sm leading-relaxed text-muted-foreground">
+          What is left is recall. The coverage list above marks which of these patterns have
+          actually been through graded reviews and which have only been solved once.
+        </p>
+      </Section>
+    );
+  }
 
   return (
     <Section
       title="Where to start"
       support={`Unsolved roadmap questions inside the patterns mapped above, weakest area first. Each row says why it is in this set. These are not questions ${company.name} asks — nobody publishes those.`}
       aria-label="Practice set"
+      // The slot held a duration, which is a figure rather than a control — so the section that
+      // exists to answer "where do I start" had no way to start. The set is ordered weakest area
+      // first, easiest first, so its top row is the answer and this button opens it.
       action={
-        <span className="figures text-sm text-muted-foreground">
-          ~{formatMinutes(practiceSetMinutes(picks.map((p) => p.question)))}
-        </span>
+        <Button size="sm" onClick={() => dispatch(activeQuestionSet(picks[0]!.question.id))}>
+          Start here
+        </Button>
       }
     >
+      {/* The duration the action slot used to carry, said as what it is. Never a readiness
+          figure: it is the authored cost of the unsolved material, and nothing else. */}
+      <Meta
+        items={[
+          <>
+            <span className="figures">{picks.length}</span> unsolved{' '}
+            {picks.length === 1 ? 'question' : 'questions'}
+          </>,
+          <>
+            about{' '}
+            <span className="figures">
+              {formatMinutes(practiceSetMinutes(picks.map((p) => p.question)))}
+            </span>{' '}
+            of work at the authored estimates
+          </>,
+        ]}
+      />
+
       <RuledList>
         {picks.map(({ question, pattern, standing }) => (
           <RuledItem key={question.id} className="py-0">
@@ -514,8 +561,11 @@ function CompanyDetail({ companyId }: { companyId: string }) {
   const coverage = companyCoverage(company.patterns, stats, all, byId);
   const hasMapping = company.patterns.length > 0;
 
+  // The reading measure, not the data-grid one. For a `categories` company — most of them — this
+  // page is five blocks of pure prose, every one already capped at `max-w-prose`; the wider
+  // column only moved the right-hand void around. `UnknownCompany` above was already correct.
   return (
-    <Page>
+    <Page width="reading">
       <PageHeader
         eyebrow={
           <>

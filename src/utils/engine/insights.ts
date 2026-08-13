@@ -26,7 +26,7 @@ import type {
 import { addDays, diffDays } from '@/utils/dates';
 import { MASTERED_STAGE } from '@/utils/engine/spacedRepetition';
 import { MIN_SAMPLES, paceSamples } from '@/utils/engine/timeEstimate';
-import type { PatternWeakness } from '@/utils/engine/weakness';
+import type { PatternWeakness, TransferRecord } from '@/utils/engine/weakness';
 
 export type InsightTone = 'attention' | 'steady' | 'strength';
 
@@ -68,6 +68,19 @@ const OVERLOAD_FACTOR = 1.5;       // a future day is "heavy" at 1.5x the daily 
 const UNTESTED_RATIO = 0.4;        // share of solves never recalled before it is worth flagging
 const MIN_SOLVED_FOR_UNTESTED = 12;
 const MIN_CONSISTENCY_DAYS = 4;    // active days across the two compared weeks
+// The accuracy card carries no floor of its own, deliberately. `accuracyTrend` already declines
+// below MIN_TREND_ATTEMPTS graded recalls on EACH side of its split, and re-derives its verdict
+// threshold from the actual sample sizes on every call — so a verdict it is willing to state has
+// already cleared a noise floor that tightens as the record grows. Raising it here, the way
+// `pace` raises timeEstimate's floor, would suppress true findings in exchange for a number
+// nobody derived. The floor is stated where it is computed; this card inherits it.
+//
+// Transfer bands. `transferRecord` suppresses its own rate below MIN_TRANSFER_OBSERVATIONS (5
+// problems), where the figure resolves to 20 percentage points — so these two sit a full band
+// either side of the middle, and the middle says nothing rather than splitting a hair the sample
+// cannot support.
+const TRANSFER_WEAK = 0.4;
+const TRANSFER_STRONG = 0.8;
 
 const pct = (n: number) => `${Math.round(n * 100)}%`;
 
@@ -85,6 +98,17 @@ export interface InsightInput {
   capacityMin: number;
   /** Minutes the plan budgets for one revision, so forecast load converts to time. */
   revisionMinutes: number;
+  /**
+   * Course-week progress. Both tracks climb the same ladder and share the `revisionHistory`
+   * shape, so accuracy is graded across both — the same blending the pass-rate figure on the
+   * analytics page already does. Optional so an engine test can drive one track at a time.
+   */
+  courseByWeekId?: Record<string, CourseWeekProgress>;
+  /**
+   * The one transfer measurement (engine/weakness.ts), passed in exactly the way `weakness` is.
+   * Never re-derived here: the card and the figure on the analytics page must quote one record.
+   */
+  transfer?: TransferRecord | null;
 }
 
 // 1. Recognition vs implementation ---------------------------------------------------------
@@ -370,6 +394,116 @@ function calibration(input: InsightInput): Insight | null {
   return null;
 }
 
+// 8. Accuracy over time -----------------------------------------------------------------------
+// "Am I improving?" — which is the question a learner opens this page holding, and the one it
+// could not answer: the measurement below has existed and been tested from the start, and had no
+// builder, so the reading could never become a finding.
+//
+// Nothing is scored here. The card states the two pass rates, the samples they were taken over,
+// and the movement the sample sizes can actually resolve — a verdict of `steady` therefore means
+// "smaller than these samples can see", not "no change", and the card says which it is.
+function accuracyDirection(input: InsightInput): Insight | null {
+  const trend = accuracyTrend(input.byId, input.courseByWeekId);
+  // Null below MIN_TREND_ATTEMPTS graded recalls a side — the measurement's own floor, inherited
+  // rather than restated (see the threshold block).
+  if (!trend) return null;
+
+  const { recent, prior, deltaPp, noiseFloorPp, verdict } = trend;
+  const evidence = [
+    `${pct(recent.passRate)} over your last ${recent.attempts} graded recalls; ${pct(prior.passRate)} over the ${prior.attempts} before them.`,
+    `That is a ${Math.abs(deltaPp)}-point move, against the ${noiseFloorPp} points these two sample sizes can resolve.`,
+    'Question revisions and course-week reviews climb the same ladder, so both are graded here.',
+  ];
+
+  if (verdict === 'declining') {
+    return {
+      id: 'accuracy-trend',
+      headline: 'Your recall is passing less often than it used to.',
+      evidence,
+      recommendation:
+        'Take fewer new questions until the queue is clearing again. A pass rate falling while ' +
+        'the ladder grows is the schedule outpacing you, and intake is the only end of it you ' +
+        'control — the intervals are fixed.',
+      action: { label: 'Open revisions', href: '/revision' },
+      tone: 'attention',
+    };
+  }
+
+  if (verdict === 'improving') {
+    return {
+      id: 'accuracy-trend',
+      headline: 'Your recall is holding up better than it used to.',
+      evidence,
+      recommendation:
+        'What improved is untimed, self-graded recall — the one dimension it has never been ' +
+        'tested on is the clock. Sit a timed round and find out whether the same answers arrive ' +
+        'when the time is not yours to take.',
+      action: { label: 'Sit a timed round', href: '/contest' },
+      tone: 'strength',
+    };
+  }
+
+  return {
+    id: 'accuracy-trend',
+    headline: 'Your recall accuracy is holding, not moving.',
+    evidence,
+    recommendation:
+      'Nothing here needs correcting: a pass rate that holds while the ladder grows is the ' +
+      'schedule working. The number worth moving is intake, not review.',
+    action: { label: 'Open the roadmap', href: '/roadmap' },
+    tone: 'steady',
+  };
+}
+
+// 9. Transfer ---------------------------------------------------------------------------------
+// "Can I carry an idea into a problem I have not seen?" — the second measurement that existed
+// with nowhere to surface. The material is the curriculum's verified families: a problem built on
+// an idea already solved once, which is the only honest transfer material in the dataset.
+//
+// The record is read, never re-derived — `transferRecord` is the one transfer measurement, and it
+// suppresses its own rate below MIN_TRANSFER_OBSERVATIONS, so this card's floor is that one.
+function transferHold(input: InsightInput): Insight | null {
+  const record = input.transfer;
+  if (!record || record.rate === null) return null;
+
+  const evidence = [
+    `${record.carried} of ${record.met} problems from families you had already solved from were carried — taken without the technique hint, and held on their first recall.`,
+    'The comparison set is the curriculum’s verified families: a second problem built on an idea you had met once, not an arbitrary unsolved question.',
+  ];
+
+  if (record.rate <= TRANSFER_WEAK) {
+    return {
+      id: 'transfer',
+      headline: 'The ideas are not carrying into their next disguise.',
+      evidence,
+      recommendation:
+        'Before opening the next problem, name the family it belongs to and what that family’s ' +
+        'idea is — the first rung of the hint ladder asked backwards. The recognition drill is ' +
+        'the only place in this app that trains it cold.',
+      action: { label: 'Start a drill', href: '/drills' },
+      tone: 'attention',
+    };
+  }
+
+  if (record.rate >= TRANSFER_STRONG) {
+    return {
+      id: 'transfer',
+      headline: 'Ideas you met once are carrying into problems you had not seen.',
+      evidence,
+      recommendation:
+        'That is the closest this record gets to solving something unseen, and it is the point ' +
+        'where rehearsal buys more than volume. The untested part is now saying the reasoning ' +
+        'out loud while you write it.',
+      action: { label: 'Run an interview round', href: '/interview' },
+      tone: 'strength',
+    };
+  }
+
+  // Between the bands there is a count and no claim. Five observations resolve to 20 points; a
+  // reading off the middle of that range would be a sentence the sample cannot pay for.
+  return null;
+}
+
 /**
  * Every finding the evidence currently supports, most actionable first. `[0]` is the page's
  * primary insight — the one thing worth reading before any figure on the page.
@@ -378,11 +512,17 @@ function calibration(input: InsightInput): Insight | null {
  * derived rather than logged — the same rule the streak and heatmap follow.
  */
 export function buildInsights(input: InsightInput, extraActiveDates: ReadonlySet<string> = new Set()): Insight[] {
+  // Order breaks ties within a tone (the sort below is stable). `accuracyDirection` sits second
+  // because a pass rate that is moving is a statement about the whole ladder, where the weakest
+  // pattern is a statement about one corner of it; `transferHold` sits with the other readings
+  // about unfamiliar work rather than with the scheduling ones.
   const candidates = [
     recognitionGap(input),
+    accuracyDirection(input),
     weakestPattern(input),
     scheduleRisk(input),
     calibration(input),
+    transferHold(input),
     untestedSolves(input),
     pace(input),
     weeklyConsistency(input, extraActiveDates),

@@ -196,6 +196,37 @@ describe('RevisionPage — the page asks how long you have, not what you owe', (
     expect(screen.getByRole('heading', { name: 'Extended session' })).toBeInTheDocument();
   });
 
+  test('the length chooser is one choice, not six independent switches', () => {
+    vi.useFakeTimers();
+    const store = makeStore();
+    solveAndAdvanceToDue(store, 1);
+    store.dispatch(setDailyCapacity(30));
+
+    renderWithStore(<RevisionPage />, store);
+
+    // Six mutually exclusive options: `aria-pressed` announced six switches, five of them "not
+    // pressed", for a control where exactly one is ever true. Today's chips already got this
+    // right — the two write the same capacity and must announce it the same way.
+    const group = screen.getByRole('radiogroup', { name: 'How long have you got?' });
+    const chips = within(group).getAllByRole('radio');
+    expect(chips).toHaveLength(6);
+    expect(chips.filter((c) => c.getAttribute('aria-checked') === 'true')).toHaveLength(1);
+    for (const chip of chips) expect(chip).not.toHaveAttribute('aria-pressed');
+
+    // Arrow keys move the selection — the contract `role="radiogroup"` promises — and focus
+    // travels with it, so the group keeps exactly one tab stop.
+    const checked = chips.find((c) => c.getAttribute('aria-checked') === 'true')!;
+    checked.focus();
+    fireEvent.keyDown(checked, { key: 'ArrowRight' });
+
+    expect(store.getState().settings.dailyCapacityMin).toBe(60);
+    const nowChecked = within(group)
+      .getAllByRole('radio')
+      .find((c) => c.getAttribute('aria-checked') === 'true')!;
+    expect(document.activeElement).toBe(nowChecked);
+    expect(nowChecked).toHaveAttribute('tabindex', '0');
+  });
+
   test('a 15-minute session offers retrieval only — it never asks for a re-implementation', () => {
     vi.useFakeTimers();
     const store = makeStore();
@@ -313,6 +344,31 @@ describe('RevisionPage — running a session', () => {
     expect(within(gradedRow).queryByRole('button', { name: 'Not yet' })).not.toBeInTheDocument();
   });
 
+  test('an item already graded today states its next review instead of a control that does nothing', () => {
+    vi.useFakeTimers();
+    const store = makeStore();
+    setDate('2026-07-30');
+    store.dispatch(solveQuestion(1));
+    setDate('2026-07-31');
+    // Graded this morning — from Today's hero, say. The ladder takes one grade per calendar day,
+    // so `reviseQuestion` will refuse a second one. With no due work left, the session pulls this
+    // very review forward as surplus, and the row used to offer "Recalled it" / "Not yet": no XP,
+    // no ladder movement, no day-log entry, and then a row reporting "Recalled" regardless.
+    store.dispatch(reviseQuestion(1, true));
+    const stageAfterMorning = store.getState().progress.byId[1]!.revisionStage;
+
+    renderWithStore(<RevisionPage />, store);
+    fireEvent.click(screen.getByRole('button', { name: 'Start session' }));
+
+    const list = screen.getByRole('list', { name: 'Session activities' });
+    const row = within(list).getByText(question1.title).closest('li')!;
+    expect(within(row).getByText(/Reviewed today/)).toBeInTheDocument();
+    expect(within(row).getByText(/next review Aug 3/)).toBeInTheDocument();
+    expect(within(row).queryByRole('button', { name: 'Recalled it' })).not.toBeInTheDocument();
+    expect(within(row).queryByRole('button', { name: 'Not yet' })).not.toBeInTheDocument();
+    expect(store.getState().progress.byId[1]!.revisionStage).toBe(stageAfterMorning);
+  });
+
   test('a due course review is in the session and grading it climbs the course ladder', () => {
     vi.useFakeTimers();
     setDate('2026-07-30');
@@ -347,6 +403,32 @@ describe('RevisionPage — finishing', () => {
     expect(screen.getByText('Session complete')).toBeInTheDocument();
     expect(screen.getByText('Held')).toBeInTheDocument();
     expect(screen.getByText(question1.title)).toBeInTheDocument();
+  });
+
+  test('the summary reports this sitting, not everything graded anywhere today', () => {
+    vi.useFakeTimers();
+    const store = makeStore();
+    setDate('2026-07-30');
+    for (let id = 1; id <= 6; id++) store.dispatch(solveQuestion(id));
+    setDate('2026-08-05');
+    // Graded from Today's hero at breakfast, outside any session. The summary used to read the
+    // day's ledger, so this landed under "Held" beside a heading counting the sitting's own two
+    // activities — five titles reported as the output of a two-item session.
+    store.dispatch(reviseQuestion(2, true));
+
+    renderWithStore(<RevisionPage />, store);
+    fireEvent.click(screen.getByRole('button', { name: 'Start session' }));
+    fireEvent.click(screen.getAllByRole('button', { name: 'Recalled it' })[0]!);
+    fireEvent.click(screen.getByRole('button', { name: 'Finish session' }));
+
+    const gradedId = Object.keys(store.getState().session.grades)[0]!;
+    const gradedTitle = store
+      .getState()
+      .session.frozen!.activities.find((a) => a.id === gradedId)!.title;
+
+    const heldBlock = screen.getByText('Held').closest('div')!;
+    expect(heldBlock.textContent).toContain(gradedTitle);
+    expect(heldBlock.textContent).not.toContain(question2.title);
   });
 
   test('an ungraded sitting says so rather than inventing a recall verdict', () => {

@@ -1,13 +1,29 @@
 import type { ReactNode } from 'react';
 import { ChevronDown } from 'lucide-react';
+import { Eyebrow } from '@/components/layout/Page';
 import { courseWeekById } from '@/data/aimlCourse';
 import { cn } from '@/utils/cn';
 
-// Shared idioms for the two ML lists on /aiml. Both are rows inside one plate that open into a
+// Shared idioms for the two ML lists on /aiml. Both are `RuledList` rows that open into a
 // document, so both need the same header button, the same labelled field, and the same honest
 // sentence about a missing course week.
 
+/**
+ * The eyebrow register as a class, for the two places it has to be a `<span>`: inside `RowToggle`
+ * (a `<button>` may only contain phrasing content) and as a run-in label inside a `<p>`. Anywhere
+ * a block element is legal, use the shared `Eyebrow` component from the composition vocabulary
+ * instead — this constant exists for the two exceptions, not as a second definition of the
+ * register.
+ */
 export const EYEBROW = 'figures text-xs uppercase tracking-[0.14em] text-muted-foreground';
+
+/**
+ * The row's own horizontal inset. These rows sit in a `RuledList`, which is flush to the page
+ * column: the padding used to be `p-4`, so every ML title started 16px right of the section
+ * heading above it. The vertical is `py-3.5` — `RuledItem`'s step — and it lives on the toggle
+ * rather than the `<li>` so hover and focus fill the whole row (see `RuledItem`'s `padded` note).
+ */
+export const ROW_INSET = 'px-1';
 
 /**
  * The row header. The whole line is the control — a chevron alone is a 16px target on a row the
@@ -27,7 +43,10 @@ export function RowToggle({
       type="button"
       aria-expanded={open}
       onClick={onToggle}
-      className="-mx-2 flex w-full items-start gap-3 rounded-md px-2 py-1 text-left transition-colors duration-150 ease-swift hover:bg-muted/40 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
+      className={cn(
+        ROW_INSET,
+        'flex w-full items-start gap-3 rounded-sm py-3.5 text-left transition-colors duration-150 ease-swift hover:bg-muted/40 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring',
+      )}
     >
       <span className="min-w-0 flex-1">{children}</span>
       <ChevronDown
@@ -53,7 +72,7 @@ export function Field({
 }) {
   return (
     <div className={cn('flex flex-col gap-1.5', className)}>
-      <p className={EYEBROW}>{label}</p>
+      <Eyebrow>{label}</Eyebrow>
       {children}
     </div>
   );

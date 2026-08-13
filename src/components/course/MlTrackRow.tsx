@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { ChevronDown } from 'lucide-react';
 import { Meta } from '@/components/layout/Page';
-import { CodeChips, EYEBROW, Field, RowToggle, StepList, weekLabel } from '@/components/course/MlRowParts';
+import { CodeChips, EYEBROW, Field, ROW_INSET, RowToggle, StepList, weekLabel } from '@/components/course/MlRowParts';
 import {
   ML_STAGE_LABEL,
   ML_STAGE_ORDER,
@@ -187,7 +187,10 @@ export function MlTrackRow({ track }: { track: MlTrack }) {
   const prereqs = track.prereqs.map((id) => mlTrackById[id]?.title ?? id);
 
   return (
-    <li className="flex flex-col gap-3 border-t border-border p-4 first:border-t-0">
+    // The `RuledList` parent already draws the hairline between rows via `divide-y`; this row
+    // used to redeclare `border-t … first:border-t-0` on top of it, a leftover from when these
+    // lists lived inside a plate. Padding is the toggle's, so hover fills the row.
+    <li className="flex flex-col">
       <RowToggle open={open} onToggle={() => setOpen(!open)}>
         <span className="block font-medium">{track.title}</span>
         <Meta
@@ -202,7 +205,7 @@ export function MlTrackRow({ track }: { track: MlTrack }) {
       </RowToggle>
 
       {open && (
-        <div className="flex flex-col gap-4">
+        <div className={cn(ROW_INSET, 'flex flex-col gap-4 pb-3.5')}>
           <p className="max-w-prose text-sm leading-relaxed">{track.tests}</p>
           {prereqs.length > 0 && (
             <p className="text-sm text-muted-foreground">

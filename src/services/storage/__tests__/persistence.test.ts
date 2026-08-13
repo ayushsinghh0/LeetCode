@@ -8,6 +8,9 @@ import { logDrillResult, solveQuestion } from '@/store/actions';
 import { stateImported, progressReset } from '@/store/sharedActions';
 import { settingsUpdated } from '@/store/slices/settingsSlice';
 import { todayISO } from '@/utils/dates';
+import { CAPACITY_MAX, CAPACITY_MIN } from '@/utils/engine/planner';
+import { SESSION_PRESETS } from '@/utils/engine/nextAction';
+import { CAPACITY_OPTIONS, PER_DAY_OPTIONS } from '@/pages/SettingsPage';
 
 const STORAGE_KEY = 'dsa-roadmap:v1';
 
@@ -627,5 +630,76 @@ describe('round trip: makeStore -> persist -> reload into a fresh store', () => 
       total: 8,
       missedPatterns: ['graphs', 'stacks'],
     });
+  });
+});
+
+// The rule these enforce was written down after a P0 and then left unenforced: a validator
+// stricter than the product's own controls is a data-loss bug, because a value the UI can write
+// but the validator rejects quarantines the learner's ENTIRE state on the next load. Tapping the
+// "15m" capacity chip did exactly that once. These round-trip every value each control can
+// actually produce, so widening a control can never silently outgrow the validator again.
+describe('every value the UI can write survives validation', () => {
+  test.each([...CAPACITY_OPTIONS])('Settings capacity option %i round-trips', (minutes) => {
+    const payload = { ...validFixture, settings: { ...validFixture.settings, dailyCapacityMin: minutes } };
+    expect(validatePersisted(payload)?.settings.dailyCapacityMin).toBe(minutes);
+  });
+
+  test.each([...SESSION_PRESETS])('Today/Revision capacity chip %i round-trips', (minutes) => {
+    const payload = { ...validFixture, settings: { ...validFixture.settings, dailyCapacityMin: minutes } };
+    expect(validatePersisted(payload)?.settings.dailyCapacityMin).toBe(minutes);
+  });
+
+  test.each([CAPACITY_MIN, CAPACITY_MAX])('shared capacity bound %i round-trips', (minutes) => {
+    const payload = { ...validFixture, settings: { ...validFixture.settings, dailyCapacityMin: minutes } };
+    expect(validatePersisted(payload)?.settings.dailyCapacityMin).toBe(minutes);
+  });
+
+  test.each([...PER_DAY_OPTIONS])('Settings questions-per-day option %i round-trips', (perDay) => {
+    const payload = { ...validFixture, settings: { ...validFixture.settings, questionsPerDay: perDay } };
+    expect(validatePersisted(payload)?.settings.questionsPerDay).toBe(perDay);
+  });
+
+  test('every capacity chip is offered by the Settings control that states the budget', () => {
+    // One setting, several places to change it. A chip writing a value the Settings Select does
+    // not offer leaves that Select rendering empty — the control whose whole job is to state the
+    // current budget showing nothing.
+    for (const preset of SESSION_PRESETS) expect(CAPACITY_OPTIONS).toContain(preset);
+  });
+});
+
+// `logDrillResult` is the documented public mutation API for drill results, and `validatePersisted`
+// hard-rejects total < 1, correct > total, blank pattern ids, and more missed patterns than there
+// were misses. That invariant used to be held only by DrillsPage's render flow — a property of one
+// caller, not of the API. These pin that the thunk itself cannot emit an unpersistable payload.
+describe('logDrillResult cannot write a payload that would quarantine state', () => {
+  const roundTrip = (store: ReturnType<typeof makeStore>) =>
+    validatePersisted(JSON.parse(JSON.stringify(selectPersistedState(store.getState()))));
+
+  test('more missed patterns than misses is trimmed to the misses that happened', () => {
+    const store = makeStore();
+    store.dispatch(logDrillResult(4, 5, ['graphs', 'stacks', 'trees']));
+    expect(roundTrip(store)).not.toBeNull();
+    expect(store.getState().drills.byDate[todayISO()]?.missedPatterns).toEqual(['graphs']);
+  });
+
+  test('correct above total is clamped rather than persisted as-is', () => {
+    const store = makeStore();
+    store.dispatch(logDrillResult(9, 5, []));
+    expect(roundTrip(store)).not.toBeNull();
+    expect(store.getState().drills.byDate[todayISO()]?.correct).toBe(5);
+  });
+
+  test('blank pattern ids are dropped', () => {
+    const store = makeStore();
+    store.dispatch(logDrillResult(3, 5, ['', 'graphs']));
+    expect(roundTrip(store)).not.toBeNull();
+    expect(store.getState().drills.byDate[todayISO()]?.missedPatterns).toEqual(['graphs']);
+  });
+
+  test('a drill with no items records nothing rather than an unpersistable zero-total entry', () => {
+    const store = makeStore();
+    store.dispatch(logDrillResult(0, 0, []));
+    expect(store.getState().drills.byDate[todayISO()]).toBeUndefined();
+    expect(roundTrip(store)).not.toBeNull();
   });
 });

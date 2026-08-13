@@ -3,7 +3,7 @@ import { Link } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { InsightLead, InsightList } from '@/components/shared/InsightPanel';
-import { Ledger, Page, PageHeader, RuledItem, RuledList, Section } from '@/components/layout/Page';
+import { Ledger, Meta, Page, PageHeader, RuledItem, RuledList, Section } from '@/components/layout/Page';
 import { SolvedPerDayChart } from '@/components/charts/SolvedPerDayChart';
 import { ForecastChart } from '@/components/charts/ForecastChart';
 import { patternById } from '@/data/patterns';
@@ -135,8 +135,12 @@ export default function AnalyticsPage() {
         title="Am I showing up?"
         support="Cadence is the input that compounds. Both tracks count — a day spent only on the ML course is an active day."
       >
+        {/* Three figures, because the section makes three claims: how often, how unbroken, and
+            what the time bought. The solve count that used to sit here was the same series the
+            chart directly below plots day by day — it now qualifies the figure it is actually the
+            denominator of. */}
         <Ledger
-          columns={4}
+          columns={3}
           items={[
             {
               label: 'Active days',
@@ -149,18 +153,13 @@ export default function AnalyticsPage() {
               sub: `longest ${streaks.longest}`,
             },
             {
-              label: 'Solved',
-              value: time.solves,
-              sub: `${time.reviews} ${plural(time.reviews, 'recall', 'recalls')} alongside`,
-            },
-            {
               label: 'Focus time',
               value: time.minutes > 0 ? formatMinutes(time.minutes) : DASH,
               sub:
                 time.minutes === 0
                   ? 'not measured — the timer has not run'
                   : minutesPerItem !== null
-                    ? `~${minutesPerItem} min per DSA item, course time included`
+                    ? `~${minutesPerItem} min per DSA item — ${time.solves} solved, ${time.reviews} recalled, course time included`
                     : 'no items finished in this window',
             },
           ]}
@@ -227,16 +226,28 @@ export default function AnalyticsPage() {
         title="Am I getting more accurate?"
         support="A solve is only proved by recalling it after a gap. Question revisions and course-week reviews climb the same ladder, so they are graded together."
       >
+        {/* The rate, its direction, and the learner's own prediction of it — which is what the
+            paragraph under this section is about. A mastery count sat here too and belonged to a
+            different question. */}
         <Ledger
-          columns={4}
+          columns={3}
           items={[
             {
+              // Gated on the one pass-rate threshold (engine/stats.ts), the same one the
+              // difficulty ledger below and the pattern pages read. Ungated, a single failed
+              // recall printed a headline "0%" fifty pixels above a row correctly reporting
+              // "needs 5 reviews — you have 1": one page, two answers to "has this been measured".
               label: 'Recall pass rate',
-              value: recall.rate === null ? DASH : pct(recall.rate),
+              value:
+                recall.rate === null || !isPassRateReportable(recall.attempts)
+                  ? DASH
+                  : pct(recall.rate),
               sub:
                 recall.attempts === 0
                   ? 'no graded recall yet'
-                  : `${recall.passed} passed · ${recall.failed} failed`,
+                  : isPassRateReportable(recall.attempts)
+                    ? `${recall.passed} passed · ${recall.failed} failed`
+                    : `needs ${MIN_PASS_RATE_ATTEMPTS} reviews — you have ${recall.attempts}`,
             },
             {
               label: 'Recent vs earlier',
@@ -263,11 +274,6 @@ export default function AnalyticsPage() {
                 : calibration.verdict === 'unmeasured'
                   ? `needs ${MIN_CALIBRATION_SAMPLES} rated solves in one band — you have ${Math.max(calibration.highCount, calibration.lowCount)}`
                   : `over ${calibration.observations} rated solves`,
-            },
-            {
-              label: 'Mastered',
-              value: coverage.mastered,
-              sub: `of ${coverage.solved} solved`,
             },
           ]}
         />
@@ -314,8 +320,11 @@ export default function AnalyticsPage() {
         title="Can I solve unfamiliar problems?"
         support="Solving a question you have just read about is a different skill. These measure the cold read: naming the technique on sight, carrying an idea into a new disguise, and getting there unaided."
       >
+        {/* Exactly the three cold reads the support line above names, in that order. A fourth
+            figure here counted solved-but-untested questions, which is a coverage fact belonging
+            to the accuracy question — and the insight that acts on it says the number anyway. */}
         <Ledger
-          columns={4}
+          columns={3}
           items={[
             {
               label: 'Recognition',
@@ -336,11 +345,6 @@ export default function AnalyticsPage() {
               label: 'Unaided solves',
               value: coverage.solved === 0 ? DASH : `${coverage.unaided} / ${coverage.solved}`,
               sub: 'hints are support, not a penalty — this only says where to re-derive',
-            },
-            {
-              label: 'Never recalled',
-              value: coverage.untested,
-              sub: `of ${coverage.solved} solved, still untested`,
             },
           ]}
         />
@@ -416,32 +420,41 @@ export default function AnalyticsPage() {
           </Button>
         }
       >
-        <Ledger
-          columns={4}
+        {/* The other track is a secondary reading on a page about the roadmap, and four
+            serif figures gave it the same weight as the questions above. One line of related
+            facts says the same things and reads as one object — the form the dashboard already
+            uses for this course. */}
+        <Meta
           items={[
-            {
-              label: 'Sessions',
-              value: `${courseStats.sessionsDone} / ${courseStats.sessionsTotal}`,
-              sub: `${courseStats.pct}% attended`,
-            },
-            {
-              label: 'Weeks cleared',
-              value: `${courseStats.weeksDone} / ${courseStats.weeksTotal}`,
-              sub: `${courseRetention.retained} at the top of the ladder`,
-            },
-            {
-              label: 'Review pass rate',
-              value: courseRetention.passRate === null ? DASH : pct(courseRetention.passRate),
-              sub:
-                courseRetention.attempts === 0
-                  ? 'no week has been reviewed yet'
-                  : `${courseRetention.attempts} graded ${plural(courseRetention.attempts, 'review', 'reviews')}`,
-            },
-            {
-              label: 'Projected finish',
-              value: courseFinish ? formatProjection(courseFinish, today) : 'Done',
-              sub: courseFinish ? 'at your current cadence' : 'every core week cleared',
-            },
+            <>
+              <span className="figures">
+                {courseStats.sessionsDone} / {courseStats.sessionsTotal}
+              </span>{' '}
+              sessions attended
+            </>,
+            <>
+              <span className="figures">
+                {courseStats.weeksDone} / {courseStats.weeksTotal}
+              </span>{' '}
+              weeks cleared
+            </>,
+            <>
+              <span className="figures">{courseRetention.retained}</span> at the top of the ladder
+            </>,
+            courseRetention.attempts === 0 ? (
+              'No week reviewed yet'
+            ) : (
+              <>
+                <span className="figures">{pct(courseRetention.passRate!)}</span> of{' '}
+                <span className="figures">{courseRetention.attempts}</span> graded{' '}
+                {plural(courseRetention.attempts, 'review', 'reviews')} passed
+              </>
+            ),
+            courseFinish ? (
+              <>Finish {formatProjection(courseFinish, today)}</>
+            ) : (
+              'Every core week cleared'
+            ),
           ]}
         />
         <p className="max-w-prose text-sm leading-relaxed text-muted-foreground">

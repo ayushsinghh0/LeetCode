@@ -3,6 +3,7 @@ import { ArrowRight, Check } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { ConfidenceRating } from '@/components/questions/ConfidenceRating';
+import { Eyebrow } from '@/components/layout/Page';
 import { patternById } from '@/data/patterns';
 import { useAppDispatch } from '@/store/hooks';
 import { saveReflection, setConfidence } from '@/store/actions';
@@ -77,12 +78,13 @@ export function PostSolvePanel({
     };
   }, [dispatch, question.id]);
 
+  // `gap-4` — the one interior step this sheet uses (DESIGN.md § The rhythm, "inside a group").
+  // These sub-blocks sit under the modal's "The debrief" heading, so they wear the eyebrow
+  // register rather than a second title register.
   return (
-    <div className="flex flex-col gap-5">
+    <div className="flex flex-col gap-4">
       <div>
-        <p className="figures text-xs uppercase tracking-[0.14em] text-muted-foreground">
-          What you practiced
-        </p>
+        <Eyebrow>What you practiced</Eyebrow>
         <ul className="mt-2 space-y-1.5">
           <li className="flex items-start gap-2 text-sm text-muted-foreground">
             <Check className="mt-0.5 h-3.5 w-3.5 shrink-0 text-easy" aria-hidden="true" />
@@ -111,9 +113,7 @@ export function PostSolvePanel({
           labelled as one. Same wording as QuestionDetailModal: the *intended* complexity. */}
       {question.complexity && (
         <div>
-          <p className="figures text-xs uppercase tracking-[0.14em] text-muted-foreground">
-            Intended complexity
-          </p>
+          <Eyebrow>Intended complexity</Eyebrow>
           <p className="mt-2 max-w-prose text-sm text-muted-foreground">
             <span className="figures text-foreground">
               {question.complexity.time} time, {question.complexity.space} space.
@@ -168,7 +168,7 @@ export function PostSolvePanel({
       {/* One recommendation, with its reason stated. Not a menu — a menu at this moment is the
           learner's decision to make all over again, which is what they came here to avoid. */}
       <div className="rule flex flex-col gap-2 pt-4">
-        <p className="figures text-xs uppercase tracking-[0.14em] text-muted-foreground">Next</p>
+        <Eyebrow>Next</Eyebrow>
         {next ? (
           <>
             <p className="text-base font-medium leading-snug">{next.title}</p>

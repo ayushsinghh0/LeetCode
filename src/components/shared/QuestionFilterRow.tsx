@@ -1,5 +1,5 @@
-import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { cn } from '@/utils/cn';
 import { PATTERNS } from '@/data/patterns';
 import type { QuestionStatusFilter } from '@/utils/filterQuestions';
 import type { Difficulty, PatternId } from '@/types';
@@ -22,15 +22,24 @@ export const STATUS_CHIP_LABEL: Record<QuestionStatusFilter, string> = {
   bookmarked: 'Bookmarked',
 };
 
-export interface QuestionFilterRowProps {
+interface QuestionFilterRowBaseProps {
   difficulty: DifficultyFilterValue;
   onDifficultyChange: (value: DifficultyFilterValue) => void;
   status: StatusFilterValue;
   onStatusChange: (value: StatusFilterValue) => void;
   statusOptions: QuestionStatusFilter[];
-  pattern: PatternFilterValue;
-  onPatternChange: (value: PatternFilterValue) => void;
 }
+
+/**
+ * The pattern select is optional, and the two halves travel together so a caller can't hand over
+ * a value with no handler. A surface already scoped to one pattern (PatternDetailPage) has no use
+ * for it: every choice but its own would narrow the list to nothing.
+ */
+type PatternFilterProps =
+  | { pattern: PatternFilterValue; onPatternChange: (value: PatternFilterValue) => void }
+  | { pattern?: never; onPatternChange?: never };
+
+export type QuestionFilterRowProps = QuestionFilterRowBaseProps & PatternFilterProps;
 
 // The group headings are visual only below sm. At 375px "Difficulty" + "Status" + "Pattern" cost
 // ~150px of a ~343px line — enough to push the row from three wrapped lines to five before any
@@ -40,12 +49,25 @@ export interface QuestionFilterRowProps {
 // announced whether or not it is painted, and it is aria-hidden when visible to avoid saying it
 // twice. The container plate, if any, belongs to the calling page.
 const GROUP_CLASS = 'flex flex-wrap items-center gap-1.5 sm:gap-2';
-const GROUP_LABEL_CLASS = 'hidden text-sm text-muted-foreground sm:inline';
+// The register the app's other chip rows label themselves with (SessionPlan and RevisionPage's
+// "How long have you got?" legends) — quieter than the chips it introduces, which is the point.
+const GROUP_LABEL_CLASS = 'hidden text-xs font-medium tracking-wide text-muted-foreground sm:inline';
 
-// Shared difficulty-chips + status-chips + pattern-select filter row, used by both SearchDialog
-// and BookmarksPage so a label/styling/behavior change only has to be made in one place. Chips
-// are single-select-with-clear: clicking the already-selected chip resets that field to "all"
-// rather than requiring a separate "All" option.
+// The app's chip idiom, shared with the capacity chips (SessionPlan) and the session-length chips
+// (RevisionPage): a small `rounded-sm` hairline toggle in the figure face, ink-filled when active.
+// These used to be full-size `Button size="sm"`s — up to seven h-9 bordered rectangles in a row,
+// which read as a toolbar of primary actions rather than as filters on the list beneath them.
+const CHIP_CLASS =
+  'figures rounded-sm border px-2.5 py-1 text-xs transition-colors duration-150 ease-swift ' +
+  'focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring';
+const CHIP_ACTIVE = 'border-primary bg-primary text-primary-foreground';
+const CHIP_IDLE = 'border-border text-muted-foreground hover:border-primary/40 hover:text-foreground';
+
+// Shared difficulty-chips + status-chips + optional pattern-select filter row, used by
+// SearchDialog, BookmarksPage and PatternDetailPage so a label/styling/behavior change only has
+// to be made in one place — and so two adjacent pages stop shipping two designs for one job.
+// Chips are single-select-with-clear: clicking the already-selected chip resets that field to
+// "all" rather than requiring a separate "All" option.
 export function QuestionFilterRow({
   difficulty,
   onDifficultyChange,
@@ -70,16 +92,15 @@ export function QuestionFilterRow({
           Difficulty
         </span>
         {DIFFICULTY_OPTIONS.map((d) => (
-          <Button
+          <button
             key={d}
             type="button"
-            size="sm"
-            variant={difficulty === d ? 'default' : 'outline'}
             aria-pressed={difficulty === d}
             onClick={() => toggleDifficulty(d)}
+            className={cn(CHIP_CLASS, difficulty === d ? CHIP_ACTIVE : CHIP_IDLE)}
           >
             {DIFFICULTY_CHIP_LABEL[d]}
-          </Button>
+          </button>
         ))}
       </div>
 
@@ -88,38 +109,39 @@ export function QuestionFilterRow({
           Status
         </span>
         {statusOptions.map((s) => (
-          <Button
+          <button
             key={s}
             type="button"
-            size="sm"
-            variant={status === s ? 'default' : 'outline'}
             aria-pressed={status === s}
             onClick={() => toggleStatus(s)}
+            className={cn(CHIP_CLASS, status === s ? CHIP_ACTIVE : CHIP_IDLE)}
           >
             {STATUS_CHIP_LABEL[s]}
-          </Button>
+          </button>
         ))}
       </div>
 
       {/* Full width on phones so the select gets its own line rather than overflowing one. */}
-      <div className="flex w-full items-center gap-2 sm:w-auto">
-        <span aria-hidden="true" className={GROUP_LABEL_CLASS}>
-          Pattern
-        </span>
-        <Select value={pattern} onValueChange={(v) => onPatternChange(v as PatternFilterValue)}>
-          <SelectTrigger aria-label="Filter by pattern" className="w-full sm:w-48">
-            <SelectValue />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="all">All Patterns</SelectItem>
-            {PATTERNS.map((p) => (
-              <SelectItem key={p.id} value={p.id}>
-                {p.name}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
-      </div>
+      {pattern !== undefined && onPatternChange && (
+        <div className="flex w-full items-center gap-2 sm:w-auto">
+          <span aria-hidden="true" className={GROUP_LABEL_CLASS}>
+            Pattern
+          </span>
+          <Select value={pattern} onValueChange={(v) => onPatternChange(v as PatternFilterValue)}>
+            <SelectTrigger aria-label="Filter by pattern" className="w-full sm:w-48">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">All Patterns</SelectItem>
+              {PATTERNS.map((p) => (
+                <SelectItem key={p.id} value={p.id}>
+                  {p.name}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+      )}
     </div>
   );
 }

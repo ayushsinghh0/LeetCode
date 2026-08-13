@@ -1,4 +1,4 @@
-import { screen, within } from '@testing-library/react';
+import { screen, within, fireEvent } from '@testing-library/react';
 import { Routes, Route } from 'react-router-dom';
 import { makeStore, type AppStore } from '@/store/store';
 import { renderWithStore } from '@/test/renderWithStore';
@@ -80,14 +80,60 @@ describe('PatternsPage', () => {
   });
 });
 
+// Every question row on the page, across the sub-pattern sections it is split into. The lists are
+// the labelled `RuledList`s (aria-label ends in "questions"), which is what keeps this count off
+// the filter row's own chips — those are buttons too, so the old page-wide getAllByRole('button')
+// tally would now silently include seven of them.
+function questionRows() {
+  return screen
+    .getAllByRole('list', { name: /questions$/i })
+    .flatMap((list) => within(list).getAllByRole('listitem'));
+}
+
 describe('PatternDetailPage', () => {
-  test('two-pointers detail page lists all 34 questions as browse cards', () => {
+  test('two-pointers detail page lists all 34 questions as hairline-ruled rows, one button each', () => {
     renderDetail('two-pointers');
 
-    // Each QuestionCard's root is role="button" (browse context renders no action buttons),
-    // so counting buttons counts rendered cards.
-    expect(screen.getAllByRole('button')).toHaveLength(twoPointersQuestions.length);
+    const rows = questionRows();
+    expect(rows).toHaveLength(twoPointersQuestions.length);
+    // A browse row is an index entry, not a card: the whole row is one click target and carries
+    // no controls of its own.
+    for (const row of rows) {
+      expect(within(row).getAllByRole('button')).toHaveLength(1);
+    }
     expect(screen.getByText(twoPointersQuestions[0]!.title)).toBeInTheDocument();
+  });
+
+  // The page used to roll its own pair of Radix Selects for this; it now shares the one chip row
+  // with Bookmarks and the search palette, so the filter is drivable in jsdom (Selects are not —
+  // see the note above the filterPatternQuestions block) and the two pages cannot drift apart.
+  test('the shared filter row narrows the list, and re-clicking the active chip clears it', () => {
+    renderDetail('two-pointers');
+    const easyCount = twoPointersQuestions.filter((q) => q.difficulty === 'easy').length;
+    expect(easyCount).toBeGreaterThan(0);
+
+    const easy = screen.getByRole('button', { name: 'Easy' });
+    expect(easy).toHaveAttribute('aria-pressed', 'false');
+
+    fireEvent.click(easy);
+    expect(easy).toHaveAttribute('aria-pressed', 'true');
+    expect(questionRows()).toHaveLength(easyCount);
+
+    fireEvent.click(easy);
+    expect(easy).toHaveAttribute('aria-pressed', 'false');
+    expect(questionRows()).toHaveLength(twoPointersQuestions.length);
+  });
+
+  test('filters that match nothing show the empty state instead of an empty list', () => {
+    const store = makeStore();
+    store.dispatch(solveQuestion(1));
+    renderDetail('two-pointers', store);
+
+    // "Bookmarked" AND nothing bookmarked: an intersection this page can legitimately empty.
+    fireEvent.click(screen.getByRole('button', { name: 'Bookmarked' }));
+
+    expect(screen.getByText('No questions match these filters')).toBeInTheDocument();
+    expect(screen.queryAllByRole('list', { name: /questions$/i })).toHaveLength(0);
   });
 
   test('the progress region carries the breakdown the list rows dropped', () => {

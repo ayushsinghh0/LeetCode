@@ -1,5 +1,6 @@
 import { act } from 'react';
-import { screen, fireEvent, within } from '@testing-library/react';
+import { cleanup, screen, fireEvent, within } from '@testing-library/react';
+import { format, parseISO } from 'date-fns';
 import { makeStore, type AppStore } from '@/store/store';
 import { renderWithStore } from '@/test/renderWithStore';
 import { QuestionDetailModal } from '@/components/questions/QuestionDetailModal';
@@ -13,11 +14,18 @@ import type { Question, QuestionProgress } from '@/types';
 const questions = questionsData as Question[];
 const byId = new Map(questions.map((q) => [q.id, q]));
 
-// id 1  "Valid Palindrome"  — two-pointers / converging-ends, easy, mapped to a problem family,
-//                             and one of the 528 questions with a verified LeetCode identity.
-// id 2  "3Sum"              — same pattern and sub-pattern, but deliberately outside the family
-//                             map: the honest-absence cases (no hint ladder, sub-pattern
-//                             fallback) need a real dataset question, not a fixture.
+// id 1   "Valid Palindrome"  — two-pointers / converging-ends, easy, mapped to a problem family,
+//                              and one of the 528 questions with a verified LeetCode identity.
+//                              No company's published topics map to two-pointers, which makes it
+//                              the silence case for the company line.
+// id 2   "3Sum"              — same pattern and sub-pattern, but deliberately outside the family
+//                              map: the honest-absence cases (no hint ladder, sub-pattern
+//                              fallback, shorter follow-up round) need a real dataset question,
+//                              not a fixture.
+// id 345 "Invert Binary Tree" — tree-dfs, mapped to a family, and in a pattern five companies'
+//                              own prep pages enumerate: the company-context case.
+// id 325 "Paths in Maze…"     — graphs, no family and no recorded bounds, so `followUpsFor`
+//                              returns nothing at all: the "none is invented" case.
 const q1 = byId.get(1)!;
 const q2 = byId.get(2)!;
 
@@ -37,6 +45,15 @@ function openQuestion(id: number, store: AppStore = makeStore()) {
   // Radix mounts dialog content synchronously off the `open` prop — no polling needed (and
   // polling would hang under fake timers anyway).
   return { ...rendered, dialog: screen.getByRole('dialog') };
+}
+
+/** Open a question and resolve the attempt, which is what unlocks the post-solve half of the sheet. */
+function solvedQuestion(id: number, store: AppStore = makeStore()) {
+  openQuestion(id, store);
+  act(() => {
+    store.dispatch(solveQuestion(id));
+  });
+  return { store, dialog: screen.getByRole('dialog') };
 }
 
 /** A store whose history contains `MIN_SAMPLES` timed two-pointers solves, each at half the book estimate. */
@@ -251,6 +268,26 @@ describe('grading a revision', () => {
     expect(within(after).queryByRole('button', { name: /Needed to look/ })).not.toBeInTheDocument();
     expect(within(after).getByText(/Reviewed today/)).toBeInTheDocument();
   });
+
+  test('the next review date is written the way every other date in the product is', () => {
+    // It shipped as a raw ISO string — "next review 2026-08-02." — which is the one date format
+    // this product does not use anywhere else. `MMM d` is what PostSolvePanel and the course
+    // surfaces already say.
+    const store = makeStore();
+    act(() => {
+      store.dispatch(solveQuestion(1));
+    });
+    openQuestion(1, store);
+    act(() => {
+      store.dispatch(reviseQuestion(1, true));
+    });
+
+    const dialog = screen.getByRole('dialog');
+    const next = store.getState().progress.byId[1]!.nextRevision!;
+    expect(within(dialog).getByText(`Reviewed today — next review ${format(parseISO(next), 'MMM d')}.`))
+      .toBeInTheDocument();
+    expect(dialog.textContent).not.toMatch(/\d{4}-\d{2}-\d{2}/);
+  });
 });
 
 describe('after solving', () => {
@@ -304,5 +341,140 @@ describe('after solving', () => {
     fireEvent.click(screen.getByRole('button', { name: /close/i }));
 
     expect(store.getState().progress.byId[1]!.reflection).toBe('Two pointers, one invariant.');
+  });
+});
+
+describe('the heading register', () => {
+  // The sheet is the heaviest surface in the product and used to run eight bands of identical
+  // weight separated by seven hairlines — no map of a very long scroll, and borders doing work
+  // type should have done. Each band now opens with a section title (DESIGN.md § The type
+  // ladder), and the hairlines are spent only on genuine document breaks.
+  test('every band opens with a section title, and hairlines are rarer than headings', () => {
+    const { dialog } = openQuestion(1);
+
+    for (const title of ['Where this stands', 'Where to go', 'Hints', 'Notes', 'Revision History']) {
+      expect(within(dialog).getByRole('heading', { name: title, level: 3 })).toBeInTheDocument();
+    }
+
+    // Two breaks before the attempt is resolved: the decision, and the learner's own record.
+    expect(dialog.querySelectorAll('.rule')).toHaveLength(2);
+  });
+
+  test('the post-attempt bands carry titles of the same rank, so the second half is still mapped', () => {
+    const { dialog } = solvedQuestion(1);
+
+    for (const title of [
+      'The debrief',
+      'Same idea, different disguise',
+      'If this came up in an interview',
+      'Notes',
+      'Revision History',
+    ]) {
+      expect(within(dialog).getByRole('heading', { name: title, level: 3 })).toBeInTheDocument();
+    }
+
+    // Help is offered before the attempt, not after it.
+    expect(within(dialog).queryByRole('heading', { name: 'Hints' })).not.toBeInTheDocument();
+  });
+});
+
+describe('the interview follow-up round', () => {
+  test('a mapped question gets the follow-ups its own family supports, with the reason each is live', () => {
+    const { dialog } = solvedQuestion(1);
+
+    const section = within(dialog).getByRole('region', { name: 'Interview follow-ups' });
+    expect(within(section).getByText('Changed constraints')).toBeInTheDocument();
+    expect(
+      within(section).getByText(/Suppose I drop the constraint your approach leans on/),
+    ).toBeInTheDocument();
+    // Every follow-up points at the data that selected it — never a generic prompt.
+    expect(within(section).getByText(/Its family names the trap/)).toBeInTheDocument();
+  });
+
+  test('the round stays hidden until the attempt is resolved — it names the axes the answer is weak on', () => {
+    const { dialog } = openQuestion(1);
+
+    expect(
+      within(dialog).queryByRole('heading', { name: 'If this came up in an interview' }),
+    ).not.toBeInTheDocument();
+    expect(
+      within(dialog).queryByText(/Suppose I drop the constraint your approach leans on/),
+    ).not.toBeInTheDocument();
+  });
+
+  test('an unmapped question gets a genuinely shorter round, and the sheet says so instead of padding it', () => {
+    const { dialog } = solvedQuestion(2);
+
+    const section = within(dialog).getByRole('region', { name: 'Interview follow-ups' });
+    expect(within(section).getByText(/A shorter round than usual/)).toBeInTheDocument();
+    // The family-grounded axis is exactly the one that cannot be offered here.
+    expect(within(section).queryByText('Changed constraints')).not.toBeInTheDocument();
+  });
+
+  test('a question whose record supports nothing says none is invented, rather than inventing one', () => {
+    // 325 has no family and no recorded bounds, so every axis in engine/interview.ts is silent.
+    const { dialog } = solvedQuestion(325);
+
+    const section = within(dialog).getByRole('region', { name: 'Interview follow-ups' });
+    expect(within(section).getByText(/supports a follow-up worth asking, so none is invented/))
+      .toBeInTheDocument();
+  });
+});
+
+describe('company context', () => {
+  test('names the companies whose own pages enumerate this pattern, as a claim about the topic', () => {
+    const { dialog } = solvedQuestion(345);
+
+    expect(
+      within(dialog).getByText(/Companies whose own interview pages name topics this pattern covers/),
+    ).toBeInTheDocument();
+    // Only the topics tier — the only tier at which a company's own page enumerates anything.
+    expect(within(dialog).getByText('Google, Meta, Microsoft, DoorDash, Roblox')).toBeInTheDocument();
+    // The line states its own scope rather than leaving the reader to infer it.
+    expect(
+      within(dialog).getByText('a statement about the topic, not about this problem'),
+    ).toBeInTheDocument();
+  });
+
+  test('a pattern no company enumerates gets silence, not an empty-state claim', () => {
+    const { dialog } = solvedQuestion(1);
+
+    expect(
+      within(dialog).queryByText(/Companies whose own interview pages name topics/),
+    ).not.toBeInTheDocument();
+    expect(within(dialog).queryByText(/no companies/i)).not.toBeInTheDocument();
+  });
+
+  test('company context is withheld until the attempt is resolved, like everything else below it', () => {
+    const { dialog } = openQuestion(345);
+
+    expect(
+      within(dialog).queryByText(/Companies whose own interview pages name topics/),
+    ).not.toBeInTheDocument();
+  });
+
+  // The single most important rule in the repo's data model, asserted against this sheet's DOM
+  // the same way companies.test.tsx asserts it against the company pages: no surface may state or
+  // imply that a company asks a problem. The sheet is the riskiest place for it, because here a
+  // company name would sit inches from a specific question title.
+  test('no phrasing on the sheet ever attaches a company to this problem', () => {
+    const forbidden = [
+      /\basked by\b/i,
+      /\basked at\b/i,
+      /\bcommonly asked\b/i,
+      /\bfrequently asked\b/i,
+      /\btop questions\b/i,
+      /\bmost asked\b/i,
+    ];
+
+    // A mapped pattern with company evidence, an unmapped one, and one with no evidence at all.
+    for (const id of [345, 325, 1]) {
+      const { dialog } = solvedQuestion(id);
+      const text = dialog.textContent ?? '';
+      for (const pattern of forbidden) {
+        expect(text).not.toMatch(pattern);
+      }
+      cleanup();
+    }
   });
 });

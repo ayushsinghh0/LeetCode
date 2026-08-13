@@ -65,20 +65,26 @@ export default function AimlCoursePage() {
 
   return (
     <Page>
-      <div className="flex flex-col gap-6">
-        <PageHeader
-          eyebrow="100xDevs cohort · two-day sprints"
-          title="AI & ML"
-          support="One week-module every two days — lecture first, practice the day after."
-          action={
-            <Button asChild variant="outline">
-              <a href={AIML_COURSE_URL} target="_blank" rel="noreferrer">
-                100xDevs <ExternalLink />
-              </a>
-            </Button>
-          }
-          rule={false}
-        />
+      {/* The masthead is the masthead everywhere: eyebrow, title, purpose, one action, hairline.
+          This page used to wrap the header, the bar and the ledger in its own `gap-6` column with
+          `rule={false}`, which made /aiml the only page of eighteen that opened without the rule
+          and the only one setting its own vertical step. `Page` owns the section rhythm. */}
+      <PageHeader
+        eyebrow="100xDevs cohort · two-day sprints"
+        title="AI & ML"
+        support="One week-module every two days — lecture first, practice the day after."
+        action={
+          <Button asChild variant="outline">
+            <a href={AIML_COURSE_URL} target="_blank" rel="noreferrer">
+              100xDevs <ExternalLink />
+            </a>
+          </Button>
+        }
+      />
+
+      {/* The bar and the figures behind it are one fact, so they are one group — not two blocks a
+          full section apart. Both already draw their own edges; neither wants a plate. */}
+      <Section aria-label="Course progress">
         <Progress value={stats.pct} aria-label="Course completion" />
         <Ledger
           columns={4}
@@ -105,9 +111,11 @@ export default function AimlCoursePage() {
             },
           ]}
         />
-      </div>
+      </Section>
 
-      <Section title="Up next">
+      {/* The page's `Lead` sits bare, as every other `Lead` in the app does. A titled section
+          around it added an h2 one step above the thing the page most wants you to do. */}
+      <Section aria-label="Up next">
         <Lead className="flex flex-col gap-4">
           {next && nextWeek ? (
             <>

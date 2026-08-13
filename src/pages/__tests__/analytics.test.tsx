@@ -6,6 +6,7 @@ import { renderWithStore } from '@/test/renderWithStore';
 import AnalyticsPage from '@/pages/AnalyticsPage';
 import { completeCourseSession, reviseCourseWeek, reviseQuestion, solveQuestion } from '@/store/actions';
 import { selectStreaks } from '@/store/selectors';
+import { MIN_PASS_RATE_ATTEMPTS } from '@/utils/engine/stats';
 
 const TODAY = '2026-07-30';
 
@@ -39,6 +40,11 @@ afterEach(() => {
 /** The Ledger renders each figure as a `dt`/`dd` pair inside one wrapper div. */
 function figure(label: string): HTMLElement {
   return screen.getByText(label).closest('div')!;
+}
+
+/** The ML-track section, whose facts are a Meta line rather than labelled figures. */
+function mlTrack(): HTMLElement {
+  return screen.getByRole('heading', { name: 'The ML track' }).closest('section')!;
 }
 
 describe('AnalyticsPage — the page is five questions, in decision order', () => {
@@ -96,6 +102,9 @@ describe('AnalyticsPage — figures come from the same selectors as the rest of 
     expect(within(figure('Current streak')).getByText('1')).toBeInTheDocument();
   });
 
+  // The ML track is one Meta line rather than four serif figures: it is a secondary reading on a
+  // page about the roadmap, and a 4-column ledger gave it the same weight as the questions above.
+  // The facts asserted are unchanged — only the form they are read in.
   test('the ML track reports attendance and retention as separate things', () => {
     const store = makeStore();
     store.dispatch(completeCourseSession('w00', 1));
@@ -104,9 +113,10 @@ describe('AnalyticsPage — figures come from the same selectors as the rest of 
     store.dispatch(reviseCourseWeek('w00', true));
     renderWithStore(<AnalyticsPage />, store);
 
-    expect(within(figure('Sessions')).getByText('2 / 52')).toBeInTheDocument();
-    expect(within(figure('Weeks cleared')).getByText('1 / 26')).toBeInTheDocument();
-    expect(within(figure('Review pass rate')).getByText('100%')).toBeInTheDocument();
+    const track = mlTrack();
+    expect(track).toHaveTextContent('2 / 52 sessions attended');
+    expect(track).toHaveTextContent('1 / 26 weeks cleared');
+    expect(track).toHaveTextContent('100% of 1 graded review passed');
     // With every cleared week graded, the attendance figure is backed rather than standing alone.
     expect(screen.getByText(/backed by recall rather than standing on its own/)).toBeInTheDocument();
   });
@@ -117,7 +127,7 @@ describe('AnalyticsPage — figures come from the same selectors as the rest of 
     store.dispatch(completeCourseSession('w00', 2));
     renderWithStore(<AnalyticsPage />, store);
 
-    expect(within(figure('Review pass rate')).getByText('no week has been reviewed yet')).toBeInTheDocument();
+    expect(mlTrack()).toHaveTextContent('No week reviewed yet');
     // Attendance is not retention, and the page refuses to let one stand for the other.
     expect(screen.getByText(/Sessions completed is attendance/)).toBeInTheDocument();
   });
@@ -131,6 +141,23 @@ describe('AnalyticsPage — suppression over padding', () => {
     expect(within(figure('Recognition')).getByText(/needs \d+ recorded drill days/)).toBeInTheDocument();
     // Focus time distinguishes "not measured" from "zero".
     expect(within(figure('Focus time')).getByText(/not measured/)).toBeInTheDocument();
+  });
+
+  test('one graded recall is not a pass rate — the headline figure names its own shortfall', () => {
+    const store = makeStore();
+    store.dispatch(solveQuestion(1));
+    vi.setSystemTime(new Date('2026-07-31T12:00:00'));
+    store.dispatch(reviseQuestion(1, false));
+    renderWithStore(<AnalyticsPage />, store);
+
+    // A single failed recall used to print a confident "0%" as the largest figure in the
+    // accuracy section, directly above a difficulty row correctly reporting "needs 5 reviews —
+    // you have 1". One page, two answers to "has this been measured yet".
+    const tile = figure('Recall pass rate');
+    expect(within(tile).queryByText('0%')).toBeNull();
+    expect(
+      within(tile).getByText(`needs ${MIN_PASS_RATE_ATTEMPTS} reviews — you have 1`),
+    ).toBeInTheDocument();
   });
 
   test('no pattern is called weak on a single observation', () => {

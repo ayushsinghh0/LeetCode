@@ -1,8 +1,7 @@
-import type { ReactNode } from 'react';
 import { ArrowRight, ExternalLink } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { DifficultyBadge } from '@/components/questions/DifficultyBadge';
-import { RuledItem, RuledList } from '@/components/layout/Page';
+import { Eyebrow, RuledItem, RuledList } from '@/components/layout/Page';
 import { useAppDispatch } from '@/store/hooks';
 import { activeQuestionSet } from '@/store/slices/uiSlice';
 import type { Difficulty, Question } from '@/types';
@@ -44,20 +43,17 @@ export interface ResourceGroup {
   items: ResourceLink[];
 }
 
-function GroupLabel({ children }: { children: ReactNode }) {
-  return (
-    <p className="figures text-xs uppercase tracking-[0.14em] text-muted-foreground">{children}</p>
-  );
-}
-
 export function ResourcePanel({ question, groups }: { question: Question; groups: ResourceGroup[] }) {
   const dispatch = useAppDispatch();
   const shown = groups.filter((g) => g.items.length > 0);
 
+  // `gap-4` is the one interior step in this sheet (DESIGN.md § The rhythm, "inside a group");
+  // rows within a group sit at `gap-2`. The panel used to mix `gap-5` with the modal's `gap-6`,
+  // which is how a document ends up with four rhythms and no measure.
   return (
-    <div className="flex flex-col gap-5">
+    <div className="flex flex-col gap-4">
       <div className="flex flex-col gap-2">
-        <GroupLabel>Solve</GroupLabel>
+        <Eyebrow>Solve</Eyebrow>
         {question.url ? (
           <>
             <p className="max-w-prose text-sm text-muted-foreground">
@@ -79,7 +75,7 @@ export function ResourcePanel({ question, groups }: { question: Question; groups
 
       {shown.map((group) => (
         <div key={group.label} className="flex flex-col gap-2">
-          <GroupLabel>{group.label}</GroupLabel>
+          <Eyebrow>{group.label}</Eyebrow>
           <p className="max-w-prose text-sm text-muted-foreground">{group.reason}</p>
           <RuledList aria-label={group.label}>
             {group.items.map((item) => (

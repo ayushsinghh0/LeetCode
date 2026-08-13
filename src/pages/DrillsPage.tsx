@@ -7,7 +7,7 @@ import { patternById } from '@/data/patterns';
 import { Button } from '@/components/ui/button';
 import { DifficultyBadge } from '@/components/questions/DifficultyBadge';
 import { EmptyState } from '@/components/shared/EmptyState';
-import { Page, PageHeader, Section, Lead, Rule, Meta } from '@/components/layout/Page';
+import { Page, PageHeader, Section, Lead, Rule, Meta, Eyebrow } from '@/components/layout/Page';
 import { useAppDispatch, useAppSelector } from '@/store/hooks';
 import { activeQuestionSet } from '@/store/slices/uiSlice';
 import { selectMissCounts, selectMostMissedPatterns } from '@/store/slices/drillsSlice';
@@ -21,9 +21,6 @@ const questions = questionsData as Question[];
 const questionById = new Map(questions.map((q) => [q.id, q]));
 
 const DRILL_SIZE = 8;
-
-// The eyebrow register (DESIGN.md § The type ladder), used for the drill's quiet context lines.
-const LABEL_CLASS = 'text-xs uppercase tracking-[0.14em] text-muted-foreground';
 
 /**
  * Recognition drill: recall which technique fits before reading any explanation. The drill is
@@ -100,7 +97,7 @@ export default function DrillsPage() {
         <Section aria-label="Drill result">
           <Lead className="flex flex-col gap-6">
             <div className="flex flex-col gap-3">
-              <p className={LABEL_CLASS}>Result</p>
+              <Eyebrow>Result</Eyebrow>
               {/* The score is the point, so it wears the stat voice (DESIGN.md § Hierarchy) —
                   the largest thing in the plate, and still a step below the page title. */}
               <p className="font-serif text-[1.75rem] font-semibold leading-tight tracking-tight">
@@ -149,10 +146,10 @@ export default function DrillsPage() {
           <Lead className="flex flex-col gap-6">
             <div className="flex flex-col gap-4">
               <div className="flex items-center justify-between gap-4 border-b border-border pb-3">
-                <p className={cn('figures', LABEL_CLASS)}>
+                <Eyebrow>
                   {index + 1} / {items.length}
-                </p>
-                <p className={cn('figures', LABEL_CLASS)}>{correctCount} correct</p>
+                </Eyebrow>
+                <Eyebrow>{correctCount} correct</Eyebrow>
               </div>
 
               <div className="flex flex-col gap-2">

@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { Meta } from '@/components/layout/Page';
-import { EYEBROW, Field, RowToggle, StepList, weekLabel } from '@/components/course/MlRowParts';
+import { EYEBROW, Field, ROW_INSET, RowToggle, StepList, weekLabel } from '@/components/course/MlRowParts';
 import { ML_TIER_LABEL, type MlProject } from '@/data/mlProjects';
 import { mlTrackById } from '@/data/mlTracks';
 import { cn } from '@/utils/cn';
@@ -8,18 +8,23 @@ import { cn } from '@/utils/cn';
 /**
  * One project on the ladder.
  *
- * What stays outside the disclosure is the argument of this whole surface: the **baseline** and
- * the **metric with its justification**. A project with a stated dumb model and its measured
- * score is engineering; the identical project without one is a tutorial, because nothing tells
- * you whether the model you built helped. And a metric with no argument against its obvious
- * alternative is accuracy-by-default wearing a different name. Both are therefore readable
- * without opening anything — the objective, the experiments and the retrospective are not.
+ * The **baseline** and the **metric with its justification** are the argument of this whole
+ * surface — a project with a stated dumb model and its measured score is engineering, the
+ * identical project without one is a tutorial — and they open the disclosure for exactly that
+ * reason: they are the first two fields inside, ahead of the objective.
  *
- * Where `baseline.score` is null the row says so in full: the figure is a property of the
+ * They used to render on the closed row instead, which defeated the point. Fourteen rows each
+ * printing three or four lines of baseline prose plus two of metric prose is ~8 identical-weight
+ * paragraphs per screen with no scannable spine, so the argument was not read *more* for being
+ * always-on; the list simply became unreadable and the disclosure mechanism sat unused directly
+ * above it. Closed, a project now states what a project is — tier, title, cost, data, week —
+ * exactly as a track does, and the argument is one click away at the top of the document.
+ *
+ * Where `baseline.score` is null the field says so in full: the figure is a property of the
  * learner's own system (a judge's base rate, an unoptimised endpoint's p95), so the note that
  * names who must measure it is the instruction, not provenance, and it renders inline. For a
- * stated score the same field is provenance, and it sits one click away under "Where that
- * number comes from".
+ * stated score the same field is provenance, and it sits further down under "Where that number
+ * comes from".
  */
 function Baseline({ project }: { project: MlProject }) {
   const { baseline } = project;
@@ -51,7 +56,8 @@ export function MlProjectRow({ project }: { project: MlProject }) {
   const prereqs = project.prereqTracks.map((id) => mlTrackById[id]?.title ?? id);
 
   return (
-    <li className="flex flex-col gap-4 border-t border-border p-4 first:border-t-0">
+    // Hairlines come from the `RuledList` parent's `divide-y`; the row does not redeclare them.
+    <li className="flex flex-col">
       <RowToggle open={open} onToggle={() => setOpen(!open)}>
         <span className={cn(EYEBROW, 'block')}>
           {ML_TIER_LABEL[project.tier]} · {project.order}
@@ -67,18 +73,17 @@ export function MlProjectRow({ project }: { project: MlProject }) {
         />
       </RowToggle>
 
-      {/* Always visible — see the note above. */}
-      <div className="grid gap-4 sm:grid-cols-2">
-        <Baseline project={project} />
-        <Field label="Metric">
-          <p className="text-sm leading-relaxed">{project.metric.name}</p>
-          {/* The argument against the obvious alternative. This is the teaching, not a footnote. */}
-          <p className="text-sm leading-relaxed text-muted-foreground">{project.metric.why}</p>
-        </Field>
-      </div>
-
       {open && (
-        <div className="flex flex-col gap-5 border-t border-border pt-4">
+        <div className={cn(ROW_INSET, 'flex flex-col gap-5 pb-3.5')}>
+          {/* The first two fields, ahead of the objective — see the note above. */}
+          <Baseline project={project} />
+
+          <Field label="Metric">
+            <p className="text-sm leading-relaxed">{project.metric.name}</p>
+            {/* The argument against the obvious alternative. This is the teaching, not a footnote. */}
+            <p className="max-w-prose text-sm leading-relaxed text-muted-foreground">{project.metric.why}</p>
+          </Field>
+
           <Field label="Objective">
             <p className="max-w-prose text-sm leading-relaxed">{project.objective}</p>
           </Field>

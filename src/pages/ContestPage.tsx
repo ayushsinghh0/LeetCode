@@ -7,7 +7,17 @@ import { patternById } from '@/data/patterns';
 import { Button } from '@/components/ui/button';
 import { DifficultyBadge } from '@/components/questions/DifficultyBadge';
 import { EmptyState } from '@/components/shared/EmptyState';
-import { Lead, Meta, Page, PageHeader, Rule, RuledItem, RuledList, Section } from '@/components/layout/Page';
+import {
+  Eyebrow,
+  Lead,
+  Meta,
+  Page,
+  PageHeader,
+  Rule,
+  RuledItem,
+  RuledList,
+  Section,
+} from '@/components/layout/Page';
 import { useAppDispatch, useAppSelector } from '@/store/hooks';
 import { selectContestAnalysis, selectContestProblems } from '@/store/selectors';
 import {
@@ -25,9 +35,6 @@ import { cn } from '@/utils/cn';
 import type { Question } from '@/types';
 
 const questions = questionsData as Question[];
-
-// The eyebrow register (DESIGN.md § The type ladder), same as the other rehearsal surfaces.
-const LABEL_CLASS = 'text-xs uppercase tracking-[0.14em] text-muted-foreground';
 
 // Minute-resolution clock; a 15s tick keeps the displayed minute honest without meaningful work.
 const TICK_MS = 15_000;
@@ -52,8 +59,11 @@ const OUTCOME_CLASS: Record<Outcome, string> = {
  * Contest mode: a timed set under pressure, then an honest reading of what happened.
  *
  * Composition: each lifecycle state (start / running / verdict) is the page's one thing, so each
- * lives in the single `Lead`; the per-problem readings after a contest are ordinary reading
- * content in an open section. The problem rows are hairline-ruled, never boxed.
+ * lives in the single `Lead` — and the `Lead` holds only that one thing. While the clock runs it
+ * is the clock band and nothing else: the four-problem list with its per-row controls is the
+ * working surface, not the lead, and putting ~400px of it inside a plate turned the plate into a
+ * border around the page. The list is an open `Section` beneath, exactly as Revision does it.
+ * Problem rows are hairline-ruled, never boxed.
  *
  * The sitting is frozen the moment it starts (the slice snapshots the set — see contestSlice),
  * and problems deliberately do NOT open the in-app question sheet while the clock runs: the
@@ -125,7 +135,9 @@ export default function ContestPage() {
   }
 
   return (
-    <Page>
+    // `reading`, like Drills and Interview: the three rehearsal surfaces are prose-and-list
+    // pages, and they had no business each choosing a different measure.
+    <Page width="reading">
       <PageHeader
         eyebrow={format(parseISO(today), 'EEEE, MMMM d')}
         title="Contest"
@@ -149,7 +161,7 @@ export default function ContestPage() {
         <Section aria-label="Start a contest">
           <Lead className="flex flex-col gap-6">
             <div className="flex flex-col gap-3">
-              <p className={LABEL_CLASS}>Today's set</p>
+              <Eyebrow>Today's set</Eyebrow>
               <h2 className="text-xl font-semibold md:text-2xl">Four problems, one clock.</h2>
               <p className="max-w-prose text-sm leading-relaxed text-muted-foreground">
                 An easy opener, two mediums, and a hard closer — drawn from problems you haven't
@@ -162,21 +174,31 @@ export default function ContestPage() {
                 freely. At the end there is no score and no rank — just an honest reading of each
                 problem, and the one pattern worth acting on when the set supports a claim at all.
               </p>
+              {/* What the seed actually guarantees. The old line promised "reloading rebuilds the
+                  same set", which two mechanisms contradict: `buildContest` draws only from
+                  problems you have not solved, so solving one changes the pool the next draw
+                  reads, and the contest slice is deliberately not persisted, so a reload ends the
+                  sitting rather than restoring it. */}
+              <p className="max-w-prose text-sm leading-relaxed text-muted-foreground">
+                Seeded by today's date and drawn only from problems you haven't solved: start
+                another one later today and you get this same set — until you solve one of them,
+                which takes it out of the pool and changes the draw. Reloading mid-contest ends the
+                sitting rather than restoring it; a stopped clock is not a paused one.
+              </p>
             </div>
-            <div className="flex flex-wrap items-center gap-x-4 gap-y-2">
+            <div>
               <Button onClick={() => dispatch(startContest())}>
                 <Play /> Start the contest
               </Button>
-              <p className="text-xs text-muted-foreground">
-                Seeded by today's date — reloading rebuilds the same set.
-              </p>
             </div>
           </Lead>
         </Section>
       ) : running ? (
-        <Section aria-label="Contest in progress">
-          <Lead className="flex flex-col gap-5">
-            <div className="flex flex-wrap items-baseline justify-between gap-x-6 gap-y-2 border-b border-border pb-4">
+        <>
+          <Section aria-label="Contest in progress">
+            {/* The lead is the clock and the count — the one thing the page is about while a
+                contest runs. The set itself lives in its own section below. */}
+            <Lead className="flex flex-wrap items-baseline justify-between gap-x-6 gap-y-2">
               <div className="flex items-baseline gap-3">
                 <p className="figures font-serif text-[1.75rem] font-semibold leading-none tracking-tight">
                   {elapsed} min
@@ -185,13 +207,18 @@ export default function ContestPage() {
                   of ~{contest.durationMin} scheduled{overTime && ' — over time'}
                 </p>
               </div>
-              <p className={cn('figures', LABEL_CLASS)}>
+              <Eyebrow>
                 {problems.filter((p) => contest.attempts[p.question.id]?.solved).length} of{' '}
                 {problems.length} solved
-              </p>
-            </div>
+              </Eyebrow>
+            </Lead>
+          </Section>
 
-            <RuledList aria-label="Contest problems" as="ol" className="border-y-0">
+          <Section
+            title="The set"
+            support="Time counts only while a problem is on the clock, and only while this page is open."
+          >
+            <RuledList aria-label="Contest problems" as="ol">
               {problems.map(({ question, order, targetMinutes }) => {
                 const attempt = contest.attempts[question.id];
                 if (!attempt) return null;
@@ -268,14 +295,14 @@ export default function ContestPage() {
                 );
               })}
             </RuledList>
-          </Lead>
-        </Section>
+          </Section>
+        </>
       ) : finished && analysis ? (
         <>
           <Section aria-label="Contest verdict">
             <Lead className="flex flex-col gap-6">
               <div className="flex flex-col gap-3">
-                <p className={LABEL_CLASS}>The verdict</p>
+                <Eyebrow>The verdict</Eyebrow>
                 <p className="font-serif text-[1.75rem] font-semibold leading-tight tracking-tight">
                   {analysis.solved} of {analysis.total} solved
                 </p>

@@ -48,6 +48,21 @@ const UNDATED_WEIGHT = 0.5;
 export const MIN_OBSERVATIONS = 2;
 
 /**
+ * How much surviving (recency-weighted) evidence a rate signal needs before it may claim anything.
+ *
+ * `MIN_OBSERVATIONS` counts raw observations and so cannot see age; the rate itself divides two
+ * quantities that decay together and so is invariant to age. Between them, a record built entirely
+ * from year-old evidence used to read bit-identical to one built this week — directly against this
+ * module's own first rule, that weakness is a claim about the *present tense*.
+ *
+ * Set to the evidence mass of `MIN_OBSERVATIONS` observations aged exactly one half-life. Live
+ * evidence is scored exactly as before; only claims whose support has decayed below that floor go
+ * quiet. Because the floor is on mass rather than age, repeated evidence outlives sparse evidence
+ * — four observations still clear it at two half-lives where two do not.
+ */
+const MIN_LIVE_EVIDENCE = MIN_OBSERVATIONS * UNDATED_WEIGHT;
+
+/**
  * Drill misses are the one signal with no denominator: a drill records which patterns were missed,
  * never how many prompts each pattern was given. So it is normalized against a saturation point
  * instead of a rate — four recency-weighted misses reads as fully missed. An absolute scale is
@@ -195,6 +210,12 @@ const emptyTallies = (): Tallies => ({
 function recency(today: string, date: string | null): number {
   if (date === null) return UNDATED_WEIGHT;
   const age = Math.max(0, diffDays(today, date));
+  // A date this function cannot measure is undated evidence, not zero-day-old evidence. Without
+  // this, an unparseable date yields NaN, and NaN propagates all the way to `score` — where the
+  // `score <= 0` suppression does NOT catch it (NaN <= 0 is false), so a NaN-scored pattern would
+  // ship to the UI and destabilise the sort. Unreachable today (the persistence validator pins
+  // ISO keys and the thunk writes `todayISO()`), which is exactly why it is worth pinning here.
+  if (!Number.isFinite(age)) return UNDATED_WEIGHT;
   return 0.5 ** (age / RECENCY_HALF_LIFE_DAYS);
 }
 
@@ -263,15 +284,30 @@ function read(id: WeaknessSignalId, tally: Tally, today: string): Reading | null
     // Rule: no denominator exists, so saturate rather than invent one.
     const value = Math.min(1, tally.weightedMiss / DRILL_SATURATION);
     const when = tally.latest ? `, most recently ${agoPhrase(today, tally.latest)}` : '';
+    // "prompts", not "drills": `missedPatterns` carries one entry per wrongly answered *item*
+    // and allows duplicates (see `logDrillResult`), so two misses in a single sitting used to
+    // report "Missed in 2 recognition drills" when the learner had sat exactly one.
     return {
       value,
       observations: misses,
-      detail: `Missed in ${misses} recognition ${plural(misses, 'drill', 'drills')}${when}.`,
-      fragment: `you missed ${misses} recognition ${plural(misses, 'drill', 'drills')}`,
+      detail: `Missed ${misses} recognition ${plural(misses, 'prompt', 'prompts')}${when}.`,
+      fragment: `you missed ${misses} recognition ${plural(misses, 'prompt', 'prompts')}`,
     };
   }
 
-  if (tally.weightedOpportunity <= 0) return null;
+  // Rule 1 ("weakness is a claim about the present tense") needs enforcing here, not just stating.
+  // The ratio below divides two quantities that decay together, so it is invariant to age: two
+  // failed recalls 400 days ago produced a value bit-identical to two failures this week, and
+  // `MIN_OBSERVATIONS` gates on the *unweighted* count, so age never gated entry either. Only
+  // `recognition` — which saturates against a constant instead of a denominator — actually faded.
+  //
+  // The fix is suppression rather than re-weighting, which is the house rule everywhere else in
+  // this codebase: once the surviving evidence mass falls below the equivalent of MIN_OBSERVATIONS
+  // observations aged one half-life, the signal stops claiming instead of claiming quietly. Live
+  // evidence is scored exactly as before. Repeated evidence outlives staleness (4 observations
+  // still clear the floor at two half-lives where 2 do not), which is the intended reading of
+  // "recency AND repeated evidence" rather than either alone.
+  if (tally.weightedOpportunity < MIN_LIVE_EVIDENCE) return null;
   const value = Math.min(1, tally.weightedMiss / tally.weightedOpportunity);
 
   switch (id) {

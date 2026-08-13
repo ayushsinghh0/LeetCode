@@ -58,7 +58,11 @@ function SessionControl({ week, day, progress }: { week: CourseWeek; day: Course
 }
 
 // One syllabus line: chapter numeral, title + meta + resource chips, session controls, notes.
-// Rows stack inside a single plate and rule themselves off with a hairline top border.
+//
+// The row is flush to the page column and rules itself off through the `RuledList` parent's
+// `divide-y`. It used to carry `p-4` plus its own `border-t … first:border-t-0` — both leftovers
+// from when the syllabus lived inside a plate — so every week title sat 16px right of the
+// "Syllabus" heading above it and every hairline was drawn twice.
 export function CourseWeekRow({ week, progress, planned, isCurrent, onOpenNotes, onOpenRecall }: CourseWeekRowProps) {
   const done = isWeekDone(week, progress);
   const hasRecall = (recallByWeekId[week.id] ?? []).length > 0;
@@ -88,7 +92,7 @@ export function CourseWeekRow({ week, progress, planned, isCurrent, onOpenNotes,
     <li
       aria-current={isCurrent ? 'step' : undefined}
       className={cn(
-        'flex flex-col gap-3 border-t border-border p-4 first:border-t-0 md:flex-row md:items-center',
+        'flex flex-col gap-3 py-3.5 md:flex-row md:items-center',
         isCurrent && 'bg-muted/40',
       )}
     >

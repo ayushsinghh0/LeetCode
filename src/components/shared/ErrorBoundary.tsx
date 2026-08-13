@@ -1,6 +1,7 @@
 import { Component, type ErrorInfo, type ReactNode } from 'react';
 import { RotateCcw, Download, TriangleAlert } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { Lead } from '@/components/layout/Page';
 
 const STORAGE_KEY = 'dsa-roadmap:v1';
 
@@ -45,23 +46,29 @@ export class ErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoundarySt
   render(): ReactNode {
     if (!this.state.hasError) return this.props.children;
 
+    // `Lead`, not a hand-rolled `p-8` plate: this is the one thing the screen is asking the user
+    // to act on, which is exactly what a Lead is for, and `p-8` is not one of the system's three
+    // padding steps (DESIGN.md § The rhythm). `Lead` is pure composition — it imports `cn` and
+    // nothing else — so the fallback still renders when the store layer is what crashed.
     return (
-      <div role="alert" className="glass mx-auto my-10 flex w-full max-w-lg flex-col items-center gap-4 p-8 text-center">
-        <TriangleAlert className="h-7 w-7 text-muted-foreground/60" aria-hidden="true" />
-        <div>
-          <h1 className="font-serif text-xl font-semibold">Something went wrong</h1>
-          <p className="mt-1 text-sm text-muted-foreground">
-            This view hit an unexpected error. Your progress is stored locally and is not affected.
-          </p>
-        </div>
-        <div className="flex flex-wrap justify-center gap-2">
-          <Button onClick={() => window.location.reload()}>
-            <RotateCcw /> Reload
-          </Button>
-          <Button variant="outline" onClick={downloadBackup}>
-            <Download /> Download backup
-          </Button>
-        </div>
+      <div role="alert" className="mx-auto my-10 w-full max-w-lg">
+        <Lead className="flex flex-col items-center gap-4 text-center">
+          <TriangleAlert className="h-7 w-7 text-muted-foreground/60" aria-hidden="true" />
+          <div>
+            <h1 className="font-serif text-xl font-semibold">Something went wrong</h1>
+            <p className="mt-1 text-sm text-muted-foreground">
+              This view hit an unexpected error. Your progress is stored locally and is not affected.
+            </p>
+          </div>
+          <div className="flex flex-wrap justify-center gap-2">
+            <Button onClick={() => window.location.reload()}>
+              <RotateCcw /> Reload
+            </Button>
+            <Button variant="outline" onClick={downloadBackup}>
+              <Download /> Download backup
+            </Button>
+          </div>
+        </Lead>
       </div>
     );
   }

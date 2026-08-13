@@ -25,7 +25,12 @@ import { todayISO } from '@/utils/dates';
 import type { PersistedStateV1, Question } from '@/types';
 
 const TOTAL_QUESTIONS = (questionsData as Question[]).length;
-const PER_DAY_OPTIONS = Array.from({ length: 13 }, (_, i) => i + 4); // 4..16
+// Exported so the persistence round-trip test can assert that every value these controls can
+// write survives `validatePersisted`. A validator stricter than its own UI is a data-loss bug —
+// it quarantined a learner's entire state once already — and the rule was written down without
+// anything enforcing it. The test imports these rather than restating them, so widening a
+// control here cannot silently outgrow the validator.
+export const PER_DAY_OPTIONS = Array.from({ length: 13 }, (_, i) => i + 4); // 4..16
 /**
  * Study budget the daily plan sums against.
  *
@@ -38,7 +43,7 @@ const PER_DAY_OPTIONS = Array.from({ length: 13 }, (_, i) => i + 4); // 4..16
  * A value here that no chip offers is fine (the chips are a quick subset); a value a chip can
  * write that is missing here is not.
  */
-const CAPACITY_OPTIONS = [...SESSION_PRESETS, 240, 300, 360, 480];
+export const CAPACITY_OPTIONS = [...SESSION_PRESETS, 240, 300, 360, 480];
 const RESET_CONFIRM_TEXT = 'RESET';
 
 interface SettingsFormValues {

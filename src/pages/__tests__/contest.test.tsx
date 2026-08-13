@@ -42,6 +42,26 @@ describe('ContestPage: start screen', () => {
     expect(screen.getByText(/seeded by today's date/i)).toBeInTheDocument();
   });
 
+  test('the seeding claim matches what the seed actually guarantees', () => {
+    const { store } = renderContest();
+
+    // The old line said "reloading rebuilds the same set". Two mechanisms contradict it: the pool
+    // excludes solved problems, and the contest slice is not persisted at all.
+    expect(screen.queryByText(/reloading rebuilds the same set/i)).not.toBeInTheDocument();
+    expect(screen.getByText(/until you solve one of them/i)).toBeInTheDocument();
+    expect(screen.getByText(/Reloading mid-contest ends the sitting/i)).toBeInTheDocument();
+
+    // And the caveat is real: solving a problem takes it out of the next draw, same day or not.
+    startViaUi();
+    const firstSet = store.getState().contest.questionIds;
+    fireEvent.click(within(problemRows()[0]!).getByRole('button', { name: /mark solved/i }));
+    fireEvent.click(screen.getByRole('button', { name: /finish/i }));
+    fireEvent.click(screen.getByRole('button', { name: 'Done' }));
+
+    startViaUi();
+    expect(store.getState().contest.questionIds).not.toContain(firstSet[0]);
+  });
+
   test('starting builds the four-problem set, seeded by the calendar date', () => {
     const { store } = renderContest();
 

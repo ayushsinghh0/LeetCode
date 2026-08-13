@@ -7,6 +7,7 @@
 // problems anyone will be asked.
 import type { PatternId, Question, QuestionProgress } from '@/types';
 import type { PatternStat } from '@/utils/engine/stats';
+import { COMPANIES, type Company, type CompanyEvidence } from '@/data/companies';
 import { isPassRateReportable } from '@/utils/engine/stats';
 import { revisionMinutes } from '@/utils/engine/planner';
 
@@ -182,6 +183,48 @@ export function companyPracticeSet(
  */
 export function practiceSetMinutes(set: Question[]): number {
   return set.reduce((sum, q) => sum + q.estimatedTime, 0);
+}
+
+/**
+ * One company that named a topic this roadmap maps onto a given pattern.
+ *
+ * `evidence` is typed to the literal `'topics'` rather than to `CompanyEvidence`, so the gate
+ * below is a fact the compiler carries rather than a comment a caller has to trust.
+ */
+export interface PatternTopicCompany {
+  name: string;
+  evidence: Extract<CompanyEvidence, 'topics'>;
+}
+
+/**
+ * Companies whose OWN interview-prep page enumerates data structures or algorithms that this
+ * roadmap maps onto `pattern`.
+ *
+ * This is the narrowest claim in the product and the wording it feeds must stay narrow with it:
+ * it is **pattern relevance, never problem attribution**. No company publishes the problems it
+ * asks (see CLAUDE.md and the `_readme` in scripts/data/companies.json), so no surface may state
+ * or imply that any company asks any particular question.
+ *
+ * The `evidence === 'topics'` filter is the load-bearing gate. It is *deliberately restated here*
+ * even though the generator and `validate:data` already guarantee that `patterns` is non-empty
+ * only at that tier: this is the one function whose output becomes a sentence with a company name
+ * in it, so it re-checks the invariant rather than inheriting it. A dataset regression would then
+ * make this surface go silent, which is the correct failure direction.
+ *
+ * Deliberately NOT named `companiesNamingPattern` — that name belongs to the ungated
+ * `src/data/companies.ts` helper (pattern-only, no evidence check, used by the pattern page).
+ * Two same-named lookups with different guarantees is exactly how the wrong one gets imported.
+ *
+ * `companies` is injectable so the gate itself is testable against a hostile fixture; production
+ * callers pass nothing.
+ */
+export function companiesNamingPatternTopics(
+  pattern: PatternId,
+  companies: Company[] = COMPANIES,
+): PatternTopicCompany[] {
+  return companies
+    .filter((c) => c.evidence === 'topics' && c.patterns.includes(pattern))
+    .map((c) => ({ name: c.name, evidence: 'topics' as const }));
 }
 
 /** Re-exported so the company surface and the daily plan cost a review identically. */

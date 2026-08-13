@@ -64,6 +64,37 @@ describe('AppShell routing', () => {
     }
   });
 
+  // The active tab used to be `bg-primary text-primary-foreground` — a saturated ink block the
+  // full width of the rail, on all 18 pages, out-weighing each page's own primary button. Removing
+  // the fill is only safe if the state itself survives, so this pins all three of its carriers.
+  test('the active sidebar link is marked for assistive tech and carries a margin mark, not an ink fill', () => {
+    renderApp(['/roadmap']);
+
+    const sidebarNav = screen.getByRole('navigation', { name: /sidebar navigation/i });
+    const active = within(sidebarNav).getByRole('link', { name: 'Roadmap' });
+    const inactive = within(sidebarNav).getByRole('link', { name: 'Settings' });
+
+    // 1. Assistive tech: NavLink stamps aria-current on the match and nothing else.
+    expect(active).toHaveAttribute('aria-current', 'page');
+    expect(inactive).not.toHaveAttribute('aria-current');
+    // 2. Not colour alone: a border that is present vs absent, and a weight step.
+    expect(active.className).toContain('border-primary');
+    expect(active.className).toContain('font-semibold');
+    expect(inactive.className).toContain('border-transparent');
+    // 3. The ink budget stays with the page's own primary action.
+    expect(active.className).not.toContain('bg-primary');
+  });
+
+  // The floating pomodoro used to render a permanent plate reading "25:00 / Ready" on every page,
+  // and AppShell reserved 144px of dead page foot for it. Idle is now a single control.
+  test('the floating pomodoro is a lone start control until a phase is actually counting', () => {
+    renderApp(['/']);
+
+    expect(screen.getByRole('button', { name: 'Start pomodoro' })).toBeInTheDocument();
+    expect(screen.queryByRole('group', { name: 'Pomodoro timer' })).not.toBeInTheDocument();
+    expect(screen.queryByText('25:00')).not.toBeInTheDocument();
+  });
+
   test('clicking Today in the sidebar navigates to the Today page', async () => {
     renderApp(['/']);
     // The Dashboard wait stays here, unlike in the label test above: the sidebar is eager and

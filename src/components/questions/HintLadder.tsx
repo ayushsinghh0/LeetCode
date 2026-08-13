@@ -1,5 +1,6 @@
 import { ChevronDown, Lightbulb } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { Eyebrow } from '@/components/layout/Page';
 import { useAppDispatch } from '@/store/hooks';
 import { revealHint } from '@/store/actions';
 import type { Hint } from '@/utils/engine/hints';
@@ -41,14 +42,14 @@ export function HintLadder({
   const nextHint = hints.find((h) => h.level === nextLevel);
 
   return (
-    <div className="flex flex-col gap-3">
+    <div className="flex flex-col gap-4">
       {hints
         .filter((h) => h.level <= revealedLevel)
         .map((hint) => (
           <div key={hint.level} className="border-l-2 border-primary/40 pl-3">
-            <p className="figures text-xs uppercase tracking-[0.14em] text-muted-foreground">
+            <Eyebrow>
               Hint {hint.level} &middot; {hint.label}
-            </p>
+            </Eyebrow>
             <ul className={cn('mt-1 space-y-1', hint.lines.length === 1 && 'list-none')}>
               {hint.lines.map((line) => (
                 <li key={line} className="flex items-start gap-2 text-sm text-muted-foreground">

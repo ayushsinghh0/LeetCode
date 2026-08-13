@@ -1,10 +1,11 @@
 import { act } from 'react';
 import { Provider } from 'react-redux';
-import { screen, fireEvent } from '@testing-library/react';
+import { screen, fireEvent, within } from '@testing-library/react';
 import { makeStore } from '@/store/store';
 import { TooltipProvider } from '@/components/ui/tooltip';
 import { renderWithStore } from '@/test/renderWithStore';
-import { QuestionCard } from '@/components/questions/QuestionCard';
+import { RuledList } from '@/components/layout/Page';
+import { QuestionCard, QuestionRow } from '@/components/questions/QuestionCard';
 import { QuestionDetailModal } from '@/components/questions/QuestionDetailModal';
 import { initialProgress } from '@/utils/engine/spacedRepetition';
 import { reviseQuestion, solveQuestion } from '@/store/actions';
@@ -23,10 +24,68 @@ afterEach(() => {
   vi.useRealTimers();
 });
 
+// The browse row — how a question appears in a list you are scanning (/patterns/:id, /bookmarks).
+// These used to be QuestionCards in a grid, which meant thirty `.glass` plates of equal weight on
+// one screen; they are hairline-ruled rows now (DESIGN.md § The plate rule).
+describe('QuestionRow', () => {
+  function renderRow(progress = initialProgress(), onOpen: (id: number) => void = () => {}) {
+    return renderWithStore(
+      <RuledList>
+        <QuestionRow question={question1} progress={progress} onOpen={onOpen} />
+      </RuledList>,
+    );
+  }
+
+  test('renders one row per question carrying title, what it tests, the authored estimate, difficulty, pattern, type and status', () => {
+    renderRow();
+
+    // The whole row is a single native button — a browse row is an index entry, so it carries no
+    // solve/grade controls of its own. Counting buttons page-wide is what pins that.
+    expect(screen.getAllByRole('button')).toHaveLength(1);
+    const row = screen.getByRole('button');
+    expect(row.tagName).toBe('BUTTON'); // native, so Enter/Space and focus order come for free
+    expect(row.closest('li')).not.toBeNull();
+
+    expect(within(row).getByText('Valid Palindrome')).toBeInTheDocument();
+    expect(within(row).getByText(question1.tests)).toBeInTheDocument();
+    // The estimate is authored per question, so the assertion reads it from the dataset rather
+    // than hardcoding a per-difficulty constant that no longer exists. The tilde is deliberate:
+    // this is a band for a typical first attempt, not a measurement of anyone.
+    expect(within(row).getByText(`~${question1.estimatedTime} min`)).toBeInTheDocument();
+    expect(within(row).getByText('Easy')).toBeInTheDocument();
+    expect(within(row).getByText('Two Pointers')).toBeInTheDocument();
+    expect(within(row).getByText('Foundation')).toBeInTheDocument();
+    expect(within(row).getByText('Unsolved')).toBeInTheDocument();
+  });
+
+  test('clicking anywhere in the row calls onOpen with the question id', () => {
+    const onOpen = vi.fn();
+    renderRow(initialProgress(), onOpen);
+
+    fireEvent.click(screen.getByText('Valid Palindrome'));
+
+    expect(onOpen).toHaveBeenCalledWith(1);
+  });
+
+  test('bookmark and notes indicators show when they apply', () => {
+    renderRow({ ...initialProgress(), bookmarked: true, notes: 'Remember the two-pointer trick' });
+
+    expect(screen.getByRole('img', { name: 'Bookmarked' })).toBeInTheDocument();
+    expect(screen.getByRole('img', { name: 'Has notes' })).toBeInTheDocument();
+  });
+
+  test('an untouched question shows neither indicator', () => {
+    renderRow();
+
+    expect(screen.queryByRole('img', { name: 'Bookmarked' })).not.toBeInTheDocument();
+    expect(screen.queryByRole('img', { name: 'Has notes' })).not.toBeInTheDocument();
+  });
+});
+
 describe('QuestionCard', () => {
   test('renders title, difficulty, pattern, authored estimate, type, and what it tests', () => {
     renderWithStore(
-      <QuestionCard question={question1} progress={initialProgress()} context="browse" onOpenDetail={() => {}} />,
+      <QuestionCard question={question1} progress={initialProgress()} context="today" onOpenDetail={() => {}} />,
     );
 
     expect(screen.getByText('Valid Palindrome')).toBeInTheDocument();
@@ -89,14 +148,14 @@ describe('QuestionCard', () => {
   test('shows a notes indicator when progress.notes is non-empty, and hides it when empty', () => {
     const progressWithNotes: QuestionProgress = { ...initialProgress(), notes: 'Remember the two-pointer trick' };
     const { rerender } = renderWithStore(
-      <QuestionCard question={question1} progress={progressWithNotes} context="browse" onOpenDetail={() => {}} />,
+      <QuestionCard question={question1} progress={progressWithNotes} context="today" onOpenDetail={() => {}} />,
     );
     expect(screen.getByRole('img', { name: 'Has notes' })).toBeInTheDocument();
 
     rerender(
       <Provider store={makeStore()}>
         <TooltipProvider>
-          <QuestionCard question={question1} progress={initialProgress()} context="browse" onOpenDetail={() => {}} />
+          <QuestionCard question={question1} progress={initialProgress()} context="today" onOpenDetail={() => {}} />
         </TooltipProvider>
       </Provider>,
     );
@@ -117,7 +176,7 @@ describe('QuestionCard', () => {
   test('clicking the card body calls onOpenDetail with the question id', () => {
     const onOpenDetail = vi.fn();
     renderWithStore(
-      <QuestionCard question={question1} progress={initialProgress()} context="browse" onOpenDetail={onOpenDetail} />,
+      <QuestionCard question={question1} progress={initialProgress()} context="today" onOpenDetail={onOpenDetail} />,
     );
 
     fireEvent.click(screen.getByText('Valid Palindrome'));

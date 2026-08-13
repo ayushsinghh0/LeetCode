@@ -1,4 +1,4 @@
-import { screen, fireEvent } from '@testing-library/react';
+import { screen, fireEvent, within } from '@testing-library/react';
 import { makeStore } from '@/store/store';
 import { renderWithStore } from '@/test/renderWithStore';
 import BookmarksPage from '@/pages/BookmarksPage';
@@ -19,15 +19,37 @@ describe('BookmarksPage', () => {
     expect(screen.queryByRole('button', { name: 'Easy' })).not.toBeInTheDocument();
   });
 
-  test('lists bookmarked questions as browse-context cards, and only bookmarked ones', () => {
+  test('lists bookmarked questions as ruled rows carrying title, what it tests, estimate, difficulty and pattern — and only bookmarked ones', () => {
     const store = makeStore();
     store.dispatch(toggleBookmark(question1.id));
     renderWithStore(<BookmarksPage />, store);
 
-    // browse context renders the card root as role="button" (no action buttons inside it —
-    // see QuestionCard's context prop), so a button whose name includes the title is the card.
-    expect(screen.getByRole('button', { name: new RegExp(question1.title) })).toBeInTheDocument();
+    // Rows, not cards: each question is a <li> in a hairline-ruled list, and the whole row is one
+    // native button. Scoping to the region keeps the filter chips (also buttons) out of the count.
+    const region = screen.getByRole('region', { name: 'Bookmarked questions' });
+    const rows = within(region).getAllByRole('listitem');
+    expect(rows).toHaveLength(1);
+
+    const row = within(rows[0]!).getByRole('button');
+    expect(row.tagName).toBe('BUTTON');
+    expect(within(row).getByText(question1.title)).toBeInTheDocument();
+    expect(within(row).getByText(question1.tests)).toBeInTheDocument();
+    expect(within(row).getByText(`~${question1.estimatedTime} min`)).toBeInTheDocument();
+    expect(within(row).getByText('Easy')).toBeInTheDocument();
+    expect(within(row).getByText('Two Pointers')).toBeInTheDocument();
+    expect(within(row).getByRole('img', { name: 'Bookmarked' })).toBeInTheDocument();
+
     expect(screen.queryByText(question2.title)).not.toBeInTheDocument();
+  });
+
+  test('clicking a row opens that question in the sheet', () => {
+    const store = makeStore();
+    store.dispatch(toggleBookmark(question1.id));
+    renderWithStore(<BookmarksPage />, store);
+
+    fireEvent.click(screen.getByText(question1.title));
+
+    expect(store.getState().ui.activeQuestionId).toBe(question1.id);
   });
 
   test('difficulty chip filters the bookmarked set (AND, not OR, with bookmarked-ness)', () => {

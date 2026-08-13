@@ -1,7 +1,9 @@
-import { screen, fireEvent } from '@testing-library/react';
+import { screen, fireEvent, within } from '@testing-library/react';
 import { makeStore, type AppStore } from '@/store/store';
 import { renderWithStore } from '@/test/renderWithStore';
 import FocusPage from '@/pages/FocusPage';
+import TodayPage from '@/pages/TodayPage';
+import { setDailyCapacity } from '@/store/actions';
 import { initialProgress } from '@/utils/engine/spacedRepetition';
 import { initialCourseProgress } from '@/utils/engine/aimlCourse';
 import { COURSE_WEEKS } from '@/data/aimlCourse';
@@ -205,6 +207,62 @@ describe('FocusPage: course-review source (course complete, one week review due)
 
     expect(store.getState().course.byWeekId['w00']!.revisionStage).toBe(0);
     expect(store.getState().course.byWeekId['w00']!.nextRevision).toBe('2026-07-31');
+  });
+});
+
+// The defect this block pins: Focus consumed `selectRankedWork` (the order) but never
+// `buildSession` (the budget), so Today could print "nothing fits 15m" while the Focus button on
+// that same page opened an hour of work. One ranker, one packer, one `settings.dailyCapacityMin`.
+describe('FocusPage: the time budget', () => {
+  // DSA exhausted, so the only studyable work on either track is the 60-minute course session —
+  // an unambiguous overflow against the smallest capacity the chips offer.
+  function courseOnlyStore(capacityMin?: number): AppStore {
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date(`${TODAY}T12:00:00`));
+    const store = makeStore({
+      progress: { byId: dsaExhaustedById(), dayLogs: {}, startDate: '2026-01-01' },
+    });
+    if (capacityMin !== undefined) store.dispatch(setDailyCapacity(capacityMin));
+    return store;
+  }
+
+  test('a 15-minute window does not open a 60-minute session, and says which of the two empties it is', () => {
+    renderWithStore(<FocusPage />, courseOnlyStore(15));
+
+    expect(screen.queryByRole('heading', { name: 'Orientation' })).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Session done' })).not.toBeInTheDocument();
+
+    // Not "all caught up": there IS work, it just does not fit — and a surface that conflates the
+    // two is lying about the state of the plan.
+    expect(
+      screen.queryByText('All caught up — nothing queued for focus right now.'),
+    ).not.toBeInTheDocument();
+    expect(screen.getByText('Nothing here fits 15m.')).toBeInTheDocument();
+    expect(screen.getByText(/The shortest thing queued for focus is ~1h/)).toBeInTheDocument();
+  });
+
+  test('Focus and Today agree under a tight capacity: the session is in neither', () => {
+    const store = courseOnlyStore(15);
+
+    const today = renderWithStore(<TodayPage />, store);
+    const plan = screen.getByRole('list', { name: 'Planned work, in order' });
+    expect(within(plan).queryByText(/Orientation/)).not.toBeInTheDocument();
+    today.unmount();
+
+    renderWithStore(<FocusPage />, store);
+    expect(screen.queryByRole('button', { name: 'Session done' })).not.toBeInTheDocument();
+  });
+
+  test('and they agree at the default capacity too: the session is in both', () => {
+    const store = courseOnlyStore(); // 180m, the default evening block
+
+    const today = renderWithStore(<TodayPage />, store);
+    const plan = screen.getByRole('list', { name: 'Planned work, in order' });
+    expect(within(plan).getByText(/Orientation/)).toBeInTheDocument();
+    today.unmount();
+
+    renderWithStore(<FocusPage />, store);
+    expect(screen.getByRole('button', { name: 'Session done' })).toBeInTheDocument();
   });
 });
 

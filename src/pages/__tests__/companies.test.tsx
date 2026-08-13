@@ -1,4 +1,4 @@
-import { cleanup, render, screen, within } from '@testing-library/react';
+import { cleanup, fireEvent, render, screen, within } from '@testing-library/react';
 import { MemoryRouter, Route, Routes } from 'react-router-dom';
 import { Provider } from 'react-redux';
 import { ThemeProvider } from '@/contexts/ThemeContext';
@@ -7,7 +7,12 @@ import { makeStore } from '@/store/store';
 import CompaniesPage from '@/pages/CompaniesPage';
 import { reviseQuestion, solveQuestion } from '@/store/actions';
 import { COMPANIES, EVIDENCE_LABEL, EVIDENCE_MEANING } from '@/data/companies';
+import { selectQuestionById } from '@/store/selectors';
+import questionsData from '@/data/questions.json';
 import type { AppStore } from '@/store/store';
+import type { Question } from '@/types';
+
+const questions = questionsData as Question[];
 
 // The shared helper mounts a MemoryRouter at "/", but these surfaces are route-parameterised —
 // so this file wires its own router with the :companyId param in place.
@@ -149,6 +154,49 @@ describe('CompaniesPage — a company with topic-level evidence', () => {
     renderAt('/companies/google');
     const practice = screen.getByRole('region', { name: 'Practice set' });
     expect(within(practice).getByText(/These are not questions Google asks/)).toBeInTheDocument();
+  });
+
+  // The section is titled "Where to start" and had no way to start: its one slot held a duration
+  // figure, and nothing on the page led into practice except remembering to click a row.
+  test('the practice set offers one control, and it opens the row it says to start with', () => {
+    const store = makeStore();
+    renderAt('/companies/google', store);
+
+    const practice = screen.getByRole('region', { name: 'Practice set' });
+    fireEvent.click(within(practice).getByRole('button', { name: 'Start here' }));
+
+    const activeId = store.getState().ui.activeQuestionId;
+    expect(activeId).not.toBeNull();
+    // The set is ordered weakest area first, easiest first — so the top row IS the answer to
+    // "where do I start", and the button must open that one rather than an arbitrary pick.
+    const firstRow = within(practice).getAllByRole('listitem')[0]!;
+    expect(within(firstRow).getByText(selectQuestionById(activeId!)!.title)).toBeInTheDocument();
+  });
+
+  test('the workload figure is stated as work, never as a share of anything', () => {
+    renderAt('/companies/google');
+    const practice = screen.getByRole('region', { name: 'Practice set' });
+
+    expect(practice).toHaveTextContent(/of work at the authored estimates/);
+    // No percentage, no fraction of a whole: those are the shapes a readiness score comes in.
+    expect(practice.textContent ?? '').not.toMatch(/\d+%/);
+  });
+
+  test('an exhausted practice set says so, and says what running out does not mean', () => {
+    const store = makeStore();
+    const google = COMPANIES.find((c) => c.id === 'google')!;
+    const mapped = new Set<string>(google.patterns);
+    for (const question of questions) {
+      if (mapped.has(question.pattern)) store.dispatch(solveQuestion(question.id));
+    }
+    renderAt('/companies/google', store);
+
+    const practice = screen.getByRole('region', { name: 'Practice set' });
+    // Silence used to be the empty state — the whole section vanished, which reads as a missing
+    // feature rather than as an outcome.
+    expect(within(practice).getByText(/nothing left here to hand you/)).toBeInTheDocument();
+    expect(practice).toHaveTextContent(/not a statement that you are prepared for Google/);
+    expect(within(practice).queryByRole('button', { name: 'Start here' })).toBeNull();
   });
 
   test('every practice row says why it is there, and the reason is the topic mapping', () => {

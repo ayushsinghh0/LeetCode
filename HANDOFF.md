@@ -9,12 +9,15 @@ the work stopped and what is left**.
 ```
 npx tsc --noEmit        clean
 npm run validate:data   OK — 539 questions, 17 companies
-npx vitest run          761 passed (66 files)      ← 747 at session-2 start
-npm run build           succeeds — main chunk 256.94 kB
+npx vitest run          758 passed (66 files)      ← 747 at session-2 start
+npm run build           succeeds — main chunk 256.54 kB
 ```
 
-`origin/main` is at `6851662`. Working tree clean. Push uses the credential override recorded in
+`origin/main` is at `ba97ba1`. Working tree clean. Push uses the credential override recorded in
 project memory (plain `git push` authenticates as the wrong account).
+
+(The count dips from 761 because pass 2's fixes deleted the second weakness model's tests along
+with the model, and merged one redundant shell assertion — not because coverage was dropped.)
 
 ## What session 2 closed
 
@@ -51,23 +54,66 @@ surfaces stating things the data did not support. All fixed in `6851662` with re
 every cold load replaced the whole application — sidebar, nav, brand — with one pulsing plate
 until the first route chunk resolved. Moved inside the shell; a synchronous test pins it.
 
-## What is NOT done — pick up here
+## Adversarial pass 2 also ran — and found 3 of pass 1's 6 fixes incomplete
 
-1. **Adversarial pass 2 was running when this was written.** Its findings are the next work item.
-   Check whether its report was acted on before doing anything else.
+Both passes are done. Pass 2's severe findings are fixed in `ba97ba1`:
 
-2. **`engine/weakness.ts` test coverage** — an agent was writing
+- **Focus mode was an XP farm.** It built its own queue instead of reading `selectRankedWork`, so
+  it bypassed the course done-today gate (all 52 sessions clearable in one sitting, 2340 XP), the
+  `perDay - solvedToday` cap (a treadmill with no completion moment), and the ranker's ordering
+  (Today's hero and the Focus button could disagree). Its test pinned the defect as intent.
+- **Two weakness models were live.** Dashboard/Companies/Patterns read a coverage blend that
+  imputed a perfect pass rate for never-tested patterns and could name a 100%-solved pattern as
+  the learner's weakest. Deleted; `selectPatternWeakness` is the only one now.
+- **Revision minutes were poisoning the pace estimate** (`timeSpentMin` is first-attempt pace).
+
+### Pass 2 findings NOT yet actioned — this is the next work item
+
+Ranked by the reviewer's severity. Each has file:line evidence in its report; re-derive if needed:
+
+1. **Settings' capacity options don't match the chips** (`SettingsPage` `CAPACITY_OPTIONS` starts
+   at 60; `SESSION_PRESETS`/`SESSION_BUDGETS` start at 15). Tap "15m" then open Settings: the
+   Select renders **empty**. Pick "5 hours" there: no chip is checked on Today. This is the
+   unfinished half of pass 1's data-loss fix.
+2. **Grade buttons stay live after a same-day grade** and silently no-op (the thunk guard landed;
+   `QuestionDetailModal`, `QuestionCard` and `FocusPage` still offer the action).
+3. **`CourseTodayCard` contradicts Today within one screen** — no done-today gate, so the card
+   offers the next session while the plan above it has correctly dropped it.
+4. **Est. finish is wrong by ~10 months for the first two weeks** — `solvePace` divides by a fixed
+   14-day window regardless of how long the learner has existed; also formats `'MMM d'`, so a date
+   over a year out reads as one already past.
+5. **The Revision footer's shortfall counts only questions**, never unplaced course reviews — and
+   at 15- and 30-minute budgets a course review can never be placed at all.
+6. **Notifications and the Dashboard ledger call weekly top-ups "due"** — they are pulled forward
+   and by construction not due. `selectDueRevisionIds` is the honest number and is unused there.
+7. **Contest keeps the clock running when you navigate away**, then can declare a 40-minute
+   "stall" and name a pattern weakness from it.
+8. Then: Settings' finish-time claim ignores solved count (#13), Companies claims "reviews
+   passing" for never-reviewed patterns (#14), PostSolvePanel presents intended complexity as
+   achieved (#15), pass rate shown with no denominator (#16), achievements count can exceed rows
+   rendered (#17), Calendar counts reviews as sessions and disagrees with itself on "active"
+   (#18), `SettingsPage` dispatches a slice action directly (#19), `courseRecall.json` is not in
+   `manualChunks` (#22), hint-ladder disclosure leaks between questions (#23).
+
+Pass 2 confirmed these came up **clean**: engine purity, sparse-map fallbacks, time
+double-counting in display, course-activity derivation, the ladder/XP/bonus spec, hint-use
+neutrality, persistence and quarantine, day rollover, NaN/divide-by-zero, plate composition,
+`usePomodoro`, and the route registry.
+
+## Also not done
+
+1. **`engine/weakness.ts` test coverage** — an agent was writing
    `src/utils/engine/__tests__/weakness.test.ts` when session 2 was wrapping up. Verify whether
    that file exists and is green; the module is the most arithmetic-dense one shipped and every
-   UI weakness claim rests on it.
+   UI weakness claim rests on it. Pass 2 independently flagged its absence.
 
-3. **Contest results still evaporate.** `analyzeContest` returns `patternGaps` so a contest can
+2. **Contest results still evaporate.** `analyzeContest` returns `patternGaps` so a contest can
    feed the shared weakness signal, but nothing consumes them and the contest slice is not
    persisted — a stall informs the post-contest screen and then vanishes. The module header now
    says so honestly instead of claiming the wiring exists. Wiring it means persisting stalls
    somewhere `patternWeakness` can read.
 
-4. **Smaller items, deliberately not actioned:**
+3. **Smaller items, deliberately not actioned:**
    - `engine/nextAction.ts` could expose `nextAfterSolve(questionId, byId)` — that recommendation
      is business logic living inside `PostSolvePanel`.
    - `data/curriculum.ts` should own `FAMILY_ROLE_MEANING` (it sits locally in `FamilyPanel.tsx`).
@@ -80,6 +126,10 @@ until the first route chunk resolved. Moved inside the shell; a synchronous test
 
 - **Commit messages go through a file** (`git commit -F <path>`), not a PowerShell here-string:
   long messages containing quotes get tokenized and the commit fails messily.
+- **Never edit source through PowerShell text replacement.** `Get-Content -Raw` decodes with the
+  ANSI codepage, so a round trip turns every em dash into `â€"` mojibake — 38 of them in one
+  sweep this session, caught only because a course-review test failed to match its own title.
+  Use the Edit tool.
 - UI copy is asserted in tests. Changing a user-facing string is a behaviour change: update the
   owning test deliberately, **never weaken an assertion to make a change pass.**
 - Tests must pin the clock (`vi.useFakeTimers()` + `vi.setSystemTime(...)`).

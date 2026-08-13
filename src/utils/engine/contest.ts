@@ -11,9 +11,12 @@
 // rests on, several outcomes are explicitly declared unreadable, and a problem the learner barely
 // touched produces no claim at all rather than a claim about their weakness.
 //
-// Results feed the same weakness signal as everything else (see `patternGaps`) rather than
-// forming a private analytics island — that is the §27 requirement and it is why this module
-// returns pattern ids rather than rendering its own verdict.
+// `patternGaps` returns pattern ids rather than a rendered verdict so a contest's findings can
+// feed the shared weakness signal rather than forming a private analytics island. NOTE: that
+// wiring does not exist yet — `engine/weakness.ts` reads drills and the revision ladder only,
+// and the contest slice is not persisted, so a stall informs the post-contest screen and then
+// evaporates. Wiring it up means persisting stalls somewhere `patternWeakness` can read; until
+// then this module's output is honest about a single sitting and nothing more.
 //
 // Pure and deterministic like every engine module: no clock, no store, no randomness beyond the
 // seeded PRNG the caller supplies a seed for.
@@ -216,11 +219,15 @@ export function analyzeContest(contest: Contest, attempts: ContestAttempt[]): Co
     ? []
     : Array.from(new Set(stalled.map((r) => r.question.pattern)));
 
+  // The count must describe THIS pattern, not the set: "2 problems stalled here" when one of the
+  // two stalls was a different technique is exactly the invented precision this module refuses.
+  const topPattern = patternGaps[0];
+  const stalledHere = stalled.filter((r) => r.question.pattern === topPattern).length;
   const next =
-    patternGaps.length > 0
+    topPattern !== undefined
       ? {
-          pattern: patternGaps[0]!,
-          why: `${stalled.length === 1 ? 'One problem' : `${stalled.length} problems`} in this set stalled here with real time on the clock.`,
+          pattern: topPattern,
+          why: `${stalledHere === 1 ? 'One problem' : `${stalledHere} problems`} in this set stalled here with real time on the clock.`,
         }
       : null;
 

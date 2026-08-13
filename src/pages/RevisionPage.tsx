@@ -57,8 +57,14 @@ export default function RevisionPage() {
   const dispatch = useAppDispatch();
 
   const planned = useAppSelector((state) => selectRevisionSession(state, today));
-  const { activities: frozen, doneIds, startedOn, completedOn } = useAppSelector((state) => state.session);
+  const { frozen, doneIds, grades, startedOn, completedOn } = useAppSelector((state) => state.session);
   const budgetMin = useAppSelector((state) => state.settings.dailyCapacityMin);
+  const revisionEnabled = useAppSelector((state) => state.settings.revisionEnabled);
+  // The sitting may straddle midnight: grades land in the day log of whatever date each dispatch
+  // saw, so the completion summary reads the started-on log as well as today's.
+  const startedLog = useAppSelector((state) =>
+    startedOn !== null ? state.progress.dayLogs[startedOn] : undefined,
+  );
   const progressById = useAppSelector((state) => state.progress.byId);
   const courseByWeekId = useAppSelector((state) => state.course.byWeekId);
   const courseDueIds = useAppSelector((state) => selectCourseDueReviewIds(state, today));
@@ -70,20 +76,12 @@ export default function RevisionPage() {
   const running = startedOn !== null && completedOn === null;
   const finished = completedOn !== null;
 
-  // While a session is live the page reads the frozen plan, not the live one. Everything else
-  // about the session — its shape, why these items were chosen — is a property of that plan, so
-  // the totals are recomputed from the frozen list rather than taken from the live selector.
-  const session = useMemo(
-    () =>
-      startedOn === null
-        ? planned
-        : {
-            ...planned,
-            activities: frozen,
-            totalMinutes: frozen.reduce((sum, a) => sum + a.minutes, 0),
-          },
-    [planned, frozen, startedOn],
-  );
+  // While a session is live the page reads the frozen plan WHOLESALE — activities, shape label,
+  // focus, rationale, deferred list. Overlaying only the activities onto the live selector let
+  // everything else recompute underneath the sitting: changing the shared capacity on Today
+  // mid-session relabelled a running "Deep review" as "Quick recall". A session is a commitment;
+  // every property of it holds still until it ends. (See SessionState.frozen.)
+  const session = startedOn !== null && frozen !== null ? frozen : planned;
   const progress = sessionProgress(session, doneIds);
 
   const masteredQuestions = useMemo(
@@ -102,7 +100,10 @@ export default function RevisionPage() {
   );
 
   const upcoming = useMemo(() => forecast.filter((d) => d.count > 0).slice(0, 7), [forecast]);
-  const dueCount = session.rationale.due + session.rationale.overdue + courseDueIds.length;
+  // The whole truth, not just what fit: placed due work (rationale counts only placed items),
+  // plus due work the session did not take, plus due course reviews.
+  const dueCount =
+    session.rationale.due + session.rationale.overdue + session.deferred.length + courseDueIds.length;
 
   function openActivity(activity: SessionActivity) {
     if (activity.questionId !== undefined) dispatch(activeQuestionSet(activity.questionId));
@@ -113,7 +114,8 @@ export default function RevisionPage() {
   function gradeActivity(activity: SessionActivity, passed: boolean) {
     if (activity.questionId !== undefined) dispatch(reviseQuestion(activity.questionId, passed));
     else if (activity.weekId !== undefined) dispatch(reviseCourseWeek(activity.weekId, passed));
-    dispatch(completeSessionActivity(activity.id));
+    // The grade rides along so the row can show the recorded outcome — final for the sitting.
+    dispatch(completeSessionActivity(activity.id, passed));
   }
 
   return (
@@ -128,20 +130,29 @@ export default function RevisionPage() {
         <EmptyState
           icon={Check}
           title="Nothing to revise right now"
-          hint="Future you says thanks. Solve something new and it will come back around the ladder."
+          hint={
+            revisionEnabled
+              ? 'Future you says thanks. Solve something new and it will come back around the ladder.'
+              : 'Spaced revision is switched off in Settings, so the ladder is not scheduling reviews.'
+          }
         />
       ) : finished ? (
         <SessionComplete
           session={session}
           doneIds={doneIds}
-          passedToday={todayLog?.revisionsPassed ?? []}
-          failedToday={todayLog?.revisionsFailed ?? []}
+          passedToday={Array.from(
+            new Set([...(startedLog?.revisionsPassed ?? []), ...(todayLog?.revisionsPassed ?? [])]),
+          )}
+          failedToday={Array.from(
+            new Set([...(startedLog?.revisionsFailed ?? []), ...(todayLog?.revisionsFailed ?? [])]),
+          )}
           onRestart={() => dispatch(clearRevisionSession())}
         />
       ) : running ? (
         <SessionRun
           session={session}
           doneIds={doneIds}
+          grades={grades}
           progress={progress}
           onToggle={(id, done) =>
             dispatch(done ? uncompleteSessionActivity(id) : completeSessionActivity(id))
@@ -223,10 +234,25 @@ export default function RevisionPage() {
         </Section>
       )}
 
-      {dueCount > 0 && !running && !finished && (
+      {/* Said wherever the learner is in the flow: with the setting off, the ladder schedules
+          nothing, so an absence of due reviews here is a choice they made rather than a claim
+          that their recall is safe. Today applies the same gate — the two must never disagree. */}
+      {!revisionEnabled && (
         <p className="text-sm text-muted-foreground">
-          {dueCount} {dueCount === 1 ? 'item is' : 'items are'} due in total. The ladder does not
-          penalise a late review — anything the session leaves is simply waiting.
+          Spaced revision is switched off in Settings, so the ladder is not scheduling reviews.
+          Anything here is recognition and transfer practice, not recall that came due.
+        </p>
+      )}
+
+      {revisionEnabled && dueCount > 0 && !finished && (
+        <p className="text-sm text-muted-foreground">
+          {dueCount} {dueCount === 1 ? 'item is' : 'items are'} due in total
+          {session.deferred.length > 0 &&
+            ` — ${session.deferred.length} of them ${
+              session.deferred.length === 1 ? 'is' : 'are'
+            } not in this session`}
+          . The ladder does not penalise a late review — anything the session leaves is simply
+          waiting, not lost.
         </p>
       )}
     </Page>
@@ -346,6 +372,7 @@ function isGradable(activity: SessionActivity): boolean {
 function SessionRun({
   session,
   doneIds,
+  grades,
   progress,
   onToggle,
   onGrade,
@@ -355,6 +382,7 @@ function SessionRun({
 }: {
   session: ReturnType<typeof selectRevisionSession>;
   doneIds: string[];
+  grades: Record<string, boolean>;
   progress: ReturnType<typeof sessionProgress>;
   onToggle: (id: string, done: boolean) => void;
   onGrade: (activity: SessionActivity, passed: boolean) => void;
@@ -414,12 +442,22 @@ function SessionRun({
                   {/* A revision activity is graded here, not merely ticked. Ticking records that
                       the learner did the thing; only a grade moves the ladder — and the completion
                       summary's "held / needs another pass" reads the graded result, so without
-                      this the session could never report how recall actually went. */}
+                      this the session could never report how recall actually went.
+
+                      A recorded grade is FINAL for the sitting: the ladder has already moved and
+                      the XP is already paid, so the row states the outcome rather than offering
+                      an "Undo" that could only un-tick the row while silently leaving both — and
+                      whose re-grade would move the ladder twice. (Ungraded ticks below keep
+                      their Undo; retracting "I did this" is honest, retracting a grade is not.) */}
                   {isGradable(activity) ? (
                     isDone ? (
-                      <Button variant="ghost" size="sm" onClick={() => onToggle(activity.id, true)}>
-                        Undo
-                      </Button>
+                      <p className="text-sm text-muted-foreground">
+                        {grades[activity.id] === undefined
+                          ? 'Recorded'
+                          : grades[activity.id]
+                            ? 'Recalled'
+                            : 'Needs another pass'}
+                      </p>
                     ) : (
                       <div className="flex gap-2">
                         <Button variant="outline" size="sm" onClick={() => onGrade(activity, true)}>

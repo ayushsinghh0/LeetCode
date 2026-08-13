@@ -2,6 +2,8 @@ import { makeStore } from '@/store/store';
 import { addTask, deferTaskToTomorrow, deleteTask, importProgress, resetProgress, toggleTask } from '@/store/actions';
 import { nextTaskId, selectTasksForDate } from '@/store/slices/tasksSlice';
 import { selectPersistedState, validatePersisted } from '@/services/storage/serialize';
+import { SESSION_PRESETS } from '@/utils/engine/nextAction';
+import { SESSION_BUDGETS } from '@/utils/engine/session';
 
 const TODAY = '2026-07-30';
 const TOMORROW = '2026-07-31';
@@ -135,4 +137,23 @@ test('validatePersisted: dailyCapacityMin optional, validated when present', () 
   const invalid = structuredClone(base);
   invalid.settings.dailyCapacityMin = 5; // below any sane budget
   expect(validatePersisted(invalid)).toBeNull();
+});
+
+// Regression: the validator floor once sat at 30 while the Today/Revision chips offered 15 —
+// so tapping "15m" persisted a payload the loader would QUARANTINE, booting the app empty.
+// Every value the product's own UI can write must round-trip.
+test('validatePersisted accepts every capacity the session chips can write', () => {
+  const store = makeStore();
+  const base = JSON.parse(JSON.stringify(selectPersistedState(store.getState())));
+
+  for (const preset of SESSION_PRESETS) {
+    const payload = structuredClone(base);
+    payload.settings.dailyCapacityMin = preset;
+    expect(validatePersisted(payload), `capacity ${preset} must survive a reload`).not.toBeNull();
+  }
+  for (const budget of SESSION_BUDGETS) {
+    const payload = structuredClone(base);
+    payload.settings.dailyCapacityMin = budget;
+    expect(validatePersisted(payload), `budget ${budget} must survive a reload`).not.toBeNull();
+  }
 });

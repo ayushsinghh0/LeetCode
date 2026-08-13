@@ -624,6 +624,7 @@ export const selectRevisionSession = createSelector(
     selectSolvedNewCount,
     selectDrillsByDate,
     (state: RootState) => state.settings.dailyCapacityMin,
+    selectRevisionEnabled,
     selectTodayArg,
   ],
   (
@@ -635,11 +636,16 @@ export const selectRevisionSession = createSelector(
     solvedNewCount,
     drillsByDate,
     budgetMin,
+    revisionEnabled,
     today,
   ): RevisionSession =>
     buildRevisionSession({
       budgetMin,
-      candidates,
+      // The Settings toggle promises "Show due revisions on the Today and Revision pages" — the
+      // same gate selectRevisionQueueIds applies for Today, or the two surfaces contradict each
+      // other. Only ladder reviews are gated: drills, transfer and course reviews stay, exactly
+      // as they do on Today.
+      candidates: revisionEnabled ? candidates : [],
       transfer,
       courseReviews: courseDueIds
         .map((weekId) => {

@@ -11,6 +11,8 @@ import {
   setDailyCapacity,
   solveQuestion,
 } from '@/store/actions';
+import { settingsUpdated } from '@/store/slices/settingsSlice';
+import { selectRevisionSession } from '@/store/selectors';
 import { courseWeekById } from '@/data/aimlCourse';
 import questionsData from '@/data/questions.json';
 import type { Question } from '@/types';
@@ -81,6 +83,51 @@ describe('RevisionPage — the page asks how long you have, not what you owe', (
     // The total is still stated — calmly, in body copy, framed as waiting rather than owed.
     expect(screen.getByText(/items are due in total/i)).toBeInTheDocument();
     expect(screen.getByText(/simply waiting/i)).toBeInTheDocument();
+  });
+
+  test('the total counts deferred work too, and says how much did not fit', () => {
+    vi.useFakeTimers();
+    const store = makeStore();
+    setDate('2026-07-30');
+    for (let id = 1; id <= 20; id++) store.dispatch(solveQuestion(id));
+    setDate('2026-08-20');
+    // A short budget cannot hold twenty overdue items, so most of them defer.
+    store.dispatch(setDailyCapacity(15));
+
+    const { store: s } = renderWithStore(<RevisionPage />, store);
+    const session = selectRevisionSession(s.getState(), '2026-08-20');
+    expect(session.deferred.length).toBeGreaterThan(0);
+
+    // The footer states the WHOLE due total (placed + deferred), not just what fit, and names
+    // the shortfall — "N items are due in total — M of them are not in this session".
+    const placed = session.rationale.due + session.rationale.overdue;
+    expect(
+      screen.getByText(
+        new RegExp(`${placed + session.deferred.length} items are due in total`, 'i'),
+      ),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByText(new RegExp(`${session.deferred.length} of them are not in this session`, 'i')),
+    ).toBeInTheDocument();
+  });
+
+  test('with spaced revision switched off, the Revision page agrees with Today instead of contradicting it', () => {
+    vi.useFakeTimers();
+    const store = makeStore();
+    const due = solveAndAdvanceToDue(store, 1);
+    store.dispatch(settingsUpdated({ revisionEnabled: false }));
+
+    const { store: s } = renderWithStore(<RevisionPage />, store);
+
+    // Today reports the day clear when revision is off (selectRevisionQueueIds returns []); this
+    // page must not simultaneously schedule the same due review. Ladder work is gone entirely...
+    const session = selectRevisionSession(s.getState(), due);
+    expect(session.rationale.due + session.rationale.overdue).toBe(0);
+    expect(session.deferred).toHaveLength(0);
+    expect(screen.queryByText(question1.title)).not.toBeInTheDocument();
+    // ...and the page says why, rather than leaving the learner to read the silence as "recall is
+    // safe". (Recognition/transfer practice is not gated by this setting, exactly as on Today.)
+    expect(screen.getByText(/spaced revision is switched off in settings/i)).toBeInTheDocument();
   });
 
   test('the preview names the session, its cost, and why these items were chosen', () => {
@@ -200,12 +247,35 @@ describe('RevisionPage — running a session', () => {
     renderWithStore(<RevisionPage />, store);
     fireEvent.click(screen.getByRole('button', { name: 'Start session' }));
 
-    const before = store.getState().session.activities.map((a) => a.id);
+    const before = store.getState().session.frozen!.activities.map((a) => a.id);
     fireEvent.click(screen.getAllByRole('button', { name: 'Recalled it' })[0]!);
-    const after = store.getState().session.activities.map((a) => a.id);
+    const after = store.getState().session.frozen!.activities.map((a) => a.id);
 
     expect(after).toEqual(before);
     expect(store.getState().session.doneIds).toHaveLength(1);
+  });
+
+  test('a recorded grade is final for the sitting — the row states the outcome and offers no Undo', () => {
+    vi.useFakeTimers();
+    const store = makeStore();
+    setDate('2026-07-30');
+    for (let id = 1; id <= 6; id++) store.dispatch(solveQuestion(id));
+    setDate('2026-08-05');
+
+    renderWithStore(<RevisionPage />, store);
+    fireEvent.click(screen.getByRole('button', { name: 'Start session' }));
+
+    fireEvent.click(screen.getAllByRole('button', { name: 'Recalled it' })[0]!);
+
+    // The slice recorded the grade, and the graded row now states the outcome...
+    const gradedId = Object.keys(store.getState().session.grades)[0]!;
+    expect(store.getState().session.grades[gradedId]).toBe(true);
+    const gradedRow = screen.getByText('Recalled').closest('li')!;
+    // ...and offers neither an Undo nor a second grade: the ladder has already moved, so
+    // re-grading from this surface must be unreachable.
+    expect(within(gradedRow).queryByRole('button', { name: 'Undo' })).not.toBeInTheDocument();
+    expect(within(gradedRow).queryByRole('button', { name: 'Recalled it' })).not.toBeInTheDocument();
+    expect(within(gradedRow).queryByRole('button', { name: 'Not yet' })).not.toBeInTheDocument();
   });
 
   test('a due course review is in the session and grading it climbs the course ladder', () => {

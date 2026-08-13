@@ -122,7 +122,7 @@ export default function ContestPage() {
         <EmptyState
           icon={Swords}
           title="Nothing left to contest"
-          hint="Contests draw from problems you haven't solved, and every problem in the catalog is solved."
+          hint="Contests draw from problems you haven't solved or skipped, and there are none left."
         />
       ) : !running && !finished ? (
         <Section aria-label="Start a contest">

@@ -250,6 +250,13 @@ export const reviseQuestion = (id: number, passed: boolean): AppThunk => (dispat
   if (!progressBefore || progressBefore.status !== 'solved' || isMastered(progressBefore)) return;
 
   const date = todayISO();
+
+  // One grade per question per calendar day — the same idempotency solveQuestion has. A pass
+  // schedules the next review days out and a fail reschedules to tomorrow, so a second same-day
+  // grade is never product-legitimate; without this gate a stray double-dispatch double-moves
+  // the 1/3/7/15/30 ladder, double-pays XP, and double-counts the day log.
+  if (progressBefore.lastReviewed === date) return;
+
   const xp = revisionXp(question.difficulty);
 
   const perDay = stateBefore.settings.questionsPerDay;
@@ -326,6 +333,9 @@ export const reviseCourseWeek = (weekId: string, passed: boolean): AppThunk => (
   if (!isWeekDone(week, before) || isWeekRetained(before)) return;
 
   const date = todayISO();
+  // One grade per week per calendar day — mirrors reviseQuestion's gate for the same reason.
+  if (before.lastReviewed === date) return;
+
   dispatch(courseRevisionLogged({ weekId, date, passed }));
   dispatch(xpAdded(COURSE_REVIEW_XP));
   dispatch(bonusXpLogged({ date, xp: COURSE_REVIEW_XP }));
@@ -391,14 +401,15 @@ export const setDailyCapacity = (minutes: number): AppThunk => (dispatch) => {
 
 export const startRevisionSession = (): AppThunk => (dispatch, getState) => {
   const today = todayISO();
-  // The plan is snapshotted here, not read live by the page — see SessionState.activities.
-  const { activities } = selectRevisionSession(getState(), today);
-  if (activities.length === 0) return;
-  dispatch(sessionStarted({ date: today, activities }));
+  // The WHOLE plan is snapshotted here, not read live by the page — see SessionState.frozen.
+  const session = selectRevisionSession(getState(), today);
+  if (session.activities.length === 0) return;
+  dispatch(sessionStarted({ date: today, session }));
 };
 
-export const completeSessionActivity = (activityId: string): AppThunk => (dispatch) => {
-  dispatch(activityCompleted({ activityId }));
+/** `grade` records a gradable activity's outcome alongside the tick; it is final for the sitting. */
+export const completeSessionActivity = (activityId: string, grade?: boolean): AppThunk => (dispatch) => {
+  dispatch(activityCompleted({ activityId, grade }));
 };
 
 export const uncompleteSessionActivity = (activityId: string): AppThunk => (dispatch) => {

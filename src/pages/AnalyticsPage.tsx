@@ -104,6 +104,10 @@ export default function AnalyticsPage() {
   const time = useMemo(() => studyTime(dayLogs, today, ACTIVE_WINDOW_DAYS), [dayLogs, today]);
   const solvedPerDay = useMemo(() => solvedPerDaySeries(dayLogs, today, range), [dayLogs, today, range]);
 
+  // Deliberately labelled rather than "corrected": focusMinutes is the canonical total-time
+  // ledger and includes minutes spent on the course, while the denominator counts DSA items
+  // only. The two dimensions cannot be separated here (that is the time-attribution invariant),
+  // so the figure names what it actually divides instead of implying a clean per-question cost.
   const completedItems = time.solves + time.reviews;
   const minutesPerItem = completedItems > 0 && time.minutes > 0
     ? Math.round(time.minutes / completedItems)
@@ -152,7 +156,7 @@ export default function AnalyticsPage() {
                 time.minutes === 0
                   ? 'not measured — the timer has not run'
                   : minutesPerItem !== null
-                    ? `~${minutesPerItem} min per item finished`
+                    ? `~${minutesPerItem} min per DSA item, course time included`
                     : 'no items finished in this window',
             },
           ]}

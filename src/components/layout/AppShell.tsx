@@ -4,6 +4,7 @@ import { ErrorBoundary } from '@/components/shared/ErrorBoundary';
 import { Sidebar } from '@/components/layout/Sidebar';
 import { MobileNav } from '@/components/layout/MobileNav';
 import { PageTransition } from '@/components/layout/PageTransition';
+import { PageFallback } from '@/components/layout/PageFallback';
 import { useAppSelector } from '@/store/hooks';
 
 // The question sheet is the app's heaviest non-route component — hint ladder, post-solve
@@ -62,9 +63,14 @@ export function AppShell() {
           {/* Boundary inside the shell: a page crash keeps the sidebar/nav alive so the user
               can still move to another route. App.tsx carries the outer backstop. */}
           <ErrorBoundary>
-            <PageTransition>
-              <Outlet />
-            </PageTransition>
+            {/* Suspense sits HERE, not above the shell: a lazy route's chunk should replace the
+                page column, never the whole application. Above the shell it blanked the sidebar,
+                the mobile nav and the brand on every cold load. */}
+            <Suspense fallback={<PageFallback />}>
+              <PageTransition>
+                <Outlet />
+              </PageTransition>
+            </Suspense>
           </ErrorBoundary>
         </div>
       </main>

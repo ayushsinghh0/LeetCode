@@ -96,6 +96,19 @@ describe('AppShell routing', () => {
     await screen.findByRole('heading', { name: 'Today' }, { timeout: 5000 });
   });
 
+  test('the shell chrome paints before the route chunk resolves, not after it', () => {
+    renderApp(['/']);
+
+    // Synchronous assertions, deliberately: no awaiting. The Suspense boundary lives inside
+    // AppShell (around the page column), so the sidebar, brand and mobile nav are on screen
+    // during the very first render while DashboardPage's chunk is still in flight. With the
+    // boundary above the shell — where it used to be — every one of these was replaced by a
+    // single pulsing plate until the chunk landed, on every cold load.
+    expect(screen.getByRole('navigation', { name: /sidebar navigation/i })).toBeInTheDocument();
+    expect(screen.getByRole('navigation', { name: /mobile navigation/i })).toBeInTheDocument();
+    expect(screen.getByText('DSA Roadmap')).toBeInTheDocument();
+  });
+
   test('an unknown path renders the 404 page inside the shell with a way back', async () => {
     renderApp(['/nowhere']);
 

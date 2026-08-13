@@ -234,10 +234,13 @@ export function validatePersisted(raw: unknown): PersistedStateV1 | null {
   if (typeof settings.revisionEnabled !== 'boolean') return null;
   if (settings.theme !== 'dark' && settings.theme !== 'light') return null;
   if (typeof settings.notifications !== 'boolean') return null;
-  // Optional (predates the daily plan); when present it must be a sane study budget.
+  // Optional (predates the daily plan); when present it must be a sane study budget. The floor
+  // is 15, not 30: it must admit every value the product's own chips write (SESSION_PRESETS /
+  // SESSION_BUDGETS start at 15, and setDailyCapacity guards >= 15) — a validator stricter than
+  // the UI quarantines the learner's whole state the first time they tap the smallest chip.
   const capacity = settings.dailyCapacityMin;
   if ('dailyCapacityMin' in settings && capacity !== undefined) {
-    if (typeof capacity !== 'number' || !Number.isInteger(capacity) || capacity < 30 || capacity > 960) return null;
+    if (typeof capacity !== 'number' || !Number.isInteger(capacity) || capacity < 15 || capacity > 960) return null;
   }
 
   const gamification = raw.gamification;

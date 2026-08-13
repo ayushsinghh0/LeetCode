@@ -5,7 +5,7 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Progress } from '@/components/ui/progress';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog';
-import { Lead, Ledger, Meta, Page, PageHeader, Section } from '@/components/layout/Page';
+import { Lead, Ledger, Meta, Page, PageHeader, RuledList, Section } from '@/components/layout/Page';
 import { CourseResourceChips } from '@/components/course/CourseResourceChips';
 import { CourseNotesEditor } from '@/components/course/CourseNotesEditor';
 import { CourseRecallList } from '@/components/course/CourseRecallList';
@@ -39,8 +39,9 @@ const monthDay = (iso: string): string => format(parseISO(iso), 'MMM d');
  * Composition note: this page used to open with a plated header, four StatCards restating the two
  * numbers printed one line above them, and a `p-6` plate wrapped around two lines of text. It is
  * now `PageHeader` + one `Ledger` + open `Section`s, with exactly one plate — the `Lead` on "Up
- * next", the one thing the page wants you to do. The syllabus keeps its rows-in-one-plate list,
- * which was already the right idiom, and the two ML lists reuse it.
+ * next", the one thing the page wants you to do. The syllabus, extras and the two ML lists are
+ * `RuledList`s: their rows rule themselves off with hairlines, so boxing the stack in a plate
+ * added nothing but the border.
  */
 export default function AimlCoursePage() {
   const today = useToday();
@@ -169,7 +170,7 @@ export default function AimlCoursePage() {
       )}
 
       <Section title="Syllabus">
-        <ul className="glass list-none">
+        <RuledList>
           {CORE_WEEKS.map((week) => (
             <CourseWeekRow
               key={week.id}
@@ -181,11 +182,11 @@ export default function AimlCoursePage() {
               onOpenRecall={setRecallWeek}
             />
           ))}
-        </ul>
+        </RuledList>
       </Section>
 
       <Section title="Extra sessions" action={<Badge variant="secondary">optional</Badge>}>
-        <ul className="glass list-none">
+        <RuledList>
           {EXTRA_WEEKS.map((week) => (
             <CourseWeekRow
               key={week.id}
@@ -195,7 +196,7 @@ export default function AimlCoursePage() {
               onOpenRecall={setRecallWeek}
             />
           ))}
-        </ul>
+        </RuledList>
       </Section>
 
       <Section
@@ -211,11 +212,11 @@ export default function AimlCoursePage() {
           />
         }
       >
-        <ul className="glass list-none">
+        <RuledList>
           {ML_TRACKS.map((track) => (
             <MlTrackRow key={track.id} track={track} />
           ))}
-        </ul>
+        </RuledList>
         <p className="max-w-prose text-sm leading-relaxed text-muted-foreground">
           The failure rung never collapses. It is where the numbers were hardest to get — a
           divergence at exactly 2/L, a float32 gradient check failing at relative error 1.0, a
@@ -237,11 +238,11 @@ export default function AimlCoursePage() {
           />
         }
       >
-        <ul className="glass list-none">
+        <RuledList>
           {ML_PROJECTS_IN_ORDER.map((project) => (
             <MlProjectRow key={project.id} project={project} />
           ))}
-        </ul>
+        </RuledList>
         <p className="max-w-prose text-sm leading-relaxed text-muted-foreground">
           Two baselines are deliberately blank. Where the number is a property of your own system —
           a constant judge's base rate, an unoptimised endpoint's p95 — no honest figure exists to

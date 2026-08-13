@@ -524,11 +524,40 @@ export function buildRevisionSession(input: SessionInput): RevisionSession {
     rationale.transfer++;
   }
 
-  // --- Surplus ------------------------------------------------------------------------------
-  // Due work ran out before the budget did. Fill forward rather than pad: pull the nearest
-  // upcoming reviews in early, which costs nothing on the ladder and buys a quieter tomorrow.
-  let usedSurplus = false;
   const MIN_USEFUL_SLOT = 5;
+
+  // --- Second offer -------------------------------------------------------------------------
+  // Due work that missed its band — the allowance ran out, or the heavy cap blocked it — gets
+  // whatever budget survives, at the lightest depth the shape carries, BEFORE any not-due
+  // material is considered. An item whose date has actually arrived always outranks a
+  // pulled-forward extra; without this pass a heavy week could defer due reviews while the
+  // surplus loop below filled the same minutes with work that wasn't due at all.
+  const lightestDepth: Depth = shape.mix.recall > 0 ? 'recall' : 'review';
+  for (const item of scored) {
+    if (pot < MIN_USEFUL_SLOT) break;
+    if (taken.has(item.candidate.question.id)) continue;
+    if (item.candidate.overdueDays < 0) continue;
+    const minutes = depthMinutes(item.candidate.question, lightestDepth);
+    if (minutes > pot) continue;
+    const load = activityLoad(item.candidate.question.difficulty, lightestDepth);
+    if (load >= HEAVY_LOAD) {
+      if (heavyUsed >= maxHeavy) continue;
+      heavyUsed++;
+    }
+    bands[lightestDepth].push(toActivity(item, lightestDepth, minutes, load));
+    taken.add(item.candidate.question.id);
+    pot -= minutes;
+    spent += minutes;
+    if (item.candidate.overdueDays > 0) rationale.overdue++;
+    else rationale.due++;
+    if (item.reason === 'weak-pattern') rationale.weakness++;
+  }
+
+  // --- Surplus ------------------------------------------------------------------------------
+  // Due work genuinely ran out before the budget did. Fill forward rather than pad: pull the
+  // nearest upcoming reviews in early, which costs nothing on the ladder and buys a quieter
+  // tomorrow.
+  let usedSurplus = false;
   if (pot >= MIN_USEFUL_SLOT) {
     const pullForward = scored
       .filter((s) => s.candidate.overdueDays < 0 && !taken.has(s.candidate.question.id))
@@ -560,11 +589,32 @@ export function buildRevisionSession(input: SessionInput): RevisionSession {
     ...balance(bands.deep),
     ...balance(bands.transfer),
   ];
+  const scoredById = new Map(scored.map((s) => [s.candidate.question.id, s]));
   const activities = enforceSpacing(composed, (dropped) => {
     // Put it back in the pool so the deferred list picks it up and the learner can see it was
-    // considered rather than lost.
-    if (dropped.questionId !== undefined) taken.delete(dropped.questionId);
+    // considered rather than lost — and take it back OUT of the rationale, or the preview's
+    // "why these" line counts one more item than the session contains.
+    if (dropped.questionId === undefined) return;
+    taken.delete(dropped.questionId);
+    if (dropped.kind === 'transfer') {
+      rationale.transfer--;
+      return;
+    }
+    const item = scoredById.get(dropped.questionId);
+    if (!item) return;
+    if (item.candidate.overdueDays > 0) rationale.overdue--;
+    else if (item.candidate.overdueDays === 0) rationale.due--;
+    if (item.candidate.overdueDays >= 0 && item.reason === 'weak-pattern') rationale.weakness--;
   });
+
+  // Recomputed from the final list rather than trusting the placement loop's flag: the one
+  // surplus item a session held may just have been dropped by the spacing rule above.
+  usedSurplus = activities.some(
+    (a) =>
+      a.questionId !== undefined &&
+      a.kind !== 'transfer' &&
+      (scoredById.get(a.questionId)?.candidate.overdueDays ?? 0) < 0,
+  );
 
   if (activities.length > 0 && reflectReserve > 0) {
     activities.push({

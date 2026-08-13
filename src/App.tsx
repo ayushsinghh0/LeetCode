@@ -4,6 +4,7 @@ import { MotionConfig } from 'framer-motion';
 import { ThemeProvider } from '@/contexts/ThemeContext';
 import { TooltipProvider } from '@/components/ui/tooltip';
 import { AppShell } from '@/components/layout/AppShell';
+import { PageFallback } from '@/components/layout/PageFallback';
 import { ErrorBoundary } from '@/components/shared/ErrorBoundary';
 
 const DashboardPage = lazy(() => import('@/pages/DashboardPage'));
@@ -25,17 +26,6 @@ const SettingsPage = lazy(() => import('@/pages/SettingsPage'));
 const FocusPage = lazy(() => import('@/pages/FocusPage'));
 const NotFoundPage = lazy(() => import('@/pages/NotFoundPage'));
 
-function PageFallback() {
-  return (
-    <div
-      className="glass flex min-h-[240px] w-full animate-pulse items-center justify-center p-6"
-      aria-busy="true"
-    >
-      <div className="h-8 w-8 rounded-full bg-accent-gradient" />
-    </div>
-  );
-}
-
 // react-router-dom v6.28 warns about the v7 behaviors it will adopt by default in v7
 // unless these future flags are opted into. Passing them here keeps dev/console output
 // free of those deprecation warnings.
@@ -47,6 +37,9 @@ const routerFutureFlags = { v7_startTransition: true, v7_relativeSplatPath: true
  */
 export function AppRoutes() {
   return (
+    // AppShell carries its own Suspense around the page column, so shell-routed pages never
+    // blank the chrome. This outer boundary is the backstop for routes rendered OUTSIDE the
+    // shell — /focus, which has no chrome to preserve.
     <Suspense fallback={<PageFallback />}>
       <Routes>
         <Route element={<AppShell />}>

@@ -151,10 +151,34 @@ test('reviseQuestion pass then fail: revisionStage transitions 1 then 0, XP each
   const xpAfterPass = state.gamification.xp;
   expect(xpAfterPass).toBe(10 + revisionXp('easy'));
 
+  // The fail lands the NEXT day: one grade per question per calendar day (see the guard in
+  // reviseQuestion) — a same-day second grade is a no-op, asserted separately below.
+  vi.setSystemTime(new Date('2026-07-31T12:00:00'));
   store.dispatch(reviseQuestion(1, false));
   state = store.getState();
   expect(state.progress.byId[1]!.revisionStage).toBe(0);
   expect(state.gamification.xp).toBe(xpAfterPass + revisionXp('easy'));
+});
+
+test('reviseQuestion is idempotent per calendar day — a second same-day grade moves nothing', () => {
+  const store = makeStore();
+  store.dispatch(solveQuestion(1));
+
+  store.dispatch(reviseQuestion(1, true));
+  const after = store.getState();
+  const stage = after.progress.byId[1]!.revisionStage;
+  const xp = after.gamification.xp;
+  const logged = after.progress.dayLogs[TODAY]!.revisionsPassed.length;
+
+  // A stray double-dispatch (or any UI regression that re-offers grading) must not double-move
+  // the ladder, double-pay XP, or double-count the day log — pass or fail alike.
+  store.dispatch(reviseQuestion(1, true));
+  store.dispatch(reviseQuestion(1, false));
+  const state = store.getState();
+  expect(state.progress.byId[1]!.revisionStage).toBe(stage);
+  expect(state.gamification.xp).toBe(xp);
+  expect(state.progress.dayLogs[TODAY]!.revisionsPassed).toHaveLength(logged);
+  expect(state.progress.dayLogs[TODAY]!.revisionsFailed).toHaveLength(0);
 });
 
 // Flow 4 -----------------------------------------------------------------------------------

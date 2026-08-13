@@ -32,6 +32,12 @@ import {
 } from '@/utils/engine/insights';
 import { patternWeakness, transferRecord, type PatternWeakness } from '@/utils/engine/weakness';
 import {
+  analyzeContest,
+  type ContestAnalysis,
+  type ContestAttempt,
+  type ContestProblem,
+} from '@/utils/engine/contest';
+import {
   buildRevisionSession,
   type RevisionCandidate,
   type RevisionSession,
@@ -673,5 +679,55 @@ export const selectDaysAway = createSelector(
       if (date < today && (last === null || date > last)) last = date;
     }
     return last === null ? null : diffDays(today, last);
+  },
+);
+
+// --- Contest ---------------------------------------------------------------------------------
+
+const selectContestState = (state: RootState) => state.contest;
+
+/**
+ * The running set, rebuilt from the slice's snapshot (question ids + per-problem targets)
+ * against the static dataset. The slice, not `buildContest`, is the source of truth once a
+ * contest starts — the same freezing rule as a revision session: solving a problem mid-sitting
+ * must not reshuffle the set underneath the learner.
+ */
+export const selectContestProblems = createSelector(
+  [selectContestState],
+  (contest): ContestProblem[] =>
+    contest.questionIds.flatMap((id, i) => {
+      const question = questionById.get(id);
+      const targetMinutes = contest.targetMinutes[i];
+      return question && targetMinutes !== undefined
+        ? [{ question, order: i + 1, targetMinutes }]
+        : [];
+    }),
+);
+
+/**
+ * The engine's reading of a finished contest, or null while none is finished. Null rather than a
+ * half-analysis mid-contest: `analyzeContest` treats unattempted problems as untouched, so
+ * running it early would "read" a sitting that is still happening.
+ */
+export const selectContestAnalysis = createSelector(
+  [selectContestState, selectContestProblems],
+  (contest, problems): ContestAnalysis | null => {
+    if (contest.seed === null || contest.finishedAtMs === null) return null;
+    const attempts: ContestAttempt[] = problems.map((p) => ({
+      questionId: p.question.id,
+      solved: contest.attempts[p.question.id]?.solved ?? false,
+      minutesSpent: contest.attempts[p.question.id]?.minutesSpent ?? 0,
+    }));
+    return analyzeContest(
+      {
+        id: contest.seed,
+        // The honest shape is what the set actually holds, not the ladder it aimed for — a slot
+        // can go unfilled when the eligible pool for its difficulty runs dry.
+        shape: problems.map((p) => p.question.difficulty),
+        problems,
+        durationMin: contest.durationMin,
+      },
+      attempts,
+    );
   },
 );

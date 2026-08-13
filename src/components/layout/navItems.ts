@@ -8,6 +8,7 @@ import {
   RotateCcw,
   Target,
   Speech,
+  Swords,
   CalendarDays,
   BarChart3,
   Trophy,
@@ -41,6 +42,9 @@ export const NAV_ITEMS: NavItem[] = [
   // Interview mode is a desk-and-whiteboard ritual, not a phone check-in — hence 'more', and
   // hence its place next to Drills: both are rehearsal surfaces rather than progress ledgers.
   { to: '/interview', label: 'Interview', icon: Speech, mobile: 'more' },
+  // Contest closes the rehearsal cluster: Drills rehearse recognition, Interview rehearses the
+  // ritual, Contest rehearses the clock. A timed sitting is a desk activity, hence 'more'.
+  { to: '/contest', label: 'Contest', icon: Swords, mobile: 'more' },
   { to: '/calendar', label: 'Calendar', icon: CalendarDays, mobile: 'more' },
   { to: '/analytics', label: 'Analytics', icon: BarChart3, mobile: 'more' },
   { to: '/achievements', label: 'Achievements', icon: Trophy, mobile: 'more' },

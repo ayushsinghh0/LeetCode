@@ -1,0 +1,329 @@
+import { useEffect, useMemo, useState } from 'react';
+import { Link } from 'react-router-dom';
+import { format, parseISO } from 'date-fns';
+import { CheckCircle2, ExternalLink, Flag, Pause, Play, Swords } from 'lucide-react';
+import questionsData from '@/data/questions.json';
+import { patternById } from '@/data/patterns';
+import { Button } from '@/components/ui/button';
+import { DifficultyBadge } from '@/components/questions/DifficultyBadge';
+import { EmptyState } from '@/components/shared/EmptyState';
+import { Lead, Meta, Page, PageHeader, Rule, RuledItem, RuledList, Section } from '@/components/layout/Page';
+import { useAppDispatch, useAppSelector } from '@/store/hooks';
+import { selectContestAnalysis, selectContestProblems } from '@/store/selectors';
+import {
+  blurContestProblem,
+  clearContest,
+  finishContest,
+  focusContestProblem,
+  solveContestProblem,
+  startContest,
+} from '@/store/actions';
+import { useToday } from '@/hooks/useToday';
+import { contestElapsedMin, type ContestAttemptState } from '@/store/slices/contestSlice';
+import type { Outcome } from '@/utils/engine/contest';
+import { cn } from '@/utils/cn';
+import type { Question } from '@/types';
+
+const questions = questionsData as Question[];
+
+// The eyebrow register (DESIGN.md § The type ladder), same as the other rehearsal surfaces.
+const LABEL_CLASS = 'text-xs uppercase tracking-[0.14em] text-muted-foreground';
+
+// Minute-resolution clock; a 15s tick keeps the displayed minute honest without meaningful work.
+const TICK_MS = 15_000;
+
+const OUTCOME_LABEL: Record<Outcome, string> = {
+  clean: 'Clean solve',
+  slow: 'Solved slowly',
+  stalled: 'Stalled',
+  untouched: 'Barely touched',
+};
+
+// The easy/hard inks already carry right/wrong in the drill (see DrillsPage's option borders);
+// the same idiom applies here. Untouched deliberately gets the muted voice — it is a non-claim.
+const OUTCOME_CLASS: Record<Outcome, string> = {
+  clean: 'text-easy',
+  slow: 'text-medium',
+  stalled: 'text-hard',
+  untouched: 'text-muted-foreground',
+};
+
+/**
+ * Contest mode: a timed set under pressure, then an honest reading of what happened.
+ *
+ * Composition: each lifecycle state (start / running / verdict) is the page's one thing, so each
+ * lives in the single `Lead`; the per-problem readings after a contest are ordinary reading
+ * content in an open section. The problem rows are hairline-ruled, never boxed.
+ *
+ * The sitting is frozen the moment it starts (the slice snapshots the set — see contestSlice),
+ * and problems deliberately do NOT open the in-app question sheet while the clock runs: the
+ * sheet carries hints and notes, and a contest is the one surface in the product that is meant
+ * to be cold. The external link is the honest way out.
+ */
+export default function ContestPage() {
+  const dispatch = useAppDispatch();
+  const today = useToday();
+  const contest = useAppSelector((s) => s.contest);
+  const problems = useAppSelector(selectContestProblems);
+  const analysis = useAppSelector(selectContestAnalysis);
+  const byId = useAppSelector((s) => s.progress.byId);
+
+  const running = contest.seed !== null && contest.finishedAtMs === null;
+  const finished = analysis !== null;
+
+  // Mirrors buildContest's eligibility filter — mastered-out-of-existence catalogs are rare, but
+  // a Start button that silently does nothing would be worse than the empty state.
+  const hasEligible = useMemo(
+    () =>
+      questions.some((q) => {
+        const status = byId[q.id]?.status ?? 'unsolved';
+        return status === 'unsolved' || status === 'in_progress';
+      }),
+    [byId],
+  );
+
+  // The page's own clock read, ticked while running. Selectors stay clock-free (see selectors.ts
+  // header); the single live consumer of "now" is this display state.
+  const [nowMs, setNowMs] = useState(() => Date.now());
+  useEffect(() => {
+    if (!running) return;
+    setNowMs(Date.now());
+    const id = setInterval(() => setNowMs(Date.now()), TICK_MS);
+    return () => clearInterval(id);
+  }, [running]);
+
+  const elapsed = contestElapsedMin(contest, nowMs);
+  const overTime = running && elapsed > contest.durationMin;
+
+  function liveMinutes(questionId: number, attempt: ContestAttemptState): number {
+    const active = contest.activeQuestionId === questionId && contest.activeSinceMs !== null;
+    return (
+      attempt.minutesSpent +
+      (active ? Math.max(0, Math.round((nowMs - contest.activeSinceMs!) / 60_000)) : 0)
+    );
+  }
+
+  return (
+    <Page>
+      <PageHeader
+        eyebrow={format(parseISO(today), 'EEEE, MMMM d')}
+        title="Contest"
+        support="Practice measures whether you can solve it. A contest measures whether you can solve it now, cold, with a clock running — which is the thing an interview actually tests."
+        action={
+          running ? (
+            <Button onClick={() => dispatch(finishContest())}>
+              <Flag /> Finish
+            </Button>
+          ) : undefined
+        }
+      />
+
+      {!running && !finished && !hasEligible ? (
+        <EmptyState
+          icon={Swords}
+          title="Nothing left to contest"
+          hint="Contests draw from problems you haven't solved, and every problem in the catalog is solved."
+        />
+      ) : !running && !finished ? (
+        <Section aria-label="Start a contest">
+          <Lead className="flex flex-col gap-6">
+            <div className="flex flex-col gap-3">
+              <p className={LABEL_CLASS}>Today's set</p>
+              <h2 className="text-xl font-semibold md:text-2xl">Four problems, one clock.</h2>
+              <p className="max-w-prose text-sm leading-relaxed text-muted-foreground">
+                An easy opener, two mediums, and a hard closer — drawn from problems you haven't
+                solved, patterns kept distinct so the set measures more than one technique. The
+                schedule is the sum of the problems' own estimates with a little slack: tight, not
+                impossible.
+              </p>
+              <p className="max-w-prose text-sm leading-relaxed text-muted-foreground">
+                Time counts only while a problem is on the clock, and you can move the clock
+                freely. At the end there is no score and no rank — just an honest reading of each
+                problem, and the one pattern worth acting on when the set supports a claim at all.
+              </p>
+            </div>
+            <div className="flex flex-wrap items-center gap-x-4 gap-y-2">
+              <Button onClick={() => dispatch(startContest())}>
+                <Play /> Start the contest
+              </Button>
+              <p className="text-xs text-muted-foreground">
+                Seeded by today's date — reloading rebuilds the same set.
+              </p>
+            </div>
+          </Lead>
+        </Section>
+      ) : running ? (
+        <Section aria-label="Contest in progress">
+          <Lead className="flex flex-col gap-5">
+            <div className="flex flex-wrap items-baseline justify-between gap-x-6 gap-y-2 border-b border-border pb-4">
+              <div className="flex items-baseline gap-3">
+                <p className="figures font-serif text-[1.75rem] font-semibold leading-none tracking-tight">
+                  {elapsed} min
+                </p>
+                <p className="text-sm text-muted-foreground">
+                  of ~{contest.durationMin} scheduled{overTime && ' — over time'}
+                </p>
+              </div>
+              <p className={cn('figures', LABEL_CLASS)}>
+                {problems.filter((p) => contest.attempts[p.question.id]?.solved).length} of{' '}
+                {problems.length} solved
+              </p>
+            </div>
+
+            <RuledList aria-label="Contest problems" as="ol" className="border-y-0">
+              {problems.map(({ question, order, targetMinutes }) => {
+                const attempt = contest.attempts[question.id];
+                if (!attempt) return null;
+                const active = contest.activeQuestionId === question.id;
+                const spent = liveMinutes(question.id, attempt);
+                return (
+                  <RuledItem key={question.id} className="flex flex-col gap-3 py-4">
+                    <div className="flex flex-wrap items-start justify-between gap-x-6 gap-y-2">
+                      <div className="flex min-w-0 flex-col gap-1.5">
+                        <p className="font-medium leading-snug">
+                          <span className="figures text-muted-foreground">{order}.</span>{' '}
+                          {question.title}
+                        </p>
+                        <Meta
+                          items={[
+                            <DifficultyBadge difficulty={question.difficulty} />,
+                            <span className="figures">~{targetMinutes} min target</span>,
+                            question.url && (
+                              <a
+                                href={question.url}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="inline-flex items-center gap-1.5 underline-offset-2 transition-colors duration-150 ease-swift hover:text-foreground hover:underline"
+                              >
+                                <ExternalLink className="h-4 w-4 shrink-0" aria-hidden="true" />
+                                Open on LeetCode
+                              </a>
+                            ),
+                          ]}
+                        />
+                      </div>
+                      <div className="flex shrink-0 flex-wrap items-center gap-2">
+                        {attempt.solved ? (
+                          <p className="flex items-center gap-1.5 text-sm text-easy">
+                            <CheckCircle2 className="h-4 w-4 shrink-0" aria-hidden="true" />
+                            Solved
+                            <span className="figures text-muted-foreground">· {spent} min</span>
+                          </p>
+                        ) : (
+                          <>
+                            <p
+                              className={cn(
+                                'figures text-sm',
+                                active ? 'text-foreground' : 'text-muted-foreground',
+                              )}
+                            >
+                              {active ? `on the clock · ${spent} min` : `${spent} min`}
+                            </p>
+                            {active ? (
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                onClick={() => dispatch(blurContestProblem())}
+                              >
+                                <Pause /> Pause
+                              </Button>
+                            ) : (
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                onClick={() => dispatch(focusContestProblem(question.id))}
+                              >
+                                <Play /> Put on the clock
+                              </Button>
+                            )}
+                            <Button size="sm" onClick={() => dispatch(solveContestProblem(question.id))}>
+                              Mark solved
+                            </Button>
+                          </>
+                        )}
+                      </div>
+                    </div>
+                  </RuledItem>
+                );
+              })}
+            </RuledList>
+          </Lead>
+        </Section>
+      ) : finished && analysis ? (
+        <>
+          <Section aria-label="Contest verdict">
+            <Lead className="flex flex-col gap-6">
+              <div className="flex flex-col gap-3">
+                <p className={LABEL_CLASS}>The verdict</p>
+                <p className="font-serif text-[1.75rem] font-semibold leading-tight tracking-tight">
+                  {analysis.solved} of {analysis.total} solved
+                </p>
+                <p className="max-w-prose text-sm leading-relaxed text-muted-foreground">
+                  <span className="figures">{analysis.minutesSpent} min</span> on the clock against
+                  a <span className="figures">~{contest.durationMin} min</span> schedule.
+                </p>
+              </div>
+
+              {analysis.inconclusive ? (
+                <>
+                  <Rule />
+                  <p className="max-w-prose text-sm leading-relaxed text-muted-foreground">
+                    Too little of this set was genuinely attempted to read anything into it — that
+                    is a fact about the sitting, not about your ability. It counts for nothing and
+                    it costs nothing.
+                  </p>
+                </>
+              ) : analysis.next ? (
+                <>
+                  <Rule />
+                  <div className="flex flex-col gap-3">
+                    <p className="text-sm font-medium">
+                      Worth acting on:{' '}
+                      {patternById[analysis.next.pattern]?.name ?? analysis.next.pattern}
+                    </p>
+                    <p className="max-w-prose text-sm leading-relaxed text-muted-foreground">
+                      {analysis.next.why}
+                    </p>
+                  </div>
+                </>
+              ) : null}
+
+              <div className="flex flex-wrap items-center gap-2">
+                {analysis.next && (
+                  <Button asChild>
+                    <Link to={`/patterns/${analysis.next.pattern}`}>Open the pattern</Link>
+                  </Button>
+                )}
+                <Button variant={analysis.next ? 'outline' : 'default'} onClick={() => dispatch(clearContest())}>
+                  Done
+                </Button>
+              </div>
+            </Lead>
+          </Section>
+
+          <Section
+            title="How each problem read"
+            support="Each reading states only what the evidence supports — a problem you barely touched produces no claim about you."
+            aria-label="Problem readings"
+          >
+            <RuledList aria-label="Readings" as="ol">
+              {analysis.readings.map((reading) => (
+                <RuledItem key={reading.question.id} className="flex flex-col gap-1.5 py-4">
+                  <div className="flex flex-wrap items-baseline justify-between gap-x-6 gap-y-1">
+                    <p className="font-medium leading-snug">{reading.question.title}</p>
+                    <p className={cn('text-sm font-medium', OUTCOME_CLASS[reading.outcome])}>
+                      {OUTCOME_LABEL[reading.outcome]}
+                    </p>
+                  </div>
+                  <p className="max-w-prose text-sm leading-relaxed text-muted-foreground">
+                    {reading.reading}
+                  </p>
+                </RuledItem>
+              ))}
+            </RuledList>
+          </Section>
+        </>
+      ) : null}
+    </Page>
+  );
+}

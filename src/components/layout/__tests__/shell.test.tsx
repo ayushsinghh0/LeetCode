@@ -12,14 +12,19 @@ import { AppRoutes } from '@/App';
 // No other router deprecation warnings are expected from this suite.
 const routerFutureFlags = { v7_startTransition: true, v7_relativeSplatPath: true } as const;
 
+// Deliberately hardcoded rather than derived from NAV_ITEMS: deriving would pass tautologically,
+// and this list is the assertion that no label was renamed or dropped by accident.
 const SIDEBAR_LABELS = [
   'Dashboard',
   'Today',
   'Roadmap',
   'AI/ML',
   'Patterns',
+  'Companies',
   'Revision',
   'Drills',
+  'Interview',
+  'Contest',
   'Calendar',
   'Analytics',
   'Achievements',
@@ -43,7 +48,7 @@ function renderApp(initialEntries: string[] = ['/']) {
 }
 
 describe('AppShell routing', () => {
-  test('renders the Dashboard page and all 12 sidebar nav labels at "/"', async () => {
+  test('renders the Dashboard page and all 15 sidebar nav labels at "/"', async () => {
     renderApp(['/']);
 
     // This is the very first render of the whole tree, gated on DashboardPage's lazy chunk

@@ -5,6 +5,7 @@ import { renderWithStore } from '@/test/renderWithStore';
 import { SearchDialog } from '@/components/shared/SearchDialog';
 import { QuestionDetailModal } from '@/components/questions/QuestionDetailModal';
 import { Sidebar } from '@/components/layout/Sidebar';
+import { useSearchHotkey } from '@/hooks/useSearchHotkey';
 import { searchOpenSet } from '@/store/slices/uiSlice';
 import { saveCourseNotes, saveNotes, toggleBookmark } from '@/store/actions';
 import questionsData from '@/data/questions.json';
@@ -22,9 +23,21 @@ function LocationProbe() {
   return <div data-testid="location">{pathname}</div>;
 }
 
+// The Ctrl/Cmd+K hotkey lives in the eager useSearchHotkey hook, not the (lazy) dialog —
+// AppShell mounts both. Hotkey tests mirror that wiring with this host.
+function HotkeyHost() {
+  useSearchHotkey();
+  return null;
+}
+
 describe('SearchDialog', () => {
   test('is closed by default and opens on Ctrl+K, autofocusing the search input', () => {
-    renderWithStore(<SearchDialog />);
+    renderWithStore(
+      <>
+        <HotkeyHost />
+        <SearchDialog />
+      </>,
+    );
 
     expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
 
@@ -35,7 +48,12 @@ describe('SearchDialog', () => {
   });
 
   test('also opens on Cmd+K (metaKey), e.g. macOS', () => {
-    renderWithStore(<SearchDialog />);
+    renderWithStore(
+      <>
+        <HotkeyHost />
+        <SearchDialog />
+      </>,
+    );
 
     fireEvent.keyDown(window, { key: 'k', metaKey: true });
 
@@ -43,7 +61,12 @@ describe('SearchDialog', () => {
   });
 
   test('a bare "k" keydown (no modifier) does not open the dialog', () => {
-    renderWithStore(<SearchDialog />);
+    renderWithStore(
+      <>
+        <HotkeyHost />
+        <SearchDialog />
+      </>,
+    );
 
     fireEvent.keyDown(window, { key: 'k' });
 

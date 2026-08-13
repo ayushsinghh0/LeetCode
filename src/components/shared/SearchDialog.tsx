@@ -55,8 +55,10 @@ function weekState(week: CourseWeek, progress: CourseWeekProgress): string {
 }
 
 // Mount once (e.g. in AppShell) — a singleton controlled entirely by ui.searchOpen, mirroring
-// QuestionDetailModal's activeQuestionId pattern. Owns the global Ctrl/Cmd+K hotkey itself so any
-// other trigger (Sidebar's search button) only has to dispatch searchOpenSet(true).
+// QuestionDetailModal's activeQuestionId pattern. Lazy-loaded on first open (AppShell latches
+// it), so the global Ctrl/Cmd+K hotkey lives in the always-mounted useSearchHotkey hook instead
+// of here; every trigger — hotkey, Sidebar's search button, MobileNav — just dispatches
+// searchOpenSet(true).
 //
 // This is the app's command palette: page commands and actions surface on open, course weeks
 // and questions match as you type, and ArrowUp/ArrowDown + Enter drive the whole list
@@ -76,17 +78,6 @@ export function SearchDialog() {
   const [status, setStatus] = useState<StatusFilterValue>('all');
   const [pattern, setPattern] = useState<PatternFilterValue>('all');
   const [activeIndex, setActiveIndex] = useState(0);
-
-  useEffect(() => {
-    function handleKeyDown(e: KeyboardEvent) {
-      if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'k') {
-        e.preventDefault();
-        dispatch(searchOpenSet(true));
-      }
-    }
-    window.addEventListener('keydown', handleKeyDown);
-    return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [dispatch]);
 
   // Every fresh open starts from a blank slate rather than remembering the last search.
   useEffect(() => {

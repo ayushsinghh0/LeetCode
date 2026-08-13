@@ -1,5 +1,5 @@
 import { useEffect, useRef } from 'react';
-import confetti from 'canvas-confetti';
+import type confetti from 'canvas-confetti';
 import { useAppDispatch, useAppSelector } from '@/store/hooks';
 import { celebrationShown } from '@/store/slices/uiSlice';
 
@@ -9,19 +9,38 @@ import { celebrationShown } from '@/store/slices/uiSlice';
 // touches this setter.
 type ConfettiFn = (options?: Parameters<typeof confetti>[0]) => ReturnType<typeof confetti>;
 
-let confettiImpl: ConfettiFn = confetti;
+// canvas-confetti loads on the first celebration, not with the shell: the library is ~10 kB of
+// main-chunk weight for something that fires seconds-to-minutes after load, if at all. A burst
+// delayed by one dynamic-import round trip is imperceptible; every later burst hits the cache.
+let confettiImpl: ConfettiFn | null = null;
 
 export function __setConfettiForTests(fn: ConfettiFn): void {
   confettiImpl = fn;
 }
 
 function fire(options: Parameters<typeof confetti>[0]): void {
-  try {
-    confettiImpl(options);
-  } catch {
-    // canvas-confetti throws in environments without real canvas support (e.g. jsdom without
-    // a canvas polyfill) — celebrations are decorative, never worth crashing the app over.
+  const call = (fn: ConfettiFn) => {
+    try {
+      fn(options);
+    } catch {
+      // canvas-confetti throws in environments without real canvas support (e.g. jsdom without
+      // a canvas polyfill) — celebrations are decorative, never worth crashing the app over.
+    }
+  };
+  if (confettiImpl) {
+    call(confettiImpl);
+    return;
   }
+  import('canvas-confetti').then(
+    (m) => {
+      // ??= so a test's injected stub is never clobbered by an import that resolved late.
+      confettiImpl ??= m.default;
+      call(confettiImpl);
+    },
+    () => {
+      // Chunk fetch failed (offline mid-session) — skip the burst, same policy as above.
+    },
+  );
 }
 
 const FIREWORK_BURSTS = [

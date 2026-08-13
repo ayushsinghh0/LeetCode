@@ -23,7 +23,6 @@ import type {
   Question,
   QuestionProgress,
 } from '@/types';
-import { format, parseISO } from 'date-fns';
 import { addDays, diffDays } from '@/utils/dates';
 import { MASTERED_STAGE } from '@/utils/engine/spacedRepetition';
 import { MIN_SAMPLES, paceSamples } from '@/utils/engine/timeEstimate';
@@ -171,6 +170,19 @@ function weakestPattern(input: InsightInput): Insight | null {
   };
 }
 
+const WEEKDAYS = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
+const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+
+// "Thursday Aug 20" — date-fns 'EEEE MMM d', hand-rolled. This is the engine's only date
+// formatting, and importing date-fns for it dragged the format machinery into the main chunk
+// (insights is eagerly reachable through selectors.ts).
+function weekdayMonthDay(iso: string): string {
+  const y = Number(iso.slice(0, 4));
+  const m = Number(iso.slice(5, 7));
+  const d = Number(iso.slice(8, 10));
+  return `${WEEKDAYS[new Date(y, m - 1, d).getDay()]} ${MONTHS[m - 1]} ${d}`;
+}
+
 // 3. Schedule risk --------------------------------------------------------------------------
 // Forward-looking and fixable: the point is to rebalance BEFORE a heavy day arrives, which is
 // the alternative to letting it become a wall of overdue work.
@@ -186,7 +198,7 @@ function scheduleRisk(input: InsightInput): Insight | null {
 
   return {
     id: 'schedule-risk',
-    headline: `${format(parseISO(heaviest.date), 'EEEE MMM d')} is carrying more review than a normal day fits.`,
+    headline: `${weekdayMonthDay(heaviest.date)} is carrying more review than a normal day fits.`,
     evidence: [
       `${heaviest.count} reviews land that day — about ${minutes} minutes.`,
       `Your stated capacity is ${input.capacityMin} minutes a day.`,

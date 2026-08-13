@@ -4,7 +4,6 @@ import { ErrorBoundary } from '@/components/shared/ErrorBoundary';
 import { Sidebar } from '@/components/layout/Sidebar';
 import { MobileNav } from '@/components/layout/MobileNav';
 import { PageTransition } from '@/components/layout/PageTransition';
-import { SearchDialog } from '@/components/shared/SearchDialog';
 import { useAppSelector } from '@/store/hooks';
 
 // The question sheet is the app's heaviest non-route component — hint ladder, post-solve
@@ -13,11 +12,16 @@ import { useAppSelector } from '@/store/hooks';
 const QuestionDetailModal = lazy(() =>
   import('@/components/questions/QuestionDetailModal').then((m) => ({ default: m.QuestionDetailModal })),
 );
+// Same treatment for the command palette: it drags the Radix select + filter-row stack with it
+// (~30 kB minified), and it only ever appears on demand. Its Ctrl/Cmd+K hotkey lives in the
+// eager useSearchHotkey hook below — a lazy component cannot own the shortcut that summons it.
+const SearchDialog = lazy(() => import('@/components/shared/SearchDialog'));
 import { AchievementToast } from '@/components/gamification/AchievementToast';
 import { PomodoroWidget } from '@/components/pomodoro/PomodoroWidget';
 import { useCelebration } from '@/hooks/useCelebration';
 import { useDueReminder } from '@/hooks/useDueReminder';
 import { useRouteTitle } from '@/hooks/useRouteTitle';
+import { useSearchHotkey } from '@/hooks/useSearchHotkey';
 
 export function AppShell() {
   // Mounted once here so every page shares a single celebration subscription instead of each
@@ -27,6 +31,8 @@ export function AppShell() {
   useDueReminder();
   // Tab title follows the route ("Today · DSA Roadmap").
   useRouteTitle();
+  // Ctrl/Cmd+K opens the (lazy) command palette — the hotkey must live in the eager shell.
+  useSearchHotkey();
 
   // Latch rather than mirror: once the sheet has been opened, it stays mounted so closing it
   // still plays its exit transition. Mirroring `activeQuestionId` directly would unmount on
@@ -36,6 +42,14 @@ export function AppShell() {
   useEffect(() => {
     if (activeQuestionId !== null) setSheetLoaded(true);
   }, [activeQuestionId]);
+
+  // Same latch for the command palette (its exit transition would be cut off by unmounting on
+  // close, exactly like the sheet above).
+  const searchOpen = useAppSelector((s) => s.ui.searchOpen);
+  const [searchLoaded, setSearchLoaded] = useState(false);
+  useEffect(() => {
+    if (searchOpen) setSearchLoaded(true);
+  }, [searchOpen]);
 
   return (
     <div className="flex min-h-screen">
@@ -60,7 +74,11 @@ export function AppShell() {
           <QuestionDetailModal />
         </Suspense>
       )}
-      <SearchDialog />
+      {searchLoaded && (
+        <Suspense fallback={null}>
+          <SearchDialog />
+        </Suspense>
+      )}
       <AchievementToast />
       {/* /focus itself never renders AppShell (see src/App.tsx — it's routed outside the AppShell
           layout route), so this floating copy and FocusPage's inline <PomodoroWidget variant="inline" />

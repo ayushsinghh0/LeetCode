@@ -56,7 +56,11 @@ describe('AppShell routing', () => {
     // of this file's flake history (this exact query timed out on one full-suite run, at ~1.96s,
     // while passing in isolation every time). See the longer note in the next test for the fuller
     // mechanism; the fix here is the same: a generous per-query timeout, not a global bump.
-    await screen.findByRole('heading', { name: 'Dashboard' }, { timeout: 5000 });
+    // 8000 matches routes.test.tsx's CHUNK_TIMEOUT: once the eager graph slimmed down (fewer
+    // transform steps before workers start testing), every worker's first shell mount lands at
+    // the same contended instant and >5s was observed repeatedly. The suite-level testTimeout in
+    // vite.config.ts is raised above this window so the kill ceiling can't silently truncate it.
+    await screen.findByRole('heading', { name: 'Dashboard' }, { timeout: 8000 });
 
     const sidebarNav = screen.getByRole('navigation', { name: /sidebar navigation/i });
     for (const label of SIDEBAR_LABELS) {
@@ -67,7 +71,7 @@ describe('AppShell routing', () => {
   test('clicking Today in the sidebar navigates to the Today page', async () => {
     renderApp(['/']);
     // Same lazy-chunk-under-Suspense wait as test 1 above, same justified timeout.
-    await screen.findByRole('heading', { name: 'Dashboard' }, { timeout: 5000 });
+    await screen.findByRole('heading', { name: 'Dashboard' }, { timeout: 8000 });
 
     const sidebarNav = screen.getByRole('navigation', { name: /sidebar navigation/i });
     fireEvent.click(within(sidebarNav).getByRole('link', { name: /today/i }));

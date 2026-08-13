@@ -39,5 +39,11 @@ export default defineConfig({
     environment: 'jsdom',
     globals: true,
     setupFiles: ['src/test/setup.ts'],
+    // The first test in a worker that mounts the shell (smoke, shell, routes at "/") pays the
+    // whole eager module graph's transform while every other worker is doing the same, and at
+    // the start of a fully parallel run that reliably brushes past vitest's 5s default (~1.7s
+    // in isolation, >5s at peak contention). The ceiling is generous because it is not an
+    // assertion — a genuinely hung test still fails, just later.
+    testTimeout: 15_000,
   },
 });

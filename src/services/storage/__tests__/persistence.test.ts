@@ -64,7 +64,7 @@ const normalizedFixtureById = () =>
   Object.fromEntries(
     Object.entries(validFixture.progress.byId).map(([id, p]) => [
       Number(id),
-      { hintLevelUsed: 0, reflection: '', ...p },
+      { hintLevelUsed: 0, reflection: '', lastMissNote: '', ...p },
     ]),
   );
 

@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import {
   Bookmark,
   BookmarkCheck,
@@ -19,6 +19,7 @@ import { Eyebrow, Meta, Section } from '@/components/layout/Page';
 import { DifficultyBadge } from '@/components/questions/DifficultyBadge';
 import { RevisionStagePips } from '@/components/questions/RevisionStagePips';
 import { NotesEditor } from '@/components/questions/NotesEditor';
+import { Textarea } from '@/components/ui/textarea';
 import { FamilyPanel } from '@/components/questions/FamilyPanel';
 import { HintLadder } from '@/components/questions/HintLadder';
 import { SmallStartFrame } from '@/components/questions/SmallStartFrame';
@@ -28,7 +29,7 @@ import { QUESTION_TYPE_LABEL, QUESTION_TYPE_MEANING } from '@/data/questionTypes
 import { familyById, FAMILY_ROLE_LABEL, FAMILY_ROLE_ORDER, SUBPATTERNS } from '@/data/curriculum';
 import { useToday } from '@/hooks/useToday';
 import { useAppDispatch, useAppSelector } from '@/store/hooks';
-import { reviseQuestion, skipQuestion, solveQuestion, toggleBookmark } from '@/store/actions';
+import { reviseQuestion, saveMissNote, skipQuestion, solveQuestion, toggleBookmark } from '@/store/actions';
 import { activeQuestionSet, smallStartQuestionSet } from '@/store/slices/uiSlice';
 import { selectPaceSamples } from '@/store/selectors';
 import { initialProgress, isMastered } from '@/utils/engine/spacedRepetition';
@@ -121,6 +122,10 @@ export function QuestionDetailModal() {
   // silently does nothing.
   const gradedToday = progress.lastReviewed === today;
   const revisable = solved && !isMastered(progress) && !gradedToday;
+  // Was today's grade a fail? The last ladder event is today's when gradedToday, so its verdict
+  // is the one just recorded — this drives the post-grade "What tripped it?" capture.
+  const lastEvent = progress.revisionHistory[progress.revisionHistory.length - 1];
+  const failedToday = gradedToday && lastEvent !== undefined && !lastEvent.passed;
 
   const untouched = (id: number) => {
     const status = byId[id]?.status ?? 'unsolved';
@@ -293,13 +298,24 @@ export function QuestionDetailModal() {
               </Button>
             </div>
             {solved && gradedToday && !isMastered(progress) && (
-              <p className="inline-flex items-center gap-2 text-sm text-muted-foreground">
-                <RotateCcw className="h-4 w-4" aria-hidden="true" />
-                Reviewed today
-                {progress.nextRevision
-                  ? ` — next review ${format(parseISO(progress.nextRevision), 'MMM d')}.`
-                  : '.'}
-              </p>
+              <div className="flex flex-col gap-3">
+                <p className="inline-flex items-center gap-2 text-sm text-muted-foreground">
+                  <RotateCcw className="h-4 w-4" aria-hidden="true" />
+                  Reviewed today
+                  {progress.nextRevision
+                    ? ` — next review ${format(parseISO(progress.nextRevision), 'MMM d')}.`
+                    : '.'}
+                </p>
+                {/* The reflection read-back and the miss-note capture — POST-GRADE only, so the
+                    recall itself stays clean (design record feature D). The debrief lower down
+                    remains the capture/edit surface for the reflection; this only reveals it. */}
+                <RecallReveal
+                  questionId={question.id}
+                  reflection={progress.reflection ?? ''}
+                  lastMissNote={progress.lastMissNote ?? ''}
+                  failedToday={failedToday}
+                />
+              </div>
             )}
             {solved && isMastered(progress) && (
               <p className="inline-flex items-center gap-2 text-sm text-muted-foreground">
@@ -414,6 +430,87 @@ export function QuestionDetailModal() {
         </div>
       </DialogContent>
     </Dialog>
+  );
+}
+
+/**
+ * The post-grade reveal: what the learner wrote when they solved this, and the failure-note
+ * channel. Rendered only after a recall is graded (never during it — retrieval stays clean).
+ *
+ * On a fail it offers the "What tripped it?" one-liner, which converts a miss into information
+ * rather than a verdict (design record copy rule 4) — never counted, never priced. On a pass it
+ * reads back the note left the last time this tripped the learner, the "shown at next post-grade"
+ * half of the loop. The whole subtree remounts with the keyed DialogContent, so its draft state
+ * resets per question without manual keying (same reason the reflection editor needs none).
+ */
+function RecallReveal({
+  questionId,
+  reflection,
+  lastMissNote,
+  failedToday,
+}: {
+  questionId: number;
+  reflection: string;
+  lastMissNote: string;
+  failedToday: boolean;
+}) {
+  const dispatch = useAppDispatch();
+  const [note, setNote] = useState(lastMissNote);
+
+  // Autosave on blur, and on unmount if the draft never blurred — the same discipline the
+  // reflection editor uses so a note is never lost to closing the dialog.
+  const latest = useRef(note);
+  latest.current = note;
+  const persisted = useRef(lastMissNote);
+
+  function save() {
+    if (latest.current.trim() === persisted.current.trim()) return;
+    persisted.current = latest.current;
+    dispatch(saveMissNote(questionId, latest.current));
+  }
+  useEffect(() => {
+    const id = questionId;
+    return () => {
+      if (latest.current.trim() !== persisted.current.trim()) dispatch(saveMissNote(id, latest.current));
+    };
+  }, [dispatch, questionId]);
+
+  return (
+    <div className="flex flex-col gap-3">
+      {reflection.trim() !== '' && (
+        <div className="flex flex-col gap-1 border-l-2 border-border pl-3">
+          <Eyebrow>When you solved this, you wrote</Eyebrow>
+          <p className="max-w-prose text-sm text-muted-foreground">{reflection}</p>
+        </div>
+      )}
+
+      {failedToday ? (
+        <div className="flex flex-col gap-1.5">
+          <label htmlFor={`miss-note-${questionId}`} className="text-sm font-medium">
+            What tripped it?
+          </label>
+          <p className="text-xs text-muted-foreground">
+            Optional, and never counted against you — a note to yourself that turns the miss into
+            something to watch for next time.
+          </p>
+          <Textarea
+            id={`miss-note-${questionId}`}
+            value={note}
+            onChange={(e) => setNote(e.target.value)}
+            onBlur={save}
+            rows={2}
+            placeholder="The exact assumption that broke…"
+          />
+        </div>
+      ) : (
+        lastMissNote.trim() !== '' && (
+          <div className="flex flex-col gap-1 border-l-2 border-border pl-3">
+            <Eyebrow>What tripped you last time</Eyebrow>
+            <p className="max-w-prose text-sm text-muted-foreground">{lastMissNote}</p>
+          </div>
+        )
+      )}
+    </div>
   );
 }
 

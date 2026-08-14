@@ -139,6 +139,15 @@ const progressSlice = createSlice({
       state.byId[id] = { ...prev, reflection };
     },
 
+    // The "what tripped it?" line captured after a failed recall. Last-write-wins (a fresh fail
+    // overwrites the old note); an empty note clears it. Never carries a penalty — it turns a
+    // fail into information, which is the whole point (design record copy rule 4).
+    missNoteSet(state, action: PayloadAction<{ id: number; note: string }>) {
+      const { id, note } = action.payload;
+      const prev = state.byId[id] ?? initialProgress();
+      state.byId[id] = { ...prev, lastMissNote: note };
+    },
+
     timeSpentAdded(state, action: PayloadAction<{ id: number; minutes: number }>) {
       const { id, minutes } = action.payload;
       const prev = state.byId[id] ?? initialProgress();
@@ -176,6 +185,7 @@ export const {
   bonusXpLogged,
   hintRevealed,
   reflectionSet,
+  missNoteSet,
 } = progressSlice.actions;
 
 export default progressSlice.reducer;

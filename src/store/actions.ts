@@ -18,6 +18,7 @@ import {
   hintRevealed,
   notesSet,
   reflectionSet,
+  missNoteSet,
   questionSkipped,
   questionSolved,
   questionStarted,
@@ -139,6 +140,14 @@ export const revealHint = (id: number, level: number): AppThunk => (dispatch) =>
 export const saveReflection = (id: number, reflection: string): AppThunk => (dispatch) => {
   if (!questionById.has(id)) return;
   dispatch(reflectionSet({ id, reflection }));
+};
+
+// The "what tripped it?" line after a failed recall — trimmed, last-write-wins, no penalty. A
+// blank note clears the field. Guarded on a real question id like saveReflection, so a stray call
+// can never materialize a sparse progress entry for a non-existent question.
+export const saveMissNote = (id: number, note: string): AppThunk => (dispatch) => {
+  if (!questionById.has(id)) return;
+  dispatch(missNoteSet({ id, note: note.trim() }));
 };
 
 // Records a completed focus phase. DayLog.focusMinutes is the canonical total time ledger;

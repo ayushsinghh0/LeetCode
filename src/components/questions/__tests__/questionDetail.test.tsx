@@ -392,6 +392,89 @@ describe('after solving', () => {
   });
 });
 
+describe('reflection and miss-note wiring (wave D)', () => {
+  // A question solved on a prior day and due for recall today — the genuine retrieval moment.
+  function dueRecall(extra: Partial<QuestionProgress> = {}): AppStore {
+    const byId: Record<number, QuestionProgress> = {
+      1: {
+        ...initialProgress(),
+        status: 'solved',
+        revisionStage: 1,
+        nextRevision: '2026-07-30',
+        lastReviewed: '2026-07-29',
+        completedAt: '2026-07-29',
+        ...extra,
+      },
+    };
+    return makeStore({ progress: { byId, dayLogs: {}, startDate: '2026-07-01' } });
+  }
+
+  test('the stored reflection is read back only AFTER grading the recall, never before', () => {
+    const store = dueRecall({ reflection: 'Skip from both ends at once.' });
+    const { dialog } = openQuestion(1, store);
+
+    // Before grading: the recall is clean — no read-back of what was written last time.
+    expect(within(dialog).queryByText(/When you solved this, you wrote/)).not.toBeInTheDocument();
+
+    act(() => {
+      store.dispatch(reviseQuestion(1, true));
+    });
+
+    const after = screen.getByRole('dialog');
+    // Scope to the reveal block: the debrief's reflection editor legitimately holds the same text
+    // as its (editable) value, so the read-back is identified by its own label.
+    const revealLabel = within(after).getByText(/When you solved this, you wrote/);
+    const revealBlock = revealLabel.closest('div')!;
+    expect(within(revealBlock).getByText('Skip from both ends at once.')).toBeInTheDocument();
+  });
+
+  test('failing a recall offers a "What tripped it?" line that saves to lastMissNote', () => {
+    const store = dueRecall();
+    openQuestion(1, store);
+
+    // Not offered before the grade.
+    expect(screen.queryByLabelText('What tripped it?')).not.toBeInTheDocument();
+
+    act(() => {
+      store.dispatch(reviseQuestion(1, false));
+    });
+
+    const input = screen.getByLabelText('What tripped it?');
+    fireEvent.change(input, { target: { value: 'Forgot to reset the pointer after a match.' } });
+    fireEvent.blur(input);
+
+    expect(store.getState().progress.byId[1]!.lastMissNote).toBe('Forgot to reset the pointer after a match.');
+  });
+
+  test('the copy converts a miss to information, never a judgment', () => {
+    const store = dueRecall();
+    openQuestion(1, store);
+    act(() => {
+      store.dispatch(reviseQuestion(1, false));
+    });
+
+    const dialog = screen.getByRole('dialog');
+    // No blame register anywhere in the post-fail reveal.
+    expect(dialog.textContent).not.toMatch(/\bwrong\b|\bfailed\b|\byou (?:keep|always)\b|bad at/i);
+  });
+
+  test('a prior miss note is read back at the next post-grade after a pass', () => {
+    const store = dueRecall({ lastMissNote: 'Off-by-one on the window edge.' });
+    openQuestion(1, store);
+
+    // Hidden during the recall.
+    expect(screen.queryByText('Off-by-one on the window edge.')).not.toBeInTheDocument();
+
+    act(() => {
+      store.dispatch(reviseQuestion(1, true));
+    });
+
+    const dialog = screen.getByRole('dialog');
+    expect(within(dialog).getByText(/what tripped you last time/i)).toBeInTheDocument();
+    expect(within(dialog).getByText('Off-by-one on the window edge.')).toBeInTheDocument();
+  });
+});
+
 describe('the heading register', () => {
   // The sheet is the heaviest surface in the product and used to run eight bands of identical
   // weight separated by seven hairlines — no map of a very long scroll, and borders doing work

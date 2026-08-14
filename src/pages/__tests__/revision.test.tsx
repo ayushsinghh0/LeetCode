@@ -474,6 +474,57 @@ describe('RevisionPage — finishing', () => {
   });
 });
 
+describe('RevisionPage — the reflection loop (wave D)', () => {
+  test('the closing reflection captures its one line to the practice journal', () => {
+    vi.useFakeTimers();
+    const store = makeStore();
+    setDate('2026-07-30');
+    for (let id = 1; id <= 6; id++) store.dispatch(solveQuestion(id));
+    setDate('2026-08-05');
+
+    renderWithStore(<RevisionPage />, store);
+    fireEvent.click(screen.getByRole('button', { name: 'Start session' }));
+
+    const list = screen.getByRole('list', { name: 'Session activities' });
+    // The session closes on the reflect activity — at 180m the budget always reserves it.
+    const reflectRow = within(list).getByText('Close the session').closest('li')!;
+    const input = within(reflectRow).getByLabelText('One idea to keep');
+    fireEvent.change(input, { target: { value: 'Two heaps keep the median at the boundary.' } });
+    fireEvent.click(within(reflectRow).getByRole('button', { name: 'Done' }));
+
+    expect(store.getState().practice.journal['2026-08-05']).toBe('Two heaps keep the median at the boundary.');
+    // And the row now reads back what was captured, rather than an empty checkbox.
+    expect(within(reflectRow).getByText(/Two heaps keep the median at the boundary\./)).toBeInTheDocument();
+  });
+
+  test('the preview reads back the last thing the learner noted', () => {
+    vi.useFakeTimers();
+    const store = makeStore({
+      practice: {
+        intentions: [],
+        journal: { '2026-07-28': 'K-way merge is just repeated two-way merges.' },
+        sittings: [],
+      },
+    });
+    solveAndAdvanceToDue(store, 1); // a due recall so the preview (not the empty state) renders
+
+    renderWithStore(<RevisionPage />, store);
+
+    expect(screen.getByText(/Last time you noted/)).toBeInTheDocument();
+    expect(screen.getByText(/K-way merge is just repeated two-way merges\./)).toBeInTheDocument();
+  });
+
+  test('with no journal history the preview says nothing rather than an empty prompt', () => {
+    vi.useFakeTimers();
+    const store = makeStore();
+    solveAndAdvanceToDue(store, 1);
+
+    renderWithStore(<RevisionPage />, store);
+
+    expect(screen.queryByText(/Last time you noted/)).not.toBeInTheDocument();
+  });
+});
+
 describe('RevisionPage — reference sections', () => {
   test('upcoming reviews are listed by date, described as not needing doing today', () => {
     vi.useFakeTimers();

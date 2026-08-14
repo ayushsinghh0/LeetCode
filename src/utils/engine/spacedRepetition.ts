@@ -34,7 +34,7 @@ export function initialProgress(): QuestionProgress {
   return {
     status: 'unsolved', revisionStage: 0, nextRevision: null, lastReviewed: null,
     revisionHistory: [], notes: '', bookmarked: false, completedAt: null,
-    confidence: null, timeSpentMin: 0, hintLevelUsed: 0, reflection: '',
+    confidence: null, timeSpentMin: 0, hintLevelUsed: 0, reflection: '', lastMissNote: '',
   };
 }
 

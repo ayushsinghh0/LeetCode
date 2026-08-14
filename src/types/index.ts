@@ -96,6 +96,11 @@ export interface QuestionProgress {
   // The learner's own answer to "what did you learn?", captured at the moment of solving when
   // it is cheapest to write and most worth having later. Markdown, like `notes`.
   reflection?: string;
+  // The one line the learner wrote after failing a recall — "what tripped it?" — turning a fail
+  // into information rather than a verdict (design record copy rule 4). Overwritten on each fail
+  // (last-write-wins) and revealed at the NEXT post-grade, never before the attempt. Optional in
+  // persisted payloads; the load boundary defaults it in like reflection/hintLevelUsed.
+  lastMissNote?: string;
 }
 
 export interface DayLog {

@@ -4,6 +4,7 @@ import { format, parseISO } from 'date-fns';
 import { Check, GraduationCap, RotateCcw } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Progress } from '@/components/ui/progress';
+import { Textarea } from '@/components/ui/textarea';
 import { EmptyState } from '@/components/shared/EmptyState';
 import {
   Page,
@@ -32,6 +33,7 @@ import {
   setDailyCapacity,
   startRevisionSession,
   uncompleteSessionActivity,
+  writeJournal,
 } from '@/store/actions';
 import { selectForecast, selectQuestionById, selectRevisionSession } from '@/store/selectors';
 import { initialCourseProgress, isWeekRetained } from '@/utils/engine/aimlCourse';
@@ -69,6 +71,14 @@ export default function RevisionPage() {
   const progressById = useAppSelector((state) => state.progress.byId);
   const courseByWeekId = useAppSelector((state) => state.course.byWeekId);
   const forecast = useAppSelector((state) => selectForecast(state, today));
+  // The reflection loop (wave D): the preview reads back the most recent journal line, and the
+  // closing reflect activity writes today's. ISO dates sort lexically, so max key = latest line.
+  const journal = useAppSelector((state) => state.practice.journal);
+  const lastJournalLine = useMemo(() => {
+    const dates = Object.keys(journal).sort();
+    const last = dates[dates.length - 1];
+    return last ? journal[last]! : null;
+  }, [journal]);
 
   const [showMastered, setShowMastered] = useState(false);
 
@@ -192,6 +202,12 @@ export default function RevisionPage() {
           }
           onGrade={gradeActivity}
           onOpen={openActivity}
+          onReflect={(activityId, line) => {
+            // Capture the closing line to the journal, then mark the activity done — one gesture.
+            dispatch(writeJournal(line));
+            dispatch(completeSessionActivity(activityId));
+          }}
+          journalLine={journal[today] ?? ''}
           onFinish={() => dispatch(finishRevisionSession())}
           onAbandon={() => dispatch(clearRevisionSession())}
         />
@@ -199,6 +215,7 @@ export default function RevisionPage() {
         <SessionPreview
           session={session}
           budgetMin={budgetMin}
+          lastJournalLine={lastJournalLine}
           onBudget={(min) => dispatch(setDailyCapacity(min))}
           onStart={() => dispatch(startRevisionSession())}
         />
@@ -295,11 +312,13 @@ export default function RevisionPage() {
 function SessionPreview({
   session,
   budgetMin,
+  lastJournalLine,
   onBudget,
   onStart,
 }: {
   session: ReturnType<typeof selectRevisionSession>;
   budgetMin: number;
+  lastJournalLine: string | null;
   onBudget: (min: number) => void;
   onStart: () => void;
 }) {
@@ -427,6 +446,15 @@ function SessionPreview({
           </p>
         )}
 
+        {/* The last thing the learner closed a session with — read back as a quiet marginal note,
+            not a plate. It closes the reflection loop the closing activity opens: what you noted
+            last time is what you carry into this session. */}
+        {lastJournalLine !== null && (
+          <p className="max-w-prose border-l-2 border-border pl-3 text-sm text-muted-foreground">
+            <span className="text-foreground">Last time you noted:</span> {lastJournalLine}
+          </p>
+        )}
+
         <div className="flex flex-wrap items-center gap-3">
           <Button onClick={onStart}>Start session</Button>
           <span className="figures text-xs text-muted-foreground">
@@ -462,6 +490,8 @@ function SessionRun({
   onToggle,
   onGrade,
   onOpen,
+  onReflect,
+  journalLine,
   onFinish,
   onAbandon,
 }: {
@@ -473,6 +503,8 @@ function SessionRun({
   onToggle: (id: string, done: boolean) => void;
   onGrade: (activity: SessionActivity, passed: boolean) => void;
   onOpen: (activity: SessionActivity) => void;
+  onReflect: (activityId: string, line: string) => void;
+  journalLine: string;
   onFinish: () => void;
   onAbandon: () => void;
 }) {
@@ -499,6 +531,32 @@ function SessionRun({
 
       <RuledList aria-label="Session activities">
         {session.activities.map((activity) => {
+          // The closing reflection is not a checkbox — it captures one line to the journal. A
+          // full-width row rather than the two-column grade layout, so the input has room.
+          if (activity.kind === 'reflect') {
+            return (
+              <RuledItem key={activity.id} className="flex flex-col gap-2">
+                <Meta
+                  items={[
+                    <span key="kind" className="text-xs uppercase tracking-[0.12em]">
+                      Close
+                    </span>,
+                    <span key="min" className="figures text-xs">
+                      ~{formatMinutes(activity.minutes)}
+                    </span>,
+                  ]}
+                />
+                <p className="font-medium">{activity.title}</p>
+                <p className="max-w-prose text-sm text-muted-foreground">{activity.prompt}</p>
+                <p className="max-w-prose text-xs text-muted-foreground/80">{activity.why}</p>
+                <ReflectRow
+                  done={done.has(activity.id)}
+                  initialLine={journalLine}
+                  onCapture={(line) => onReflect(activity.id, line)}
+                />
+              </RuledItem>
+            );
+          }
           const isDone = done.has(activity.id);
           const alreadyReviewed = reviewedToday(activity);
           return (
@@ -508,13 +566,14 @@ function SessionRun({
                   <Meta
                     items={[
                       <span key="kind" className="text-xs uppercase tracking-[0.12em]">
+                        {/* The reflect kind is handled by its own row above, so it never reaches
+                            here — the remaining kinds are the drill, course recall, and the
+                            gradable depths. */}
                         {activity.kind === 'drill'
                           ? 'Drill'
                           : activity.kind === 'course-review'
                             ? 'Course recall'
-                            : activity.kind === 'reflect'
-                              ? 'Close'
-                              : DEPTH_LABEL[activity.kind]}
+                            : DEPTH_LABEL[activity.kind]}
                       </span>,
                       <span key="min" className="figures text-xs">
                         ~{formatMinutes(activity.minutes)}
@@ -602,6 +661,52 @@ function SessionRun({
         </Button>
       </div>
     </Section>
+  );
+}
+
+/* ------------------------------------------------------------------------------------------- */
+
+/**
+ * The closing reflection's capture — a one-line input, not a checkbox. Completing it writes the
+ * line to the practice journal (last-write-wins for the day) and marks the activity done in one
+ * gesture; the preview of the next session reads that line back. Once captured the row states
+ * what was noted rather than offering an Undo — a reflection is not a tick to retract.
+ *
+ * Local draft state is fine: the running session slice is never persisted, so there is nothing to
+ * restore mid-sitting, and the row remounts clean on the next session.
+ */
+function ReflectRow({
+  done,
+  initialLine,
+  onCapture,
+}: {
+  done: boolean;
+  initialLine: string;
+  onCapture: (line: string) => void;
+}) {
+  const [line, setLine] = useState(initialLine);
+
+  if (done) {
+    return (
+      <p className="max-w-prose text-sm text-muted-foreground">
+        {line.trim() === '' ? 'Session closed.' : `Noted: ${line}`}
+      </p>
+    );
+  }
+
+  return (
+    <div className="flex w-full max-w-md flex-col gap-2">
+      <Textarea
+        aria-label="One idea to keep"
+        value={line}
+        onChange={(e) => setLine(e.target.value)}
+        rows={2}
+        placeholder="The one idea you would want back in a week…"
+      />
+      <Button size="sm" className="self-start" onClick={() => onCapture(line)}>
+        Done
+      </Button>
+    </div>
   );
 }
 

@@ -135,7 +135,8 @@ function isValidProgressEntry(value: unknown): value is QuestionProgress {
     // Attempt-quality fields shipped after the original shape — optional-when-absent (pre-hint
     // payloads must keep loading; the load boundary normalizes them in) but strict when present.
     (!('hintLevelUsed' in value) || isHintLevel(value.hintLevelUsed)) &&
-    (!('reflection' in value) || typeof value.reflection === 'string')
+    (!('reflection' in value) || typeof value.reflection === 'string') &&
+    (!('lastMissNote' in value) || typeof value.lastMissNote === 'string')
   );
 }
 
@@ -229,6 +230,7 @@ export function validatePersisted(raw: unknown): PersistedStateV1 | null {
       // normalizeQuestionProgress's spread defaults (same rule as the course ladder fields).
       ...('hintLevelUsed' in entry ? { hintLevelUsed: entry.hintLevelUsed } : {}),
       ...('reflection' in entry ? { reflection: entry.reflection } : {}),
+      ...('lastMissNote' in entry ? { lastMissNote: entry.lastMissNote } : {}),
     };
   }
   if (!isPlainObject(progress.dayLogs)) return null;

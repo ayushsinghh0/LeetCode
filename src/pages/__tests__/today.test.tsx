@@ -199,6 +199,22 @@ describe('TodayPage — returning after a gap', () => {
   });
 });
 
+describe('TodayPage — practice intentions rail', () => {
+  test('a set intention appears as a quiet "After …, I will …" line; none shows when unset', () => {
+    const withIntention = makeStore({
+      practice: { intentions: [{ cue: 'my morning coffee', action: 'today' }], journal: {}, sittings: [] },
+    });
+    const { unmount } = renderWithStore(<TodayPage />, withIntention);
+    const rail = screen.getByRole('region', { name: /intention/i });
+    expect(within(rail).getByText(/After my morning coffee/)).toBeInTheDocument();
+    unmount();
+
+    // A learner who set none sees nothing — no empty prompt cluttering Today.
+    renderWithStore(<TodayPage />, makeStore());
+    expect(screen.queryByRole('region', { name: /intention/i })).not.toBeInTheDocument();
+  });
+});
+
 describe('TodayPage — retained surfaces', () => {
   test('daily goal progress still tracks solves against the per-day target', () => {
     const store = makeStore();

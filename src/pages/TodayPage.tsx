@@ -9,6 +9,7 @@ import { CourseTodayCard } from '@/components/course/CourseTodayCard';
 import { NextActionCard } from '@/components/today/NextActionCard';
 import { SessionPlan } from '@/components/today/SessionPlan';
 import { ReturnNotice } from '@/components/today/ReturnNotice';
+import { PracticeIntentionsRail } from '@/components/today/PracticeIntentionsRail';
 import { DayCleared } from '@/components/today/DayCleared';
 import { useToday } from '@/hooks/useToday';
 import { useAppSelector } from '@/store/hooks';
@@ -51,6 +52,7 @@ export default function TodayPage() {
   const ranked = useAppSelector((state) => selectRankedWork(state, today));
   const daysAway = useAppSelector((state) => selectDaysAway(state, today));
   const capacityMin = useAppSelector((s) => s.settings.dailyCapacityMin);
+  const intentions = useAppSelector((s) => s.practice.intentions);
 
   const solvedToday = todayLog ? todayLog.solvedIds.length : 0;
   const minutesToday = todayLog ? todayLog.focusMinutes : 0;
@@ -75,10 +77,13 @@ export default function TodayPage() {
 
       {/* Day-level context, grouped so two notes never sit a full section apart. Both are quiet
           by design: neither is more important than the recommendation below them. */}
-      {(isWeeklyDay || returning) && (
+      {(isWeeklyDay || returning || intentions.length > 0) && (
         <div className="flex flex-col gap-5">
           {isWeeklyDay && <WeeklyRevisionBanner count={revisionIds.length} />}
           {returning && <ReturnNotice daysAway={daysAway} plannedMinutes={plannedMinutes} />}
+          {/* The learner's own routines, quiet above the hero — a reminder, never a headline, and
+              never more prominent than the day's one recommendation below it. */}
+          <PracticeIntentionsRail intentions={intentions} />
         </div>
       )}
 

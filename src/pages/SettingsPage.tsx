@@ -2,6 +2,7 @@ import { useState, type ChangeEvent, type ReactNode } from 'react';
 import { Controller, useForm } from 'react-hook-form';
 import questionsData from '@/data/questions.json';
 import { Page, PageHeader, Section } from '@/components/layout/Page';
+import { IntentionsEditor } from '@/components/settings/IntentionsEditor';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Switch } from '@/components/ui/switch';
@@ -350,6 +351,14 @@ export default function SettingsPage() {
             </Button>
           </div>
         </form>
+      </Section>
+
+      <Section
+        title="Practice intentions"
+        support="When, then — pair a routine with a practice action. The app suggests the shape; you decide whether to use it."
+        divider
+      >
+        <IntentionsEditor />
       </Section>
 
       <Section

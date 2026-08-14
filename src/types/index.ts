@@ -75,7 +75,18 @@ export interface SubpatternGroup {
   questionIds: number[];
 }
 
-export interface RevisionEvent { date: string; passed: boolean }
+export interface RevisionEvent {
+  date: string;
+  passed: boolean;
+  /**
+   * V7: the learner's own one-tap read of what kind of miss this was (engine/miss.ts registry:
+   * recognition | implementation | edge-case | recall). Optional always — an untagged fail
+   * carries exactly the evidence it always did. Typed as a bare string and validated as one, so
+   * a kind removed from the registry can never quarantine an old payload; the UI resolves
+   * through the registry and skips what it cannot name. Only fail events carry it.
+   */
+  missKind?: string;
+}
 
 export interface QuestionProgress {
   status: QuestionStatus;

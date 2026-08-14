@@ -29,11 +29,12 @@ import { QUESTION_TYPE_LABEL, QUESTION_TYPE_MEANING } from '@/data/questionTypes
 import { familyById, FAMILY_ROLE_LABEL, FAMILY_ROLE_ORDER, SUBPATTERNS } from '@/data/curriculum';
 import { useToday } from '@/hooks/useToday';
 import { useAppDispatch, useAppSelector } from '@/store/hooks';
-import { reviseQuestion, saveMissNote, skipQuestion, solveQuestion, toggleBookmark } from '@/store/actions';
+import { classifyMiss, reviseQuestion, saveMissNote, skipQuestion, solveQuestion, toggleBookmark } from '@/store/actions';
 import { activeQuestionSet, smallStartQuestionSet } from '@/store/slices/uiSlice';
 import { selectPaceSamples } from '@/store/selectors';
 import { initialProgress, isMastered } from '@/utils/engine/spacedRepetition';
 import { hintsFor } from '@/utils/engine/hints';
+import { MISS_KINDS } from '@/utils/engine/miss';
 import { followUpsFor } from '@/utils/engine/interview';
 import { companiesNamingPatternTopics } from '@/utils/engine/companies';
 import { MASTERY_LABEL, MASTERY_MEANING, masteryState } from '@/utils/engine/mastery';
@@ -314,6 +315,7 @@ export function QuestionDetailModal() {
                   reflection={progress.reflection ?? ''}
                   lastMissNote={progress.lastMissNote ?? ''}
                   failedToday={failedToday}
+                  missKind={lastEvent?.missKind ?? null}
                 />
               </div>
             )}
@@ -448,11 +450,14 @@ function RecallReveal({
   reflection,
   lastMissNote,
   failedToday,
+  missKind,
 }: {
   questionId: number;
   reflection: string;
   lastMissNote: string;
   failedToday: boolean;
+  /** Today's fail event's one-tap kind, or null — live from the store so the tap reflects. */
+  missKind: string | null;
 }) {
   const dispatch = useAppDispatch();
   const [note, setNote] = useState(lastMissNote);
@@ -493,6 +498,21 @@ function RecallReveal({
             Optional, and never counted against you — a note to yourself that turns the miss into
             something to watch for next time.
           </p>
+          {/* V7: the one-tap kind. Same optionality as the note — tap what you are sure of,
+              tap again to retract, or leave it untagged. Attaches to today's fail event only. */}
+          <div className="flex flex-wrap items-center gap-1.5">
+            {MISS_KINDS.map(({ kind, label }) => (
+              <Button
+                key={kind}
+                size="sm"
+                variant={missKind === kind ? 'secondary' : 'ghost'}
+                aria-pressed={missKind === kind}
+                onClick={() => dispatch(classifyMiss(questionId, missKind === kind ? null : kind))}
+              >
+                {label}
+              </Button>
+            ))}
+          </div>
           <Textarea
             id={`miss-note-${questionId}`}
             value={note}

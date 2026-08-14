@@ -19,6 +19,7 @@ import {
   notesSet,
   reflectionSet,
   missNoteSet,
+  missClassified,
   questionSkipped,
   questionSolved,
   questionStarted,
@@ -52,6 +53,7 @@ import {
 import { contestStallsRecorded } from '@/store/slices/contestsSlice';
 import { intentionsSet, journalWritten, sittingRecorded } from '@/store/slices/practiceSlice';
 import { normalizeIntentions, normalizeSitting, sittingCounts } from '@/utils/engine/practice';
+import { isMissKind } from '@/utils/engine/miss';
 import {
   activityCompleted,
   activityUncompleted,
@@ -149,6 +151,16 @@ export const saveReflection = (id: number, reflection: string): AppThunk => (dis
 export const saveMissNote = (id: number, note: string): AppThunk => (dispatch) => {
   if (!questionById.has(id)) return;
   dispatch(missNoteSet({ id, note: note.trim() }));
+};
+
+// V7: the one-tap miss classification after a failed recall. Normalized here (registry kind or
+// null — the logDrillResult discipline), guarded on a real question id, and dated by the thunk;
+// the reducer then refuses anything but today's own fail event, so the kind can never land on a
+// pass, another day's miss, or a question with no history. Optional always: no tag is a fine tag.
+export const classifyMiss = (id: number, kind: string | null): AppThunk => (dispatch) => {
+  if (!questionById.has(id)) return;
+  if (kind !== null && !isMissKind(kind)) return;
+  dispatch(missClassified({ id, date: todayISO(), kind }));
 };
 
 // Records a completed focus phase. DayLog.focusMinutes is the canonical total time ledger;

@@ -148,6 +148,20 @@ const progressSlice = createSlice({
       state.byId[id] = { ...prev, lastMissNote: note };
     },
 
+    // V7: the one-tap miss kind, attached to the day's own fail event and nothing else — the
+    // capture window is the post-grade moment, so classifying yesterday's miss (or a pass) is
+    // refused rather than guessed at. Last-write-wins within the day; null clears. The event
+    // ledger is the right home: aggregation needs dates, and the events already carry them.
+    missClassified(state, action: PayloadAction<{ id: number; date: string; kind: string | null }>) {
+      const { id, date, kind } = action.payload;
+      const entry = state.byId[id];
+      if (!entry) return;
+      const last = entry.revisionHistory[entry.revisionHistory.length - 1];
+      if (!last || last.passed || last.date !== date) return;
+      if (kind === null) delete last.missKind;
+      else last.missKind = kind;
+    },
+
     timeSpentAdded(state, action: PayloadAction<{ id: number; minutes: number }>) {
       const { id, minutes } = action.payload;
       const prev = state.byId[id] ?? initialProgress();
@@ -186,6 +200,7 @@ export const {
   hintRevealed,
   reflectionSet,
   missNoteSet,
+  missClassified,
 } = progressSlice.actions;
 
 export default progressSlice.reducer;

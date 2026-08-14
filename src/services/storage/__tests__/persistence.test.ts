@@ -4,7 +4,7 @@ import { LocalStorageAdapter } from '@/services/storage/LocalStorageAdapter';
 import { selectPersistedState, validatePersisted, exportAsJson } from '@/services/storage/serialize';
 import { createPersistenceMiddleware, loadInitialState } from '@/services/storage/persistence';
 import { makeStore } from '@/store/store';
-import { logDrillResult, setIntentions, solveQuestion, writeJournal } from '@/store/actions';
+import { classifyMiss, logDrillResult, reviseQuestion, setIntentions, solveQuestion, writeJournal } from '@/store/actions';
 import { contestStallsRecorded } from '@/store/slices/contestsSlice';
 import { sittingRecorded } from '@/store/slices/practiceSlice';
 import { stateImported, progressReset } from '@/store/sharedActions';
@@ -739,6 +739,43 @@ describe('round trip: makeStore -> persist -> reload into a fresh store', () => 
     expect(practice.intentions).toEqual([{ cue: 'after coffee', action: 'today' }]);
     expect(practice.journal[todayISO()]).toBe('two pointers, one invariant');
     expect(practice.sittings).toEqual([{ date: todayISO(), planned: 8, done: 5 }]);
+  });
+
+  test('a classified miss kind survives reload on its event; untagged events stay untagged (V7)', () => {
+    const adapter = new LocalStorageAdapter();
+    const store1 = makeStore(undefined, [createPersistenceMiddleware(adapter)]);
+    store1.dispatch(solveQuestion(1));
+    store1.dispatch(solveQuestion(2));
+    store1.dispatch(reviseQuestion(1, false));
+    store1.dispatch(reviseQuestion(2, false));
+    store1.dispatch(classifyMiss(1, 'edge-case'));
+    vi.advanceTimersByTime(500);
+
+    const store2 = makeStore(loadInitialState(new LocalStorageAdapter()));
+    expect(store2.getState().progress.byId[1]!.revisionHistory).toEqual([
+      { date: todayISO(), passed: false, missKind: 'edge-case' },
+    ]);
+    // The untagged fail round-trips without the field materializing.
+    expect(store2.getState().progress.byId[2]!.revisionHistory).toEqual([{ date: todayISO(), passed: false }]);
+  });
+
+  test('a foreign missKind string validates (lenient), a non-string missKind is rejected wholesale', () => {
+    const event = (missKind: unknown) => ({
+      ...validFixture,
+      progress: {
+        ...validFixture.progress,
+        byId: {
+          '1': {
+            ...validFixture.progress.byId['1'],
+            revisionHistory: [{ date: '2026-07-29', passed: false, missKind }],
+          },
+        },
+      },
+    });
+    // A kind later removed from the registry must never quarantine an old payload.
+    expect(validatePersisted(event('a-kind-this-build-never-knew'))).not.toBeNull();
+    // But a malformed (non-string) value is corruption and is rejected wholesale.
+    expect(validatePersisted(event(7))).toBeNull();
   });
 });
 

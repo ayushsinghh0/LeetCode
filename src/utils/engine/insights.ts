@@ -25,6 +25,7 @@ import type {
   QuestionProgress,
 } from '@/types';
 import { addDays, diffDays } from '@/utils/dates';
+import { isMissKind, missKindLabel } from '@/utils/engine/miss';
 import { MASTERED_STAGE } from '@/utils/engine/spacedRepetition';
 import { MIN_SAMPLES, paceSamples } from '@/utils/engine/timeEstimate';
 import type { PatternWeakness, TransferRecord } from '@/utils/engine/weakness';
@@ -82,6 +83,13 @@ const MIN_CONSISTENCY_DAYS = 4;    // active days across the two compared weeks
 // cannot support.
 const TRANSFER_WEAK = 0.4;
 const TRANSFER_STRONG = 0.8;
+// V7 miss-shape floors. The tags are the learner's own one-tap reads, so the card must clear two
+// bars: enough of them to aggregate (the floor), and a strict majority behind one kind (the
+// share) — an even mix is the silent middle, not a vague card. The window keeps the reading
+// present-tense: what tripped you last quarter is not a claim about you now.
+export const MIN_CLASSIFIED_MISSES = 5;
+export const MISS_WINDOW_DAYS = 90;
+const MISS_DOMINANT_SHARE = 0.5; // strict majority: share must EXCEED this
 
 const pct = (n: number) => `${Math.round(n * 100)}%`;
 
@@ -519,6 +527,63 @@ function calibration(input: InsightInput): Insight | null {
   return null;
 }
 
+// 7b. The miss shape (V7 slice 1) -------------------------------------------------------------
+// What kind of thing goes wrong, from the learner's own one-tap tags on failed recalls. Each
+// kind maps to an intervention the product actually has — that mapping is the whole point of
+// asking. These sentences describe the learner's tagged misses, never a pattern: pattern-level
+// weakness stays claimed in exactly one place (engine/weakness.ts), and this card is not it.
+const MISS_SHAPE_COPY: Record<string, Pick<Insight, 'headline' | 'recommendation' | 'action'>> = {
+  recognition: {
+    headline: 'Recent misses mostly start before any code — the pattern goes unseen.',
+    recommendation:
+      'A few minutes of recognition drills trains exactly this: naming the technique on sight, ' +
+      'before anything needs solving.',
+    action: { label: 'Open the drills', href: '/drills' },
+  },
+  implementation: {
+    headline: 'You are finding the idea — recent misses happen in the implementation.',
+    recommendation:
+      'Give these the re-implement treatment: code it from a blank page, then state the ' +
+      'invariant that makes the loop correct.',
+    action: { label: 'Open revisions', href: '/revision' },
+  },
+  'edge-case': {
+    headline: 'Recent misses are mostly edge cases, not the core idea.',
+    recommendation:
+      'Before running anything, name the boundary cases aloud — empty input, one element, ' +
+      'duplicates, the ends. A revision session gives you the reps.',
+    action: { label: 'Open revisions', href: '/revision' },
+  },
+  recall: {
+    headline: 'Recent misses are blank recalls — the approach is not coming back unprompted.',
+    recommendation:
+      'That is the ladder doing its job: each missed item is already rescheduled closer. Meet ' +
+      'them in a revision session rather than re-reading solutions.',
+    action: { label: 'Open revisions', href: '/revision' },
+  },
+};
+
+function missShape(input: InsightInput): Insight | null {
+  const report = missAnatomy(input.byId, input.today);
+  if (!report || report.total < MIN_CLASSIFIED_MISSES || !report.dominant) return null;
+  const copy = MISS_SHAPE_COPY[report.dominant.kind];
+  if (!copy) return null;
+
+  const n = report.counts[report.dominant.kind] ?? 0;
+  return {
+    id: 'miss-shape',
+    headline: copy.headline,
+    evidence: [
+      `${n} of the ${report.total} misses you tagged in the last ${MISS_WINDOW_DAYS} days were ` +
+        `"${missKindLabel(report.dominant.kind)}".`,
+      'From the one-tap tags you leave after a failed recall — tag only what you are sure of.',
+    ],
+    recommendation: copy.recommendation,
+    action: copy.action,
+    tone: 'steady',
+  };
+}
+
 // 8. Accuracy over time -----------------------------------------------------------------------
 // "Am I improving?" — which is the question a learner opens this page holding, and the one it
 // could not answer: the measurement below has existed and been tested from the start, and had no
@@ -647,6 +712,7 @@ export function buildInsights(input: InsightInput, extraActiveDates: ReadonlySet
     weakestPattern(input),
     scheduleRisk(input),
     calibration(input),
+    missShape(input),
     transferHold(input),
     untestedSolves(input),
     pace(input),
@@ -905,6 +971,42 @@ export interface CalibrationReport {
  * Returns null only when nothing has been rated and graded at all; otherwise it returns a report
  * whose `verdict` may be `unmeasured`, so the page can say "6 of 8" rather than nothing.
  */
+export interface MissAnatomy {
+  /** Classified misses inside the window — the aggregation's whole population. */
+  total: number;
+  /** Per-kind counts, registry kinds only. */
+  counts: Record<string, number>;
+  /** The strict-majority kind at or above the floor, or null — an even mix claims nothing. */
+  dominant: { kind: string; share: number } | null;
+}
+
+/**
+ * Aggregate the learner's own one-tap miss tags (V7 slice 1) across all fail events inside
+ * MISS_WINDOW_DAYS. Untagged fails contribute nothing (uncertainty is allowed), and a tag whose
+ * kind this build does not know is skipped rather than guessed at. Null when nothing was tagged.
+ */
+export function missAnatomy(byId: Record<number, QuestionProgress>, today: string): MissAnatomy | null {
+  const counts: Record<string, number> = {};
+  let total = 0;
+  for (const progress of Object.values(byId)) {
+    for (const ev of progress.revisionHistory) {
+      if (ev.passed || !ev.missKind || !isMissKind(ev.missKind)) continue;
+      if (diffDays(today, ev.date) > MISS_WINDOW_DAYS) continue;
+      counts[ev.missKind] = (counts[ev.missKind] ?? 0) + 1;
+      total += 1;
+    }
+  }
+  if (total === 0) return null;
+
+  const [topKind, topCount] = Object.entries(counts).sort((a, b) => b[1] - a[1])[0]!;
+  const share = topCount / total;
+  return {
+    total,
+    counts,
+    dominant: total >= MIN_CLASSIFIED_MISSES && share > MISS_DOMINANT_SHARE ? { kind: topKind, share } : null,
+  };
+}
+
 export function confidenceCalibration(
   byId: Record<number, QuestionProgress>,
 ): CalibrationReport | null {

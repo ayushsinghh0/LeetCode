@@ -458,6 +458,44 @@ describe('reflection and miss-note wiring (wave D)', () => {
     expect(dialog.textContent).not.toMatch(/\bwrong\b|\bfailed\b|\byou (?:keep|always)\b|bad at/i);
   });
 
+  test('failing offers the one-tap miss tags; a tap classifies, a second tap retracts (V7)', () => {
+    const store = dueRecall();
+    openQuestion(1, store);
+
+    // Not offered before the grade — the recall stays clean.
+    expect(screen.queryByRole('button', { name: 'Missed an edge case' })).not.toBeInTheDocument();
+
+    act(() => {
+      store.dispatch(reviseQuestion(1, false));
+    });
+
+    // All four registry tags render, none pressed.
+    const tag = screen.getByRole('button', { name: 'Missed an edge case' });
+    expect(screen.getByRole('button', { name: "Didn't see the pattern" })).toBeInTheDocument();
+    expect(tag).toHaveAttribute('aria-pressed', 'false');
+
+    fireEvent.click(tag);
+    expect(store.getState().progress.byId[1]!.revisionHistory.at(-1)!.missKind).toBe('edge-case');
+    expect(screen.getByRole('button', { name: 'Missed an edge case' })).toHaveAttribute('aria-pressed', 'true');
+
+    // Another tag overwrites — the learner's last read wins.
+    fireEvent.click(screen.getByRole('button', { name: "Couldn't recall the approach" }));
+    expect(store.getState().progress.byId[1]!.revisionHistory.at(-1)!.missKind).toBe('recall');
+
+    // Tapping the active tag again clears it — no tag is a fine tag.
+    fireEvent.click(screen.getByRole('button', { name: "Couldn't recall the approach" }));
+    expect(store.getState().progress.byId[1]!.revisionHistory.at(-1)!.missKind).toBeUndefined();
+  });
+
+  test('the tags do not appear after a pass — a pass has no miss to classify', () => {
+    const store = dueRecall();
+    openQuestion(1, store);
+    act(() => {
+      store.dispatch(reviseQuestion(1, true));
+    });
+    expect(screen.queryByRole('button', { name: 'Missed an edge case' })).not.toBeInTheDocument();
+  });
+
   test('a prior miss note is read back at the next post-grade after a pass', () => {
     const store = dueRecall({ lastMissNote: 'Off-by-one on the window edge.' });
     openQuestion(1, store);

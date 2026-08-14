@@ -4,7 +4,10 @@ import {
   confidenceCalibration,
   courseRetention,
   MIN_CALIBRATION_SAMPLES,
+  MIN_CLASSIFIED_MISSES,
   MIN_TREND_ATTEMPTS,
+  missAnatomy,
+  MISS_WINDOW_DAYS,
   paceAgainstEstimate,
   paceTrend,
   recognitionRecord,
@@ -759,5 +762,94 @@ describe('company coverage', () => {
     for (const company of COMPANIES) {
       expect(company.note ?? '').not.toMatch(/paraphras/i);
     }
+  });
+});
+
+/* --- V7 slice 1: the miss-shape reading ------------------------------------------------------ */
+
+describe('missAnatomy + the miss-shape card', () => {
+  // Progress with a set of dated fail events, each optionally tagged.
+  const failedWith = (events: { date: string; missKind?: string }[]): QuestionProgress => ({
+    ...initialProgress(),
+    status: 'solved',
+    revisionStage: 0,
+    nextRevision: '2026-08-01',
+    revisionHistory: events.map((e) => ({ date: e.date, passed: false, ...(e.missKind ? { missKind: e.missKind } : {}) })),
+  });
+  const D = (i: number) => `2026-07-${String(Math.min(28, 1 + i)).padStart(2, '0')}`;
+
+  test('below the floor the measurement reports but the card stays silent', () => {
+    const byId = {
+      1: failedWith([{ date: D(1), missKind: 'edge-case' }, { date: D(2), missKind: 'edge-case' }]),
+    };
+    expect(missAnatomy(byId, base.today)!.total).toBe(2);
+    expect(MIN_CLASSIFIED_MISSES).toBeGreaterThan(2);
+    expect(buildInsights({ ...base, byId }).find((i) => i.id === 'miss-shape')).toBeUndefined();
+  });
+
+  test('a dominant kind produces the card: counts as evidence, an intervention as the action', () => {
+    const byId = {
+      1: failedWith([
+        { date: D(1), missKind: 'edge-case' },
+        { date: D(3), missKind: 'edge-case' },
+        { date: D(5), missKind: 'edge-case' },
+      ]),
+      2: failedWith([{ date: D(2), missKind: 'edge-case' }, { date: D(4), missKind: 'implementation' }]),
+      3: failedWith([{ date: D(6), missKind: 'recall' }]),
+    };
+    const report = missAnatomy(byId, base.today)!;
+    expect(report.total).toBe(6);
+    expect(report.counts['edge-case']).toBe(4);
+    expect(report.dominant).toEqual({ kind: 'edge-case', share: 4 / 6 });
+
+    const card = buildInsights({ ...base, byId }).find((i) => i.id === 'miss-shape')!;
+    expect(card).toBeDefined();
+    expect(card.tone).toBe('steady');
+    expect(card.evidence.join(' ')).toMatch(/4 of .*6/);
+    expect(card.action.href).toBe('/revision');
+    // Copy rule 4: information, never judgment.
+    expect(`${card.headline} ${card.recommendation}`).not.toMatch(/fail(ure|ing)?|bad at|behind|should have/i);
+  });
+
+  test('a recognition-shaped record points at the drills, where recognition is trained', () => {
+    const byId = {
+      1: failedWith(
+        [D(1), D(2), D(3), D(4)].map((date) => ({ date, missKind: 'recognition' })),
+      ),
+      2: failedWith([{ date: D(5), missKind: 'recall' }]),
+    };
+    const card = buildInsights({ ...base, byId }).find((i) => i.id === 'miss-shape')!;
+    expect(card.action.href).toBe('/drills');
+  });
+
+  test('no dominant kind — an even mix — is the silent middle, not a vague card', () => {
+    const byId = {
+      1: failedWith([
+        { date: D(1), missKind: 'edge-case' },
+        { date: D(2), missKind: 'edge-case' },
+        { date: D(3), missKind: 'recall' },
+        { date: D(4), missKind: 'recall' },
+        { date: D(5), missKind: 'implementation' },
+        { date: D(6), missKind: 'implementation' },
+      ]),
+    };
+    expect(missAnatomy(byId, base.today)!.dominant).toBeNull();
+    expect(buildInsights({ ...base, byId }).find((i) => i.id === 'miss-shape')).toBeUndefined();
+  });
+
+  test('old events age out of the window; untagged and foreign-tagged fails never count', () => {
+    const stale = `2025-01-01`;
+    const byId = {
+      1: failedWith([
+        { date: stale, missKind: 'edge-case' },
+        { date: D(1) }, // untagged — carries exactly the evidence it always did
+        { date: D(2), missKind: 'a-kind-this-build-never-knew' },
+        { date: D(3), missKind: 'recall' },
+      ]),
+    };
+    const report = missAnatomy(byId, base.today)!;
+    expect(report.total).toBe(1);
+    expect(report.counts['recall']).toBe(1);
+    expect(MISS_WINDOW_DAYS).toBeLessThan(400);
   });
 });

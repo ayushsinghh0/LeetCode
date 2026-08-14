@@ -107,8 +107,21 @@ function isConfidence(value: unknown): value is Confidence | null {
 function isRevisionEventArray(value: unknown): value is RevisionEvent[] {
   return (
     Array.isArray(value) &&
-    value.every((ev) => isPlainObject(ev) && isIsoDate(ev.date) && typeof ev.passed === 'boolean')
+    value.every(
+      (ev) =>
+        isPlainObject(ev) &&
+        isIsoDate(ev.date) &&
+        typeof ev.passed === 'boolean' &&
+        // V7 miss kind: optional, and deliberately validated as a bare string — the registry is
+        // a UI concern, so removing a kind there can never quarantine an old payload here.
+        (!('missKind' in ev) || typeof ev.missKind === 'string'),
+    )
   );
+}
+
+/** Rebuild one event with exactly the known fields — copy-when-present for the optional kind. */
+function copyRevisionEvent(ev: RevisionEvent): RevisionEvent {
+  return { date: ev.date, passed: ev.passed, ...('missKind' in ev ? { missKind: ev.missKind } : {}) };
 }
 
 function isIdArray(value: unknown): value is number[] {
@@ -236,7 +249,7 @@ export function validatePersisted(raw: unknown): PersistedStateV1 | null {
       revisionStage: entry.revisionStage,
       nextRevision: entry.nextRevision,
       lastReviewed: entry.lastReviewed,
-      revisionHistory: entry.revisionHistory.map((ev) => ({ date: ev.date, passed: ev.passed })),
+      revisionHistory: entry.revisionHistory.map(copyRevisionEvent),
       notes: entry.notes,
       bookmarked: entry.bookmarked,
       completedAt: entry.completedAt,
@@ -446,7 +459,7 @@ export function validatePersisted(raw: unknown): PersistedStateV1 | null {
         ...('nextRevision' in entry ? { nextRevision: entry.nextRevision } : {}),
         ...('lastReviewed' in entry ? { lastReviewed: entry.lastReviewed } : {}),
         ...('revisionHistory' in entry
-          ? { revisionHistory: entry.revisionHistory.map((ev) => ({ date: ev.date, passed: ev.passed })) }
+          ? { revisionHistory: entry.revisionHistory.map(copyRevisionEvent) }
           : {}),
         ...('recallChecks' in entry
           ? {

@@ -4,6 +4,7 @@ import { renderWithStore } from '@/test/renderWithStore';
 import FocusPage from '@/pages/FocusPage';
 import TodayPage from '@/pages/TodayPage';
 import { setDailyCapacity } from '@/store/actions';
+import { SMALL_START_COPY } from '@/components/questions/SmallStartFrame';
 import { initialProgress } from '@/utils/engine/spacedRepetition';
 import { initialCourseProgress } from '@/utils/engine/aimlCourse';
 import { COURSE_WEEKS } from '@/data/aimlCourse';
@@ -263,6 +264,65 @@ describe('FocusPage: the time budget', () => {
 
     renderWithStore(<FocusPage />, store);
     expect(screen.getByRole('button', { name: 'Session done' })).toBeInTheDocument();
+  });
+});
+
+// The five-minute re-entry (?entry=small): one item, the two-minute frame, no counter, and an
+// interstitial that honours stopping. Small mode swaps the packed plan for exactly ONE item chosen
+// by buildSmallStart over the same ranked list — the entry, not a budget.
+describe('FocusPage: small entry (?entry=small — the five-minute re-entry)', () => {
+  test('opens on the lightest studyable item, framed by the two-minute start', () => {
+    // Fresh store: nothing is due, so the small start falls through to the first new question.
+    renderWithStore(<FocusPage />, makeStore(), '/focus?entry=small');
+
+    expect(screen.getByRole('heading', { name: 'Valid Palindrome' })).toBeInTheDocument();
+    // The two-minute frame's one copy source, asserted verbatim so the surfaces cannot drift.
+    expect(screen.getByText(SMALL_START_COPY)).toBeInTheDocument();
+    // A new question in small mode still grades as a first attempt, not a recall.
+    expect(screen.getByRole('button', { name: 'Solved' })).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Pass' })).not.toBeInTheDocument();
+  });
+
+  test('no counter in small mode: five minutes is an entry, not a budget', () => {
+    renderWithStore(<FocusPage />, makeStore(), '/focus?entry=small');
+
+    // The inline pomodoro (role="timer") is the one counter Focus normally shows; it is withheld.
+    expect(screen.queryByRole('timer')).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Start pomodoro' })).not.toBeInTheDocument();
+  });
+
+  test('normal focus mode DOES show the counter — so the absence above is small mode, not the page', () => {
+    renderWithStore(<FocusPage />, makeStore(), '/focus');
+
+    expect(screen.getByRole('timer')).toBeInTheDocument();
+  });
+
+  test('after the one item is graded, the interstitial replaces it instead of serving the next', () => {
+    const { store } = renderWithStore(<FocusPage />, makeStore(), '/focus?entry=small');
+
+    fireEvent.click(screen.getByRole('button', { name: 'Solved' }));
+
+    expect(store.getState().progress.byId[1]!.status).toBe('solved');
+    // The visit promised one thing; the next item is withheld, and the copy is asserted verbatim.
+    expect(screen.queryByRole('heading', { name: 'Valid Palindrome' })).not.toBeInTheDocument();
+    expect(screen.queryByRole('heading', { name: '3Sum' })).not.toBeInTheDocument();
+    expect(screen.getByText('That was the return.')).toBeInTheDocument();
+    expect(
+      screen.getByText('Continue if you want to — stopping here is also a finished visit.'),
+    ).toBeInTheDocument();
+  });
+
+  test('"Keep going" drops the small framing and resumes the normal queue', () => {
+    renderWithStore(<FocusPage />, makeStore(), '/focus?entry=small');
+
+    fireEvent.click(screen.getByRole('button', { name: 'Solved' })); // id 1 solved -> interstitial
+    fireEvent.click(screen.getByRole('button', { name: 'Keep going' }));
+
+    // Normal flow takes over: the next studyable item is day 1's second question, and the counter
+    // is back — small mode is over.
+    expect(screen.getByRole('heading', { name: '3Sum' })).toBeInTheDocument();
+    expect(screen.getByRole('timer')).toBeInTheDocument();
+    expect(screen.queryByText('That was the return.')).not.toBeInTheDocument();
   });
 });
 

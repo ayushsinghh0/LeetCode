@@ -179,6 +179,24 @@ describe('TodayPage — returning after a gap', () => {
 
     vi.useRealTimers();
   });
+
+  test('the notice offers the five-minute re-entry into Focus small mode', () => {
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date('2026-07-30T12:00:00'));
+
+    const store = makeStore();
+    store.dispatch(solveQuestion(1));
+
+    vi.setSystemTime(new Date('2026-08-04T12:00:00'));
+    renderWithStore(<TodayPage />, store);
+
+    const notice = screen.getByRole('region', { name: 'Welcome back' });
+    // The re-entry shrinks the unit of work, never the cadence: one door into Focus's small mode.
+    const reentry = within(notice).getByRole('link', { name: 'Begin with five minutes' });
+    expect(reentry).toHaveAttribute('href', '/focus?entry=small');
+
+    vi.useRealTimers();
+  });
 });
 
 describe('TodayPage — retained surfaces', () => {

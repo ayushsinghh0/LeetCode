@@ -5,6 +5,7 @@ import { selectPersistedState, validatePersisted, exportAsJson } from '@/service
 import { createPersistenceMiddleware, loadInitialState } from '@/services/storage/persistence';
 import { makeStore } from '@/store/store';
 import { logDrillResult, solveQuestion } from '@/store/actions';
+import { contestStallsRecorded } from '@/store/slices/contestsSlice';
 import { stateImported, progressReset } from '@/store/sharedActions';
 import { settingsUpdated } from '@/store/slices/settingsSlice';
 import { todayISO } from '@/utils/dates';
@@ -346,6 +347,28 @@ describe('validatePersisted', () => {
     expect(validatePersisted(badDay)).toBeNull();
   });
 
+  test('accepts a well-formed contests channel and rejects malformed ones', () => {
+    const withContests = {
+      ...validFixture,
+      contests: { byDate: { '2026-07-30': { stalledPatterns: ['graphs', 'stacks'], attempted: 3, total: 4 } } },
+    };
+    expect(validatePersisted(withContests)).toEqual(withContests);
+
+    // attempted > total is impossible for a real sitting — reject wholesale.
+    const badCount = {
+      ...validFixture,
+      contests: { byDate: { '2026-07-30': { stalledPatterns: ['graphs'], attempted: 5, total: 4 } } },
+    };
+    expect(validatePersisted(badCount)).toBeNull();
+
+    // A duplicated pattern would double-count one sitting in the weakness model — reject it.
+    const dupePatterns = {
+      ...validFixture,
+      contests: { byDate: { '2026-07-30': { stalledPatterns: ['graphs', 'graphs'], attempted: 2, total: 4 } } },
+    };
+    expect(validatePersisted(dupePatterns)).toBeNull();
+  });
+
   test('drops unknown extra keys instead of smuggling them into the store', () => {
     const withExtras = { ...validFixture, futureField: 'surprise' };
     const result = validatePersisted(withExtras);
@@ -629,6 +652,34 @@ describe('round trip: makeStore -> persist -> reload into a fresh store', () => 
       correct: 6,
       total: 8,
       missedPatterns: ['graphs', 'stacks'],
+    });
+  });
+
+  test('a recorded contest stall survives reload; contest-free payloads stay contest-free', () => {
+    // The finishContest -> validator parity (that the thunk cannot emit an unpersistable payload)
+    // is covered end-to-end in store/__tests__/contestStalls.test.ts; this is its reload-path
+    // complement — the full LocalStorageAdapter save -> loadInitialState -> fresh store trip that
+    // the drills channel above also proves. contestStallsRecorded is the writer finishContest
+    // dispatches, so populating the channel through it exercises exactly what persists.
+    const adapter1 = new LocalStorageAdapter();
+    const store1 = makeStore(undefined, [createPersistenceMiddleware(adapter1)]);
+
+    // Untouched contests must not appear in the payload (written-only-once-touched rule).
+    store1.dispatch(solveQuestion(1));
+    vi.advanceTimersByTime(500);
+    expect(adapter1.load()?.contests).toBeUndefined();
+
+    store1.dispatch(
+      contestStallsRecorded({ date: todayISO(), stalledPatterns: ['graphs', 'stacks'], attempted: 2, total: 4 }),
+    );
+    vi.advanceTimersByTime(500);
+
+    const preloaded = loadInitialState(new LocalStorageAdapter());
+    const store2 = makeStore(preloaded);
+    expect(store2.getState().contests.byDate[todayISO()]).toEqual({
+      stalledPatterns: ['graphs', 'stacks'],
+      attempted: 2,
+      total: 4,
     });
   });
 });

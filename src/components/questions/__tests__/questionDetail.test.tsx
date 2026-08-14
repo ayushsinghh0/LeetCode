@@ -4,8 +4,9 @@ import { format, parseISO } from 'date-fns';
 import { makeStore, type AppStore } from '@/store/store';
 import { renderWithStore } from '@/test/renderWithStore';
 import { QuestionDetailModal } from '@/components/questions/QuestionDetailModal';
+import { SMALL_START_COPY } from '@/components/questions/SmallStartFrame';
 import { reviseQuestion, solveQuestion } from '@/store/actions';
-import { activeQuestionSet } from '@/store/slices/uiSlice';
+import { activeQuestionSet, smallStartQuestionSet } from '@/store/slices/uiSlice';
 import { initialProgress } from '@/utils/engine/spacedRepetition';
 import { MIN_SAMPLES } from '@/utils/engine/timeEstimate';
 import questionsData from '@/data/questions.json';
@@ -112,6 +113,53 @@ describe('the question header', () => {
     // only signal — so a brute force marked solved must never be told it practiced O(n).
     expect(resolved.getByText('Intended complexity')).toBeInTheDocument();
     expect(bound.closest('li')).toBeNull();
+  });
+});
+
+describe('the two-minute start frame', () => {
+  // The frame belongs to one visit: it shows only while the small-start flag points at THIS open,
+  // still-unsolved question, and closing the sheet clears the flag so a later reopen is normal.
+  function openSmallStart(id: number, store: AppStore = makeStore()) {
+    const rendered = renderWithStore(<QuestionDetailModal />, store);
+    act(() => {
+      store.dispatch(smallStartQuestionSet(id));
+      store.dispatch(activeQuestionSet(id));
+    });
+    return { ...rendered, dialog: screen.getByRole('dialog') };
+  }
+
+  test('shows the frame when the small-start flag points at the open, unsolved question', () => {
+    const { dialog } = openSmallStart(1);
+
+    expect(within(dialog).getByText('Two-minute start')).toBeInTheDocument();
+    expect(within(dialog).getByText(SMALL_START_COPY)).toBeInTheDocument();
+  });
+
+  test('no frame when the flag is unset, even with the question open', () => {
+    const { dialog } = openQuestion(1);
+
+    expect(within(dialog).queryByText('Two-minute start')).not.toBeInTheDocument();
+  });
+
+  test('no frame once the question is solved — a solved question has nothing to enter small', () => {
+    const store = makeStore();
+    openSmallStart(1, store);
+    expect(within(screen.getByRole('dialog')).getByText('Two-minute start')).toBeInTheDocument();
+
+    act(() => {
+      store.dispatch(solveQuestion(1));
+    });
+
+    expect(within(screen.getByRole('dialog')).queryByText('Two-minute start')).not.toBeInTheDocument();
+  });
+
+  test('closing the sheet clears the flag, so reopening later is a normal attempt', () => {
+    const store = makeStore();
+    openSmallStart(1, store);
+
+    fireEvent.click(screen.getByRole('button', { name: /close/i }));
+
+    expect(store.getState().ui.smallStartQuestionId).toBeNull();
   });
 });
 

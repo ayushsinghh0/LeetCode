@@ -4,6 +4,7 @@ import { selectPersistedState } from '@/services/storage/serialize';
 import type { RootState } from '@/store/store';
 import { progressReset, stateImported } from '@/store/sharedActions';
 import { normalizeCourseWeekProgress } from '@/utils/engine/aimlCourse';
+import { normalizeMlTrackProgress } from '@/utils/engine/mlTrack';
 import { normalizeQuestionProgress } from '@/utils/engine/spacedRepetition';
 
 const DEFAULT_DEBOUNCE_MS = 500;
@@ -124,6 +125,21 @@ export function loadInitialState(adapter: StorageAdapter): Partial<RootState> | 
     // Absent before interview sittings were recorded — same omit-and-default rule. Preloads the
     // `interviews` history only; the live `interview` sitting is never persisted or restored.
     ...(persisted.interviews ? { interviews: { sittings: persisted.interviews.sittings } } : {}),
+    // Absent before the ML tracks could be worked through — same omit-and-default rule, with the
+    // per-entry normalization the course channel above also does.
+    ...(persisted.ml
+      ? {
+          ml: {
+            tracksById: Object.fromEntries(
+              Object.entries(persisted.ml.tracksById).map(([trackId, progress]) => [
+                trackId,
+                normalizeMlTrackProgress(progress),
+              ]),
+            ),
+            projectsById: persisted.ml.projectsById,
+          },
+        }
+      : {}),
     // Absent before the V6 practice layer — same omit-and-default rule.
     ...(persisted.practice
       ? {

@@ -83,6 +83,26 @@ import {
 } from '@/store/slices/sessionSlice';
 import { settingsUpdated } from '@/store/slices/settingsSlice';
 import { courseWeekById } from '@/data/aimlCourse';
+import { mlTrackById } from '@/data/mlTracks';
+import { mlProjectById } from '@/data/mlProjects';
+import {
+  mlProjectShipped,
+  mlProjectStarted,
+  mlRungCompleted,
+  mlTrackRebuilt,
+} from '@/store/slices/mlSlice';
+import {
+  ML_LADDER_RUNG,
+  ML_REBUILD_XP,
+  ML_RUNG_XP,
+  ML_TRACK_CLEAR_BONUS,
+  isRebuiltOn,
+  isRungDone,
+  isTrackClear,
+  isTrackRetained,
+  mlTrackProgressFor,
+  rungIdsOf,
+} from '@/utils/engine/mlTrack';
 import {
   COURSE_REVIEW_XP,
   COURSE_SESSION_XP,
@@ -559,6 +579,100 @@ export const setIntentions = (inputs: { cue: string; action: string }[]): AppThu
 export const writeJournal = (line: string): AppThunk => (dispatch) => {
   dispatch(journalWritten({ date: todayISO(), line: line.trim() }));
 };
+
+// --- ML implementation tracks -----------------------------------------------------------------
+// The one place in V8 that pays XP, because it is the one place recording real work rather than
+// evidence about work. Same double-entry bookkeeping as the course: `xpAdded` moves the total,
+// `bonusXpLogged` writes the day ledger, and the stamp-once guard in the engine is what keeps a
+// work register from becoming a farm.
+
+/**
+ * Stamp one rung of one track.
+ *
+ * Idempotent at the same choke point `completeCourseSession` uses: `applyMlRung` returns the
+ * existing entry unchanged when the rung is already stamped, so re-pressing pays nothing. Stamping
+ * `scratch` also enters the track into the shared 1/3/7/15/30 ladder — the first moment there is
+ * an implementation to forget.
+ */
+export const completeMlRung =
+  (trackId: string, rungId: string): AppThunk =>
+  (dispatch, getState) => {
+    const track = mlTrackById[trackId];
+    if (!track || !rungIdsOf(track).includes(rungId)) return;
+
+    const before = mlTrackProgressFor(getState().ml.tracksById, trackId);
+    if (isRungDone(before, rungId)) return;
+
+    const date = todayISO();
+    dispatch(mlRungCompleted({ trackId, rungId, date }));
+    dispatch(xpAdded(ML_RUNG_XP));
+    dispatch(bonusXpLogged({ date, xp: ML_RUNG_XP }));
+
+    const after = mlTrackProgressFor(getState().ml.tracksById, trackId);
+    if (isTrackClear(track, after)) {
+      dispatch(xpAdded(ML_TRACK_CLEAR_BONUS));
+      dispatch(bonusXpLogged({ date, xp: ML_TRACK_CLEAR_BONUS }));
+      dispatch(celebrationShown('confetti'));
+    }
+
+    evaluateAndUnlockAchievements(dispatch, getState, date);
+  };
+
+/**
+ * Grade a rebuild — "write the core loop again from a blank file, then say whether it came out".
+ *
+ * One per track per calendar date: a second grade the same day is a rerun of something just done,
+ * which is practice rather than a retrieval, exactly as drills and course recall checks treat it.
+ * Ladder semantics are the shared ones: a fail drops to stage 0, due tomorrow.
+ */
+export const reviseMlTrack =
+  (trackId: string, passed: boolean): AppThunk =>
+  (dispatch, getState) => {
+    const track = mlTrackById[trackId];
+    if (!track) return;
+
+    const before = mlTrackProgressFor(getState().ml.tracksById, trackId);
+    if (!isRungDone(before, ML_LADDER_RUNG) || isTrackRetained(before)) return;
+
+    const date = todayISO();
+    if (isRebuiltOn(before, date)) return;
+
+    dispatch(mlTrackRebuilt({ trackId, date, passed }));
+    if (passed) {
+      dispatch(xpAdded(ML_REBUILD_XP));
+      dispatch(bonusXpLogged({ date, xp: ML_REBUILD_XP }));
+    }
+
+    evaluateAndUnlockAchievements(dispatch, getState, date);
+  };
+
+/**
+ * Projects are marked, not graded. Starting one earns nothing — it is a statement of intent, and
+ * paying for intent is how a plan becomes a scoreboard. Shipping one pays the track-clear bonus,
+ * because a finished project is the same class of event as a finished track.
+ */
+export const startMlProject =
+  (projectId: string): AppThunk =>
+  (dispatch, getState) => {
+    if (!mlProjectById[projectId]) return;
+    if (getState().ml.projectsById[projectId]?.startedOn) return;
+    dispatch(mlProjectStarted({ projectId, date: todayISO() }));
+  };
+
+export const shipMlProject =
+  (projectId: string): AppThunk =>
+  (dispatch, getState) => {
+    if (!mlProjectById[projectId]) return;
+    if (getState().ml.projectsById[projectId]?.shippedOn) return;
+
+    const date = todayISO();
+    dispatch(mlProjectShipped({ projectId, date }));
+    dispatch(xpAdded(ML_TRACK_CLEAR_BONUS));
+    dispatch(bonusXpLogged({ date, xp: ML_TRACK_CLEAR_BONUS }));
+    dispatch(celebrationShown('confetti'));
+
+    evaluateAndUnlockAchievements(dispatch, getState, date);
+  };
 
 // --- Interviews ------------------------------------------------------------------------------
 // The live sitting stays unpersisted; what survives is a derived record, banked here. Same

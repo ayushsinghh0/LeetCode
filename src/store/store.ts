@@ -4,6 +4,7 @@ import progressReducer from '@/store/slices/progressSlice';
 import settingsReducer from '@/store/slices/settingsSlice';
 import gamificationReducer from '@/store/slices/gamificationSlice';
 import courseReducer from '@/store/slices/courseSlice';
+import mlReducer from '@/store/slices/mlSlice';
 import tasksReducer from '@/store/slices/tasksSlice';
 import drillsReducer from '@/store/slices/drillsSlice';
 import sessionReducer from '@/store/slices/sessionSlice';
@@ -19,6 +20,9 @@ const rootReducer = combineReducers({
   settings: settingsReducer,
   gamification: gamificationReducer,
   course: courseReducer,
+  // The ML implementation tracks and projects — a separate id space from `course`, and a track's
+  // weekId is frequently null, so they are deliberately not the same slice.
+  ml: mlReducer,
   tasks: tasksReducer,
   drills: drillsReducer,
   session: sessionReducer,

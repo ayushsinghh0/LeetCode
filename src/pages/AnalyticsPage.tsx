@@ -12,7 +12,7 @@ import { useAppSelector } from '@/store/hooks';
 import {
   selectAccuracyTrend,
   selectCalibration,
-  selectCourseActiveDates,
+  selectOtherTrackActiveDates,
   selectCourseProjectedFinish,
   selectCourseRetention,
   selectCourseStats,
@@ -82,7 +82,7 @@ export default function AnalyticsPage() {
   const weakness = useAppSelector((s) => selectPatternWeakness(s, today));
   const forecast = useAppSelector((s) => selectForecast(s, today));
   const dayLogs = useAppSelector((s) => s.progress.dayLogs);
-  const courseActiveDates = useAppSelector(selectCourseActiveDates);
+  const otherTrackActiveDates = useAppSelector(selectOtherTrackActiveDates);
   const courseStats = useAppSelector(selectCourseStats);
   const courseFinish = useAppSelector((s) => selectCourseProjectedFinish(s, today));
   const courseRetention = useAppSelector(selectCourseRetention);
@@ -99,8 +99,8 @@ export default function AnalyticsPage() {
 
   // Unified activity definition, matching the streak: a course-only day is an active day.
   const activeDays = useMemo(
-    () => Math.round(consistency(dayLogs, today, ACTIVE_WINDOW_DAYS, courseActiveDates) * ACTIVE_WINDOW_DAYS),
-    [dayLogs, today, courseActiveDates],
+    () => Math.round(consistency(dayLogs, today, ACTIVE_WINDOW_DAYS, otherTrackActiveDates) * ACTIVE_WINDOW_DAYS),
+    [dayLogs, today, otherTrackActiveDates],
   );
 
   // Focus-timer minutes and what they bought. DayLog.focusMinutes is the canonical time ledger;

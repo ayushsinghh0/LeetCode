@@ -1,6 +1,11 @@
 import { useState } from 'react';
-import { ChevronDown } from 'lucide-react';
+import { Check, ChevronDown } from 'lucide-react';
 import { Meta } from '@/components/layout/Page';
+import { Button } from '@/components/ui/button';
+import { useAppDispatch, useAppSelector } from '@/store/hooks';
+import { completeMlRung } from '@/store/actions';
+import { ML_LADDER_RUNG, isRungDone, mlTrackProgressFor, rungsDone } from '@/utils/engine/mlTrack';
+import { format, parseISO } from 'date-fns';
 import { CodeChips, EYEBROW, Field, ROW_INSET, RowToggle, StepList, weekLabel } from '@/components/course/MlRowParts';
 import {
   ML_STAGE_LABEL,
@@ -12,6 +17,8 @@ import {
 } from '@/data/mlTracks';
 import { formatMinutes } from '@/utils/engine/planner';
 import { cn } from '@/utils/cn';
+
+const monthDay = (iso: string): string => format(parseISO(iso), 'MMM d');
 
 /**
  * One from-scratch implementation track, opening into its five-stage ladder.
@@ -116,6 +123,8 @@ function FailureModes({ track }: { track: MlTrack }) {
 function StageLadder({ track }: { track: MlTrack }) {
   // One acquisition stage open at a time, starting at the top: it is a ladder, not a tab strip.
   const [openStage, setOpenStage] = useState<MlStageId | null>('math');
+  const dispatch = useAppDispatch();
+  const progress = useAppSelector((state) => mlTrackProgressFor(state.ml.tracksById, track.id));
 
   return (
     <ol className="flex flex-col border-t border-border">
@@ -172,6 +181,27 @@ function StageLadder({ track }: { track: MlTrack }) {
               {open && (
                 <div className="flex flex-col gap-4">
                   {isFailure ? <FailureModes track={track} /> : <StageDetail track={track} stage={stage} />}
+                  {/* The stamp. A date, not a counter — pressing it again does nothing and pays
+                      nothing, which is what keeps a work register from becoming a farm. Stamping
+                      "From scratch" also puts the track on the rebuild ladder: that is the rung
+                      where an implementation starts existing, and therefore starts being
+                      forgettable. */}
+                  {isRungDone(progress, stage) ? (
+                    <p className="figures text-xs text-muted-foreground">
+                      Done {monthDay(progress.rungs[stage]!)}
+                      {stage === ML_LADDER_RUNG && ' · on the rebuild ladder'}
+                    </p>
+                  ) : (
+                    <div>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => dispatch(completeMlRung(track.id, stage))}
+                      >
+                        <Check /> Mark {ML_STAGE_LABEL[stage].toLowerCase()} done
+                      </Button>
+                    </div>
+                  )}
                 </div>
               )}
             </div>
@@ -185,6 +215,8 @@ function StageLadder({ track }: { track: MlTrack }) {
 export function MlTrackRow({ track }: { track: MlTrack }) {
   const [open, setOpen] = useState(false);
   const prereqs = track.prereqs.map((id) => mlTrackById[id]?.title ?? id);
+  const progress = useAppSelector((state) => mlTrackProgressFor(state.ml.tracksById, track.id));
+  const done = rungsDone(track, progress);
 
   return (
     // The `RuledList` parent already draws the hairline between rows via `divide-y`; this row
@@ -200,6 +232,11 @@ export function MlTrackRow({ track }: { track: MlTrack }) {
             weekLabel(track.weekId),
             // Surfaced on the closed row on purpose: the failure modes are the reason to open it.
             <span className="figures">{track.stages.failure.length} failure modes</span>,
+            done > 0 && (
+              <span className="figures text-foreground">
+                {done} of {ML_STAGE_ORDER.length} rungs done
+              </span>
+            ),
           ]}
         />
       </RowToggle>

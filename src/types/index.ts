@@ -274,6 +274,34 @@ export interface InterviewSittingRecord {
   reflection?: string;
 }
 
+// --- ML implementation tracks (V8) ------------------------------------------------------------
+// The eleven from-scratch tracks shipped as content with nowhere to record having done them. This
+// is that record, and it is deliberately NOT courseSlice: the id spaces are different, a track's
+// `weekId` is frequently null, and folding them together would make "the course" mean two things.
+//
+// The ladder is entered at the SCRATCH rung, not on finishing the track. Deriving the maths is
+// reading; writing the thing in numpy is the first moment there is something to forget. What a
+// review asks for is a rebuild from a blank file, which is why it is worth scheduling at all.
+export interface MlTrackProgress {
+  /** Rung id → the ISO date it was first stamped. Sparse; stamps never move once written. */
+  rungs: Record<string, string>;
+  revisionStage: number; // 0..5; 5 = retained, same ladder as questions and course weeks
+  nextRevision: string | null;
+  lastReviewed: string | null;
+  revisionHistory: RevisionEvent[];
+}
+
+export interface MlProjectProgress {
+  startedOn: string | null;
+  shippedOn: string | null;
+}
+
+export interface MlState {
+  /** Sparse — only tracks the learner has touched exist. Readers must fall back. */
+  tracksById: Record<string, MlTrackProgress>;
+  projectsById: Record<string, MlProjectProgress>;
+}
+
 export interface InterviewsState {
   /** Most recent last. Capped — see MAX_INTERVIEW_SITTINGS. */
   sittings: InterviewSittingRecord[];
@@ -338,6 +366,8 @@ export interface PersistedStateV1 {
   contests?: ContestsState;
   // Optional for the same reason — payloads saved before interview sittings were recorded.
   interviews?: InterviewsState;
+  // Optional for the same reason — payloads saved before the ML tracks could be worked through.
+  ml?: MlState;
   // Optional for the same reason — payloads saved before the practice layer (V6) shipped.
   practice?: PracticeState;
 }

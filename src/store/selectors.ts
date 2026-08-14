@@ -23,9 +23,17 @@ import {
   COURSE_REVIEW_MINUTES,
   COURSE_SESSION_MINUTES,
   DEFAULT_TASK_MINUTES,
+  ML_REBUILD_MINUTES,
   REVISION_MINUTES,
   revisionMinutes,
 } from '@/utils/engine/planner';
+import { ML_TRACKS, mlTrackById } from '@/data/mlTracks';
+import {
+  dueMlTrackIds,
+  mlActivityByDate,
+  mlLadderItems,
+  mlStanding,
+} from '@/utils/engine/mlTrack';
 import {
   accuracyTrend,
   buildInsights,
@@ -105,6 +113,36 @@ export const selectCourseActiveDates = createSelector(
   (activity): ReadonlySet<string> => new Set(activity.keys()),
 );
 
+/**
+ * Work on the ML implementation tracks and projects, per date — rung stamps, graded rebuilds,
+ * projects started and shipped. Derived from progress rather than logged, exactly as the course's
+ * is, so DayLog stays the DSA-only ledger it has always been.
+ */
+export const selectMlActivityByDate = createSelector(
+  [(state: RootState) => state.ml.tracksById, (state: RootState) => state.ml.projectsById],
+  (tracksById, projectsById) => mlActivityByDate(tracksById, projectsById),
+);
+
+/**
+ * Everything that is not DSA solving, per date. The product's rule is "a day counts as active when
+ * EITHER track saw work"; V8 makes the implementation tracks a third source of that work, so every
+ * activity surface reads this rather than the course alone — otherwise an evening spent rebuilding
+ * backprop from a blank file would break a streak.
+ */
+export const selectOtherTrackActivityByDate = createSelector(
+  [selectCourseActivityByDate, selectMlActivityByDate],
+  (course, ml): Map<string, number> => {
+    const merged = new Map(course);
+    for (const [date, count] of ml) merged.set(date, (merged.get(date) ?? 0) + count);
+    return merged;
+  },
+);
+
+export const selectOtherTrackActiveDates = createSelector(
+  [selectOtherTrackActivityByDate],
+  (activity): ReadonlySet<string> => new Set(activity.keys()),
+);
+
 export const selectPerDay = (state: RootState): number => state.settings.questionsPerDay;
 
 // --- Roadmap progression ----------------------------------------------------------------
@@ -168,8 +206,8 @@ export const selectDifficultyStats = createSelector([selectProgressById], (byId)
 );
 
 export const selectStreaks = createSelector(
-  [selectDayLogs, selectTodayArg, selectCourseActiveDates],
-  (dayLogs, today, courseActiveDates) => computeStreaks(dayLogs, today, courseActiveDates),
+  [selectDayLogs, selectTodayArg, selectOtherTrackActiveDates],
+  (dayLogs, today, otherTrackDates) => computeStreaks(dayLogs, today, otherTrackDates),
 );
 
 export const selectLevelInfo = createSelector([selectXp], (xp) => levelProgress(xp));
@@ -184,7 +222,7 @@ function heatmapLevel(count: number): 0 | 1 | 2 | 3 | 4 {
 
 // Last 365 days ending today (oldest first).
 export const selectHeatmapData = createSelector(
-  [selectDayLogs, selectTodayArg, selectCourseActivityByDate],
+  [selectDayLogs, selectTodayArg, selectOtherTrackActivityByDate],
   (dayLogs, today, courseActivity): { date: string; count: number; level: 0 | 1 | 2 | 3 | 4 }[] => {
     const days: { date: string; count: number; level: 0 | 1 | 2 | 3 | 4 }[] = [];
     for (let i = 364; i >= 0; i--) {
@@ -219,8 +257,16 @@ export const selectProductivityScore = createSelector(
 // Course weeks climb the same 1/3/7/15/30 ladder as questions, so the load forecast counts
 // both tracks in one series.
 export const selectForecast = createSelector(
-  [selectProgressById, selectCourseByWeekId, selectTodayArg],
-  (byId, byWeekId, today) => combinedRevisionLoadForecast(byId, COURSE_WEEKS, byWeekId, today),
+  [selectProgressById, selectCourseByWeekId, (state: RootState) => state.ml.tracksById, selectTodayArg],
+  (byId, byWeekId, mlTracksById, today) =>
+    combinedRevisionLoadForecast(
+      byId,
+      COURSE_WEEKS,
+      byWeekId,
+      today,
+      30,
+      mlLadderItems(ML_TRACKS, mlTracksById),
+    ),
 );
 
 export const selectBookmarkedIds = createSelector([selectProgressById], (byId): number[] =>
@@ -263,6 +309,21 @@ export const selectCourseProjectedFinish = createSelector(
 export const selectCourseDueReviewIds = createSelector(
   [selectCourseByWeekId, selectTodayArg],
   (byWeekId, today) => dueCourseReviewWeekIds(COURSE_WEEKS, byWeekId, today),
+);
+
+// --- ML implementation tracks ------------------------------------------------------------------
+
+const selectMlTracksById = (state: RootState) => state.ml.tracksById;
+
+/** Tracks whose rebuild has come due — the third ladder, same 1/3/7/15/30 arithmetic. */
+export const selectMlDueTrackIds = createSelector(
+  [selectMlTracksById, selectTodayArg],
+  (tracksById, today) => dueMlTrackIds(ML_TRACKS, tracksById, today),
+);
+
+/** How much of the eleven-track ladder has been worked. One line on /aiml, no more. */
+export const selectMlStanding = createSelector([selectMlTracksById], (tracksById) =>
+  mlStanding(ML_TRACKS, tracksById),
 );
 
 /** Whether a course session was already marked done today — the track's one-a-day cadence. */
@@ -309,6 +370,7 @@ export const selectRankedWork = createSelector(
     selectMostMissedPatterns,
     selectCourseDueReviewIds,
     selectCourseNextSession,
+    selectMlDueTrackIds,
     selectTasksById,
     selectSolvedNewCount,
     selectDayLogs,
@@ -325,6 +387,7 @@ export const selectRankedWork = createSelector(
     mostMissed,
     courseDueReviewIds,
     courseNext,
+    mlDueTrackIds,
     tasksById,
     solvedNewCount,
     dayLogs,
@@ -411,6 +474,13 @@ export const selectRankedWork = createSelector(
             }
           : null,
       },
+      ml: {
+        dueRebuilds: mlDueTrackIds.map((trackId) => ({
+          trackId,
+          title: mlTrackById[trackId]?.title ?? trackId,
+          minutes: ML_REBUILD_MINUTES,
+        })),
+      },
       openTasks: Object.values(tasksById).filter((t) => t.date === today && !t.done),
       taskDefaultMinutes: DEFAULT_TASK_MINUTES,
     });
@@ -490,7 +560,7 @@ export const selectInsights = createSelector(
     selectAllPatternWeakness,
     selectForecast,
     (state: RootState) => state.settings.dailyCapacityMin,
-    selectCourseActiveDates,
+    selectOtherTrackActiveDates,
     selectCourseByWeekId,
     selectTransferRecord,
     (state: RootState) => state.practice.sittings,

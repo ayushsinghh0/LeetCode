@@ -6,6 +6,8 @@ import type {
   DailyTask,
   DayLog,
   InterviewSittingRecord,
+  MlProjectProgress,
+  MlTrackProgress,
   PersistedStateV1,
   PracticeIntention,
   PracticeSitting,
@@ -31,6 +33,8 @@ export function selectPersistedState(root: RootState): PersistedStateV1 {
   const drillDates = root.drills.byDate;
   const contestDates = root.contests.byDate;
   const interviewSittings = root.interviews.sittings;
+  const mlTracks = root.ml.tracksById;
+  const mlProjects = root.ml.projectsById;
   const practice = root.practice;
   return {
     version: 1,
@@ -52,6 +56,11 @@ export function selectPersistedState(root: RootState): PersistedStateV1 {
     // Note this is `interviews` (the finished sittings' derived records), never `interview` (the
     // live sitting) — an interview is a performance, and a restored one would be a fiction.
     ...(interviewSittings.length > 0 ? { interviews: { sittings: interviewSittings } } : {}),
+    // Same written-only-once-touched rule: a learner who never opened a track produces a payload
+    // byte-identical to a pre-V8 one.
+    ...(Object.keys(mlTracks).length > 0 || Object.keys(mlProjects).length > 0
+      ? { ml: { tracksById: mlTracks, projectsById: mlProjects } }
+      : {}),
     // Same written-only-once-touched rule: a learner who set no intention, wrote no journal line
     // and ran no sitting produces a payload byte-identical to a pre-practice-layer one.
     ...(practice.intentions.length > 0 ||
@@ -191,6 +200,28 @@ function isValidCourseEntry(value: unknown): value is CourseWeekProgress {
     (!('revisionHistory' in value) || isRevisionEventArray(value.revisionHistory)) &&
     (!('recallChecks' in value) || isRecallCheckMap(value.recallChecks))
   );
+}
+
+// Per-entry shape check for ml.tracksById[id]. `rungs` is a bare date map on purpose: the rung
+// KEYS are validated only as non-blank strings, never against the current stage list, so renaming
+// or retiring a rung later can never quarantine a learner's whole state (the missKind precedent).
+function isValidMlTrackEntry(value: unknown): value is MlTrackProgress {
+  if (!isPlainObject(value)) return false;
+  if (!isPlainObject(value.rungs)) return false;
+  for (const [rungId, date] of Object.entries(value.rungs)) {
+    if (rungId === '' || !isIsoDate(date)) return false;
+  }
+  return (
+    isRevisionStage(value.revisionStage) &&
+    isNullableIsoDate(value.nextRevision) &&
+    isNullableIsoDate(value.lastReviewed) &&
+    isRevisionEventArray(value.revisionHistory)
+  );
+}
+
+function isValidMlProjectEntry(value: unknown): value is MlProjectProgress {
+  if (!isPlainObject(value)) return false;
+  return isNullableIsoDate(value.startedOn) && isNullableIsoDate(value.shippedOn);
 }
 
 function isTaskCategory(value: unknown): value is TaskCategory {
@@ -615,6 +646,33 @@ export function validatePersisted(raw: unknown): PersistedStateV1 | null {
     course = { byWeekId };
   }
 
+  // `ml` is optional (absent before the implementation tracks could be worked through) —
+  // reject-wholesale when malformed, same as every other channel.
+  let ml: PersistedStateV1['ml'];
+  if ('ml' in raw && raw.ml !== undefined) {
+    const rawMl = raw.ml;
+    if (!isPlainObject(rawMl)) return null;
+    if (!isPlainObject(rawMl.tracksById)) return null;
+    if (!isPlainObject(rawMl.projectsById)) return null;
+    const tracksById: Record<string, MlTrackProgress> = {};
+    for (const [trackId, entry] of Object.entries(rawMl.tracksById)) {
+      if (trackId === '' || !isValidMlTrackEntry(entry)) return null;
+      tracksById[trackId] = {
+        rungs: { ...entry.rungs },
+        revisionStage: entry.revisionStage,
+        nextRevision: entry.nextRevision,
+        lastReviewed: entry.lastReviewed,
+        revisionHistory: entry.revisionHistory.map(copyRevisionEvent),
+      };
+    }
+    const projectsById: Record<string, MlProjectProgress> = {};
+    for (const [projectId, entry] of Object.entries(rawMl.projectsById)) {
+      if (projectId === '' || !isValidMlProjectEntry(entry)) return null;
+      projectsById[projectId] = { startedOn: entry.startedOn, shippedOn: entry.shippedOn };
+    }
+    ml = { tracksById, projectsById };
+  }
+
   return {
     version: 1,
     progress: {
@@ -649,6 +707,7 @@ export function validatePersisted(raw: unknown): PersistedStateV1 | null {
     ...(drills ? { drills } : {}),
     ...(contests ? { contests } : {}),
     ...(interviews ? { interviews } : {}),
+    ...(ml ? { ml } : {}),
     ...(practice ? { practice } : {}),
   };
 }

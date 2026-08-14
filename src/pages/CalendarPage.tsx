@@ -17,7 +17,7 @@ import { EmptyState } from '@/components/shared/EmptyState';
 import { Eyebrow, Page, PageHeader, Section, Rule, Meta } from '@/components/layout/Page';
 import { useAppDispatch, useAppSelector } from '@/store/hooks';
 import { activeQuestionSet } from '@/store/slices/uiSlice';
-import { selectCourseActivityByDate, selectPerDay, selectQuestionById } from '@/store/selectors';
+import { selectOtherTrackActivityByDate, selectPerDay, selectQuestionById } from '@/store/selectors';
 import { isPerfectDay } from '@/utils/engine/streak';
 import { useToday } from '@/hooks/useToday';
 import { toISODate } from '@/utils/dates';
@@ -145,7 +145,7 @@ export default function CalendarPage() {
   const dispatch = useAppDispatch();
   const dayLogs = useAppSelector((s) => s.progress.dayLogs);
   const courseByWeekId = useAppSelector((s) => s.course.byWeekId);
-  const courseActivity = useAppSelector(selectCourseActivityByDate);
+  const courseActivity = useAppSelector(selectOtherTrackActivityByDate);
   const perDay = useAppSelector(selectPerDay);
   // useToday (not a raw todayISO() read at render) so a calendar left open across midnight
   // rolls over like every other page.

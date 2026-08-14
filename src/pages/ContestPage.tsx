@@ -263,7 +263,11 @@ export default function ContestPage() {
                           ]}
                         />
                       </div>
-                      <div className="flex shrink-0 flex-wrap items-center gap-2">
+                      {/* `shrink-0` used to sit here. It was survivable with three controls (352px,
+                          inside a 375px viewport) and overflowed the moment an armed row grew to
+                          four: a flex item that cannot shrink lays out at its natural width and
+                          takes the page with it. Wrapping is the correct behaviour on a phone. */}
+                      <div className="flex w-full min-w-0 flex-wrap items-center gap-2 sm:w-auto">
                         {attempt.solved ? (
                           <p className="flex items-center gap-1.5 text-sm text-easy">
                             <CheckCircle2 className="h-4 w-4 shrink-0" aria-hidden="true" />

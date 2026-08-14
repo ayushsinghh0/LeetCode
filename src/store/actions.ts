@@ -53,6 +53,13 @@ import {
   contestWrongSubmitLogged,
 } from '@/store/slices/contestSlice';
 import { contestSittingRecorded } from '@/store/slices/contestsSlice';
+import { interviewFinished, selfAssessmentSet } from '@/store/slices/interviewSlice';
+import {
+  interviewSittingAmended,
+  interviewSittingRecorded,
+} from '@/store/slices/interviewsSlice';
+import { stageIndex, type SelfAssessmentId } from '@/utils/engine/interview';
+import { familyById } from '@/data/curriculum';
 import { intentionsSet, journalWritten, sittingRecorded } from '@/store/slices/practiceSlice';
 import { normalizeIntentions, normalizeSitting, sittingCounts } from '@/utils/engine/practice';
 import { isMissKind } from '@/utils/engine/miss';
@@ -83,7 +90,7 @@ import {
   xpAdded,
 } from '@/store/slices/gamificationSlice';
 import { isMastered } from '@/utils/engine/spacedRepetition';
-import { MAX_HINT_LEVEL } from '@/utils/engine/hints';
+import { hintsFor, MAX_HINT_LEVEL } from '@/utils/engine/hints';
 import { celebrationShown, toastPushed } from '@/store/slices/uiSlice';
 import { progressReset, stateImported } from '@/store/sharedActions';
 import {
@@ -541,6 +548,97 @@ export const setIntentions = (inputs: { cue: string; action: string }[]): AppThu
 export const writeJournal = (line: string): AppThunk => (dispatch) => {
   dispatch(journalWritten({ date: todayISO(), line: line.trim() }));
 };
+
+// --- Interviews ------------------------------------------------------------------------------
+// The live sitting stays unpersisted; what survives is a derived record, banked here. Same
+// division of labour as contests, and the same normalization discipline: `validatePersisted`
+// rejects a malformed record wholesale and a rejected payload quarantines the learner's ENTIRE
+// state on the next load, so the thunk guarantees a persistable payload itself rather than
+// trusting the page that called it.
+
+/**
+ * Close the sitting and bank what it showed.
+ *
+ * Recorded at FINISH rather than when the learner leaves the debrief, because a sitting that
+ * happened must survive the learner simply navigating away. The self-assessment, which is answered
+ * on the debrief screen afterwards, lands through `rateInterview` amending this same record.
+ *
+ * The record earns nothing. No XP, no achievement, no streak credit — the work inside an interview
+ * (solving the problem, taking a hint) already counts through its own paths. A sitting that paid
+ * out would make starting interviews worth more than performing in them.
+ */
+export const finishInterview = (): AppThunk => (dispatch, getState) => {
+  const before = getState().interview;
+  if (before.questionId === null || before.finishedOn !== null) return;
+
+  dispatch(interviewFinished({ date: todayISO(), nowMs: Date.now() }));
+
+  const interview = getState().interview;
+  const questionId = interview.questionId;
+  if (questionId === null) return;
+  const question = questionById.get(questionId);
+
+  // The sitting's own start date, not today's: an interview that runs past midnight belongs to the
+  // evening it began, which is also the date every other dated record in this product uses.
+  const date = interview.startedOn ?? todayISO();
+  const family = question?.familyId !== undefined ? familyById[question.familyId] : undefined;
+  const hintsAvailable = hintsFor(family).length;
+
+  // Widened to bare strings on the way out: the persisted record stores stage ids and outcomes as
+  // plain strings so retiring either can never quarantine a payload, and the blank-string guard is
+  // the validator's rule restated at the write path rather than an assumption about the union.
+  const outcomes: Record<string, string> = {};
+  for (const [stageId, outcome] of Object.entries(interview.stageOutcomes)) {
+    const value: string = outcome ?? '';
+    if (stageId === '' || value === '') continue;
+    outcomes[stageId] = value;
+  }
+
+  dispatch(
+    interviewSittingRecorded({
+      date,
+      questionId,
+      stageReached: Math.max(1, stageIndex(interview.stage) + 1),
+      outcomes,
+      assessment: {},
+      minutes: Math.max(0, Math.round(interview.elapsedSec / 60)),
+      // Clamped against the ladder that actually exists: a record claiming 3 of 0 hints would be
+      // both unpersistable and untrue.
+      hintsTaken: Math.min(Math.max(0, Math.floor(interview.hintsTaken)), hintsAvailable),
+      hintsAvailable,
+    }),
+  );
+};
+
+/**
+ * One self-assessment dimension, written to the live sitting and mirrored onto its record.
+ *
+ * Mirrored rather than totalled: the dimensions stay five separate numbers the learner reported
+ * about themselves. Nothing may add them up — there is no judge, so a single figure would be an
+ * invented verdict, and the anti-score tests exist to keep it that way.
+ */
+export const rateInterview =
+  (id: SelfAssessmentId, value: number): AppThunk =>
+  (dispatch, getState) => {
+    dispatch(selfAssessmentSet({ id, value }));
+
+    const interview = getState().interview;
+    if (interview.questionId === null || interview.startedOn === null) return;
+    const assessment: Record<string, number> = {};
+    for (const [dimension, rating] of Object.entries(interview.selfAssessment)) {
+      if (dimension === '' || typeof rating !== 'number') continue;
+      if (!Number.isInteger(rating) || rating < 1 || rating > 5) continue;
+      assessment[dimension] = rating;
+    }
+
+    dispatch(
+      interviewSittingAmended({
+        questionId: interview.questionId,
+        date: interview.startedOn,
+        assessment,
+      }),
+    );
+  };
 
 // --- Contests --------------------------------------------------------------------------------
 // The clock lives here, not in the reducer: every timestamp arrives in a payload, so the slice

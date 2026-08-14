@@ -5,6 +5,7 @@ import type {
   CourseWeekProgress,
   DailyTask,
   DayLog,
+  InterviewSittingRecord,
   PersistedStateV1,
   PracticeIntention,
   PracticeSitting,
@@ -29,6 +30,7 @@ export function selectPersistedState(root: RootState): PersistedStateV1 {
   const tasksById = root.tasks.byId;
   const drillDates = root.drills.byDate;
   const contestDates = root.contests.byDate;
+  const interviewSittings = root.interviews.sittings;
   const practice = root.practice;
   return {
     version: 1,
@@ -47,6 +49,9 @@ export function selectPersistedState(root: RootState): PersistedStateV1 {
     // Note this is `contests` (persisted stall records), never `contest` (the live sitting) —
     // a restored stopped clock lies, so only the derived evidence survives a reload.
     ...(Object.keys(contestDates).length > 0 ? { contests: { byDate: contestDates } } : {}),
+    // Note this is `interviews` (the finished sittings' derived records), never `interview` (the
+    // live sitting) — an interview is a performance, and a restored one would be a fiction.
+    ...(interviewSittings.length > 0 ? { interviews: { sittings: interviewSittings } } : {}),
     // Same written-only-once-touched rule: a learner who set no intention, wrote no journal line
     // and ran no sitting produces a payload byte-identical to a pre-practice-layer one.
     ...(practice.intentions.length > 0 ||
@@ -434,6 +439,64 @@ export function validatePersisted(raw: unknown): PersistedStateV1 | null {
     contests = { byDate };
   }
 
+  // `interviews` is optional (absent before interview sittings were recorded) — reject-wholesale
+  // when malformed, but deliberately LENIENT about vocabulary: stage ids, stage outcomes and
+  // self-assessment dimension ids are only checked for being non-blank strings, never against the
+  // engine's unions, so renaming or retiring a stage can never quarantine a learner's whole state
+  // (the missKind precedent). Numbers are range-checked, because those ranges are what the copy
+  // means: a 7 in a 1..5 self-report would silently change what every comparison says.
+  let interviews: PersistedStateV1['interviews'];
+  if ('interviews' in raw && raw.interviews !== undefined) {
+    const rawInterviews = raw.interviews;
+    if (!isPlainObject(rawInterviews)) return null;
+    if (!Array.isArray(rawInterviews.sittings)) return null;
+    const sittings: InterviewSittingRecord[] = [];
+    for (const entry of rawInterviews.sittings) {
+      if (!isPlainObject(entry)) return null;
+      const { date, questionId, stageReached, outcomes, assessment, minutes, hintsTaken, hintsAvailable } =
+        entry;
+      if (!isIsoDate(date)) return null;
+      if (typeof questionId !== 'number' || !Number.isInteger(questionId) || questionId < 1) return null;
+      if (typeof stageReached !== 'number' || !Number.isInteger(stageReached) || stageReached < 1) {
+        return null;
+      }
+      if (typeof minutes !== 'number' || !Number.isInteger(minutes) || minutes < 0) return null;
+      if (typeof hintsTaken !== 'number' || !Number.isInteger(hintsTaken) || hintsTaken < 0) return null;
+      if (
+        typeof hintsAvailable !== 'number' ||
+        !Number.isInteger(hintsAvailable) ||
+        hintsAvailable < 0
+      ) {
+        return null;
+      }
+      if (hintsTaken > hintsAvailable) return null;
+      if (!isPlainObject(outcomes)) return null;
+      const parsedOutcomes: Record<string, string> = {};
+      for (const [stageId, outcome] of Object.entries(outcomes)) {
+        if (stageId === '' || typeof outcome !== 'string' || outcome === '') return null;
+        parsedOutcomes[stageId] = outcome;
+      }
+      if (!isPlainObject(assessment)) return null;
+      const parsedAssessment: Record<string, number> = {};
+      for (const [dimension, value] of Object.entries(assessment)) {
+        if (dimension === '') return null;
+        if (typeof value !== 'number' || !Number.isInteger(value) || value < 1 || value > 5) return null;
+        parsedAssessment[dimension] = value;
+      }
+      sittings.push({
+        date,
+        questionId,
+        stageReached,
+        outcomes: parsedOutcomes,
+        assessment: parsedAssessment,
+        minutes,
+        hintsTaken,
+        hintsAvailable,
+      });
+    }
+    interviews = { sittings };
+  }
+
   // `practice` is optional (absent before the V6 practice layer) — reject-wholesale when
   // malformed. Deliberately LENIENT where the write path is: `action` is only checked for being a
   // non-blank string, NOT against the PRACTICE_ACTIONS registry, so removing an action key later
@@ -548,6 +611,7 @@ export function validatePersisted(raw: unknown): PersistedStateV1 | null {
     ...(tasks ? { tasks } : {}),
     ...(drills ? { drills } : {}),
     ...(contests ? { contests } : {}),
+    ...(interviews ? { interviews } : {}),
     ...(practice ? { practice } : {}),
   };
 }

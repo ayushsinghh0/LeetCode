@@ -30,18 +30,17 @@ import {
   Eyebrow,
 } from '@/components/layout/Page';
 import { useAppDispatch, useAppSelector } from '@/store/hooks';
-import { revealHint } from '@/store/actions';
+import { finishInterview, rateInterview, revealHint } from '@/store/actions';
+import { selectPreviousInterviewSitting } from '@/store/selectors';
 import {
   interviewAdvanced,
   interviewCleared,
-  interviewFinished,
   interviewHintTaken,
   interviewPaused,
   interviewResumed,
   interviewStarted,
   selectInterviewPhase,
   selectRatedStages,
-  selfAssessmentSet,
   stageOutcomeSet,
 } from '@/store/slices/interviewSlice';
 import { useToday } from '@/hooks/useToday';
@@ -102,6 +101,7 @@ export default function InterviewPage() {
   const interview = useAppSelector((state) => state.interview);
   const ratedStages = useAppSelector(selectRatedStages);
   const progressById = useAppSelector((state) => state.progress.byId);
+  const previous = useAppSelector(selectPreviousInterviewSitting);
 
   const [rerolls, setRerolls] = useState(0);
   const [checkOpen, setCheckOpen] = useState(false);
@@ -202,7 +202,9 @@ export default function InterviewPage() {
   }
 
   function finish() {
-    dispatch(interviewFinished({ date: today, nowMs: Date.now() }));
+    // Through the thunk, not the slice action: finishing is the moment the sitting stops being a
+    // performance and becomes a record, and that record is a cross-slice write.
+    dispatch(finishInterview());
   }
 
   function advance() {
@@ -511,13 +513,44 @@ export default function InterviewPage() {
                 explanation, so there is no score, no grade and no verdict &mdash; the five numbers
                 exist so you can compare this sitting with your next one.
               </p>
+              {/* The line above promised a comparison the app could not make until the sittings
+                  persisted. It can now, and it is stated as marginalia rather than as a finding:
+                  two sittings on two different problems are two data points, and a trend across
+                  five of them belongs on Analytics, not in the middle of a debrief. */}
+              {previous && (
+                <Meta
+                  items={[
+                    <span>
+                      Last sitting ·{' '}
+                      {questionById.get(previous.questionId)?.title ?? 'another problem'}
+                    </span>,
+                    <span>{format(parseISO(previous.date), 'd MMM')}</span>,
+                    <span>
+                      reached{' '}
+                      {(STAGES[previous.stageReached - 1] ?? STAGES[0]!).label.toLowerCase()}
+                    </span>,
+                    previous.hintsAvailable > 0 && (
+                      <span className="figures">
+                        {previous.hintsTaken} of {previous.hintsAvailable} hints
+                      </span>
+                    ),
+                  ]}
+                />
+              )}
             </div>
 
             {SELF_ASSESSMENT.map((prompt) => (
               <div key={prompt.id} className="flex flex-col gap-3">
                 <Rule />
                 <div className="flex flex-col gap-1">
-                  <p className="text-sm font-medium">{prompt.label}</p>
+                  <div className="flex flex-wrap items-baseline justify-between gap-x-4 gap-y-1">
+                    <p className="text-sm font-medium">{prompt.label}</p>
+                    {previous?.assessment[prompt.id] !== undefined && (
+                      <Eyebrow>
+                        <span className="figures">Last time: {previous.assessment[prompt.id]}</span>
+                      </Eyebrow>
+                    )}
+                  </div>
                   <p className="max-w-prose text-sm leading-relaxed text-muted-foreground">
                     {prompt.question}
                   </p>
@@ -526,7 +559,7 @@ export default function InterviewPage() {
                   label={`${prompt.label} self-rating`}
                   options={SELF_ASSESSMENT_SCALE}
                   value={interview.selfAssessment[prompt.id]}
-                  onSelect={(value) => dispatch(selfAssessmentSet({ id: prompt.id, value }))}
+                  onSelect={(value) => dispatch(rateInterview(prompt.id, value))}
                   chipClassName="figures min-w-[44px]"
                   className="items-center"
                   before={<span className="text-xs text-muted-foreground">{prompt.low}</span>}

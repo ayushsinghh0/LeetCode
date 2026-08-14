@@ -4,7 +4,13 @@
 // memoizable. Call sites (UI, thunks) supply `todayISO()` themselves.
 import { createSelector } from '@reduxjs/toolkit';
 import questionsData from '@/data/questions.json';
-import type { DayLog, PatternId, Question, QuestionProgress } from '@/types';
+import type {
+  DayLog,
+  InterviewSittingRecord,
+  PatternId,
+  Question,
+  QuestionProgress,
+} from '@/types';
 import type { RootState } from '@/store/store';
 import { PATTERNS } from '@/data/patterns';
 import { addDays, diffDays } from '@/utils/dates';
@@ -716,6 +722,31 @@ export const selectDaysAway = createSelector(
       if (date < today && (last === null || date > last)) last = date;
     }
     return last === null ? null : diffDays(today, last);
+  },
+);
+
+// --- Interviews ------------------------------------------------------------------------------
+
+/**
+ * The sitting before this one, or null when there is no earlier one to compare against.
+ *
+ * `finishInterview` banks the current sitting the moment it ends, so on the debrief screen the
+ * last record IS the sitting being read — the previous one is the record behind it. Resolving that
+ * here rather than in the page keeps the debrief from doing index arithmetic on a growing array,
+ * which is exactly the sort of thing that silently starts comparing a sitting with itself.
+ */
+export const selectPreviousInterviewSitting = createSelector(
+  [(state: RootState) => state.interviews.sittings, (state: RootState) => state.interview],
+  (sittings, live): InterviewSittingRecord | null => {
+    if (sittings.length === 0) return null;
+    const last = sittings[sittings.length - 1]!;
+    const lastIsCurrent =
+      live.questionId !== null &&
+      live.finishedOn !== null &&
+      last.questionId === live.questionId &&
+      last.date === live.startedOn;
+    const index = sittings.length - (lastIsCurrent ? 2 : 1);
+    return index >= 0 ? sittings[index]! : null;
   },
 );
 

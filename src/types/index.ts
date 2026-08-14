@@ -236,6 +236,37 @@ export interface ContestsState {
   byDate: Record<string, ContestStallRecord>;
 }
 
+// Interview evidence — what a finished sitting leaves behind. The live sitting
+// (`interviewSlice`) is never persisted: an interview is a performance, and reloading into
+// "stage 6, 24 minutes elapsed" would restore a rehearsal that stopped happening. The derived
+// record is different: it is the only thing that lets the debrief's own promise — "compare this
+// sitting with your next one" — be kept at all.
+//
+// Nothing here aggregates. There is no judge (PRODUCT.md), so the numbers stay separate
+// dimensions the learner reported themselves, and no reader may total them into a score.
+export interface InterviewSittingRecord {
+  /** ISO date the sitting STARTED — a sitting that crosses midnight belongs to the evening it began. */
+  date: string;
+  questionId: number;
+  /** 1-based stage the sitting reached, out of the ten. */
+  stageReached: number;
+  /**
+   * The learner's own per-stage call, keyed by stage id. Both key and value are stored as bare
+   * strings: renaming or retiring a stage must never quarantine a learner's whole state.
+   */
+  outcomes: Record<string, string>;
+  /** The 1..5 self-ratings, by dimension id. Sparse — an unanswered dimension is simply absent. */
+  assessment: Record<string, number>;
+  minutes: number;
+  hintsTaken: number;
+  hintsAvailable: number;
+}
+
+export interface InterviewsState {
+  /** Most recent last. Capped — see MAX_INTERVIEW_SITTINGS. */
+  sittings: InterviewSittingRecord[];
+}
+
 // --- Practice layer (V6) ---------------------------------------------------------------
 // The positive-habit + reflection channel — the one place the product carries habit machinery
 // rather than only measuring the practice itself. Three independent, learner-owned records, each
@@ -293,6 +324,8 @@ export interface PersistedStateV1 {
   drills?: DrillsState;
   // Optional for the same reason — payloads saved before contest stalls were recorded.
   contests?: ContestsState;
+  // Optional for the same reason — payloads saved before interview sittings were recorded.
+  interviews?: InterviewsState;
   // Optional for the same reason — payloads saved before the practice layer (V6) shipped.
   practice?: PracticeState;
 }

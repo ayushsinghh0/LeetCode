@@ -8,6 +8,7 @@ import { familyById } from '@/data/curriculum';
 import { patternById } from '@/data/patterns';
 import { makeStore } from '@/store/store';
 import { revealHint } from '@/store/actions';
+import { interviewSittingRecorded } from '@/store/slices/interviewsSlice';
 import type { InterviewState } from '@/store/slices/interviewSlice';
 import { hashSeed, mulberry32, seededShuffle } from '@/utils/engine/prng';
 import { followUpsFor } from '@/utils/engine/interview';
@@ -397,6 +398,58 @@ describe('InterviewPage — self-report and self-assessment', () => {
     }
     expect(screen.getByText(followUps[0]!.question)).toBeInTheDocument();
     expect(screen.getByText(followUps[0]!.because)).toBeInTheDocument();
+  });
+
+  test('a rating written at the debrief reaches the sitting record, not just the live slice', () => {
+    const store = interviewStore({ finishedOn: TODAY });
+    // The sitting the learner is looking at, as `finishInterview` would have banked it.
+    store.dispatch(
+      interviewSittingRecorded({
+        date: TODAY,
+        questionId: subject.id,
+        stageReached: 1,
+        outcomes: {},
+        assessment: {},
+        minutes: 4,
+        hintsTaken: 0,
+        hintsAvailable: 3,
+      }),
+    );
+    renderWithStore(<InterviewPage />, store);
+
+    const group = screen.getByRole('radiogroup', { name: 'Clarity self-rating' });
+    fireEvent.click(within(group).getByRole('radio', { name: '4' }));
+
+    expect(store.getState().interviews.sittings[0]!.assessment).toEqual({ clarity: 4 });
+  });
+
+  test('the debrief compares against the last sitting once there is one to compare against', () => {
+    // The page has always claimed "the five numbers exist so you can compare this sitting with
+    // your next one". Until the sittings persisted, that was a promise nothing could keep.
+    const store = interviewStore({ finishedOn: TODAY });
+    store.dispatch(
+      interviewSittingRecorded({
+        date: '2026-07-24',
+        questionId: familyless.id,
+        stageReached: 6,
+        outcomes: {},
+        assessment: { clarity: 2 },
+        minutes: 31,
+        hintsTaken: 2,
+        hintsAvailable: 3,
+      }),
+    );
+    renderWithStore(<InterviewPage />, store);
+
+    expect(screen.getByText(new RegExp(`Last sitting · ${familyless.title}`))).toBeInTheDocument();
+    expect(screen.getByText('24 Jul')).toBeInTheDocument();
+    expect(screen.getByText('2 of 3 hints')).toBeInTheDocument();
+    expect(screen.getByText('Last time: 2')).toBeInTheDocument();
+  });
+
+  test('a first sitting says nothing about a previous one', () => {
+    renderWithStore(<InterviewPage />, interviewStore({ finishedOn: TODAY }));
+    expect(screen.queryByText(/last sitting/i)).not.toBeInTheDocument();
   });
 
   test('"Interview another problem" returns to the landing screen', () => {

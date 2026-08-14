@@ -142,7 +142,10 @@ const interviewSlice = createSlice({
       state.hintsTaken = Math.min(state.hintsTaken + 1, Math.max(0, action.payload.max));
     },
     stageOutcomeSet(state, action: PayloadAction<{ stage: StageId; outcome: StageOutcome }>) {
-      if (state.questionId === null) return;
+      // Guarded against a finished sitting like every other in-flight write here. The rating is
+      // "your own call at the time", and the debrief reads it back as one; a rating editable after
+      // the fact would let the record be rewritten to say the sitting went better than it did.
+      if (state.questionId === null || state.finishedOn !== null) return;
       state.stageOutcomes[action.payload.stage] = action.payload.outcome;
     },
     selfAssessmentSet(

@@ -8,7 +8,7 @@ import { DifficultyBadge } from '@/components/questions/DifficultyBadge';
 import { PatternChip } from '@/components/questions/PatternChip';
 import { patternById } from '@/data/patterns';
 import { useAppDispatch } from '@/store/hooks';
-import { activeQuestionSet } from '@/store/slices/uiSlice';
+import { activeQuestionSet, smallStartQuestionSet } from '@/store/slices/uiSlice';
 import { selectQuestionById } from '@/store/selectors';
 import { formatMinutes } from '@/utils/engine/planner';
 import type { ActionKind, WorkItem } from '@/utils/engine/nextAction';
@@ -145,6 +145,25 @@ export function NextActionCard({ ranked }: { ranked: WorkItem[] }) {
             </Button>
           )}
         </div>
+
+        {/* The small entry. Same destination as Start — the question sheet — but the flag makes
+            the sheet open with the two-minute frame, which reframes the visit rather than the
+            work. A quiet link under the actions on purpose: it must never compete with the
+            primary button, because it is not a different action, only a smaller door into the
+            same one. New questions only — a revision is already the small unit. */}
+        {item.kind === 'new-question' && item.questionId !== undefined && (
+          <Button
+            variant="link"
+            size="sm"
+            className="self-start px-0 text-muted-foreground"
+            onClick={() => {
+              dispatch(smallStartQuestionSet(item.questionId!));
+              dispatch(activeQuestionSet(item.questionId!));
+            }}
+          >
+            Begin with two minutes
+          </Button>
+        )}
       </section>
     </Lead>
   );

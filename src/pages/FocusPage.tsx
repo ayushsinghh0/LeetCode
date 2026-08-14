@@ -1,5 +1,5 @@
-import { useEffect, useMemo } from 'react';
-import { Link } from 'react-router-dom';
+import { useEffect, useMemo, useState } from 'react';
+import { Link, useSearchParams } from 'react-router-dom';
 import {
   CheckCircle2,
   ExternalLink,
@@ -15,6 +15,7 @@ import { Eyebrow, Lead, Page } from '@/components/layout/Page';
 import { DifficultyBadge } from '@/components/questions/DifficultyBadge';
 import { PatternChip } from '@/components/questions/PatternChip';
 import { NotesEditor } from '@/components/questions/NotesEditor';
+import { SmallStartFrame } from '@/components/questions/SmallStartFrame';
 import { CourseNotesEditor } from '@/components/course/CourseNotesEditor';
 import { PomodoroWidget } from '@/components/pomodoro/PomodoroWidget';
 import { patternById } from '@/data/patterns';
@@ -36,7 +37,7 @@ import {
   selectQuestionById,
   selectRankedWork,
 } from '@/store/selectors';
-import { buildSession, type ActionKind, type WorkItem } from '@/utils/engine/nextAction';
+import { buildSession, buildSmallStart, type ActionKind, type WorkItem } from '@/utils/engine/nextAction';
 import { formatMinutes } from '@/utils/engine/planner';
 import { initialProgress } from '@/utils/engine/spacedRepetition';
 import { initialCourseProgress, type CourseDay } from '@/utils/engine/aimlCourse';
@@ -99,11 +100,32 @@ export default function FocusPage() {
   // said does not fit.
   const session = useMemo(() => buildSession(capacityMin, ranked), [capacityMin, ranked]);
 
-  const next = session.items.find(isStudyable);
+  // ?entry=small — the five-minute re-entry from the return notice. Small mode swaps the packed
+  // plan for exactly ONE item, chosen by `buildSmallStart` over the same ranked list the plan is
+  // packed from — the one prioritizer, minus the budget. Minus it on purpose: the small start is
+  // an entry, not a budget, so the capacity pack is not consulted and no counter of any kind
+  // (pomodoro included) appears until the learner chooses to keep going.
+  const [searchParams, setSearchParams] = useSearchParams();
+  const smallEntry = searchParams.get('entry') === 'small';
+  const smallItem = smallEntry ? buildSmallStart(ranked) : null;
+
+  // The id the small visit opened on. The moment any action advances that item — solved, graded,
+  // even skipped — the ranked list recomputes and this id no longer leads it, which is the
+  // signal to stop rather than serve the next item: the visit promised one thing, and honoring
+  // the stop is what makes the promise trustworthy. (Same render-time reset idiom as
+  // NextActionCard's declined-offset.)
+  const [smallStartedId, setSmallStartedId] = useState<string | null>(null);
+  if (smallEntry && smallItem !== null && smallStartedId === null) {
+    setSmallStartedId(smallItem.id);
+  }
+  const smallDone = smallEntry && smallStartedId !== null && smallItem?.id !== smallStartedId;
+
+  const next = smallEntry ? (smallDone ? undefined : (smallItem ?? undefined)) : session.items.find(isStudyable);
   // What the budget pushed out, so an empty screen can say which of the two reasons it is
   // empty for. "All caught up" when six hours of work is queued behind a 15-minute window is a
-  // surface that lies about the state of the plan.
-  const overBudget = session.skipped.filter(isStudyable);
+  // surface that lies about the state of the plan. Small mode has no budget, so it can never be
+  // empty for that reason.
+  const overBudget = smallEntry ? [] : session.skipped.filter(isStudyable);
   const shortestOverBudgetMin =
     overBudget.length > 0 ? Math.min(...overBudget.map((work) => work.minutes)) : null;
 
@@ -160,13 +182,16 @@ export default function FocusPage() {
           </Button>
         </div>
 
-        {item === null ? (
+        {smallDone ? (
+          <SmallStartInterstitial onKeepGoing={() => setSearchParams({}, { replace: true })} />
+        ) : item === null ? (
           <FocusEmpty capacityMin={capacityMin} shortestOverBudgetMin={shortestOverBudgetMin} />
         ) : item.kind === 'new-question' || item.kind === 'question-revision' ? (
           <QuestionFocus
             question={item.question}
             isRevision={item.kind === 'question-revision'}
             notes={(progressById[item.question.id] ?? initialProgress()).notes}
+            smallStart={smallEntry && item.kind === 'new-question'}
           />
         ) : (
           <CourseFocus
@@ -176,9 +201,13 @@ export default function FocusPage() {
           />
         )}
 
-        <div className="flex justify-center">
-          <PomodoroWidget variant="inline" />
-        </div>
+        {/* No timer in small mode: five minutes is an entry, not a budget, and a countdown would
+            turn the visit into the race it exists not to be. "Keep going" restores it. */}
+        {!smallEntry && (
+          <div className="flex justify-center">
+            <PomodoroWidget variant="inline" />
+          </div>
+        )}
       </Page>
     </main>
   );
@@ -220,14 +249,45 @@ function FocusEmpty({
   );
 }
 
+/**
+ * Shown once the small visit's one item is done — in place of the next item, never before it.
+ *
+ * The next item is deliberately withheld: the five-minute re-entry promised exactly one thing,
+ * and serving a second the moment the first lands would make the promise a bait. Both exits are
+ * stated as equals and neither is decorated — no tally of what was done, no preview of what is
+ * left, no plate (the same quiet register as the empty states). "Keep going" simply drops the
+ * small framing and lets the normal focus flow take over.
+ */
+function SmallStartInterstitial({ onKeepGoing }: { onKeepGoing: () => void }) {
+  return (
+    <div className="flex flex-col items-center gap-3 py-16 text-center text-muted-foreground">
+      <p className="font-serif text-base text-foreground">That was the return.</p>
+      <p className="max-w-prose text-sm">
+        Continue if you want to — stopping here is also a finished visit.
+      </p>
+      <div className="flex flex-wrap items-center justify-center gap-2 pt-1">
+        <Button variant="outline" size="sm" onClick={onKeepGoing}>
+          Keep going
+        </Button>
+        <Button asChild variant="ghost" size="sm">
+          <Link to="/today">Done for today</Link>
+        </Button>
+      </div>
+    </div>
+  );
+}
+
 function QuestionFocus({
   question,
   isRevision,
   notes,
+  smallStart = false,
 }: {
   question: Question;
   isRevision: boolean;
   notes: string;
+  /** Small-mode framing for a first attempt: the two-minute entry frame above the actions. */
+  smallStart?: boolean;
 }) {
   const dispatch = useAppDispatch();
   const pattern = patternById[question.pattern];
@@ -262,6 +322,11 @@ function QuestionFocus({
           </a>
         </Button>
       )}
+
+      {/* The same frame the question sheet shows for a two-minute start — one copy source
+          (SmallStartFrame), so the two surfaces cannot drift. Above the actions: it reframes the
+          visit, so it must be read before the attempt is graded. */}
+      {smallStart && !isRevision && <SmallStartFrame className="w-full" />}
 
       <div className="flex flex-wrap justify-center gap-2">
         {isRevision ? (

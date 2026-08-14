@@ -21,6 +21,7 @@ import { RevisionStagePips } from '@/components/questions/RevisionStagePips';
 import { NotesEditor } from '@/components/questions/NotesEditor';
 import { FamilyPanel } from '@/components/questions/FamilyPanel';
 import { HintLadder } from '@/components/questions/HintLadder';
+import { SmallStartFrame } from '@/components/questions/SmallStartFrame';
 import { PostSolvePanel, type NextStep } from '@/components/questions/PostSolvePanel';
 import { ResourcePanel, type ResourceGroup, type ResourceLink } from '@/components/questions/ResourcePanel';
 import { QUESTION_TYPE_LABEL, QUESTION_TYPE_MEANING } from '@/data/questionTypes';
@@ -28,7 +29,7 @@ import { familyById, FAMILY_ROLE_LABEL, FAMILY_ROLE_ORDER, SUBPATTERNS } from '@
 import { useToday } from '@/hooks/useToday';
 import { useAppDispatch, useAppSelector } from '@/store/hooks';
 import { reviseQuestion, skipQuestion, solveQuestion, toggleBookmark } from '@/store/actions';
-import { activeQuestionSet } from '@/store/slices/uiSlice';
+import { activeQuestionSet, smallStartQuestionSet } from '@/store/slices/uiSlice';
 import { selectPaceSamples } from '@/store/selectors';
 import { initialProgress, isMastered } from '@/utils/engine/spacedRepetition';
 import { hintsFor } from '@/utils/engine/hints';
@@ -73,6 +74,7 @@ const GROUP_LIMIT = 3;
 export function QuestionDetailModal() {
   const dispatch = useAppDispatch();
   const activeId = useAppSelector((s) => s.ui.activeQuestionId);
+  const smallStartQuestionId = useAppSelector((s) => s.ui.smallStartQuestionId);
   const progress = useAppSelector((s) => (activeId !== null ? (s.progress.byId[activeId] ?? initialProgress()) : null));
   const byId = useAppSelector((s) => s.progress.byId);
   const samples = useAppSelector(selectPaceSamples);
@@ -92,6 +94,10 @@ export function QuestionDetailModal() {
   function handleOpenChange(open: boolean) {
     if (!open) {
       dispatch(activeQuestionSet(null));
+      // The small-start framing belongs to one visit. Clearing it here — rather than after the
+      // solve — means a learner who genuinely stops at two minutes reopens the question later
+      // as a normal attempt, with nothing nagging about the last visit.
+      dispatch(smallStartQuestionSet(null));
       setHintsOpen(false);
     }
   }
@@ -143,6 +149,13 @@ export function QuestionDetailModal() {
   return (
     <Dialog open onOpenChange={handleOpenChange}>
       <DialogContent key={question.id} className="max-h-[85vh] overflow-y-auto sm:max-w-2xl">
+        {/* --- The two-minute entry frame, when this visit is a small start ------------------- */}
+        {/* Above the masthead on purpose: the frame reframes the VISIT (read, name the pattern,
+            stopping is complete), so it has to be read before the question is. A marginal-note
+            rail, never a plate, and only while the small-start flag points at this exact,
+            still-unsolved question — a solved question has nothing to enter small. */}
+        {smallStartQuestionId === question.id && !solved && <SmallStartFrame />}
+
         {/* --- The head of the document ------------------------------------------------------ */}
         {/* One labelled group, not four plates: identity, placement, cost and purpose describe a
             single object, and a screen-reader user navigating a dialog this heavy benefits from

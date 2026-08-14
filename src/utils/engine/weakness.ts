@@ -27,7 +27,14 @@
 //
 // Pure and deterministic like every engine module: ISO date strings in, no clock, no store.
 import { PATTERNS } from '@/data/patterns';
-import type { DrillDayResult, PatternId, ProblemFamily, Question, QuestionProgress } from '@/types';
+import type {
+  ContestStallRecord,
+  DrillDayResult,
+  PatternId,
+  ProblemFamily,
+  Question,
+  QuestionProgress,
+} from '@/types';
 import { diffDays } from '@/utils/dates';
 
 /* ------------------------------------------------------------------------------------------- */
@@ -63,13 +70,23 @@ export const MIN_OBSERVATIONS = 2;
 const MIN_LIVE_EVIDENCE = MIN_OBSERVATIONS * UNDATED_WEIGHT;
 
 /**
- * Drill misses are the one signal with no denominator: a drill records which patterns were missed,
- * never how many prompts each pattern was given. So it is normalized against a saturation point
- * instead of a rate — four recency-weighted misses reads as fully missed. An absolute scale is
- * deliberate: normalizing against the worst pattern (the previous model) forces some pattern to
- * score maximally even when the learner is not weak anywhere.
+ * Drill misses are one of the two signals with no denominator: a drill records which patterns
+ * were missed, never how many prompts each pattern was given. So it is normalized against a
+ * saturation point instead of a rate — four recency-weighted misses reads as fully missed. An
+ * absolute scale is deliberate: normalizing against the worst pattern (the previous model) forces
+ * some pattern to score maximally even when the learner is not weak anywhere.
  */
 const DRILL_SATURATION = 4;
+
+/**
+ * Contest stalls are the other no-denominator signal: a finished sitting records which patterns
+ * genuinely stalled (engine/contest.ts is strict about "genuinely" — real time in, no solution,
+ * sitting conclusive), never how many chances each pattern had. The saturation point sits below
+ * the drill one because the evidence is far sparser: a sitting is rare and contributes at most
+ * one stall per pattern, so three recency-weighted stalls — three separate timed sittings failing
+ * the same pattern under a clock — is as convicted as this signal can honestly read.
+ */
+const CONTEST_SATURATION = 3;
 
 /** Confidence at or below this is the learner saying "I do not really have this". */
 const LOW_CONFIDENCE = 2;
@@ -107,7 +124,8 @@ export type WeaknessSignalId =
   | 'unfinished'  // questions opened here and skipped or abandoned
   | 'pace'        // timed solves that ran long against the authored estimate
   | 'hints'       // solves that needed the hint ladder
-  | 'transfer';   // problems in families already met that did not carry over
+  | 'transfer'    // problems in families already met that did not carry over
+  | 'contest';    // genuine stalls in timed contest sittings
 
 /**
  * The weights, and why they sit where they do.
@@ -120,19 +138,30 @@ export type WeaknessSignalId =
  * Transfer and unfinished work sit in the middle: both are real behaviour, but each has an
  * innocent reading (a hard variant, a question deferred on purpose).
  *
- * The last three are the softest evidence in the product and are weighted accordingly — a
- * self-rating is a mood as much as a measurement, a slow solve may be a slow evening, and a hint
- * is a support feature that must never read as a punishment (see CLAUDE.md). No weight exceeds
- * 0.24, so no single metric owns even a quarter of the verdict.
+ * Confidence, pace and hints are the softest evidence in the product and are weighted
+ * accordingly — a self-rating is a mood as much as a measurement, a slow solve may be a slow
+ * evening, and a hint is a support feature that must never read as a punishment (see CLAUDE.md).
+ *
+ * Contest stalls are product-graded like the two leads — real time under a clock with no
+ * solution is a mark, not a mood — but they rest on the sparsest record here: a sitting is rare,
+ * holds four problems, and contributes at most one stall per pattern, so any single sitting is as
+ * much about that afternoon as about the pattern. The signal therefore enters at the bottom of
+ * the budget (0.08): enough for repeated stalls to corroborate the graded leads, never enough for
+ * one loud sitting to own the verdict. The budget that admits it comes off the middle and soft
+ * tiers; the two graded leads keep the exact weights they had.
+ *
+ * No weight exceeds 0.24, so no single metric owns even a quarter of the verdict, and the eight
+ * weights sum to exactly 1.
  */
 export const SIGNAL_WEIGHTS: Record<WeaknessSignalId, number> = {
   retention: 0.24,
   recognition: 0.22,
-  transfer: 0.12,
-  unfinished: 0.12,
-  confidence: 0.1,
-  pace: 0.1,
-  hints: 0.1,
+  transfer: 0.1,
+  unfinished: 0.1,
+  confidence: 0.09,
+  pace: 0.09,
+  contest: 0.08,
+  hints: 0.08,
 };
 
 export const SIGNAL_LABEL: Record<WeaknessSignalId, string> = {
@@ -143,6 +172,7 @@ export const SIGNAL_LABEL: Record<WeaknessSignalId, string> = {
   pace: 'Time against estimate',
   hints: 'Hint ladder',
   transfer: 'Transfer',
+  contest: 'Contest stalls',
 };
 
 export interface WeaknessSignal {
@@ -204,6 +234,7 @@ const emptyTallies = (): Tallies => ({
   pace: emptyTally(),
   hints: emptyTally(),
   transfer: emptyTally(),
+  contest: emptyTally(),
 });
 
 /** Half-life decay. Undated evidence is priced at exactly one half-life — see UNDATED_WEIGHT. */
@@ -258,6 +289,8 @@ export interface WeaknessInput {
   all: Question[];
   byId: Record<number, QuestionProgress>;
   drills: Record<string, DrillDayResult>;
+  /** Persisted contest stall records keyed by sitting date — the `contests` channel. */
+  contests: Record<string, ContestStallRecord>;
   /** Problem families, for the transfer signal. Passed in so the engine imports no dataset. */
   families: ProblemFamily[];
 }
@@ -295,11 +328,28 @@ function read(id: WeaknessSignalId, tally: Tally, today: string): Reading | null
     };
   }
 
+  if (id === 'contest') {
+    // The same no-denominator treatment as recognition, against its own saturation point. Count
+    // signals need no MIN_LIVE_EVIDENCE floor: the saturation constant does not decay, so the
+    // reading itself fades with its evidence — the floor's job, done by the arithmetic.
+    const value = Math.min(1, tally.weightedMiss / CONTEST_SATURATION);
+    const when = tally.latest ? `, most recently ${agoPhrase(today, tally.latest)}` : '';
+    // "Stalled", not "failed": engine/contest.ts grades a stall as real time in without a
+    // solution, and the copy states that observation — what happened, never what the learner is.
+    return {
+      value,
+      observations: misses,
+      detail: `Stalled on ${misses} ${plural(misses, 'problem', 'problems')} in timed contests${when}.`,
+      fragment: `you stalled on ${misses} contest ${plural(misses, 'problem', 'problems')}`,
+    };
+  }
+
   // Rule 1 ("weakness is a claim about the present tense") needs enforcing here, not just stating.
   // The ratio below divides two quantities that decay together, so it is invariant to age: two
   // failed recalls 400 days ago produced a value bit-identical to two failures this week, and
-  // `MIN_OBSERVATIONS` gates on the *unweighted* count, so age never gated entry either. Only
-  // `recognition` — which saturates against a constant instead of a denominator — actually faded.
+  // `MIN_OBSERVATIONS` gates on the *unweighted* count, so age never gated entry either. Only the
+  // count signals — recognition and contest, which saturate against constants instead of
+  // denominators — actually fade on their own.
   //
   // The fix is suppression rather than re-weighting, which is the house rule everywhere else in
   // this codebase: once the surviving evidence mass falls below the equivalent of MIN_OBSERVATIONS
@@ -404,7 +454,7 @@ function combine(readings: { id: WeaknessSignalId; reading: Reading }[]): {
  * as a problem.
  */
 export function patternWeakness(input: WeaknessInput): PatternWeakness[] {
-  const { today, all, byId, drills, families } = input;
+  const { today, all, byId, drills, contests, families } = input;
   const questionById = new Map(all.map((q) => [q.id, q]));
   const tallies = new Map<PatternId, Tallies>();
   const known = new Set<string>(PATTERNS.map((p) => p.id));
@@ -424,6 +474,17 @@ export function patternWeakness(input: WeaknessInput): PatternWeakness[] {
     for (const pattern of day.missedPatterns) {
       if (!known.has(pattern)) continue;
       countMiss(forPattern(pattern as PatternId).recognition, weight, date);
+    }
+  }
+
+  // --- Contest: patterns that genuinely stalled in a timed sitting, dated by the sitting -----
+  // Each record is already one-stall-per-pattern (analyzeContest dedupes, finishContest
+  // re-dedupes), so a single afternoon can nominate a pattern but never convict it alone.
+  for (const [date, sitting] of Object.entries(contests)) {
+    const weight = recency(today, date);
+    for (const pattern of sitting.stalledPatterns) {
+      if (!known.has(pattern)) continue;
+      countMiss(forPattern(pattern as PatternId).contest, weight, date);
     }
   }
 

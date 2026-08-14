@@ -175,6 +175,26 @@ export interface DrillsState {
   byDate: Record<string, DrillDayResult>;
 }
 
+// Contest stall evidence — the one thing a finished contest leaves behind. The live sitting
+// (contestSlice) is deliberately never persisted: a restored stopped clock lies about what
+// happened. What persists is the derived record `analyzeContest` produced: the patterns that
+// genuinely stalled (real time in, no solution), dated so the weakness model can decay them.
+// An inconclusive contest writes nothing — `analyzeContest` suppresses `patternGaps` to [] and
+// that stays the single source of that decision. Keyed by date like drills: contests are seeded
+// by the date, so a same-day rerun replays a set whose problems have already been seen.
+export interface ContestStallRecord {
+  /** Pattern id of every problem that stalled, deduped — one stall per pattern per sitting. */
+  stalledPatterns: string[];
+  /** Problems with a genuine attempt (the analysis' informative readings). */
+  attempted: number;
+  /** Problems in the set. */
+  total: number;
+}
+
+export interface ContestsState {
+  byDate: Record<string, ContestStallRecord>;
+}
+
 export interface PersistedStateV1 {
   version: 1;
   progress: {
@@ -200,4 +220,6 @@ export interface PersistedStateV1 {
   tasks?: TasksState;
   // Optional for the same reason — payloads saved before recognition drills recorded results.
   drills?: DrillsState;
+  // Optional for the same reason — payloads saved before contest stalls were recorded.
+  contests?: ContestsState;
 }

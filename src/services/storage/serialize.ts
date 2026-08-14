@@ -24,6 +24,7 @@ export function selectPersistedState(root: RootState): PersistedStateV1 {
   const courseByWeekId = root.course.byWeekId;
   const tasksById = root.tasks.byId;
   const drillDates = root.drills.byDate;
+  const contestDates = root.contests.byDate;
   return {
     version: 1,
     progress: {
@@ -38,6 +39,9 @@ export function selectPersistedState(root: RootState): PersistedStateV1 {
     // task stay byte-identical to pre-tasks ones.
     ...(Object.keys(tasksById).length > 0 ? { tasks: { byId: tasksById } } : {}),
     ...(Object.keys(drillDates).length > 0 ? { drills: { byDate: drillDates } } : {}),
+    // Note this is `contests` (persisted stall records), never `contest` (the live sitting) —
+    // a restored stopped clock lies, so only the derived evidence survives a reload.
+    ...(Object.keys(contestDates).length > 0 ? { contests: { byDate: contestDates } } : {}),
   };
 }
 
@@ -315,6 +319,34 @@ export function validatePersisted(raw: unknown): PersistedStateV1 | null {
     drills = { byDate };
   }
 
+  // `contests` is optional (absent before contest stalls were recorded) — reject-wholesale when
+  // malformed: date keys must be real ISO dates (the weakness model decays on them), counters
+  // real positive integers with attempted <= total, and stalledPatterns a non-empty array of
+  // non-blank, DEDUPED pattern ids no longer than the attempts behind it. The dedupe check is
+  // not stricter than the write path — analyzeContest dedupes and finishContest re-dedupes — and
+  // it matters because a duplicate here would double-count a single sitting in the weakness model.
+  let contests: PersistedStateV1['contests'];
+  if ('contests' in raw && raw.contests !== undefined) {
+    const rawContests = raw.contests;
+    if (!isPlainObject(rawContests)) return null;
+    if (!isPlainObject(rawContests.byDate)) return null;
+    const byDate: Record<string, { stalledPatterns: string[]; attempted: number; total: number }> = {};
+    for (const [date, entry] of Object.entries(rawContests.byDate)) {
+      if (!isIsoDate(date)) return null;
+      if (!isPlainObject(entry)) return null;
+      const { stalledPatterns, attempted, total } = entry;
+      if (typeof attempted !== 'number' || !Number.isInteger(attempted) || attempted < 1) return null;
+      if (typeof total !== 'number' || !Number.isInteger(total) || total < 1) return null;
+      if (attempted > total) return null;
+      if (!Array.isArray(stalledPatterns) || stalledPatterns.length < 1) return null;
+      if (stalledPatterns.some((p) => typeof p !== 'string' || p === '')) return null;
+      if (new Set(stalledPatterns).size !== stalledPatterns.length) return null;
+      if (stalledPatterns.length > attempted) return null;
+      byDate[date] = { stalledPatterns: [...stalledPatterns], attempted, total };
+    }
+    contests = { byDate };
+  }
+
   // `course` is optional (absent in pre-course payloads) — but when present it must be fully
   // well-formed, same reject-wholesale rule as every other section.
   let course: PersistedStateV1['course'];
@@ -376,6 +408,7 @@ export function validatePersisted(raw: unknown): PersistedStateV1 | null {
     ...(course ? { course } : {}),
     ...(tasks ? { tasks } : {}),
     ...(drills ? { drills } : {}),
+    ...(contests ? { contests } : {}),
   };
 }
 

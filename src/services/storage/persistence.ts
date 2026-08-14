@@ -118,5 +118,8 @@ export function loadInitialState(adapter: StorageAdapter): Partial<RootState> | 
     ...(persisted.tasks ? { tasks: { byId: persisted.tasks.byId } } : {}),
     // Absent before recognition drills recorded results — same omit-and-default rule.
     ...(persisted.drills ? { drills: { byDate: persisted.drills.byDate } } : {}),
+    // Absent before contest stalls were recorded — same omit-and-default rule. This preloads the
+    // `contests` history slice only; the live `contest` sitting is never persisted or restored.
+    ...(persisted.contests ? { contests: { byDate: persisted.contests.byDate } } : {}),
   };
 }

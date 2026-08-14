@@ -47,6 +47,7 @@ import {
   contestProblemSolved,
   contestStarted,
 } from '@/store/slices/contestSlice';
+import { contestStallsRecorded } from '@/store/slices/contestsSlice';
 import {
   activityCompleted,
   activityUncompleted,
@@ -79,6 +80,7 @@ import { celebrationShown, toastPushed } from '@/store/slices/uiSlice';
 import { progressReset, stateImported } from '@/store/sharedActions';
 import {
   selectAchievementCtx,
+  selectContestAnalysis,
   selectRevisionQueueIds,
   selectRevisionSession,
   selectSolvedNewCount,
@@ -502,8 +504,38 @@ export const solveContestProblem = (questionId: number): AppThunk => (dispatch, 
   dispatch(solveQuestion(questionId));
 };
 
-export const finishContest = (): AppThunk => (dispatch) => {
+/**
+ * The single line that closes the contest→weakness loop. Finishing stamps the sitting, then the
+ * engine's own reading of it (`selectContestAnalysis`, which runs `analyzeContest`) is banked as
+ * a dated stall record in the persisted `contests` channel — the live contest slice itself never
+ * persists, because a restored stopped clock lies. An inconclusive sitting writes nothing:
+ * `analyzeContest` suppresses `patternGaps` to [] and that stays the single source of that
+ * decision, here included.
+ *
+ * The normalization mirrors `logDrillResult`, for the same reason: `validatePersisted` hard-
+ * rejects blank or duplicated pattern ids, non-positive counts, `attempted > total` and more
+ * stalls than attempts — and a rejected payload quarantines the learner's ENTIRE state on the
+ * next load. Today `analyzeContest` happens to guarantee all of that; that is a property of one
+ * producer, not of this API, so the thunk guarantees a persistable payload itself.
+ */
+export const finishContest = (): AppThunk => (dispatch, getState) => {
   dispatch(contestFinished({ nowMs: Date.now() }));
+
+  const analysis = selectContestAnalysis(getState());
+  if (!analysis || analysis.patternGaps.length === 0) return;
+
+  const safeTotal = Math.floor(analysis.total);
+  if (!Number.isFinite(safeTotal) || safeTotal < 1) return;
+  const stalledPatterns = Array.from(
+    new Set(analysis.patternGaps.filter((p) => typeof p === 'string' && (p as string) !== '')),
+  ).slice(0, safeTotal);
+  if (stalledPatterns.length === 0) return;
+  const informative = analysis.readings.filter((r) => r.outcome !== 'untouched').length;
+  const attempted = Math.min(Math.max(Math.floor(informative) || 0, stalledPatterns.length), safeTotal);
+
+  dispatch(
+    contestStallsRecorded({ date: todayISO(), stalledPatterns, attempted, total: safeTotal }),
+  );
 };
 
 export const clearContest = (): AppThunk => (dispatch) => {

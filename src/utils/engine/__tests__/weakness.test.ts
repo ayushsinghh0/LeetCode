@@ -14,6 +14,7 @@ import {
 import { initialProgress } from '@/utils/engine/spacedRepetition';
 import { addDays } from '@/utils/dates';
 import type {
+  ContestStallRecord,
   DrillDayResult,
   FamilyRole,
   PatternId,
@@ -50,6 +51,14 @@ const drillDay = (missed: string[]): DrillDayResult => ({
   missedPatterns: missed,
 });
 
+// One finished sitting's stall record, as `finishContest` persists it: patterns deduped within
+// the sitting, so a single contest contributes at most one stall per pattern.
+const stalls = (patterns: string[]): ContestStallRecord => ({
+  stalledPatterns: patterns,
+  attempted: 4,
+  total: 4,
+});
+
 const family = (id: string, questionIds: number[], pattern: PatternId = 'graphs'): ProblemFamily => ({
   id,
   pattern,
@@ -64,7 +73,7 @@ const family = (id: string, questionIds: number[], pattern: PatternId = 'graphs'
 });
 
 const run = (over: Partial<WeaknessInput> = {}): PatternWeakness[] =>
-  patternWeakness({ today: TODAY, all: [], byId: {}, drills: {}, families: [], ...over });
+  patternWeakness({ today: TODAY, all: [], byId: {}, drills: {}, contests: {}, families: [], ...over });
 
 /** The single expected row, with the "exactly one pattern was named" claim folded in. */
 const only = (over: Partial<WeaknessInput> = {}): PatternWeakness => {
@@ -146,6 +155,10 @@ describe('one bad evening is not a weakness', () => {
 
     // One missed drill prompt.
     expect(run({ drills: { [TODAY]: drillDay(['graphs']) } })).toEqual([]);
+
+    // One contest stall — a single sitting contributes at most one stall per pattern, so no
+    // single contest can turn this signal on by itself.
+    expect(run({ contests: { [TODAY]: stalls(['graphs']) } })).toEqual([]);
 
     // One low self-rating.
     expect(run({ all: [q(1)], byId: { 1: solved(ago(3), { confidence: 1 }) } })).toEqual([]);
@@ -481,6 +494,90 @@ describe('transfer — did an idea already met carry to its next disguise?', () 
   });
 });
 
+describe('contest — genuine stalls in timed sittings', () => {
+  test('two stalls across two sittings fire the signal, and it states its own basis', () => {
+    const graphs = only({ contests: { [TODAY]: stalls(['graphs']), [ago(7)]: stalls(['graphs']) } });
+
+    expect(graphs.id).toBe('graphs');
+    expect(graphs.signals.map((s) => s.id)).toEqual(['contest']);
+
+    const contest = graphs.signals[0]!;
+    expect(contest.label).toBe('Contest stalls');
+    expect(contest.observations).toBe(2);
+    expect(contest.weight).toBe(SIGNAL_WEIGHTS.contest);
+    // Two recency-weighted stalls against CONTEST_SATURATION = 3.
+    expect(contest.value).toBeCloseTo((1 + 0.5 ** (7 / 30)) / 3, 10);
+    expect(contest.detail).toBe('Stalled on 2 problems in timed contests, most recently today.');
+    // Factual register: the reading states what happened, never what the learner is.
+    expect(contest.detail).not.toMatch(/bad at|weak|fail|penal|lost|should have/i);
+  });
+
+  test('saturation caps the reading — a fourth sitting is not worth more than the record', () => {
+    const dates = (n: number) =>
+      Object.fromEntries(Array.from({ length: n }, (_, i) => [ago(i), stalls(['graphs'])]));
+
+    const four = only({ contests: dates(4) });
+    const six = only({ contests: dates(6) });
+
+    expect(four.signals[0]!.value).toBe(1);
+    expect(six.signals[0]!.value).toBe(1);
+    expect(six.score).toBe(four.score);
+    // The honest count still climbs — the cap is on the reading, not on the record.
+    expect(six.signals[0]!.observations).toBe(6);
+  });
+
+  test('an unrecognised pattern id in a stall record is dropped, not scored', () => {
+    expect(
+      run({ contests: { [TODAY]: stalls(['not-a-pattern']), [ago(1)]: stalls(['not-a-pattern']) } }),
+    ).toEqual([]);
+  });
+
+  test('stall evidence halves every RECENCY_HALF_LIFE_DAYS — weakness stays present tense', () => {
+    const contestScoreAged = (days: number): number =>
+      only({ contests: { [ago(days)]: stalls(['graphs']), [ago(days + 1)]: stalls(['graphs']) } }).score;
+
+    const now = contestScoreAged(0);
+    expect(contestScoreAged(30)).toBeCloseTo(now / 2, 10);
+    expect(contestScoreAged(60)).toBeCloseTo(now / 4, 10);
+    // A year-old pair of stalls has faded to a sliver rather than reading like last week's.
+    expect(contestScoreAged(365)).toBeLessThan(now / 100);
+  });
+
+  test('contest evidence is sparse, so two fresh stalls alone nominate far below half strength', () => {
+    const graphs = only({ contests: { [TODAY]: stalls(['graphs']), [ago(1)]: stalls(['graphs']) } });
+
+    expect(SIGNAL_WEIGHTS.contest).toBeLessThanOrEqual(0.1);
+    expect(graphs.score).toBeCloseTo(
+      (SIGNAL_WEIGHTS.contest * ((1 + 0.5 ** (1 / 30)) / 3)) / MIN_EVIDENCE_WEIGHT,
+      10,
+    );
+    expect(graphs.score).toBeLessThan(0.15);
+  });
+
+  test('the stall lands on its own pattern; the sitting’s other patterns are untouched', () => {
+    const out = run({
+      contests: {
+        [TODAY]: stalls(['graphs', 'stacks']),
+        [ago(1)]: stalls(['graphs']),
+      },
+    });
+
+    // Stacks stalled once — a nomination below the floor, so only graphs is named.
+    expect(out.map((w) => w.id)).toEqual(['graphs']);
+    expect(signalOf(out[0]!, 'contest')!.observations).toBe(2);
+  });
+
+  test('with no contest history, the contest signal can never fire', () => {
+    const all = [q(1), q(2)];
+    const byId: Record<number, QuestionProgress> = {
+      1: solved(ago(20), { revisionHistory: recalls([ago(3), false]) }),
+      2: solved(ago(20), { revisionHistory: recalls([ago(2), false]) }),
+    };
+
+    expect(signalOf(only({ all, byId }), 'contest')).toBeUndefined();
+  });
+});
+
 /* ------------------------------------------------------------------------------------------ */
 /* Rule 3 — no single signal dominates                                                          */
 /* ------------------------------------------------------------------------------------------ */
@@ -529,12 +626,12 @@ describe('one metric nominates, corroboration convicts', () => {
     expect(alone.score).toBeCloseTo(0.48, 10);
     // 0.24 + 0.22 = 0.46 of the budget fired — still under the floor, so still divided by 0.5.
     expect(two.score).toBeCloseTo(0.92, 10);
-    // 0.56 of the budget fired, all reading 1: a plain weighted mean of what spoke.
+    // 0.55 of the budget fired, all reading 1: a plain weighted mean of what spoke.
     expect(three.score).toBeCloseTo(1, 10);
   });
 
   test('the score never exceeds 1 even when every signal is firing at once', () => {
-    const rich = allSevenSignals();
+    const rich = allEightSignals();
     expect(rich.score).toBeLessThanOrEqual(1);
   });
 
@@ -709,8 +806,8 @@ describe('weakness is a claim in the present tense', () => {
 /* Ordering, structure and prose                                                                */
 /* ------------------------------------------------------------------------------------------ */
 
-/** A single pattern with all seven signals reading, used by several structural tests. */
-function allSevenSignals(): PatternWeakness {
+/** A single pattern with all eight signals reading, used by several structural tests. */
+function allEightSignals(): PatternWeakness {
   const all = [q(1), q(2), q(3), q(4), q(5)];
   return only({
     all,
@@ -722,18 +819,19 @@ function allSevenSignals(): PatternWeakness {
       5: solved(ago(29)), // the family's first solve — exempt from transfer, clean everywhere else
     },
     drills: { [TODAY]: drillDay(Array(4).fill('graphs')) },
+    contests: { [TODAY]: stalls(['graphs']), [ago(1)]: stalls(['graphs']) },
     families: [family('f1', [5, 1, 2])],
   });
 }
 
 describe('the shape of a claim', () => {
-  test('all seven signals report side by side, strongest contributor first', () => {
-    const graphs = allSevenSignals();
+  test('all eight signals report side by side, strongest contributor first', () => {
+    const graphs = allEightSignals();
 
-    // Ties (confidence and pace both at weight 0.1, value 1) break alphabetically, so this
+    // Ties (confidence and pace both at weight 0.09, value 1) break alphabetically, so this
     // ordering is fully determined rather than dependent on iteration order.
     expect(graphs.signals.map((s) => s.id)).toEqual([
-      'retention', 'recognition', 'transfer', 'confidence', 'pace', 'hints', 'unfinished',
+      'retention', 'recognition', 'transfer', 'confidence', 'pace', 'hints', 'contest', 'unfinished',
     ]);
     for (let i = 1; i < graphs.signals.length; i++) {
       expect(graphs.signals[i]!.contribution).toBeLessThanOrEqual(graphs.signals[i - 1]!.contribution);
@@ -741,15 +839,15 @@ describe('the shape of a claim', () => {
   });
 
   test('the signals’ contributions sum to exactly the score they explain', () => {
-    const graphs = allSevenSignals();
+    const graphs = allEightSignals();
     const summed = graphs.signals.reduce((total, s) => total + s.contribution, 0);
 
     expect(summed).toBeCloseTo(graphs.score, 12);
-    expect(graphs.score).toBeCloseTo(0.9076, 3);
+    expect(graphs.score).toBeCloseTo(0.8964, 3);
   });
 
   test('every emitted number is finite and in range, and every signal carries its evidence', () => {
-    const graphs = allSevenSignals();
+    const graphs = allEightSignals();
 
     expect(Number.isFinite(graphs.score)).toBe(true);
     expect(graphs.score).toBeGreaterThan(0);
@@ -805,7 +903,7 @@ describe('the summary states the evidence and no more', () => {
   });
 
   test('a corroborated claim joins exactly the two strongest contributors', () => {
-    const graphs = allSevenSignals();
+    const graphs = allEightSignals();
 
     expect(graphs.summary).toBe('2 of 2 recalls failed and you missed 4 recognition prompts');
     // The because-clause and the signal list agree about which two lead.
@@ -869,6 +967,7 @@ describe('pure and deterministic — ISO strings in, no clock, no store', () => 
       3: p({ status: 'skipped' }),
     },
     drills: { [ago(1)]: drillDay(['graphs', 'graphs']) },
+    contests: { [ago(2)]: stalls(['graphs']), [ago(8)]: stalls(['graphs']) },
     families: [family('f1', [1, 2, 3])],
   });
 

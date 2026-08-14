@@ -236,6 +236,47 @@ export function buildSession(budgetMin: number, ranked: WorkItem[]): Session {
   return { items, totalMinutes, budgetMin, leftoverMin: remaining, skipped };
 }
 
+// The kinds a small start can open on: actual study units. A drill is its own surface and a
+// task is the learner's own note — neither is a thing to "begin" here.
+const SMALL_START_KINDS: ReadonlySet<ActionKind> = new Set<ActionKind>([
+  'revision',
+  'new-question',
+  'course-review',
+  'course-session',
+]);
+
+/**
+ * "I can begin very small" — the one item behind the two-minute start and the five-minute
+ * re-entry. This is an ENTRY, not a budget: no minutes are passed in and none are enforced,
+ * because the small start's whole contract is that beginning is complete in itself — a
+ * countdown or a cutoff would turn the entry into a race it was designed not to be.
+ *
+ * It is also, deliberately, not a second ranking heuristic. `rankWork` already decided what
+ * matters today; this function only selects FROM that order, never re-ranks it. The one liberty
+ * it takes is within a single kind: among due revisions it picks the lightest by minutes,
+ * because for someone who can barely begin, the cost of the first item decides whether there is
+ * a first item at all — and a light recall is the smallest real unit of work the product has.
+ * Everything else falls through in rankWork's own order: the first new question, then the first
+ * studyable thing of any kind. A hero, a plan and a small start that named different work for
+ * the same day would be the two-prioritizers failure this module exists to prevent.
+ */
+export function buildSmallStart(ranked: WorkItem[]): WorkItem | null {
+  let lightestRevision: WorkItem | null = null;
+  for (const item of ranked) {
+    // Strict `<` keeps rankWork's order on ties: the earlier (more urgent) item wins.
+    if (item.kind === 'revision' && (lightestRevision === null || item.minutes < lightestRevision.minutes)) {
+      lightestRevision = item;
+    }
+  }
+  if (lightestRevision) return lightestRevision;
+
+  return (
+    ranked.find((item) => item.kind === 'new-question') ??
+    ranked.find((item) => SMALL_START_KINDS.has(item.kind)) ??
+    null
+  );
+}
+
 /**
  * The capacity presets the daily surface offers, in minutes. Includes the 180-minute default so
  * a learner who has never touched the chips still sees their own budget selected rather than an

@@ -12,11 +12,12 @@
 // touched produces no claim at all rather than a claim about their weakness.
 //
 // `patternGaps` returns pattern ids rather than a rendered verdict so a contest's findings can
-// feed the shared weakness signal rather than forming a private analytics island. NOTE: that
-// wiring does not exist yet — `engine/weakness.ts` reads drills and the revision ladder only,
-// and the contest slice is not persisted, so a stall informs the post-contest screen and then
-// evaporates. Wiring it up means persisting stalls somewhere `patternWeakness` can read; until
-// then this module's output is honest about a single sitting and nothing more.
+// feed the shared weakness signal rather than forming a private analytics island. That wiring
+// lives in `finishContest` (store/actions.ts): the finished sitting's gaps are banked as a dated
+// stall record in the persisted `contests` channel, which `engine/weakness.ts` reads as its
+// contest signal. The live contest slice itself stays unpersisted — a restored stopped clock
+// lies — and the `inconclusive` suppression below remains the single source of "this sitting
+// says nothing": an inconclusive contest writes no record anywhere.
 //
 // Pure and deterministic like every engine module: no clock, no store, no randomness beyond the
 // seeded PRNG the caller supplies a seed for.

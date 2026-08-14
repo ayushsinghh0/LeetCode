@@ -1,4 +1,6 @@
 import { CalendarCheck } from 'lucide-react';
+import { Link } from 'react-router-dom';
+import { Button } from '@/components/ui/button';
 import { formatMinutes } from '@/utils/engine/planner';
 
 /**
@@ -32,6 +34,12 @@ export function ReturnNotice({ daysAway, plannedMinutes }: { daysAway: number; p
         it. Start with the one item below, or set a smaller window on the plan and let the rest come
         back gradually.
       </p>
+      {/* The re-entry shrinks the unit of work, never the cadence: one door, one item behind it
+          (Focus's small mode), and stopping after that item is a finished visit. An outline
+          button, not a primary — the notice recommends nothing louder than the day itself does. */}
+      <Button asChild variant="outline" size="sm" className="self-start">
+        <Link to="/focus?entry=small">Begin with five minutes</Link>
+      </Button>
     </section>
   );
 }

@@ -9,6 +9,7 @@ import drillsReducer from '@/store/slices/drillsSlice';
 import sessionReducer from '@/store/slices/sessionSlice';
 import interviewReducer from '@/store/slices/interviewSlice';
 import contestReducer from '@/store/slices/contestSlice';
+import contestsReducer from '@/store/slices/contestsSlice';
 import uiReducer from '@/store/slices/uiSlice';
 
 const rootReducer = combineReducers({
@@ -20,7 +21,10 @@ const rootReducer = combineReducers({
   drills: drillsReducer,
   session: sessionReducer,
   interview: interviewReducer,
+  // `contest` is the live sitting (never persisted); `contests` is the persisted stall history
+  // a finished sitting leaves behind. Two slices because they answer different questions.
   contest: contestReducer,
+  contests: contestsReducer,
   ui: uiReducer,
 });
 

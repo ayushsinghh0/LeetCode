@@ -278,6 +278,7 @@ export const selectTimeEstimate = createSelector(
 // --- What to do next ----------------------------------------------------------------------
 
 const selectDrillsByDate = (state: RootState) => state.drills.byDate;
+const selectContestsByDate = (state: RootState) => state.contests.byDate;
 const selectTasksById = (state: RootState) => state.tasks.byId;
 
 /**
@@ -410,7 +411,7 @@ export const selectRankedWork = createSelector(
 /**
  * Which patterns are not holding, how strongly, and why. ONE place, deliberately.
  *
- * The whole model lives in `engine/weakness.ts`: seven recency-weighted signals, each gated on
+ * The whole model lives in `engine/weakness.ts`: eight recency-weighted signals, each gated on
  * repeated evidence, none of them allowed to dominate, every score carrying the signals that
  * produced it. This selector only assembles the inputs — the joins against the static dataset
  * happen here, memoized, so the engine stays pure.
@@ -422,9 +423,9 @@ export const selectRankedWork = createSelector(
 const MAX_WEAK_PATTERNS = 5;
 
 export const selectAllPatternWeakness = createSelector(
-  [selectProgressById, selectDrillsByDate, selectTodayArg],
-  (byId, drills, today): PatternWeakness[] =>
-    patternWeakness({ today, all: questions, byId, drills, families: FAMILIES }),
+  [selectProgressById, selectDrillsByDate, selectContestsByDate, selectTodayArg],
+  (byId, drills, contests, today): PatternWeakness[] =>
+    patternWeakness({ today, all: questions, byId, drills, contests, families: FAMILIES }),
 );
 
 /** The head of the same list, for the surfaces that act on it rather than explain it. */

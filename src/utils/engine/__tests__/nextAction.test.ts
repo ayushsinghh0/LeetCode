@@ -1,4 +1,4 @@
-import { buildSession, rankWork, type WorkInput } from '@/utils/engine/nextAction';
+import { buildSession, buildSmallStart, rankWork, type WorkInput } from '@/utils/engine/nextAction';
 import type { DailyTask, Question } from '@/types';
 import { QF } from '@/test/questionFixture';
 
@@ -172,5 +172,88 @@ describe('buildSession — fixed time, variable scope', () => {
     expect(session.items).toHaveLength(ranked.length);
     expect(session.skipped).toEqual([]);
     expect(session.leftoverMin).toBe(600 - session.totalMinutes);
+  });
+});
+
+describe('buildSmallStart — an entry, not a budget', () => {
+  test('prefers the lightest due revision, even when a heavier one ranks above it', () => {
+    const ranked = rankWork({
+      ...base,
+      revisions: [
+        { question: q(1, 25), overdueDays: 5, intervalDays: 3, minutes: 12, topUp: false },
+        { question: q(2, 25), overdueDays: 0, intervalDays: 3, minutes: 5, topUp: false },
+      ],
+      newQuestions: [{ question: q(3, 25), minutes: 25 }],
+    });
+
+    const start = buildSmallStart(ranked);
+    expect(start!.kind).toBe('revision');
+    expect(start!.title).toBe('Q2'); // 5 minutes — the smallest real unit of work on offer
+  });
+
+  test('a tie in minutes keeps rankWork’s order — the more urgent revision wins', () => {
+    const ranked = rankWork({
+      ...base,
+      revisions: [
+        { question: q(1, 25), overdueDays: 4, intervalDays: 3, minutes: 9, topUp: false },
+        { question: q(2, 25), overdueDays: 0, intervalDays: 3, minutes: 9, topUp: false },
+      ],
+    });
+
+    expect(buildSmallStart(ranked)!.title).toBe('Q1');
+  });
+
+  test('with no revision due, the FIRST new question is the entry — not the lightest, and never the drill', () => {
+    const ranked = rankWork({
+      ...base,
+      drill: { ...base.drill, doneToday: false }, // the drill outranks new material...
+      newQuestions: [
+        { question: q(1, 25), minutes: 25 },
+        { question: q(2, 12), minutes: 12 },
+      ],
+    });
+
+    // ...but a drill is not a studyable unit, so the entry steps over it. Within new questions
+    // there is no lightest-first liberty: acquisition order is the roadmap's, untouched.
+    expect(buildSmallStart(ranked)!.id).toBe('new-1');
+  });
+
+  test('falls through to the first studyable kind in ranked order — a due course review before the session', () => {
+    const ranked = rankWork({
+      ...base,
+      course: {
+        dueReviews: [{ weekId: 'w03', title: 'Week 3', minutes: 10 }],
+        nextSession: { weekId: 'w04', title: 'Week 4', minutes: 60 },
+      },
+    });
+
+    expect(buildSmallStart(ranked)!.kind).toBe('course-review');
+  });
+
+  test('nothing studyable — tasks and the drill alone — yields null, as does an empty list', () => {
+    const tasksOnly = rankWork({
+      ...base,
+      drill: { ...base.drill, doneToday: false },
+      openTasks: [task('t1')],
+    });
+
+    expect(buildSmallStart(tasksOnly)).toBeNull();
+    expect(buildSmallStart([])).toBeNull();
+  });
+
+  test('selects FROM the ranked order without mutating it — it is not a second ranker', () => {
+    const ranked = rankWork({
+      ...base,
+      revisions: [
+        { question: q(1, 25), overdueDays: 5, intervalDays: 3, minutes: 12, topUp: false },
+        { question: q(2, 25), overdueDays: 0, intervalDays: 3, minutes: 5, topUp: false },
+      ],
+      newQuestions: [{ question: q(3, 25), minutes: 25 }],
+    });
+    const before = ranked.map((item) => item.id);
+
+    buildSmallStart(ranked);
+
+    expect(ranked.map((item) => item.id)).toEqual(before);
   });
 });

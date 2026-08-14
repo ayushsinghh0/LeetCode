@@ -29,6 +29,11 @@ export interface UiState {
   // BREAKDOWN of the same minutes — one real interval is counted once in each dimension,
   // never summed across them.
   focusQuestionId: number | null;
+  // Set by the "Begin with two minutes" affordance on the Today hero; the question sheet shows
+  // its two-minute entry frame only while this points at the open, unsolved question, and clears
+  // it when the sheet closes. A framing flag, nothing more: it records no time, awards no XP,
+  // and is never persisted (pure session UI, like everything else in this slice).
+  smallStartQuestionId: number | null;
 }
 
 const initialState: UiState = {
@@ -39,6 +44,7 @@ const initialState: UiState = {
   toastQueue: [],
   pomodoro: { phase: 'idle', endsAt: null, focusLenMin: 25, breakLenMin: 5 },
   focusQuestionId: null,
+  smallStartQuestionId: null,
 };
 
 const uiSlice = createSlice({
@@ -79,6 +85,9 @@ const uiSlice = createSlice({
     focusQuestionSet(state, action: PayloadAction<number | null>) {
       state.focusQuestionId = action.payload;
     },
+    smallStartQuestionSet(state, action: PayloadAction<number | null>) {
+      state.smallStartQuestionId = action.payload;
+    },
   },
   extraReducers: (builder) => {
     // PersistedStateV1 carries no UI data, so stateImported does not touch this slice.
@@ -101,6 +110,7 @@ export const {
   pomodoroPhaseSet,
   pomodoroLengthsSet,
   focusQuestionSet,
+  smallStartQuestionSet,
 } = uiSlice.actions;
 
 export default uiSlice.reducer;

@@ -224,7 +224,7 @@ describe('buildInsights — weak pattern', () => {
   const drills = { '2026-07-29': { correct: 6, total: 8, missedPatterns: ['graphs', 'graphs'] } };
 
   test('names the pattern the model ranks first, with the model’s own evidence', () => {
-    const weakness = patternWeakness({ today: base.today, all, byId, drills, families: [] });
+    const weakness = patternWeakness({ today: base.today, all, byId, drills, contests: {}, families: [] });
     const insights = buildInsights({ ...base, all, byId, drills, weakness });
 
     const finding = insights.find((i) => i.id === 'weak-pattern-graphs');

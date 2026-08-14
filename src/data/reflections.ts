@@ -10,7 +10,11 @@
 //
 // Sourcing summary:
 // - "The Teaching of Buddha" (Bukkyō Dendō Kyōkai, 2005 printing) states "Any part of this book
-//   may be quoted without permission"; quotations carry the book's own section locators.
+//   may be quoted without permission"; quotations carry the book's own section locators. On
+//   2026-08-14 every BDK quotation was re-verified verbatim against a full PDF of the 472nd
+//   printing (2019): all section locators are exact; where that printing's page differs from the
+//   2005 citation, the entry's locator records both. The grant sentence itself was verified
+//   verbatim on the 2019 printing's copyright page.
 // - The Buddha's last words are NOT in the BDK anthology; they are quoted from DN 16 in the
 //   Vajira & Story translation (Buddhist Publication Society, free-distribution terms).
 // - No public-domain English translation of Ryōkan exists (verified 2026-08-14: the earliest
@@ -65,7 +69,7 @@ export const REFLECTIONS: Reflection[] = [
     source: {
       tradition: 'buddhist',
       work: 'The Teaching of Buddha (BDK, 2005)',
-      locator: 'The Way of Practice, ch. 2, §II.10, p. 170 (the Srona story)',
+      locator: 'The Way of Practice, ch. 2, §II.10 (the Srona story); p. 170 (2005 printing), pp. 172-173 (2019 printing, verified)',
       license: 'quotable-with-credit',
       note: 'Lightly trimmed from the dialogue ("You know that a harp…"); wording otherwise verbatim.',
     },
@@ -157,7 +161,7 @@ export const REFLECTIONS: Reflection[] = [
     source: {
       tradition: 'buddhist',
       work: 'The Teaching of Buddha (BDK, 2005)',
-      locator: 'The Way of Practice, ch. 2, §II.13, p. 174',
+      locator: 'The Way of Practice, ch. 2, §II.13; p. 174 (2005 printing), p. 175 (2019 printing, verified)',
       license: 'quotable-with-credit',
     },
   },
@@ -258,7 +262,7 @@ export const REFLECTIONS: Reflection[] = [
     source: {
       tradition: 'buddhist',
       work: 'The Teaching of Buddha (BDK, 2005)',
-      locator: 'The Way of Practice, ch. 1, §I.7, p. 121',
+      locator: 'The Way of Practice, ch. 1, §I.7 (begins p. 121; the sentence falls on p. 122 in the 2019 printing, verified)',
       license: 'quotable-with-credit',
       note: 'Trimmed from "It is so with the minds of people: even under…"; wording otherwise verbatim.',
     },
@@ -303,6 +307,34 @@ export const REFLECTIONS: Reflection[] = [
       locator: '世の中にまじらぬとにはあらねどもひとり遊びぞ我はまされる',
       license: 'public-domain-original',
       note: 'Medium-high attestation (autograph tradition rather than a dated manuscript).',
+    },
+  },
+  {
+    id: 'b-steps',
+    kind: 'quotation',
+    text: 'No matter how high one\'s aspiration may be, it must be attained step by step. The steps of the path to Enlightenment must be taken in our everyday life.',
+    attribution: 'The Teaching of Buddha (BDK) · The Way of Purification II.9',
+    theme: 'beginning',
+    source: {
+      tradition: 'buddhist',
+      work: 'The Teaching of Buddha (BDK, 2019 printing)',
+      locator: 'The Way of Practice, ch. 1 ("The Way of Purification"), §II.9, p. 133 (2019 printing, verified)',
+      license: 'quotable-with-credit',
+      note: 'Verbatim from the verified 2019 printing; the preceding sentence is "Those who seek Enlightenment must be careful of their each step."',
+    },
+  },
+  {
+    id: 'b-errors',
+    kind: 'quotation',
+    text: 'When a wise man is advised of his errors, he will reflect on them and improve his conduct.',
+    attribution: 'The Teaching of Buddha (BDK) · The Way of Purification III.6',
+    theme: 'effort',
+    source: {
+      tradition: 'buddhist',
+      work: 'The Teaching of Buddha (BDK, 2019 printing)',
+      locator: 'The Way of Practice, ch. 1 ("The Way of Purification"), §III.6, p. 141 (2019 printing, verified)',
+      license: 'quotable-with-credit',
+      note: 'First sentence only; the passage continues with a contrast against "a foolish man", deliberately not carried onto a failure-adjacent surface.',
     },
   },
   // ——— The returning pool. Drawn only on a genuine return (≥2 days away, nothing logged today),

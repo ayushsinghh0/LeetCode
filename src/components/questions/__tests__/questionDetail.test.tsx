@@ -8,6 +8,7 @@ import { SMALL_START_COPY } from '@/components/questions/SmallStartFrame';
 import { reviseQuestion, solveQuestion } from '@/store/actions';
 import { activeQuestionSet, smallStartQuestionSet } from '@/store/slices/uiSlice';
 import { initialProgress } from '@/utils/engine/spacedRepetition';
+import { depthMinutes } from '@/utils/engine/session';
 import { MIN_SAMPLES } from '@/utils/engine/timeEstimate';
 import questionsData from '@/data/questions.json';
 import type { Question, QuestionProgress } from '@/types';
@@ -92,6 +93,30 @@ describe('the question header', () => {
 
     expect(within(header).getByText('What this tests')).toBeInTheDocument();
     expect(within(header).getByText(q1.tests)).toBeInTheDocument();
+  });
+
+  test('what the problem will cost at each depth is stated after the attempt, never before', () => {
+    // Derived from the question's own estimate by `depthMinutes` — the same arithmetic the
+    // revision session uses to choose depth against a budget, so the figures cannot disagree with
+    // the plan the learner is later offered. Before the attempt it is noise at best, and a hint
+    // about the shape of the solution at worst.
+    const store = makeStore();
+    const { dialog } = openQuestion(1, store);
+    expect(within(dialog).queryByText(/Quick recall/)).not.toBeInTheDocument();
+
+    act(() => {
+      store.dispatch(solveQuestion(1));
+    });
+
+    const resolved = within(screen.getByRole('dialog'));
+    expect(resolved.getByText('When it comes back')).toBeInTheDocument();
+    expect(
+      resolved.getByText(
+        new RegExp(
+          `Quick recall ~${depthMinutes(q1, 'recall')} min .* Re-implement ~${depthMinutes(q1, 'deep')} min`,
+        ),
+      ),
+    ).toBeInTheDocument();
   });
 
   test('the intended complexity stays hidden until the attempt is resolved', () => {

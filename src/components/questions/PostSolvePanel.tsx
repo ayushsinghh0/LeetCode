@@ -9,6 +9,7 @@ import { useAppDispatch } from '@/store/hooks';
 import { saveReflection, setConfidence } from '@/store/actions';
 import { activeQuestionSet } from '@/store/slices/uiSlice';
 import { HINT_USE_LABEL, hintUse } from '@/utils/engine/hints';
+import { depthMinutes } from '@/utils/engine/session';
 import { format, parseISO } from 'date-fns';
 import type { ProblemFamily, Question, QuestionProgress } from '@/types';
 
@@ -123,6 +124,23 @@ export function PostSolvePanel({
           </p>
         </div>
       )}
+
+      {/* What this problem costs at each depth it will come back at — derived from the question's
+          own authored estimate by `depthMinutes`, which is the same arithmetic the revision
+          session uses to choose depth against a budget. No new authored numbers exist here, and
+          none should: three figures the learner can check against the plan they will actually be
+          offered, rather than a fourth opinion about how long this problem takes.
+
+          Post-attempt on purpose. Before the attempt, "re-implement ~15 min" is noise at best and
+          a hint about the shape of the solution at worst. */}
+      <div>
+        <Eyebrow>When it comes back</Eyebrow>
+        <p className="figures mt-2 text-sm text-muted-foreground">
+          Quick recall ~{depthMinutes(question, 'recall')} min · Re-implement ~
+          {depthMinutes(question, 'deep')} min · Transfer to a sibling ~
+          {depthMinutes(question, 'transfer')} min
+        </p>
+      </div>
 
       <div>
         <p className="text-sm font-medium">How confident are you?</p>

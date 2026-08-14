@@ -83,6 +83,10 @@ export function FamilyPanel({ family, currentQuestionId }: { family: ProblemFami
   const members = [...family.members].sort(
     (a, b) => FAMILY_ROLE_ORDER.indexOf(a.role) - FAMILY_ROLE_ORDER.indexOf(b.role),
   );
+  const knownMembers = members.filter((m) => questionById.has(m.questionId));
+  const solvedCount = knownMembers.filter(
+    (m) => byId[m.questionId]?.status === 'solved',
+  ).length;
 
   // `gap-4` — the one interior step this sheet uses (DESIGN.md § The rhythm, "inside a group").
   return (
@@ -90,6 +94,14 @@ export function FamilyPanel({ family, currentQuestionId }: { family: ProblemFami
       <div>
         <p className="text-sm font-medium">Same idea: {family.name}</p>
         <p className="mt-1 max-w-prose text-sm leading-relaxed text-muted-foreground">{family.idea}</p>
+        {/* How far through the idea the learner actually is. The ladder below has always listed
+            every member; what it never said is how much of it is behind them — and "3 of 5 solved"
+            is the difference between a list and a position in one. Counted over members that
+            exist in the dataset, so a family whose member was renamed cannot report 4 of 5 with
+            only four rows rendered. */}
+        <p className="figures mt-1 text-xs text-muted-foreground">
+          {solvedCount} of {knownMembers.length} solved
+        </p>
       </div>
 
       <div className="flex flex-col divide-y divide-border border-y border-border">

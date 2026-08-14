@@ -40,6 +40,7 @@ export function initialCourseProgress(): CourseWeekProgress {
     nextRevision: null,
     lastReviewed: null,
     revisionHistory: [],
+    recallChecks: {},
   };
 }
 

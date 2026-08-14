@@ -161,6 +161,11 @@ export interface CourseWeekProgress {
   nextRevision: string | null;
   lastReviewed: string | null;
   revisionHistory: RevisionEvent[];
+  // Self-test results from the "Check yourself" recall dialog, keyed by date, first-attempt-wins
+  // (drills precedent). A lighter signal than a ladder review — it never moves the 1/3/7/15/30
+  // ladder — but it is still retrieval, so courseRetention counts it toward "reviewed". Optional
+  // in persisted payloads; the load boundary defaults it to {}.
+  recallChecks?: Record<string, { correct: number; total: number }>;
 }
 
 export interface CourseState {

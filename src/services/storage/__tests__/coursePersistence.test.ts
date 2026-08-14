@@ -3,7 +3,8 @@ import { LocalStorageAdapter } from '@/services/storage/LocalStorageAdapter';
 import { selectPersistedState, validatePersisted } from '@/services/storage/serialize';
 import { createPersistenceMiddleware, loadInitialState } from '@/services/storage/persistence';
 import { makeStore } from '@/store/store';
-import { completeCourseSession, saveCourseNotes } from '@/store/actions';
+import { completeCourseSession, logCourseRecall, saveCourseNotes } from '@/store/actions';
+import { todayISO } from '@/utils/dates';
 
 const preCourseFixture = (): PersistedStateV1 => ({
   version: 1,
@@ -128,7 +129,7 @@ describe('loadInitialState course mapping', () => {
     const preloaded = loadInitialState(new LegacyAdapter());
     expect(preloaded?.course?.byWeekId.w00).toEqual({
       day1DoneOn: '2026-07-30', day2DoneOn: null, notes: 'tokenizers!',
-      revisionStage: 0, nextRevision: null, lastReviewed: null, revisionHistory: [],
+      revisionStage: 0, nextRevision: null, lastReviewed: null, revisionHistory: [], recallChecks: {},
     });
   });
 });
@@ -145,5 +146,14 @@ describe('round trip: course progress survives a reload', () => {
     expect(store2.getState().course.byWeekId.w00!.day1DoneOn).toBe('2026-07-30');
     expect(store2.getState().course.byWeekId.w00!.notes).toBe('orientation done');
     expect(store2.getState().gamification.xp).toBe(store1.getState().gamification.xp);
+  });
+
+  test('a recorded "Check yourself" result survives a reload (wave F)', () => {
+    const store1 = makeStore(undefined, [createPersistenceMiddleware(new LocalStorageAdapter())]);
+    store1.dispatch(logCourseRecall('w00', 4, 5));
+    vi.advanceTimersByTime(500);
+
+    const store2 = makeStore(loadInitialState(new LocalStorageAdapter()));
+    expect(store2.getState().course.byWeekId.w00!.recallChecks![todayISO()]).toEqual({ correct: 4, total: 5 });
   });
 });

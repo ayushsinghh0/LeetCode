@@ -27,6 +27,7 @@ import {
 } from '@/store/slices/progressSlice';
 import {
   courseNotesSet,
+  courseRecallRecorded,
   courseRevisionInitialized,
   courseRevisionLogged,
   courseSessionCompleted,
@@ -380,6 +381,18 @@ export const reviseCourseWeek = (weekId: string, passed: boolean): AppThunk => (
 export const saveCourseNotes = (weekId: string, notes: string): AppThunk => (dispatch) => {
   if (!courseWeekById.has(weekId)) return;
   dispatch(courseNotesSet({ weekId, notes }));
+};
+
+// A "Check yourself" self-test result for one course week. First-attempt-per-date is the signal
+// (the reducer enforces it); this thunk supplies the date and normalizes its own payload the way
+// logDrillResult does — total must be a real count, correct clamped to [0, total] — so
+// validatePersisted can never quarantine the state over a self-test.
+export const logCourseRecall = (weekId: string, correct: number, total: number): AppThunk => (dispatch) => {
+  if (!courseWeekById.has(weekId)) return;
+  const safeTotal = Math.floor(total);
+  if (!Number.isFinite(safeTotal) || safeTotal < 1) return; // nothing asked, nothing to record
+  const safeCorrect = Math.min(Math.max(Math.floor(correct) || 0, 0), safeTotal);
+  dispatch(courseRecallRecorded({ weekId, date: todayISO(), correct: safeCorrect, total: safeTotal }));
 };
 
 // --- Daily execution layer -------------------------------------------------------------

@@ -52,6 +52,7 @@ test('initialCourseProgress starts unfinished, unreviewed, with empty notes', ()
     nextRevision: null,
     lastReviewed: null,
     revisionHistory: [],
+    recallChecks: {},
   });
 });
 

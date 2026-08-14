@@ -57,6 +57,21 @@ const courseSlice = createSlice({
       const prev = state.byWeekId[weekId] ?? initialCourseProgress();
       state.byWeekId[weekId] = applyCourseReview(prev, date, passed);
     },
+
+    // A "Check yourself" self-test result. First-attempt-per-date is the signal (drills
+    // precedent): a same-day rerun replays prompts already seen, which is practice, not a cold
+    // read, so the first result of a date stands. Never touches the ladder — this is a lighter
+    // retrieval signal, recorded beside it.
+    courseRecallRecorded(
+      state,
+      action: PayloadAction<{ weekId: string; date: string; correct: number; total: number }>,
+    ) {
+      const { weekId, date, correct, total } = action.payload;
+      const prev = state.byWeekId[weekId] ?? initialCourseProgress();
+      const checks = prev.recallChecks ?? {};
+      if (checks[date]) return; // first attempt of the date wins
+      state.byWeekId[weekId] = { ...prev, recallChecks: { ...checks, [date]: { correct, total } } };
+    },
   },
   extraReducers: (builder) => {
     builder.addCase(stateImported, (state, action: PayloadAction<PersistedStateV1>) => {
@@ -80,6 +95,7 @@ export const {
   courseNotesSet,
   courseRevisionInitialized,
   courseRevisionLogged,
+  courseRecallRecorded,
 } = courseSlice.actions;
 
 export default courseSlice.reducer;

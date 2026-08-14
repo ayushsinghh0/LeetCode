@@ -140,10 +140,25 @@ function isValidProgressEntry(value: unknown): value is QuestionProgress {
   );
 }
 
+// Recall-check map (wave F): date -> {correct, total}, correct in [0, total], total a real count.
+// Same shape rules as the drills channel; keyed by ISO date because first-attempt-per-date is the
+// signal. An empty map is valid (a touched week that has never been self-tested carries {}).
+function isRecallCheckMap(value: unknown): value is Record<string, { correct: number; total: number }> {
+  if (!isPlainObject(value)) return false;
+  for (const [date, entry] of Object.entries(value)) {
+    if (!isIsoDate(date)) return false;
+    if (!isPlainObject(entry)) return false;
+    const { correct, total } = entry;
+    if (typeof total !== 'number' || !Number.isInteger(total) || total < 1) return false;
+    if (typeof correct !== 'number' || !Number.isInteger(correct) || correct < 0 || correct > total) return false;
+  }
+  return true;
+}
+
 // Per-entry shape check for course.byWeekId[weekId]. The review-ladder fields shipped one
 // release after the day stamps, so they are optional-when-absent (pre-ladder payloads must
 // keep loading; loadInitialState/stateImported normalize them in) but strictly typed when
-// present.
+// present. recallChecks (wave F) follows the same optional-when-absent rule.
 function isValidCourseEntry(value: unknown): value is CourseWeekProgress {
   if (!isPlainObject(value)) return false;
   return (
@@ -153,7 +168,8 @@ function isValidCourseEntry(value: unknown): value is CourseWeekProgress {
     (!('revisionStage' in value) || isRevisionStage(value.revisionStage)) &&
     (!('nextRevision' in value) || isNullableIsoDate(value.nextRevision)) &&
     (!('lastReviewed' in value) || isNullableIsoDate(value.lastReviewed)) &&
-    (!('revisionHistory' in value) || isRevisionEventArray(value.revisionHistory))
+    (!('revisionHistory' in value) || isRevisionEventArray(value.revisionHistory)) &&
+    (!('recallChecks' in value) || isRecallCheckMap(value.recallChecks))
   );
 }
 
@@ -431,6 +447,15 @@ export function validatePersisted(raw: unknown): PersistedStateV1 | null {
         ...('lastReviewed' in entry ? { lastReviewed: entry.lastReviewed } : {}),
         ...('revisionHistory' in entry
           ? { revisionHistory: entry.revisionHistory.map((ev) => ({ date: ev.date, passed: ev.passed })) }
+          : {}),
+        ...('recallChecks' in entry
+          ? {
+              recallChecks: Object.fromEntries(
+                Object.entries(entry.recallChecks as Record<string, { correct: number; total: number }>).map(
+                  ([d, c]) => [d, { correct: c.correct, total: c.total }],
+                ),
+              ),
+            }
           : {}),
       } as CourseWeekProgress;
     }

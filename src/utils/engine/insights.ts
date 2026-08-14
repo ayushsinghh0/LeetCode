@@ -1043,7 +1043,10 @@ export function courseRetention(
     if (!cleared) continue;
     onLadder += 1;
     if (week.revisionStage >= MASTERED_STAGE) retained += 1;
-    if (week.revisionHistory.length === 0) neverReviewed += 1;
+    // A recall check is retrieval too, even though it never moves the ladder — a week the learner
+    // has self-tested is not one "nobody has recalled" (wave F).
+    const reviewed = week.revisionHistory.length > 0 || Object.keys(week.recallChecks ?? {}).length > 0;
+    if (!reviewed) neverReviewed += 1;
     for (const ev of week.revisionHistory) {
       attempts += 1;
       if (ev.passed) passes += 1;

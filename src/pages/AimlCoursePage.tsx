@@ -18,7 +18,7 @@ import { ML_PROJECTS_IN_ORDER, totalProjectHours } from '@/data/mlProjects';
 import { ML_TRACKS, totalFailureModes, totalTrackMinutes } from '@/data/mlTracks';
 import { useToday } from '@/hooks/useToday';
 import { useAppDispatch, useAppSelector } from '@/store/hooks';
-import { completeCourseSession } from '@/store/actions';
+import { completeCourseSession, logCourseRecall } from '@/store/actions';
 import {
   selectCourseDueReviewIds,
   selectCourseNextSession,
@@ -283,7 +283,12 @@ export default function AimlCoursePage() {
                 {recallPrompts.length} recall questions on this module's ideas.
               </DialogDescription>
             </DialogHeader>
-            <CourseRecallList key={recallWeek.id} prompts={recallPrompts} />
+            <CourseRecallList
+              key={recallWeek.id}
+              prompts={recallPrompts}
+              recordedToday={(byWeekId[recallWeek.id]?.recallChecks ?? {})[today] !== undefined}
+              onRecord={(correct, total) => dispatch(logCourseRecall(recallWeek.id, correct, total))}
+            />
           </DialogContent>
         )}
       </Dialog>

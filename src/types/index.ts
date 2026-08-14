@@ -195,6 +195,36 @@ export interface ContestsState {
   byDate: Record<string, ContestStallRecord>;
 }
 
+// --- Practice layer (V6) ---------------------------------------------------------------
+// The positive-habit + reflection channel — the one place the product carries habit machinery
+// rather than only measuring the practice itself. Three independent, learner-owned records, each
+// optional-with-boundary-default in the persisted payload:
+//
+//  - intentions: up to MAX_INTENTIONS authored "After [cue], I will [action]" lines
+//    (implementation intentions anchored on routines, per Keller 2021). No per-intention
+//    tracking, no XP — a suggestion the learner chose, never a habit the app scores. `action` is
+//    a key into engine/practice.ts's PRACTICE_ACTIONS registry (resolved to a label + deep link
+//    at render; an unknown key renders nothing rather than quarantining the payload).
+//  - journal: one free line per calendar date, last-write-wins (the session-close reflection).
+//  - sittings: a durable ledger of revision sittings (planned vs done), capped to the most
+//    recent SITTINGS_CAP — the evidence behind the sessionFollowThrough insight. `done <= planned`.
+export interface PracticeIntention {
+  cue: string;    // free text — "After my morning coffee"
+  action: string; // key into PRACTICE_ACTIONS
+}
+
+export interface PracticeSitting {
+  date: string;    // yyyy-MM-dd
+  planned: number; // activities in the frozen plan
+  done: number;    // activities completed this sitting (0..planned)
+}
+
+export interface PracticeState {
+  intentions: PracticeIntention[];
+  journal: Record<string, string>; // date -> one line
+  sittings: PracticeSitting[];
+}
+
 export interface PersistedStateV1 {
   version: 1;
   progress: {
@@ -222,4 +252,6 @@ export interface PersistedStateV1 {
   drills?: DrillsState;
   // Optional for the same reason — payloads saved before contest stalls were recorded.
   contests?: ContestsState;
+  // Optional for the same reason — payloads saved before the practice layer (V6) shipped.
+  practice?: PracticeState;
 }

@@ -48,6 +48,8 @@ import {
   contestStarted,
 } from '@/store/slices/contestSlice';
 import { contestStallsRecorded } from '@/store/slices/contestsSlice';
+import { intentionsSet, journalWritten, sittingRecorded } from '@/store/slices/practiceSlice';
+import { normalizeIntentions, normalizeSitting } from '@/utils/engine/practice';
 import {
   activityCompleted,
   activityUncompleted,
@@ -452,12 +454,52 @@ export const uncompleteSessionActivity = (activityId: string): AppThunk => (disp
   dispatch(activityUncompleted({ activityId }));
 };
 
-export const finishRevisionSession = (): AppThunk => (dispatch) => {
+// Finishing a session banks a sitting into the practice ledger — a finished session is a real
+// sitting, however much of the plan got done. The sitting is the evidence sessionFollowThrough
+// reads; it is never surfaced as a number to the learner (measurement stays internal, design
+// record § 2). Guarded on completedOn === null so a stray second finish cannot double-book, and
+// the payload is normalized here (the logDrillResult discipline: done can never exceed planned,
+// or validatePersisted would quarantine the whole state on the next load).
+export const finishRevisionSession = (): AppThunk => (dispatch, getState) => {
+  const { frozen, doneIds, startedOn, completedOn } = getState().session;
   dispatch(sessionFinished({ date: todayISO() }));
+  if (frozen && startedOn !== null && completedOn === null) {
+    dispatch(
+      sittingRecorded(normalizeSitting({ date: todayISO(), planned: frozen.activities.length, done: doneIds.length })),
+    );
+  }
 };
 
-export const clearRevisionSession = (): AppThunk => (dispatch) => {
+// Clearing has two callers: "Stop here" mid-session, and "Plan another session" after a finish.
+// A partial stop with real work done is still a sitting and is banked; a stop with nothing done
+// is a non-attempt (not a follow-through failure) and writes nothing; and a clear after a finish
+// is skipped by the completedOn guard so the finish's sitting is never double-booked.
+export const clearRevisionSession = (): AppThunk => (dispatch, getState) => {
+  const { frozen, doneIds, startedOn, completedOn } = getState().session;
+  if (frozen && startedOn !== null && completedOn === null && doneIds.length > 0) {
+    dispatch(
+      sittingRecorded(normalizeSitting({ date: todayISO(), planned: frozen.activities.length, done: doneIds.length })),
+    );
+  }
   dispatch(sessionCleared());
+};
+
+// --- Practice layer: intentions + journal ----------------------------------------------------
+// Authoring APIs for the positive-habit surface. Neither awards XP nor tracks completion — the
+// work ledgers already track the practice itself; these record only what the learner chose to set
+// (intentions) or noticed (a one-line journal entry). See docs/superpowers/specs/
+// 2026-08-14-practice-engine-design.md § 4 for the binding copy rules the UI must follow.
+
+// Replaces the whole intention list, normalized (≤3, non-blank cue, real action key) here rather
+// than trusting the caller — same validator-parity guarantee as logDrillResult.
+export const setIntentions = (inputs: { cue: string; action: string }[]): AppThunk => (dispatch) => {
+  dispatch(intentionsSet(normalizeIntentions(inputs)));
+};
+
+// One journal line for today, last-write-wins. A blank line clears the entry (the reducer drops
+// it), so retracting a reflection is honest rather than leaving an empty record behind.
+export const writeJournal = (line: string): AppThunk => (dispatch) => {
+  dispatch(journalWritten({ date: todayISO(), line: line.trim() }));
 };
 
 // --- Contests --------------------------------------------------------------------------------

@@ -4,8 +4,9 @@ import { LocalStorageAdapter } from '@/services/storage/LocalStorageAdapter';
 import { selectPersistedState, validatePersisted, exportAsJson } from '@/services/storage/serialize';
 import { createPersistenceMiddleware, loadInitialState } from '@/services/storage/persistence';
 import { makeStore } from '@/store/store';
-import { logDrillResult, solveQuestion } from '@/store/actions';
+import { logDrillResult, setIntentions, solveQuestion, writeJournal } from '@/store/actions';
 import { contestStallsRecorded } from '@/store/slices/contestsSlice';
+import { sittingRecorded } from '@/store/slices/practiceSlice';
 import { stateImported, progressReset } from '@/store/sharedActions';
 import { settingsUpdated } from '@/store/slices/settingsSlice';
 import { todayISO } from '@/utils/dates';
@@ -369,6 +370,38 @@ describe('validatePersisted', () => {
     expect(validatePersisted(dupePatterns)).toBeNull();
   });
 
+  test('accepts a well-formed practice channel and rejects malformed ones', () => {
+    const withPractice = {
+      ...validFixture,
+      practice: {
+        intentions: [{ cue: 'after coffee', action: 'today' }],
+        journal: { '2026-07-30': 'named the invariant' },
+        sittings: [{ date: '2026-07-30', planned: 8, done: 3 }],
+      },
+    };
+    expect(validatePersisted(withPractice)).toEqual(withPractice);
+
+    // done > planned is impossible for a real sitting — reject wholesale.
+    const badSitting = {
+      ...validFixture,
+      practice: { intentions: [], journal: {}, sittings: [{ date: '2026-07-30', planned: 3, done: 9 }] },
+    };
+    expect(validatePersisted(badSitting)).toBeNull();
+
+    // A blank cue would render a broken intention line; a blank journal value is never stored.
+    const blankCue = {
+      ...validFixture,
+      practice: { intentions: [{ cue: '   ', action: 'today' }], journal: {}, sittings: [] },
+    };
+    expect(validatePersisted(blankCue)).toBeNull();
+
+    const blankJournal = {
+      ...validFixture,
+      practice: { intentions: [], journal: { '2026-07-30': '' }, sittings: [] },
+    };
+    expect(validatePersisted(blankJournal)).toBeNull();
+  });
+
   test('drops unknown extra keys instead of smuggling them into the store', () => {
     const withExtras = { ...validFixture, futureField: 'surprise' };
     const result = validatePersisted(withExtras);
@@ -681,6 +714,31 @@ describe('round trip: makeStore -> persist -> reload into a fresh store', () => 
       attempted: 2,
       total: 4,
     });
+  });
+
+  test('practice intentions, journal, and sittings survive reload; practice-free payloads stay so', () => {
+    const adapter1 = new LocalStorageAdapter();
+    const store1 = makeStore(undefined, [createPersistenceMiddleware(adapter1)]);
+
+    // Untouched practice must not appear in the payload (written-only-once-touched rule).
+    store1.dispatch(solveQuestion(1));
+    vi.advanceTimersByTime(500);
+    expect(adapter1.load()?.practice).toBeUndefined();
+
+    store1.dispatch(setIntentions([{ cue: 'after coffee', action: 'today' }]));
+    store1.dispatch(writeJournal('two pointers, one invariant'));
+    // sittingRecorded is the writer the finish/clear revision thunks dispatch; the end-to-end
+    // finish->sitting parity lives in store/__tests__/practiceSlice.test.ts. This is its reload-
+    // path complement, the same split the contests channel uses above.
+    store1.dispatch(sittingRecorded({ date: todayISO(), planned: 8, done: 5 }));
+    vi.advanceTimersByTime(500);
+
+    const preloaded = loadInitialState(new LocalStorageAdapter());
+    const store2 = makeStore(preloaded);
+    const practice = store2.getState().practice;
+    expect(practice.intentions).toEqual([{ cue: 'after coffee', action: 'today' }]);
+    expect(practice.journal[todayISO()]).toBe('two pointers, one invariant');
+    expect(practice.sittings).toEqual([{ date: todayISO(), planned: 8, done: 5 }]);
   });
 });
 

@@ -10,6 +10,7 @@ import sessionReducer from '@/store/slices/sessionSlice';
 import interviewReducer from '@/store/slices/interviewSlice';
 import contestReducer from '@/store/slices/contestSlice';
 import contestsReducer from '@/store/slices/contestsSlice';
+import practiceReducer from '@/store/slices/practiceSlice';
 import uiReducer from '@/store/slices/uiSlice';
 
 const rootReducer = combineReducers({
@@ -25,6 +26,8 @@ const rootReducer = combineReducers({
   // a finished sitting leaves behind. Two slices because they answer different questions.
   contest: contestReducer,
   contests: contestsReducer,
+  // The V6 practice layer: authored intentions, the reflection journal, and the sitting ledger.
+  practice: practiceReducer,
   ui: uiReducer,
 });
 

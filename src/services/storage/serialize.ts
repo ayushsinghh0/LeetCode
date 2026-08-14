@@ -4,6 +4,8 @@ import type {
   DailyTask,
   DayLog,
   PersistedStateV1,
+  PracticeIntention,
+  PracticeSitting,
   QuestionProgress,
   QuestionStatus,
   RevisionEvent,
@@ -25,6 +27,7 @@ export function selectPersistedState(root: RootState): PersistedStateV1 {
   const tasksById = root.tasks.byId;
   const drillDates = root.drills.byDate;
   const contestDates = root.contests.byDate;
+  const practice = root.practice;
   return {
     version: 1,
     progress: {
@@ -42,6 +45,19 @@ export function selectPersistedState(root: RootState): PersistedStateV1 {
     // Note this is `contests` (persisted stall records), never `contest` (the live sitting) —
     // a restored stopped clock lies, so only the derived evidence survives a reload.
     ...(Object.keys(contestDates).length > 0 ? { contests: { byDate: contestDates } } : {}),
+    // Same written-only-once-touched rule: a learner who set no intention, wrote no journal line
+    // and ran no sitting produces a payload byte-identical to a pre-practice-layer one.
+    ...(practice.intentions.length > 0 ||
+    Object.keys(practice.journal).length > 0 ||
+    practice.sittings.length > 0
+      ? {
+          practice: {
+            intentions: practice.intentions,
+            journal: practice.journal,
+            sittings: practice.sittings,
+          },
+        }
+      : {}),
   };
 }
 
@@ -347,6 +363,49 @@ export function validatePersisted(raw: unknown): PersistedStateV1 | null {
     contests = { byDate };
   }
 
+  // `practice` is optional (absent before the V6 practice layer) — reject-wholesale when
+  // malformed. Deliberately LENIENT where the write path is: `action` is only checked for being a
+  // non-blank string, NOT against the PRACTICE_ACTIONS registry, so removing an action key later
+  // can never quarantine an old payload (the Today rail skips an unknown key at render instead);
+  // and neither the intention count nor the sitting count is upper-bounded here, because a
+  // validator stricter than its own controls is a data-loss bug — the write path caps both, and
+  // admitting a hand-imported over-count is harmless where rejecting it destroys the whole state.
+  let practice: PersistedStateV1['practice'];
+  if ('practice' in raw && raw.practice !== undefined) {
+    const rawPractice = raw.practice;
+    if (!isPlainObject(rawPractice)) return null;
+    if (!Array.isArray(rawPractice.intentions)) return null;
+    if (!isPlainObject(rawPractice.journal)) return null;
+    if (!Array.isArray(rawPractice.sittings)) return null;
+
+    const intentions: PracticeIntention[] = [];
+    for (const entry of rawPractice.intentions) {
+      if (!isPlainObject(entry)) return null;
+      if (typeof entry.cue !== 'string' || entry.cue.trim() === '') return null;
+      if (typeof entry.action !== 'string' || entry.action === '') return null;
+      intentions.push({ cue: entry.cue, action: entry.action });
+    }
+
+    const journal: Record<string, string> = {};
+    for (const [date, line] of Object.entries(rawPractice.journal)) {
+      if (!isIsoDate(date)) return null;
+      if (typeof line !== 'string' || line === '') return null;
+      journal[date] = line;
+    }
+
+    const sittings: PracticeSitting[] = [];
+    for (const entry of rawPractice.sittings) {
+      if (!isPlainObject(entry)) return null;
+      if (!isIsoDate(entry.date)) return null;
+      const { planned, done } = entry;
+      if (typeof planned !== 'number' || !Number.isInteger(planned) || planned < 0) return null;
+      if (typeof done !== 'number' || !Number.isInteger(done) || done < 0 || done > planned) return null;
+      sittings.push({ date: entry.date, planned, done });
+    }
+
+    practice = { intentions, journal, sittings };
+  }
+
   // `course` is optional (absent in pre-course payloads) — but when present it must be fully
   // well-formed, same reject-wholesale rule as every other section.
   let course: PersistedStateV1['course'];
@@ -409,6 +468,7 @@ export function validatePersisted(raw: unknown): PersistedStateV1 | null {
     ...(tasks ? { tasks } : {}),
     ...(drills ? { drills } : {}),
     ...(contests ? { contests } : {}),
+    ...(practice ? { practice } : {}),
   };
 }
 

@@ -121,5 +121,15 @@ export function loadInitialState(adapter: StorageAdapter): Partial<RootState> | 
     // Absent before contest stalls were recorded — same omit-and-default rule. This preloads the
     // `contests` history slice only; the live `contest` sitting is never persisted or restored.
     ...(persisted.contests ? { contests: { byDate: persisted.contests.byDate } } : {}),
+    // Absent before the V6 practice layer — same omit-and-default rule.
+    ...(persisted.practice
+      ? {
+          practice: {
+            intentions: persisted.practice.intentions,
+            journal: persisted.practice.journal,
+            sittings: persisted.practice.sittings,
+          },
+        }
+      : {}),
   };
 }

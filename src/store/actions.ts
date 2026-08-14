@@ -51,7 +51,7 @@ import {
 } from '@/store/slices/contestSlice';
 import { contestStallsRecorded } from '@/store/slices/contestsSlice';
 import { intentionsSet, journalWritten, sittingRecorded } from '@/store/slices/practiceSlice';
-import { normalizeIntentions, normalizeSitting } from '@/utils/engine/practice';
+import { normalizeIntentions, normalizeSitting, sittingCounts } from '@/utils/engine/practice';
 import {
   activityCompleted,
   activityUncompleted,
@@ -486,9 +486,12 @@ export const finishRevisionSession = (): AppThunk => (dispatch, getState) => {
   const { frozen, doneIds, startedOn, completedOn } = getState().session;
   dispatch(sessionFinished({ date: todayISO() }));
   if (frozen && startedOn !== null && completedOn === null) {
-    dispatch(
-      sittingRecorded(normalizeSitting({ date: todayISO(), planned: frozen.activities.length, done: doneIds.length })),
-    );
+    // Committed work only — the optional reflect and the drill pointer are not commitments, so
+    // they may neither shrink a completion rate nor bank a sitting on their own.
+    const { planned, done } = sittingCounts(frozen.activities, doneIds);
+    if (planned > 0) {
+      dispatch(sittingRecorded(normalizeSitting({ date: todayISO(), planned, done })));
+    }
   }
 };
 
@@ -498,10 +501,11 @@ export const finishRevisionSession = (): AppThunk => (dispatch, getState) => {
 // is skipped by the completedOn guard so the finish's sitting is never double-booked.
 export const clearRevisionSession = (): AppThunk => (dispatch, getState) => {
   const { frozen, doneIds, startedOn, completedOn } = getState().session;
-  if (frozen && startedOn !== null && completedOn === null && doneIds.length > 0) {
-    dispatch(
-      sittingRecorded(normalizeSitting({ date: todayISO(), planned: frozen.activities.length, done: doneIds.length })),
-    );
+  if (frozen && startedOn !== null && completedOn === null) {
+    const { planned, done } = sittingCounts(frozen.activities, doneIds);
+    if (done > 0) {
+      dispatch(sittingRecorded(normalizeSitting({ date: todayISO(), planned, done })));
+    }
   }
   dispatch(sessionCleared());
 };

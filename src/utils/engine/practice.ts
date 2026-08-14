@@ -68,6 +68,27 @@ export function normalizeIntentions(inputs: { cue: string; action: string }[]): 
   return out;
 }
 
+// The drill is a measurement and the reflect is optional — neither is a commitment the learner
+// made to revision work, so neither may count toward follow-through in either direction.
+const ADJUNCT_KINDS = new Set<string>(['drill', 'reflect']);
+
+/**
+ * Count a frozen session's committed work: `planned` committed activities, and `done` among them.
+ *
+ * A learner who graded every review but skipped the optional reflect finished their session;
+ * counting adjuncts would read that finish as a shortfall, which is exactly the guilt-shaped
+ * arithmetic sessionFollowThrough bans (copy rule 5). Symmetrically, ticking only the drill is a
+ * measurement taken, not revision done — it must not bank a sitting.
+ */
+export function sittingCounts(
+  activities: { id: string; kind: string }[],
+  doneIds: string[],
+): { planned: number; done: number } {
+  const committed = activities.filter((a) => !ADJUNCT_KINDS.has(a.kind));
+  const done = new Set(doneIds);
+  return { planned: committed.length, done: committed.filter((a) => done.has(a.id)).length };
+}
+
 /**
  * Clamp a sitting to a persistable shape: non-negative integer `planned`, and `done` floored into
  * [0, planned] — you cannot complete more activities than were planned, and the validator rejects

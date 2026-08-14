@@ -123,29 +123,48 @@ describe('revision sittings are banked at finish and at partial stop', () => {
     return store;
   }
 
-  test('finishing banks one sitting with planned = plan size and done = completed count', () => {
-    const store = runningStore();
-    const planned = store.getState().session.frozen!.activities.length;
-    expect(planned).toBeGreaterThan(0);
+  // Committed work only: the optional reflect and the drill pointer are adjuncts, excluded from
+  // both sides of a sitting (see sittingCounts). The default 180-minute plan carries a reflect,
+  // so these fixtures genuinely exercise the exclusion.
+  function committed(store: AppStore) {
+    return store.getState().session.frozen!.activities.filter((a) => a.kind !== 'drill' && a.kind !== 'reflect');
+  }
 
-    store.dispatch(completeSessionActivity(store.getState().session.frozen!.activities[0]!.id));
+  test('finishing banks one sitting counting committed activities only', () => {
+    const store = runningStore();
+    const activities = store.getState().session.frozen!.activities;
+    const plan = committed(store);
+    expect(plan.length).toBeGreaterThan(0);
+    // The fixture must contain an adjunct, or this test would pass under raw counting too.
+    expect(activities.length).toBeGreaterThan(plan.length);
+
+    store.dispatch(completeSessionActivity(plan[0]!.id));
+    store.dispatch(completeSessionActivity('reflect')); // ticking the adjunct must not count
     store.dispatch(finishRevisionSession());
 
-    expect(store.getState().practice.sittings).toEqual([{ date: TODAY, planned, done: 1 }]);
+    expect(store.getState().practice.sittings).toEqual([{ date: TODAY, planned: plan.length, done: 1 }]);
   });
 
   test('stopping mid-session with work done banks a partial sitting, and still clears', () => {
     const store = runningStore();
-    const planned = store.getState().session.frozen!.activities.length;
-    store.dispatch(completeSessionActivity(store.getState().session.frozen!.activities[0]!.id));
+    const plan = committed(store);
+    store.dispatch(completeSessionActivity(plan[0]!.id));
     store.dispatch(clearRevisionSession());
 
-    expect(store.getState().practice.sittings).toEqual([{ date: TODAY, planned, done: 1 }]);
+    expect(store.getState().practice.sittings).toEqual([{ date: TODAY, planned: plan.length, done: 1 }]);
     expect(store.getState().session.frozen).toBeNull();
   });
 
   test('stopping with nothing done banks no sitting — a non-attempt is not a follow-through failure', () => {
     const store = runningStore();
+    store.dispatch(clearRevisionSession());
+    expect(store.getState().practice.sittings).toEqual([]);
+  });
+
+  test('stopping having ticked only the reflect banks nothing — an adjunct is not revision done', () => {
+    const store = runningStore();
+    expect(store.getState().session.frozen!.activities.some((a) => a.kind === 'reflect')).toBe(true);
+    store.dispatch(completeSessionActivity('reflect'));
     store.dispatch(clearRevisionSession());
     expect(store.getState().practice.sittings).toEqual([]);
   });

@@ -5,6 +5,7 @@ import {
   isPracticeAction,
   normalizeIntentions,
   normalizeSitting,
+  sittingCounts,
 } from '@/utils/engine/practice';
 
 describe('PRACTICE_ACTIONS registry', () => {
@@ -49,6 +50,28 @@ describe('normalizeIntentions', () => {
     const result = normalizeIntentions(many);
     expect(result).toHaveLength(MAX_INTENTIONS);
     expect(result[0]!.cue).toBe('cue 0');
+  });
+});
+
+describe('sittingCounts — follow-through measures committed work only', () => {
+  const a = (id: string, kind: string) => ({ id, kind });
+
+  test('the optional reflect and the drill pointer are excluded from planned and done', () => {
+    const activities = [a('recall-1', 'recall'), a('review-2', 'review'), a('drill', 'drill'), a('reflect', 'reflect')];
+    // Both reviews graded, the reflect ticked, the drill skipped — a full review session.
+    expect(sittingCounts(activities, ['recall-1', 'review-2', 'reflect'])).toEqual({ planned: 2, done: 2 });
+  });
+
+  test('done counts only completed committed activities', () => {
+    const activities = [a('recall-1', 'recall'), a('deep-2', 'deep'), a('transfer-3', 'transfer'), a('reflect', 'reflect')];
+    expect(sittingCounts(activities, ['recall-1'])).toEqual({ planned: 3, done: 1 });
+  });
+
+  test('a session of only adjuncts has zero committed work', () => {
+    expect(sittingCounts([a('drill', 'drill'), a('reflect', 'reflect')], ['drill', 'reflect'])).toEqual({
+      planned: 0,
+      done: 0,
+    });
   });
 });
 

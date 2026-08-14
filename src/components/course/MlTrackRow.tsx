@@ -216,7 +216,7 @@ export function MlTrackRow({ track }: { track: MlTrack }) {
   const [open, setOpen] = useState(false);
   const prereqs = track.prereqs.map((id) => mlTrackById[id]?.title ?? id);
   const progress = useAppSelector((state) => mlTrackProgressFor(state.ml.tracksById, track.id));
-  const done = rungsDone(track, progress);
+  const done = rungsDone(progress);
 
   return (
     // The `RuledList` parent already draws the hairline between rows via `divide-y`; this row

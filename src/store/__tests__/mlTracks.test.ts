@@ -19,7 +19,6 @@ import {
   isTrackClear,
   mlActivityByDate,
   mlStanding,
-  rungIdsOf,
 } from '@/utils/engine/mlTrack';
 import {
   selectMlDueTrackIds,
@@ -27,7 +26,8 @@ import {
   selectRankedWork,
 } from '@/store/selectors';
 import { selectPersistedState, validatePersisted } from '@/services/storage/serialize';
-import { ML_TRACKS, mlTrackById } from '@/data/mlTracks';
+import { ML_TRACKS } from '@/data/mlTracks';
+import { ML_PROJECT_IDS, ML_RUNG_IDS, ML_TRACK_TITLES } from '@/data/mlTrackIndex';
 import { ML_PROJECTS } from '@/data/mlProjects';
 
 const TODAY = '2026-07-30';
@@ -45,9 +45,14 @@ afterEach(() => {
 /* --- The engine ------------------------------------------------------------------------------ */
 
 describe('mlTrack engine', () => {
-  test('every track has the five rungs the ladder assumes', () => {
+  test('the id index the app chunk reads matches the real dataset exactly', () => {
+    // src/data/mlTrackIndex.ts restates three tiny facts about the tracks so the app chunk does
+    // not have to import 275 kB of content to know them. This is the test that makes that
+    // duplication safe: rename or retire a track and it fails here.
+    expect(Object.fromEntries(ML_TRACKS.map((t) => [t.id, t.title]))).toEqual(ML_TRACK_TITLES);
+    expect(ML_PROJECT_IDS).toEqual(ML_PROJECTS.map((p) => p.id));
     for (const track of ML_TRACKS) {
-      expect(rungIdsOf(track)).toEqual(['math', 'scratch', 'library', 'experiment', 'failure']);
+      expect(Object.keys(track.stages)).toEqual([...ML_RUNG_IDS]);
     }
   });
 
@@ -96,7 +101,7 @@ describe('mlTrack engine', () => {
   });
 
   test('standing counts what has actually been worked', () => {
-    const standing = mlStanding(ML_TRACKS, {
+    const standing = mlStanding({
       [TRACK]: { ...initialMlTrackProgress(), rungs: { math: TODAY, scratch: TODAY } },
     });
 
@@ -122,11 +127,11 @@ describe('completeMlRung', () => {
 
   test('clearing every rung pays the track bonus, once', () => {
     const store = makeStore();
-    for (const rung of rungIdsOf(mlTrackById[TRACK]!)) {
+    for (const rung of ML_RUNG_IDS) {
       store.dispatch(completeMlRung(TRACK, rung));
     }
 
-    expect(isTrackClear(mlTrackById[TRACK]!, store.getState().ml.tracksById[TRACK]!)).toBe(true);
+    expect(isTrackClear(store.getState().ml.tracksById[TRACK]!)).toBe(true);
     expect(store.getState().gamification.xp).toBe(5 * ML_RUNG_XP + ML_TRACK_CLEAR_BONUS);
   });
 

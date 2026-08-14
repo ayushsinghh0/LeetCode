@@ -24,27 +24,16 @@ import {
   COURSE_SESSION_MINUTES,
   DEFAULT_TASK_MINUTES,
   ML_REBUILD_MINUTES,
-  REVISION_MINUTES,
   revisionMinutes,
 } from '@/utils/engine/planner';
-import { ML_TRACKS, mlTrackById } from '@/data/mlTracks';
+import { ML_TRACK_TITLES } from '@/data/mlTrackIndex';
 import {
   dueMlTrackIds,
   mlActivityByDate,
   mlLadderItems,
   mlStanding,
 } from '@/utils/engine/mlTrack';
-import {
-  accuracyTrend,
-  buildInsights,
-  confidenceCalibration,
-  courseRetention,
-  paceAgainstEstimate,
-  paceTrend,
-  recognitionRecord,
-  solveCoverage,
-} from '@/utils/engine/insights';
-import { patternWeakness, transferRecord, type PatternWeakness } from '@/utils/engine/weakness';
+import { patternWeakness, type PatternWeakness } from '@/utils/engine/weakness';
 import { isHintReliant } from '@/utils/engine/hints';
 import {
   analyzeContest,
@@ -99,12 +88,13 @@ export const selectQuestionById = (id: number): Question | undefined => question
 
 // --- Base (non-memoized) field accessors, reused as createSelector inputs -------------------
 
-const selectProgressById = (state: RootState): Record<number, QuestionProgress> => state.progress.byId;
-const selectDayLogs = (state: RootState): Record<string, DayLog> => state.progress.dayLogs;
+export const selectProgressById = (state: RootState): Record<number, QuestionProgress> =>
+  state.progress.byId;
+export const selectDayLogs = (state: RootState): Record<string, DayLog> => state.progress.dayLogs;
 const selectRevisionEnabled = (state: RootState): boolean => state.settings.revisionEnabled;
 const selectXp = (state: RootState): number => state.gamification.xp;
-const selectTodayArg = (_state: RootState, today: string): string => today;
-const selectCourseByWeekId = (state: RootState): Record<string, CourseWeekProgress> =>
+export const selectTodayArg = (_state: RootState, today: string): string => today;
+export const selectCourseByWeekId = (state: RootState): Record<string, CourseWeekProgress> =>
   state.course.byWeekId;
 
 // Course work per date (sessions + graded reviews), derived from byWeekId. Every activity
@@ -271,7 +261,7 @@ export const selectForecast = createSelector(
       byWeekId,
       today,
       30,
-      mlLadderItems(ML_TRACKS, mlTracksById),
+      mlLadderItems(mlTracksById),
     ),
 );
 
@@ -324,12 +314,17 @@ const selectMlTracksById = (state: RootState) => state.ml.tracksById;
 /** Tracks whose rebuild has come due — the third ladder, same 1/3/7/15/30 arithmetic. */
 export const selectMlDueTrackIds = createSelector(
   [selectMlTracksById, selectTodayArg],
-  (tracksById, today) => dueMlTrackIds(ML_TRACKS, tracksById, today),
+  (tracksById, today) => dueMlTrackIds(tracksById, today),
 );
 
-/** How much of the eleven-track ladder has been worked. One line on /aiml, no more. */
+/**
+ * How much of the eleven-track ladder has been worked. One line on /aiml, no more.
+ *
+ * Computed from the progress map and the id index — never from the track catalog, which would
+ * pull 275 kB of content onto the app chunk (see src/data/mlTrackIndex.ts).
+ */
 export const selectMlStanding = createSelector([selectMlTracksById], (tracksById) =>
-  mlStanding(ML_TRACKS, tracksById),
+  mlStanding(tracksById),
 );
 
 /** Whether a course session was already marked done today — the track's one-a-day cadence. */
@@ -355,8 +350,8 @@ export const selectTimeEstimate = createSelector(
 
 // --- What to do next ----------------------------------------------------------------------
 
-const selectDrillsByDate = (state: RootState) => state.drills.byDate;
-const selectContestsByDate = (state: RootState) => state.contests.byDate;
+export const selectDrillsByDate = (state: RootState) => state.drills.byDate;
+export const selectContestsByDate = (state: RootState) => state.contests.byDate;
 const selectTasksById = (state: RootState) => state.tasks.byId;
 
 /**
@@ -483,7 +478,7 @@ export const selectRankedWork = createSelector(
       ml: {
         dueRebuilds: mlDueTrackIds.map((trackId) => ({
           trackId,
-          title: mlTrackById[trackId]?.title ?? trackId,
+          title: ML_TRACK_TITLES[trackId] ?? trackId,
           minutes: ML_REBUILD_MINUTES,
         })),
       },
@@ -529,133 +524,6 @@ export const selectPatternWeakness = createSelector(
  * and the session plan quoting compatible numbers; the flat constant is only the empty-ladder
  * fallback.
  */
-function meanRevisionMinutes(byId: Record<number, QuestionProgress>): number {
-  let total = 0;
-  let count = 0;
-  for (const [id, progress] of Object.entries(byId)) {
-    if (progress.status !== 'solved' || progress.nextRevision === null) continue;
-    const question = questionById.get(Number(id));
-    if (!question) continue;
-    total += revisionMinutes(question);
-    count += 1;
-  }
-  return count === 0 ? REVISION_MINUTES : Math.round(total / count);
-}
-
-/**
- * Transfer, measured once. Declared above `selectInsights` because the insight and the figure on
- * the analytics page must quote the same record — the card reads this selector rather than
- * re-deriving, exactly as it does for the weakness model.
- */
-export const selectTransferRecord = createSelector([selectProgressById], (byId) =>
-  transferRecord(questions, byId, FAMILIES),
-);
-
-/**
- * The findings the current evidence actually supports, most actionable first.
- *
- * Returns [] freely: each builder in the insights engine states its own minimum sample and
- * declines below it, so an early-days learner correctly gets nothing rather than a confident
- * reading of four data points.
- */
-export const selectInsights = createSelector(
-  [
-    selectProgressById,
-    selectDayLogs,
-    selectDrillsByDate,
-    selectAllPatternWeakness,
-    selectForecast,
-    (state: RootState) => state.settings.dailyCapacityMin,
-    selectOtherTrackActiveDates,
-    selectCourseByWeekId,
-    selectTransferRecord,
-    (state: RootState) => state.practice.sittings,
-    selectContestsByDate,
-    (state: RootState) => state.interviews.sittings,
-    selectTodayArg,
-  ],
-  (
-    byId,
-    dayLogs,
-    drills,
-    weakness,
-    forecast,
-    capacityMin,
-    courseActiveDates,
-    courseByWeekId,
-    transfer,
-    sittings,
-    contests,
-    interviews,
-    today,
-  ) =>
-    buildInsights(
-      {
-        today,
-        all: questions,
-        byId,
-        dayLogs,
-        drills,
-        weakness,
-        forecast,
-        capacityMin,
-        // The sitting ledger feeds the follow-through card (measurement stays internal).
-        sittings,
-        // The mean cost of the reviews actually on this learner's ladder — not the flat
-        // REVISION_MINUTES fallback. The forecast counts reviews, not questions, so a single
-        // figure is unavoidable here; it must at least be the same figure the session plan
-        // would arrive at, or the schedule-risk card quotes minutes the plan contradicts.
-        revisionMinutes: meanRevisionMinutes(byId),
-        // Both tracks climb one ladder, so the accuracy card grades both — the same blend
-        // `selectAccuracyTrend` feeds the figure with, or the card and the figure would print
-        // different numbers about the same recalls on the same screen.
-        courseByWeekId,
-        transfer,
-        // The V8 performance channels. Both are derived records of finished sittings; the live
-        // slices never persist, so there is nothing here that a reload could invent.
-        contests,
-        interviews,
-      },
-      courseActiveDates,
-    ),
-);
-
-/**
- * The measurements the analytics page reads.
- *
- * Every one of them is an engine call with its own suppression floor — the selectors do the joins
- * against the static dataset and nothing else. A `null` here means "the record cannot answer that
- * yet", and the page is required to say so rather than render a zero.
- */
-export const selectSolveCoverage = createSelector([selectProgressById], (byId) => solveCoverage(byId));
-
-export const selectCalibration = createSelector([selectProgressById], (byId) =>
-  confidenceCalibration(byId),
-);
-
-export const selectRecognitionRecord = createSelector([selectDrillsByDate], (drills) =>
-  recognitionRecord(drills),
-);
-
-export const selectPaceAgainstEstimate = createSelector([selectPaceSamples], (samples) =>
-  paceAgainstEstimate(samples),
-);
-
-export const selectPaceTrend = createSelector([selectProgressById], (byId) =>
-  paceTrend(questions, byId),
-);
-
-// Both tracks climb the same ladder and share the revisionHistory shape, so accuracy is measured
-// across both — the same blending the pass-rate figure on the analytics page does.
-export const selectAccuracyTrend = createSelector(
-  [selectProgressById, selectCourseByWeekId],
-  (byId, byWeekId) => accuracyTrend(byId, byWeekId),
-);
-
-export const selectCourseRetention = createSelector([selectCourseByWeekId], (byWeekId) =>
-  courseRetention(byWeekId),
-);
-
 /** Raw pass/fail counts across both tracks — `overallRevisionPassRate` returns only the ratio. */
 export const selectRecallRecord = createSelector(
   [selectProgressById, selectCourseByWeekId],

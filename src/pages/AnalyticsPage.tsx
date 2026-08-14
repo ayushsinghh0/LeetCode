@@ -10,25 +10,27 @@ import { patternById } from '@/data/patterns';
 import { useToday } from '@/hooks/useToday';
 import { useAppSelector } from '@/store/hooks';
 import {
-  selectAccuracyTrend,
-  selectCalibration,
   selectOtherTrackActiveDates,
   selectCourseProjectedFinish,
-  selectCourseRetention,
   selectCourseStats,
   selectDifficultyStats,
   selectForecast,
-  selectInsights,
-  selectPaceAgainstEstimate,
-  selectPaceTrend,
   selectPatternWeakness,
   selectPaceSamples,
   selectRecallRecord,
+  selectStreaks,
+} from '@/store/selectors';
+import {
+  selectAccuracyTrend,
+  selectCalibration,
+  selectCourseRetention,
+  selectInsights,
+  selectPaceAgainstEstimate,
+  selectPaceTrend,
   selectRecognitionRecord,
   selectSolveCoverage,
-  selectStreaks,
   selectTransferRecord,
-} from '@/store/selectors';
+} from '@/store/analyticsSelectors';
 import {
   HIGH_CONFIDENCE,
   LOW_CONFIDENCE,

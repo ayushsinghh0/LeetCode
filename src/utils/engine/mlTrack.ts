@@ -22,7 +22,7 @@
 //
 // Pure and deterministic like every engine module: ISO date strings in, no clock, no store.
 import type { MlProjectProgress, MlTrackProgress } from '@/types';
-import type { MlTrack } from '@/data/mlTracks';
+import { ML_RUNG_IDS, ML_TRACK_TITLES } from '@/data/mlTrackIndex';
 import {
   MASTERED_STAGE,
   isLadderDue,
@@ -87,18 +87,18 @@ export function normalizeMlTrackProgress(raw: Partial<MlTrackProgress>): MlTrack
 export const isRungDone = (progress: MlTrackProgress, rungId: string): boolean =>
   typeof progress.rungs[rungId] === 'string';
 
-/** Every rung stamped. The track has been worked all the way through at least once. */
-export function isTrackClear(track: MlTrack, progress: MlTrackProgress): boolean {
-  return rungIdsOf(track).every((rung) => isRungDone(progress, rung));
+/**
+ * Every rung stamped. The track has been worked all the way through at least once.
+ *
+ * Reads the rung list from `mlTrackIndex` rather than from the track object, so nothing on this
+ * path needs the 275 kB of track content — see that module's header for why that matters.
+ */
+export function isTrackClear(progress: MlTrackProgress): boolean {
+  return ML_RUNG_IDS.every((rung) => isRungDone(progress, rung));
 }
 
-export function rungsDone(track: MlTrack, progress: MlTrackProgress): number {
-  return rungIdsOf(track).filter((rung) => isRungDone(progress, rung)).length;
-}
-
-/** The rung ids a track actually has, in progression order. */
-export function rungIdsOf(track: MlTrack): string[] {
-  return Object.keys(track.stages);
+export function rungsDone(progress: MlTrackProgress): number {
+  return ML_RUNG_IDS.filter((rung) => isRungDone(progress, rung)).length;
 }
 
 /* ------------------------------------------------------------------------------------------- */
@@ -147,33 +147,30 @@ export function isRebuiltOn(progress: MlTrackProgress, date: string): boolean {
  * revision surface (forecast, upcoming, the day plan) reads.
  */
 export function mlLadderItems(
-  tracks: MlTrack[],
   byTrackId: Record<string, MlTrackProgress>,
-): (MlTrackProgress & { track: MlTrack })[] {
-  return tracks
-    .map((track) => ({ track, ...mlTrackProgressFor(byTrackId, track.id) }))
+): (MlTrackProgress & { trackId: string })[] {
+  // Iterates the PROGRESS map, not the catalog: only a track whose scratch rung is stamped can be
+  // on the ladder, and every one of those exists here by construction.
+  return Object.entries(byTrackId)
+    .map(([trackId, progress]) => ({ trackId, ...progress }))
     .filter((item) => isRungDone(item, ML_LADDER_RUNG) && !isTrackRetained(item));
 }
 
 /** Tracks whose rebuild date has arrived — earliest first, then track order. */
 export function dueMlTrackIds(
-  tracks: MlTrack[],
   byTrackId: Record<string, MlTrackProgress>,
   today: string,
 ): string[] {
-  return tracks
-    .map((track, order) => ({ track, order, progress: mlTrackProgressFor(byTrackId, track.id) }))
+  return Object.entries(byTrackId)
     .filter(
-      ({ progress }) => isRungDone(progress, ML_LADDER_RUNG) && isLadderDue(progress, today),
+      ([, progress]) => isRungDone(progress, ML_LADDER_RUNG) && isLadderDue(progress, today),
     )
-    .sort((a, b) =>
-      a.progress.nextRevision! < b.progress.nextRevision!
-        ? -1
-        : a.progress.nextRevision! > b.progress.nextRevision!
-          ? 1
-          : a.order - b.order,
+    // Earliest due first; the track id breaks ties, so the order is stable across reloads rather
+    // than dependent on object key order.
+    .sort(([idA, a], [idB, b]) =>
+      a.nextRevision! < b.nextRevision! ? -1 : a.nextRevision! > b.nextRevision! ? 1 : idA < idB ? -1 : 1,
     )
-    .map(({ track }) => track.id);
+    .map(([trackId]) => trackId);
 }
 
 /* ------------------------------------------------------------------------------------------- */
@@ -212,22 +209,21 @@ export interface MlTrackStanding {
   rungsTotal: number;
 }
 
-export function mlStanding(
-  tracks: MlTrack[],
-  byTrackId: Record<string, MlTrackProgress>,
-): MlTrackStanding {
+export function mlStanding(byTrackId: Record<string, MlTrackProgress>): MlTrackStanding {
   let touched = 0;
   let clear = 0;
   let done = 0;
-  let total = 0;
-  for (const track of tracks) {
-    const progress = mlTrackProgressFor(byTrackId, track.id);
-    const rungs = rungIdsOf(track);
-    total += rungs.length;
-    const doneHere = rungsDone(track, progress);
+  for (const trackId of Object.keys(ML_TRACK_TITLES)) {
+    const progress = mlTrackProgressFor(byTrackId, trackId);
+    const doneHere = rungsDone(progress);
     done += doneHere;
     if (doneHere > 0) touched += 1;
-    if (doneHere === rungs.length) clear += 1;
+    if (doneHere === ML_RUNG_IDS.length) clear += 1;
   }
-  return { tracksTouched: touched, tracksClear: clear, rungsDone: done, rungsTotal: total };
+  return {
+    tracksTouched: touched,
+    tracksClear: clear,
+    rungsDone: done,
+    rungsTotal: Object.keys(ML_TRACK_TITLES).length * ML_RUNG_IDS.length,
+  };
 }

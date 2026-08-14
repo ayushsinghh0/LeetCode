@@ -84,8 +84,7 @@ import {
 import { settingsUpdated } from '@/store/slices/settingsSlice';
 import { courseWeekById } from '@/data/aimlCourse';
 import { companyById } from '@/data/companies';
-import { mlTrackById } from '@/data/mlTracks';
-import { mlProjectById } from '@/data/mlProjects';
+import { isMlProjectId, isMlRungId, isMlTrackId } from '@/data/mlTrackIndex';
 import {
   mlProjectShipped,
   mlProjectStarted,
@@ -102,7 +101,6 @@ import {
   isTrackClear,
   isTrackRetained,
   mlTrackProgressFor,
-  rungIdsOf,
 } from '@/utils/engine/mlTrack';
 import {
   COURSE_REVIEW_XP,
@@ -619,8 +617,9 @@ export const writeJournal = (line: string): AppThunk => (dispatch) => {
 export const completeMlRung =
   (trackId: string, rungId: string): AppThunk =>
   (dispatch, getState) => {
-    const track = mlTrackById[trackId];
-    if (!track || !rungIdsOf(track).includes(rungId)) return;
+    // Validated against the id index rather than the catalog: the app chunk must not carry the
+    // 275 kB of track content (src/data/mlTrackIndex.ts).
+    if (!isMlTrackId(trackId) || !isMlRungId(rungId)) return;
 
     const before = mlTrackProgressFor(getState().ml.tracksById, trackId);
     if (isRungDone(before, rungId)) return;
@@ -631,7 +630,7 @@ export const completeMlRung =
     dispatch(bonusXpLogged({ date, xp: ML_RUNG_XP }));
 
     const after = mlTrackProgressFor(getState().ml.tracksById, trackId);
-    if (isTrackClear(track, after)) {
+    if (isTrackClear(after)) {
       dispatch(xpAdded(ML_TRACK_CLEAR_BONUS));
       dispatch(bonusXpLogged({ date, xp: ML_TRACK_CLEAR_BONUS }));
       dispatch(celebrationShown('confetti'));
@@ -650,8 +649,7 @@ export const completeMlRung =
 export const reviseMlTrack =
   (trackId: string, passed: boolean): AppThunk =>
   (dispatch, getState) => {
-    const track = mlTrackById[trackId];
-    if (!track) return;
+    if (!isMlTrackId(trackId)) return;
 
     const before = mlTrackProgressFor(getState().ml.tracksById, trackId);
     if (!isRungDone(before, ML_LADDER_RUNG) || isTrackRetained(before)) return;
@@ -676,7 +674,7 @@ export const reviseMlTrack =
 export const startMlProject =
   (projectId: string): AppThunk =>
   (dispatch, getState) => {
-    if (!mlProjectById[projectId]) return;
+    if (!isMlProjectId(projectId)) return;
     if (getState().ml.projectsById[projectId]?.startedOn) return;
     dispatch(mlProjectStarted({ projectId, date: todayISO() }));
   };
@@ -684,7 +682,7 @@ export const startMlProject =
 export const shipMlProject =
   (projectId: string): AppThunk =>
   (dispatch, getState) => {
-    if (!mlProjectById[projectId]) return;
+    if (!isMlProjectId(projectId)) return;
     if (getState().ml.projectsById[projectId]?.shippedOn) return;
 
     const date = todayISO();

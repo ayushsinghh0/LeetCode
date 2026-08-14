@@ -47,10 +47,12 @@ import {
   contestFinished,
   contestProblemBlurred,
   contestProblemFocused,
+  contestProblemSetAside,
   contestProblemSolved,
   contestStarted,
+  contestWrongSubmitLogged,
 } from '@/store/slices/contestSlice';
-import { contestStallsRecorded } from '@/store/slices/contestsSlice';
+import { contestSittingRecorded } from '@/store/slices/contestsSlice';
 import { intentionsSet, journalWritten, sittingRecorded } from '@/store/slices/practiceSlice';
 import { normalizeIntentions, normalizeSitting, sittingCounts } from '@/utils/engine/practice';
 import { isMissKind } from '@/utils/engine/miss';
@@ -573,6 +575,16 @@ export const blurContestProblem = (): AppThunk => (dispatch) => {
   dispatch(contestProblemBlurred({ nowMs: Date.now() }));
 };
 
+/** A submission that did not pass. Costs nothing and earns nothing — it is only ever evidence. */
+export const logContestWrongSubmit = (questionId: number): AppThunk => (dispatch) => {
+  dispatch(contestWrongSubmitLogged({ questionId }));
+};
+
+/** Putting a problem down on purpose. The clock settles, so the minutes already in it stand. */
+export const setAsideContestProblem = (questionId: number): AppThunk => (dispatch) => {
+  dispatch(contestProblemSetAside({ questionId, nowMs: Date.now() }));
+};
+
 /**
  * Solving inside a contest is a real solve. It goes through the ordinary `solveQuestion` path so
  * XP, the day log, streaks and the revision ladder all see it exactly as they would any other —
@@ -587,34 +599,59 @@ export const solveContestProblem = (questionId: number): AppThunk => (dispatch, 
 /**
  * The single line that closes the contest→weakness loop. Finishing stamps the sitting, then the
  * engine's own reading of it (`selectContestAnalysis`, which runs `analyzeContest`) is banked as
- * a dated stall record in the persisted `contests` channel — the live contest slice itself never
- * persists, because a restored stopped clock lies. An inconclusive sitting writes nothing:
- * `analyzeContest` suppresses `patternGaps` to [] and that stays the single source of that
- * decision, here included.
+ * a dated record in the persisted `contests` channel — the live contest slice itself never
+ * persists, because a restored stopped clock lies. An INCONCLUSIVE sitting writes nothing:
+ * `analyzeContest` decides that and stays the single source of the decision, here included.
+ *
+ * A conclusive sitting with no stalls DOES write, with an empty `stalledPatterns`. It adds
+ * nothing to the weakness model (which iterates that array) and it is the whole reason the timed
+ * record can be read honestly later: a channel that only kept the sittings that went badly is a
+ * sample selected for failure, and every "practice vs performance" comparison drawn from it would
+ * inherit that bias.
  *
  * The normalization mirrors `logDrillResult`, for the same reason: `validatePersisted` hard-
- * rejects blank or duplicated pattern ids, non-positive counts, `attempted > total` and more
- * stalls than attempts — and a rejected payload quarantines the learner's ENTIRE state on the
- * next load. Today `analyzeContest` happens to guarantee all of that; that is a property of one
- * producer, not of this API, so the thunk guarantees a persistable payload itself.
+ * rejects blank or duplicated pattern ids, non-positive counts, `attempted > total`, more stalls
+ * than attempts and malformed problem rows — and a rejected payload quarantines the learner's
+ * ENTIRE state on the next load. Today `analyzeContest` happens to guarantee all of that; that is
+ * a property of one producer, not of this API, so the thunk guarantees a persistable payload
+ * itself.
  */
 export const finishContest = (): AppThunk => (dispatch, getState) => {
   dispatch(contestFinished({ nowMs: Date.now() }));
 
   const analysis = selectContestAnalysis(getState());
-  if (!analysis || analysis.patternGaps.length === 0) return;
+  if (!analysis || analysis.inconclusive) return;
 
   const safeTotal = Math.floor(analysis.total);
   if (!Number.isFinite(safeTotal) || safeTotal < 1) return;
   const stalledPatterns = Array.from(
     new Set(analysis.patternGaps.filter((p) => typeof p === 'string' && (p as string) !== '')),
   ).slice(0, safeTotal);
-  if (stalledPatterns.length === 0) return;
+  // `attempted` must stay >= 1 (the validator's floor) and >= the number of stalls behind it.
   const informative = analysis.readings.filter((r) => r.outcome !== 'untouched').length;
-  const attempted = Math.min(Math.max(Math.floor(informative) || 0, stalledPatterns.length), safeTotal);
+  const attempted = Math.min(
+    Math.max(Math.floor(informative) || 0, stalledPatterns.length, 1),
+    safeTotal,
+  );
+
+  const problems = analysis.readings
+    .filter((r) => Number.isInteger(r.question.id) && r.question.id >= 1)
+    .slice(0, safeTotal)
+    .map((r) => ({
+      questionId: r.question.id,
+      minutesSpent: Math.max(0, Math.floor(r.minutesSpent) || 0),
+      targetMinutes: Math.max(1, Math.floor(r.targetMinutes) || 1),
+      outcome: r.outcome,
+    }));
 
   dispatch(
-    contestStallsRecorded({ date: todayISO(), stalledPatterns, attempted, total: safeTotal }),
+    contestSittingRecorded({
+      date: todayISO(),
+      stalledPatterns,
+      attempted,
+      total: safeTotal,
+      ...(problems.length > 0 ? { problems } : {}),
+    }),
   );
 };
 

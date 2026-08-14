@@ -1,5 +1,7 @@
 import type {
   Confidence,
+  ContestProblemRecord,
+  ContestStallRecord,
   CourseWeekProgress,
   DailyTask,
   DayLog,
@@ -368,28 +370,66 @@ export function validatePersisted(raw: unknown): PersistedStateV1 | null {
 
   // `contests` is optional (absent before contest stalls were recorded) — reject-wholesale when
   // malformed: date keys must be real ISO dates (the weakness model decays on them), counters
-  // real positive integers with attempted <= total, and stalledPatterns a non-empty array of
-  // non-blank, DEDUPED pattern ids no longer than the attempts behind it. The dedupe check is
-  // not stricter than the write path — analyzeContest dedupes and finishContest re-dedupes — and
-  // it matters because a duplicate here would double-count a single sitting in the weakness model.
+  // real positive integers with attempted <= total, and stalledPatterns an array of non-blank,
+  // DEDUPED pattern ids no longer than the attempts behind it. The dedupe check is not stricter
+  // than the write path — analyzeContest dedupes and finishContest re-dedupes — and it matters
+  // because a duplicate here would double-count a single sitting in the weakness model.
+  //
+  // `stalledPatterns` may be EMPTY since V8: a conclusive sitting where nothing stalled is real
+  // evidence about timed performance and now banks a record too. Widening what the validator
+  // admits is always safe (every payload that validated before still does); the reverse — a
+  // validator stricter than its write path — is the data-loss bug this file exists to avoid.
+  //
+  // `problems` is optional and deliberately LENIENT: `outcome` is only checked for being a
+  // non-blank string, never against the engine's Outcome union, so retiring an outcome later can
+  // never quarantine an old payload.
   let contests: PersistedStateV1['contests'];
   if ('contests' in raw && raw.contests !== undefined) {
     const rawContests = raw.contests;
     if (!isPlainObject(rawContests)) return null;
     if (!isPlainObject(rawContests.byDate)) return null;
-    const byDate: Record<string, { stalledPatterns: string[]; attempted: number; total: number }> = {};
+    const byDate: Record<string, ContestStallRecord> = {};
     for (const [date, entry] of Object.entries(rawContests.byDate)) {
       if (!isIsoDate(date)) return null;
       if (!isPlainObject(entry)) return null;
-      const { stalledPatterns, attempted, total } = entry;
+      const { stalledPatterns, attempted, total, problems } = entry;
       if (typeof attempted !== 'number' || !Number.isInteger(attempted) || attempted < 1) return null;
       if (typeof total !== 'number' || !Number.isInteger(total) || total < 1) return null;
       if (attempted > total) return null;
-      if (!Array.isArray(stalledPatterns) || stalledPatterns.length < 1) return null;
+      if (!Array.isArray(stalledPatterns)) return null;
       if (stalledPatterns.some((p) => typeof p !== 'string' || p === '')) return null;
       if (new Set(stalledPatterns).size !== stalledPatterns.length) return null;
       if (stalledPatterns.length > attempted) return null;
-      byDate[date] = { stalledPatterns: [...stalledPatterns], attempted, total };
+
+      let problemRecords: ContestProblemRecord[] | undefined;
+      if (problems !== undefined) {
+        if (!Array.isArray(problems)) return null;
+        if (problems.length > total) return null;
+        const parsed: ContestProblemRecord[] = [];
+        for (const problem of problems) {
+          if (!isPlainObject(problem)) return null;
+          const { questionId, minutesSpent, targetMinutes, outcome } = problem;
+          if (typeof questionId !== 'number' || !Number.isInteger(questionId) || questionId < 1) {
+            return null;
+          }
+          if (typeof minutesSpent !== 'number' || !Number.isInteger(minutesSpent) || minutesSpent < 0) {
+            return null;
+          }
+          if (typeof targetMinutes !== 'number' || !Number.isInteger(targetMinutes) || targetMinutes < 1) {
+            return null;
+          }
+          if (typeof outcome !== 'string' || outcome === '') return null;
+          parsed.push({ questionId, minutesSpent, targetMinutes, outcome });
+        }
+        problemRecords = parsed;
+      }
+
+      byDate[date] = {
+        stalledPatterns: [...stalledPatterns],
+        attempted,
+        total,
+        ...(problemRecords ? { problems: problemRecords } : {}),
+      };
     }
     contests = { byDate };
   }

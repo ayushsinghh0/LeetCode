@@ -34,6 +34,8 @@ import { patternWeakness, transferRecord, type PatternWeakness } from '@/utils/e
 import { isHintReliant } from '@/utils/engine/hints';
 import {
   analyzeContest,
+  timeReading,
+  type Contest,
   type ContestAnalysis,
   type ContestAttempt,
   type ContestProblem,
@@ -744,25 +746,46 @@ export const selectContestProblems = createSelector(
  * half-analysis mid-contest: `analyzeContest` treats unattempted problems as untouched, so
  * running it early would "read" a sitting that is still happening.
  */
-export const selectContestAnalysis = createSelector(
+/** The live attempts in the engine's shape. One conversion, so every reader sees the same sitting. */
+export const selectContestAttempts = createSelector(
   [selectContestState, selectContestProblems],
-  (contest, problems): ContestAnalysis | null => {
-    if (contest.seed === null || contest.finishedAtMs === null) return null;
-    const attempts: ContestAttempt[] = problems.map((p) => ({
-      questionId: p.question.id,
-      solved: contest.attempts[p.question.id]?.solved ?? false,
-      minutesSpent: contest.attempts[p.question.id]?.minutesSpent ?? 0,
-    }));
-    return analyzeContest(
-      {
-        id: contest.seed,
-        // The honest shape is what the set actually holds, not the ladder it aimed for — a slot
-        // can go unfilled when the eligible pool for its difficulty runs dry.
-        shape: problems.map((p) => p.question.difficulty),
-        problems,
-        durationMin: contest.durationMin,
-      },
-      attempts,
-    );
-  },
+  (contest, problems): ContestAttempt[] =>
+    problems.map((p) => {
+      const attempt = contest.attempts[p.question.id];
+      return {
+        questionId: p.question.id,
+        solved: attempt?.solved ?? false,
+        minutesSpent: attempt?.minutesSpent ?? 0,
+        wrongSubmits: attempt?.wrongSubmits ?? 0,
+        setAside: attempt?.setAside ?? false,
+      };
+    }),
+);
+
+/** The set the finished analysis was read from — the frozen contest, in the engine's shape. */
+const selectFinishedContest = createSelector(
+  [selectContestState, selectContestProblems],
+  (contest, problems): Contest | null =>
+    contest.seed === null || contest.finishedAtMs === null
+      ? null
+      : {
+          id: contest.seed,
+          // The honest shape is what the set actually holds, not the ladder it aimed for — a slot
+          // can go unfilled when the eligible pool for its difficulty runs dry.
+          shape: problems.map((p) => p.question.difficulty),
+          problems,
+          durationMin: contest.durationMin,
+        },
+);
+
+export const selectContestAnalysis = createSelector(
+  [selectFinishedContest, selectContestAttempts],
+  (contest, attempts): ContestAnalysis | null =>
+    contest === null ? null : analyzeContest(contest, attempts),
+);
+
+/** How the sitting's minutes were distributed, or null when there is no distribution to describe. */
+export const selectContestTimeReading = createSelector(
+  [selectFinishedContest, selectContestAttempts],
+  (contest, attempts): string | null => (contest === null ? null : timeReading(contest, attempts)),
 );

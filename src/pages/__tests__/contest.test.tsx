@@ -106,6 +106,39 @@ describe('ContestPage: the sitting', () => {
     expect(store.getState().contest.attempts[firstId]!.minutesSpent).toBe(10);
   });
 
+  test('a submission that did not pass is recorded on the problem being worked', () => {
+    const { store } = renderContest();
+    startViaUi();
+    const firstId = store.getState().contest.questionIds[0]!;
+
+    fireEvent.click(within(problemRows()[0]!).getByRole('button', { name: /put on the clock/i }));
+    fireEvent.click(within(problemRows()[0]!).getByRole('button', { name: /didn't pass/i }));
+    fireEvent.click(within(problemRows()[0]!).getByRole('button', { name: /didn't pass/i }));
+
+    expect(store.getState().contest.attempts[firstId]!.wrongSubmits).toBe(2);
+    expect(within(problemRows()[0]!).getByText(/2 didn't pass/i)).toBeInTheDocument();
+  });
+
+  test('setting a problem aside stops its clock and says so, and it can be picked back up', () => {
+    const { store } = renderContest();
+    startViaUi();
+    const secondId = store.getState().contest.questionIds[1]!;
+
+    fireEvent.click(within(problemRows()[1]!).getByRole('button', { name: /put on the clock/i }));
+    act(() => {
+      vi.advanceTimersByTime(12 * 60_000);
+    });
+    fireEvent.click(within(problemRows()[1]!).getByRole('button', { name: /set aside/i }));
+
+    // The minutes already spent stand — the decision is about what happens next, not about them.
+    expect(store.getState().contest.attempts[secondId]!.minutesSpent).toBe(12);
+    expect(store.getState().contest.activeQuestionId).toBeNull();
+    expect(within(problemRows()[1]!).getByText(/set aside · 12 min/i)).toBeInTheDocument();
+
+    fireEvent.click(within(problemRows()[1]!).getByRole('button', { name: /pick it back up/i }));
+    expect(store.getState().contest.attempts[secondId]!.setAside).toBe(false);
+  });
+
   test('marking a problem solved goes through the real solve path — XP, progress, the ledger', () => {
     const { store } = renderContest();
     startViaUi();
@@ -149,6 +182,31 @@ describe('ContestPage: the verdict', () => {
       'href',
       `/patterns/${stalledPattern}`,
     );
+  });
+
+  test('the verdict says where the minutes went, and offers the stalled problem a second look', () => {
+    const { store } = renderContest();
+    startViaUi();
+    const secondId = store.getState().contest.questionIds[1]!;
+
+    fireEvent.click(within(problemRows()[0]!).getByRole('button', { name: /put on the clock/i }));
+    act(() => {
+      vi.advanceTimersByTime(15 * 60_000);
+    });
+    fireEvent.click(within(problemRows()[0]!).getByRole('button', { name: /mark solved/i }));
+    fireEvent.click(within(problemRows()[1]!).getByRole('button', { name: /put on the clock/i }));
+    act(() => {
+      vi.advanceTimersByTime(45 * 60_000);
+    });
+    fireEvent.click(screen.getByRole('button', { name: /finish/i }));
+
+    // Time allocation is the one thing a contest can see that self-paced practice cannot.
+    expect(screen.getByText(/45 of your 60 minutes went to/i)).toBeInTheDocument();
+
+    // The clock is off, so the problem that beat it can now be opened with everything the sheet
+    // carries — which the contest withheld on purpose while it was running.
+    fireEvent.click(screen.getByRole('button', { name: /take a calm second look/i }));
+    expect(store.getState().ui.activeQuestionId).toBe(secondId);
   });
 
   test('an abandoned contest is declared inconclusive, never mined for weakness', () => {

@@ -203,6 +203,18 @@ export interface DrillsState {
 // An inconclusive contest writes nothing — `analyzeContest` suppresses `patternGaps` to [] and
 // that stays the single source of that decision. Keyed by date like drills: contests are seeded
 // by the date, so a same-day rerun replays a set whose problems have already been seen.
+export interface ContestProblemRecord {
+  questionId: number;
+  minutesSpent: number;
+  targetMinutes: number;
+  /**
+   * The engine's outcome label for this problem, stored as a bare string on purpose: renaming or
+   * retiring an outcome must never quarantine a learner's entire state on the next load (the
+   * missKind precedent). Readers treat an unrecognised value as "no claim".
+   */
+  outcome: string;
+}
+
 export interface ContestStallRecord {
   /** Pattern id of every problem that stalled, deduped — one stall per pattern per sitting. */
   stalledPatterns: string[];
@@ -210,6 +222,14 @@ export interface ContestStallRecord {
   attempted: number;
   /** Problems in the set. */
   total: number;
+  /**
+   * Per-problem readings of the sitting. Optional: payloads written before V8 have none, and a
+   * reader must fall back rather than assume. This is what makes timed evidence measurable —
+   * without it the channel could only ever say which patterns stalled, so the only sittings it
+   * described were the bad ones, and any "practice vs performance" comparison built on that would
+   * be reading a sample selected for failure.
+   */
+  problems?: ContestProblemRecord[];
 }
 
 export interface ContestsState {

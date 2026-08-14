@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { format, parseISO } from 'date-fns';
-import { CheckCircle2, ExternalLink, Flag, Pause, Play, Swords } from 'lucide-react';
+import { CheckCircle2, ExternalLink, Flag, Pause, Play, Swords, XCircle } from 'lucide-react';
 import questionsData from '@/data/questions.json';
 import { patternById } from '@/data/patterns';
 import { Button } from '@/components/ui/button';
@@ -19,15 +19,22 @@ import {
   Section,
 } from '@/components/layout/Page';
 import { useAppDispatch, useAppSelector } from '@/store/hooks';
-import { selectContestAnalysis, selectContestProblems } from '@/store/selectors';
+import {
+  selectContestAnalysis,
+  selectContestProblems,
+  selectContestTimeReading,
+} from '@/store/selectors';
 import {
   blurContestProblem,
   clearContest,
   finishContest,
   focusContestProblem,
+  logContestWrongSubmit,
+  setAsideContestProblem,
   solveContestProblem,
   startContest,
 } from '@/store/actions';
+import { activeQuestionSet } from '@/store/slices/uiSlice';
 import { useToday } from '@/hooks/useToday';
 import { contestElapsedMin, type ContestAttemptState } from '@/store/slices/contestSlice';
 import type { Outcome } from '@/utils/engine/contest';
@@ -43,15 +50,19 @@ const OUTCOME_LABEL: Record<Outcome, string> = {
   clean: 'Clean solve',
   slow: 'Solved slowly',
   stalled: 'Stalled',
+  'set-aside': 'Set aside',
   untouched: 'Barely touched',
 };
 
 // The easy/hard inks already carry right/wrong in the drill (see DrillsPage's option borders);
 // the same idiom applies here. Untouched deliberately gets the muted voice — it is a non-claim.
+// Set-aside gets the medium ink rather than the hard one: it names a decision, and the decision
+// was a reasonable one however the minutes behind it read.
 const OUTCOME_CLASS: Record<Outcome, string> = {
   clean: 'text-easy',
   slow: 'text-medium',
   stalled: 'text-hard',
+  'set-aside': 'text-medium',
   untouched: 'text-muted-foreground',
 };
 
@@ -76,10 +87,14 @@ export default function ContestPage() {
   const contest = useAppSelector((s) => s.contest);
   const problems = useAppSelector(selectContestProblems);
   const analysis = useAppSelector(selectContestAnalysis);
+  const timeSpread = useAppSelector(selectContestTimeReading);
   const byId = useAppSelector((s) => s.progress.byId);
 
   const running = contest.seed !== null && contest.finishedAtMs === null;
   const finished = analysis !== null;
+  // Everything after the one named next step. `patternGaps[0]` is `next`, and it already has the
+  // page's one recommendation attached to it.
+  const otherGaps = analysis ? analysis.patternGaps.slice(1) : [];
 
   // Mirrors buildContest's eligibility filter — mastered-out-of-existence catalogs are rare, but
   // a Start button that silently does nothing would be worse than the empty state.
@@ -263,7 +278,13 @@ export default function ContestPage() {
                                 active ? 'text-foreground' : 'text-muted-foreground',
                               )}
                             >
-                              {active ? `on the clock · ${spent} min` : `${spent} min`}
+                              {attempt.setAside
+                                ? `set aside · ${spent} min`
+                                : active
+                                  ? `on the clock · ${spent} min`
+                                  : `${spent} min`}
+                              {attempt.wrongSubmits > 0 &&
+                                ` · ${attempt.wrongSubmits} didn't pass`}
                             </p>
                             {active ? (
                               <Button
@@ -279,7 +300,28 @@ export default function ContestPage() {
                                 size="sm"
                                 onClick={() => dispatch(focusContestProblem(question.id))}
                               >
-                                <Play /> Put on the clock
+                                <Play /> {attempt.setAside ? 'Pick it back up' : 'Put on the clock'}
+                              </Button>
+                            )}
+                            {/* Reporting a failed submission is only meaningful for the problem
+                                actually being worked, and keeping it off the other rows keeps
+                                four controls from landing on a phone-width row. */}
+                            {active && (
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                onClick={() => dispatch(logContestWrongSubmit(question.id))}
+                              >
+                                <XCircle /> Didn't pass
+                              </Button>
+                            )}
+                            {!attempt.setAside && (
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                onClick={() => dispatch(setAsideContestProblem(question.id))}
+                              >
+                                Set aside
                               </Button>
                             )}
                             <Button size="sm" onClick={() => dispatch(solveContestProblem(question.id))}>
@@ -308,6 +350,14 @@ export default function ContestPage() {
                   <span className="figures">{analysis.minutesSpent} min</span> on the clock against
                   a <span className="figures">~{contest.durationMin} min</span> schedule.
                 </p>
+                {/* Where the minutes went — the one thing a contest can observe that self-paced
+                    practice cannot. It reports the distribution and stops there; whether the
+                    allocation was right needs a counterfactual nobody has. */}
+                {timeSpread && (
+                  <p className="max-w-prose text-sm leading-relaxed text-muted-foreground">
+                    {timeSpread}
+                  </p>
+                )}
               </div>
 
               {analysis.inconclusive ? (
@@ -330,6 +380,15 @@ export default function ContestPage() {
                     <p className="max-w-prose text-sm leading-relaxed text-muted-foreground">
                       {analysis.next.why}
                     </p>
+                    {/* The other patterns that stalled, stated once and quietly. They are real
+                        evidence and the learner should see them, but only one thing can be the
+                        next thing — a second heading here would make four findings compete. */}
+                    {otherGaps.length > 0 && (
+                      <p className="max-w-prose text-sm leading-relaxed text-muted-foreground">
+                        It also stalled on{' '}
+                        {otherGaps.map((p) => patternById[p]?.name ?? p).join(', ')}.
+                      </p>
+                    )}
                   </div>
                 </>
               ) : null}
@@ -364,6 +423,22 @@ export default function ContestPage() {
                   <p className="max-w-prose text-sm leading-relaxed text-muted-foreground">
                     {reading.reading}
                   </p>
+                  {/* The clock is off now, so the problem that beat it can be opened with
+                      everything the sheet carries — hints, the family, the notes field. The
+                      contest withheld all of that on purpose; the point of finishing is that it
+                      stops being withheld. */}
+                  {analysis.stalledQuestionIds.includes(reading.question.id) && (
+                    <div>
+                      <Button
+                        variant="link"
+                        size="sm"
+                        className="h-auto p-0"
+                        onClick={() => dispatch(activeQuestionSet(reading.question.id))}
+                      >
+                        Take a calm second look
+                      </Button>
+                    </div>
+                  )}
                 </RuledItem>
               ))}
             </RuledList>

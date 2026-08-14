@@ -5,7 +5,7 @@ import { selectPersistedState, validatePersisted, exportAsJson } from '@/service
 import { createPersistenceMiddleware, loadInitialState } from '@/services/storage/persistence';
 import { makeStore } from '@/store/store';
 import { classifyMiss, logDrillResult, reviseQuestion, setIntentions, solveQuestion, writeJournal } from '@/store/actions';
-import { contestStallsRecorded } from '@/store/slices/contestsSlice';
+import { contestSittingRecorded } from '@/store/slices/contestsSlice';
 import { sittingRecorded } from '@/store/slices/practiceSlice';
 import { stateImported, progressReset } from '@/store/sharedActions';
 import { settingsUpdated } from '@/store/slices/settingsSlice';
@@ -692,7 +692,7 @@ describe('round trip: makeStore -> persist -> reload into a fresh store', () => 
     // The finishContest -> validator parity (that the thunk cannot emit an unpersistable payload)
     // is covered end-to-end in store/__tests__/contestStalls.test.ts; this is its reload-path
     // complement — the full LocalStorageAdapter save -> loadInitialState -> fresh store trip that
-    // the drills channel above also proves. contestStallsRecorded is the writer finishContest
+    // the drills channel above also proves. contestSittingRecorded is the writer finishContest
     // dispatches, so populating the channel through it exercises exactly what persists.
     const adapter1 = new LocalStorageAdapter();
     const store1 = makeStore(undefined, [createPersistenceMiddleware(adapter1)]);
@@ -703,17 +703,83 @@ describe('round trip: makeStore -> persist -> reload into a fresh store', () => 
     expect(adapter1.load()?.contests).toBeUndefined();
 
     store1.dispatch(
-      contestStallsRecorded({ date: todayISO(), stalledPatterns: ['graphs', 'stacks'], attempted: 2, total: 4 }),
+      contestSittingRecorded({ date: todayISO(), stalledPatterns: ['graphs', 'stacks'], attempted: 2, total: 4 }),
     );
     vi.advanceTimersByTime(500);
 
     const preloaded = loadInitialState(new LocalStorageAdapter());
     const store2 = makeStore(preloaded);
+    // A pre-V8 record carries no per-problem rows, and must load exactly as it always did.
     expect(store2.getState().contests.byDate[todayISO()]).toEqual({
       stalledPatterns: ['graphs', 'stacks'],
       attempted: 2,
       total: 4,
     });
+  });
+
+  test('a V8 contest record round-trips its per-problem rows, stalls or no stalls', () => {
+    const adapter1 = new LocalStorageAdapter();
+    const store1 = makeStore(undefined, [createPersistenceMiddleware(adapter1)]);
+
+    store1.dispatch(
+      contestSittingRecorded({
+        date: '2026-07-29',
+        // A sitting where nothing stalled: banked so the timed record is not a sample of failures.
+        stalledPatterns: [],
+        attempted: 4,
+        total: 4,
+        problems: [
+          { questionId: 1, minutesSpent: 12, targetMinutes: 15, outcome: 'clean' },
+          { questionId: 2, minutesSpent: 40, targetMinutes: 20, outcome: 'slow' },
+        ],
+      }),
+    );
+    store1.dispatch(
+      contestSittingRecorded({
+        date: todayISO(),
+        stalledPatterns: ['graphs'],
+        attempted: 3,
+        total: 4,
+        problems: [{ questionId: 3, minutesSpent: 30, targetMinutes: 25, outcome: 'set-aside' }],
+      }),
+    );
+    vi.advanceTimersByTime(500);
+
+    const store2 = makeStore(loadInitialState(new LocalStorageAdapter()));
+    expect(store2.getState().contests.byDate['2026-07-29']).toEqual({
+      stalledPatterns: [],
+      attempted: 4,
+      total: 4,
+      problems: [
+        { questionId: 1, minutesSpent: 12, targetMinutes: 15, outcome: 'clean' },
+        { questionId: 2, minutesSpent: 40, targetMinutes: 20, outcome: 'slow' },
+      ],
+    });
+    expect(store2.getState().contests.byDate[todayISO()]!.problems).toEqual([
+      { questionId: 3, minutesSpent: 30, targetMinutes: 25, outcome: 'set-aside' },
+    ]);
+  });
+
+  test('an outcome label this build has never heard of loads rather than quarantining', () => {
+    // The lenient-by-design half of the record: `outcome` is validated as a bare non-blank string,
+    // so retiring or renaming an outcome later can never cost a learner their entire state.
+    const validated = validatePersisted({
+      ...validFixture,
+      contests: {
+        byDate: {
+          '2026-07-29': {
+            stalledPatterns: ['graphs'],
+            attempted: 2,
+            total: 4,
+            problems: [
+              { questionId: 3, minutesSpent: 30, targetMinutes: 25, outcome: 'abandoned-in-v9' },
+            ],
+          },
+        },
+      },
+    });
+
+    expect(validated!.contests!.byDate['2026-07-29']!.problems![0]!.outcome).toBe('abandoned-in-v9');
   });
 
   test('practice intentions, journal, and sittings survive reload; practice-free payloads stay so', () => {

@@ -23,6 +23,7 @@ import type {
   CourseWeekProgress,
   DayLog,
   PatternId,
+  PracticeSitting,
   Question,
   QuestionProgress,
   RevisionEvent,
@@ -96,6 +97,83 @@ describe('buildInsights — suppression over padding', () => {
       expect(insight.action.href).toMatch(/^\//);
       expect(insight.action.label.trim()).not.toBe('');
     }
+  });
+});
+
+describe('buildInsights — return after failure (identity, never guilt)', () => {
+  const failDay = (date: string): DayLog => ({
+    date, solvedIds: [], revisionsPassed: [], revisionsFailed: [1], xpEarned: 0, focusMinutes: 0,
+  });
+  const activeDay = (date: string): DayLog => ({
+    date, solvedIds: [1], revisionsPassed: [], revisionsFailed: [], xpEarned: 0, focusMinutes: 0,
+  });
+  const returnsFor = (dates: string[]): Record<string, DayLog> => {
+    const logs: Record<string, DayLog> = {};
+    for (const d of dates) {
+      logs[`2026-07-${d}`] = failDay(`2026-07-${d}`);
+      const next = String(Number(d) + 1).padStart(2, '0');
+      logs[`2026-07-${next}`] = activeDay(`2026-07-${next}`);
+    }
+    return logs;
+  };
+  const find = (input: Partial<InsightInput>) =>
+    buildInsights({ ...base, ...input }).find((i) => i.id === 'return-after-failure');
+
+  test('stays silent below four observed miss-windows', () => {
+    expect(find({ dayLogs: returnsFor(['01', '05', '09']) })).toBeUndefined();
+  });
+
+  test('a consistent return is recorded as identity evidence, in a strength tone', () => {
+    const insight = find({ dayLogs: returnsFor(['01', '05', '09', '13']) });
+    expect(insight).toBeDefined();
+    expect(insight!.tone).toBe('strength');
+    expect(insight!.evidence.join(' ')).toMatch(/4 of 4/);
+    // Identity as evidence of process — never a label handed out for free.
+    expect(insight!.headline).toMatch(/comes back after a miss/i);
+  });
+
+  test('a miss whose two-day window has not elapsed is not counted against the rate', () => {
+    const dayLogs = returnsFor(['01', '05', '09', '13']);
+    dayLogs['2026-07-29'] = failDay('2026-07-29'); // yesterday's miss, window still open
+    const insight = find({ dayLogs, today: '2026-07-30' });
+    expect(insight!.evidence.join(' ')).toMatch(/4 of 4/); // not 4 of 5
+    expect(insight!.tone).toBe('strength');
+  });
+
+  test('a low return rate is met with the five-minute re-entry, never blame', () => {
+    const dayLogs: Record<string, DayLog> = {};
+    for (const d of ['01', '05', '09', '13']) dayLogs[`2026-07-${d}`] = failDay(`2026-07-${d}`);
+    const insight = find({ dayLogs });
+    expect(insight).toBeDefined();
+    expect(insight!.tone).not.toBe('attention'); // no alarm on the no-failure-state surface
+    expect(insight!.action.href).toBe('/focus?entry=small');
+    const text = `${insight!.headline} ${insight!.recommendation}`;
+    expect(text).not.toMatch(/failed|lazy|behind|should have|\bdiscipline\b|excuse/i);
+  });
+});
+
+describe('buildInsights — session follow-through (only ever shrink)', () => {
+  const sitting = (planned: number, done: number): PracticeSitting => ({ date: '2026-07-20', planned, done });
+  const find = (sittings: PracticeSitting[]) =>
+    buildInsights({ ...base, sittings }).find((i) => i.id === 'session-follow-through');
+
+  test('stays silent below five sittings', () => {
+    expect(find([sitting(10, 10), sitting(10, 10), sitting(10, 10), sitting(10, 10)])).toBeUndefined();
+  });
+
+  test('finishing what you plan is reported as a strength', () => {
+    const insight = find(Array.from({ length: 6 }, () => sitting(8, 8)));
+    expect(insight).toBeDefined();
+    expect(insight!.tone).toBe('strength');
+  });
+
+  test('planning more than you finish is met by shrinking the session, never pushing', () => {
+    const insight = find(Array.from({ length: 6 }, () => sitting(10, 2)));
+    expect(insight).toBeDefined();
+    expect(insight!.tone).not.toBe('attention');
+    const text = `${insight!.headline} ${insight!.recommendation}`;
+    expect(text).toMatch(/short|small|less|fewer/i);
+    expect(text).not.toMatch(/try harder|push|more often|don.t (?:lose|break)/i);
   });
 });
 

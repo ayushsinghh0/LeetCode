@@ -20,6 +20,7 @@ import type {
   CourseWeekProgress,
   DayLog,
   DrillDayResult,
+  PracticeSitting,
   Question,
   QuestionProgress,
 } from '@/types';
@@ -109,6 +110,12 @@ export interface InsightInput {
    * Never re-derived here: the card and the figure on the analytics page must quote one record.
    */
   transfer?: TransferRecord | null;
+  /**
+   * The revision-sitting ledger (practice slice), planned-vs-done per sitting. Feeds the
+   * follow-through card only; measurement stays internal — no reflective surface shows it.
+   * Optional so an engine test can drive one builder at a time.
+   */
+  sittings?: PracticeSitting[];
 }
 
 // 1. Recognition vs implementation ---------------------------------------------------------
@@ -347,6 +354,124 @@ function weeklyConsistency(input: InsightInput, extraActiveDates: ReadonlySet<st
   };
 }
 
+// 7a. Return after failure ------------------------------------------------------------------
+// The identity-as-evidence card, and the one that must never carry guilt. After a missed recall,
+// did the learner come back? A failure is a day with revisionsFailed; a return is any DSA activity
+// in the two days after (DayLogs only — the same ledger weeklyConsistency reads). It is the only
+// card that speaks to identity, because "someone who returns after a miss" is a fact the record
+// actually holds — never a label handed out for free (design record: identity as evidence of
+// process). A low rate is met with the smallest door back in, never a verdict.
+const RETURN_MIN_WINDOWS = 4;
+const RETURN_STRONG = 0.6;
+
+function returnAfterFailure(input: InsightInput): Insight | null {
+  const active = (date: string): boolean => {
+    const log = input.dayLogs[date];
+    return (
+      !!log &&
+      (log.solvedIds.length > 0 || log.revisionsPassed.length > 0 || log.revisionsFailed.length > 0)
+    );
+  };
+
+  let total = 0;
+  let returned = 0;
+  for (const [date, log] of Object.entries(input.dayLogs)) {
+    if (log.revisionsFailed.length === 0) continue;
+    const cameBack = active(addDays(date, 1)) || active(addDays(date, 2));
+    // Count a window only once its outcome is settled: either they already came back, or the
+    // two-day window has fully elapsed (its last day is strictly before today). A miss whose
+    // window is still open is not yet a non-return — leaving it out is what keeps this off the
+    // guilt register (the end-yesterday discipline weeklyConsistency uses, applied per window).
+    const windowElapsed = diffDays(input.today, addDays(date, 2)) > 0;
+    if (!cameBack && !windowElapsed) continue;
+    total += 1;
+    if (cameBack) returned += 1;
+  }
+
+  if (total < RETURN_MIN_WINDOWS) return null;
+
+  const rate = returned / total;
+  const evidence = [
+    `You came back within two days after ${returned} of ${total} missed recalls.`,
+    'A miss resets one interval on the ladder — it never resets the practice.',
+  ];
+
+  if (rate >= RETURN_STRONG) {
+    return {
+      id: 'return-after-failure',
+      headline: 'You are someone who comes back after a miss.',
+      evidence,
+      recommendation:
+        'That is the habit that outlasts any streak. Keep the unit small enough that returning ' +
+        'stays this easy — a session you finish beats one you dread.',
+      action: { label: 'Open today', href: '/today' },
+      tone: 'strength',
+    };
+  }
+
+  return {
+    id: 'return-after-failure',
+    headline: 'Coming back after a miss is the one habit worth protecting.',
+    evidence,
+    recommendation:
+      'A miss is information, not a verdict. When one makes tomorrow hard to start, take the ' +
+      'smallest possible re-entry — one lightest item, then stop. Returning at all is the win.',
+    action: { label: 'Begin with five minutes', href: '/focus?entry=small' },
+    tone: 'steady',
+  };
+}
+
+// 7b. Session follow-through ----------------------------------------------------------------
+// Do you finish the sessions you start? Read from the sitting ledger (planned vs done). The only
+// lever this card ever pulls is DOWN: a low completion rate means the planned unit is too big, and
+// the fix is a shorter session — never "try harder" (copy rule 5). Measurement stays internal —
+// the reflective surfaces show no number — but this analytics card is exactly where a number is
+// allowed to be read back.
+const FOLLOW_THROUGH_MIN_SITTINGS = 5;
+const FOLLOW_THROUGH_STRONG = 0.85;
+const FOLLOW_THROUGH_WEAK = 0.6;
+
+function sessionFollowThrough(input: InsightInput): Insight | null {
+  const sittings = (input.sittings ?? []).filter((s) => s.planned > 0);
+  if (sittings.length < FOLLOW_THROUGH_MIN_SITTINGS) return null;
+
+  const rate =
+    sittings.reduce((sum, s) => sum + Math.min(s.done, s.planned) / s.planned, 0) / sittings.length;
+  const evidence = [
+    `You complete about ${pct(rate)} of a planned session, over your last ${sittings.length} sittings.`,
+    'The plan already fits itself to the time you choose — a shorter length is finished, not failed.',
+  ];
+
+  if (rate >= FOLLOW_THROUGH_STRONG) {
+    return {
+      id: 'session-follow-through',
+      headline: 'You finish the sessions you sit down to.',
+      evidence,
+      recommendation:
+        'The length you are choosing is the right size for you — hold it there rather than ' +
+        'reaching for a longer one. The completed session is what compounds.',
+      action: { label: 'Open today', href: '/today' },
+      tone: 'strength',
+    };
+  }
+
+  if (rate <= FOLLOW_THROUGH_WEAK) {
+    return {
+      id: 'session-follow-through',
+      headline: 'You are planning a little more than the session runs.',
+      evidence,
+      recommendation:
+        'Choose a shorter length. The session engine composes the best use of whatever time you ' +
+        'give it, so a smaller window is a full session — and one you will actually finish.',
+      action: { label: 'Choose a shorter session', href: '/revision' },
+      tone: 'steady',
+    };
+  }
+
+  // Between the bands, no claim worth making — the same silent middle transfer and pace use.
+  return null;
+}
+
 // 7. Confidence calibration -----------------------------------------------------------------
 // Whether the learner's own prediction is worth anything. This is the finding most likely to
 // change behaviour and the one most easily faked: a calibration claim from four observations
@@ -526,6 +651,10 @@ export function buildInsights(input: InsightInput, extraActiveDates: ReadonlySet
     untestedSolves(input),
     pace(input),
     weeklyConsistency(input, extraActiveDates),
+    // The habit cards — behavioural, never guilt-shaped. Neither is ever 'attention': the return
+    // card is the no-failure-state surface, and the follow-through card only ever shrinks.
+    returnAfterFailure(input),
+    sessionFollowThrough(input),
   ];
 
   const order: Record<InsightTone, number> = { attention: 0, steady: 1, strength: 2 };

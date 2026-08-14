@@ -482,9 +482,10 @@ export const selectInsights = createSelector(
     selectCourseActiveDates,
     selectCourseByWeekId,
     selectTransferRecord,
+    (state: RootState) => state.practice.sittings,
     selectTodayArg,
   ],
-  (byId, dayLogs, drills, weakness, forecast, capacityMin, courseActiveDates, courseByWeekId, transfer, today) =>
+  (byId, dayLogs, drills, weakness, forecast, capacityMin, courseActiveDates, courseByWeekId, transfer, sittings, today) =>
     buildInsights(
       {
         today,
@@ -495,6 +496,8 @@ export const selectInsights = createSelector(
         weakness,
         forecast,
         capacityMin,
+        // The sitting ledger feeds the follow-through card (measurement stays internal).
+        sittings,
         // The mean cost of the reviews actually on this learner's ladder — not the flat
         // REVISION_MINUTES fallback. The forecast counts reviews, not questions, so a single
         // figure is unavoidable here; it must at least be the same figure the session plan

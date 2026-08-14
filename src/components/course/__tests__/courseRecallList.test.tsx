@@ -1,3 +1,4 @@
+import { useState } from 'react';
 import { screen, fireEvent } from '@testing-library/react';
 import { renderWithStore } from '@/test/renderWithStore';
 import { CourseRecallList } from '@/components/course/CourseRecallList';
@@ -37,6 +38,26 @@ describe('CourseRecallList — self-grading (wave F)', () => {
 
     expect(screen.getByText(/already recorded/i)).toBeInTheDocument();
     expect(screen.queryByRole('button', { name: /Record result/i })).not.toBeInTheDocument();
+  });
+
+  test('recording shows the count back even as the store flips recordedToday live', () => {
+    // The page passes recordedToday straight from the store, so it becomes true on the very
+    // dispatch that records the check. The learner must still see their count — retrieval WITH
+    // feedback is the point — not an "already recorded" notice on the click that recorded it.
+    function PageLikeHarness() {
+      const [recorded, setRecorded] = useState(false);
+      return <CourseRecallList prompts={prompts} recordedToday={recorded} onRecord={() => setRecorded(true)} />;
+    }
+    renderWithStore(<PageLikeHarness />);
+
+    fireEvent.click(screen.getAllByRole('button', { name: 'Got it' })[0]!);
+    fireEvent.click(screen.getAllByRole('button', { name: 'Not yet' })[1]!);
+    fireEvent.click(screen.getByRole('button', { name: /Record result/i }));
+
+    expect(screen.getByText(/you recalled/i)).toBeInTheDocument();
+    expect(screen.queryByText(/already recorded/i)).not.toBeInTheDocument();
+    // The grade buttons are still gone — the check is final for the day.
+    expect(screen.queryByRole('button', { name: 'Got it' })).not.toBeInTheDocument();
   });
 
   test('the recording copy stays feedback, not judgment', () => {

@@ -106,16 +106,19 @@ export function CourseRecallList({
         })}
       </RuledList>
 
-      {/* The record footer — feedback, never a verdict. Only ever states what was recalled. */}
-      {recordedToday ? (
-        <p className="text-sm text-muted-foreground">
-          You already recorded a check for this week today. Run through them again any time — reruns
-          are practice.
-        </p>
-      ) : saved ? (
+      {/* The record footer — feedback, never a verdict. Only ever states what was recalled.
+          `saved` outranks `recordedToday`: the page feeds recordedToday live from the store, so it
+          flips true on the very dispatch that records the check — and the learner must see their
+          count on that click (retrieval WITH feedback), not an "already recorded" notice. */}
+      {saved ? (
         <p className="text-sm text-muted-foreground">
           Recorded — you recalled <span className="figures">{correct}</span> of{' '}
           <span className="figures">{prompts.length}</span> this time.
+        </p>
+      ) : recordedToday ? (
+        <p className="text-sm text-muted-foreground">
+          You already recorded a check for this week today. Run through them again any time — reruns
+          are practice.
         </p>
       ) : onRecord && allGraded ? (
         <div className="flex flex-wrap items-center gap-3">

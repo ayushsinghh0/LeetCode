@@ -1,11 +1,14 @@
 # HANDOFF — nothing in flight
 
-GOD MODE V6 (The Practice Engine) shipped and merged to `main` on 2026-08-14. There is no
-paused work. If you are starting something new: `CLAUDE.md` is the architecture law, `DESIGN.md`
-the visual system, `PRODUCT.md` the product truth, and
-`docs/superpowers/specs/2026-08-14-practice-engine-design.md` the V6 design record (source map
-with evidence labels, convergence map, features A–G, the deliberately-not-built list, and §4's
-six binding copy rules — that last list is still binding on any new surface).
+GOD MODE V6 (The Practice Engine) and V7 (The Adaptive Mastery Engine) both shipped and merged
+to `main` on 2026-08-14. There is no paused work. If you are starting something new: `CLAUDE.md`
+is the architecture law, `DESIGN.md` the visual system, `PRODUCT.md` the product truth, and the
+design records are `docs/superpowers/specs/2026-08-14-practice-engine-design.md` (V6: source map
+with evidence labels, convergence map, features A–G, the deliberately-not-built list, §4's six
+binding copy rules — still binding on any new surface, §5–6 the directive-coverage and
+full-book audits) and `2026-08-14-adaptive-mastery-design.md` (V7: the 52-principle coverage
+map, the three slices — miss kinds, hint-informed reconstruction, the quiet stop — and their
+invariant analysis).
 
 ## What V6 left behind (the short map)
 

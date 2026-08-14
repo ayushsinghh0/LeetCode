@@ -90,3 +90,26 @@ recognition / implementation / edge-case / recall). Written by `classifyMiss` th
 failed, last event), last-write-wins, clearable. `RevisionCandidate` gains `hintReliant:
 boolean`, assembled in the selector from `hintLevelUsed >= 2 && !revisionHistory.some(passed)`.
 No new slices, no schema version bump, quarantine philosophy unchanged.
+
+## 4. Verification (2026-08-14, all on the branch tip)
+
+- **Tests**: 1068/1068 across 78 files (23 new: registry, reducer/thunk, persistence round-trip
+  + lenient validation, measurement floors/window/dominance, session priority + selector
+  derivation, page-level tag capture and the two completion-close cases), tsc clean.
+- **Bundle**: main chunk 277.43 kB vs the 301 kB budget (+3.13 kB for all three slices; no new
+  dependencies).
+- **Browser QA** (dev server, seeded full-shape fixtures): miss-shape card renders with counts
+  and the drills/revision action; the hint-reliant question takes the deep slot with its spoken
+  reason; a two-miss sitting closes with the stop line; tags tap → `aria-pressed` → persisted on
+  the day's event and retract on second tap. Widths 375/768/1024/1280: no horizontal overflow
+  anywhere; the tag row wraps 2×2 on mobile. Dark verified visually-by-text at 1280; light
+  verified structurally (`--background` var, CSSOM body rule, fresh-element probe — a stale
+  computed-style ghost from the hidden pane was chased to ground and is NOT a product bug; V7
+  surfaces use stock tokens only).
+- **Copy**: every new sentence is test-fenced against pressure/judgment registers
+  (penalty language on the reconstruction reason, push/debt language on the stop line,
+  fail/wrong registers on tags and card).
+- **Adversarial notes**: classification cannot touch a pass, another day's event, an empty
+  history, or an unknown id; a foreign kind string is refused at the write path and admitted at
+  the load path; classifying is XP-free and unfarmable (nothing rewards it); `hintReliant`
+  cannot be gamed into scheduling changes because it never touches the ladder.

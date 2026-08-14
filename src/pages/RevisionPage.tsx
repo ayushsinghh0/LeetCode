@@ -755,13 +755,25 @@ function SessionComplete({
         </div>
       )}
 
+      {/* V7, the quiet stop: when the sitting's own grades ran more misses than holds (and at
+          least two), the close gives explicit permission to stop instead of the standard line.
+          The evidence is banked either way and the ladder has already pulled the missed items
+          closer — pushing further into a fail-heavy sitting is the thing NOT to recommend. */}
       {shaky.length > 0 && (
         <div className="flex flex-col gap-1.5">
           <p className="text-xs font-medium tracking-wide text-muted-foreground">Needs another pass</p>
           <p className="text-sm">{shaky.map((a) => a.title).join(', ')}</p>
-          <p className="text-xs text-muted-foreground">
-            Back on the ladder tomorrow — a missed review resets the interval, which is the point of it.
-          </p>
+          {shaky.length >= 2 && shaky.length > held.length ? (
+            <p className="max-w-prose text-xs text-muted-foreground">
+              A rough sitting banks the same evidence a smooth one does, and everything missed is
+              already rescheduled closer. Stopping here is a good stop — these come back tomorrow
+              as short recalls.
+            </p>
+          ) : (
+            <p className="text-xs text-muted-foreground">
+              Back on the ladder tomorrow — a missed review resets the interval, which is the point of it.
+            </p>
+          )}
         </div>
       )}
 

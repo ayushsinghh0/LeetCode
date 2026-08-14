@@ -459,6 +459,44 @@ describe('RevisionPage — finishing', () => {
     expect(summary.textContent ?? '').not.toMatch(/failed|lost|behind|should have/i);
   });
 
+  test('a rough sitting closes with permission to stop, not a push to continue (V7)', () => {
+    vi.useFakeTimers();
+    const store = makeStore();
+    setDate('2026-07-30');
+    solveAndAdvanceToDue(store, 1);
+    solveAndAdvanceToDue(store, 2);
+
+    renderWithStore(<RevisionPage />, store);
+    fireEvent.click(screen.getByRole('button', { name: 'Start session' }));
+    fireEvent.click(screen.getAllByRole('button', { name: 'Not yet' })[0]!);
+    fireEvent.click(screen.getAllByRole('button', { name: 'Not yet' })[0]!);
+    fireEvent.click(screen.getByRole('button', { name: 'Finish session' }));
+
+    expect(screen.getByText(/Stopping here is a good stop/)).toBeInTheDocument();
+    // The rough-sitting close carries no push and no debt framing.
+    const summary = screen.getByText('Needs another pass').closest('div')!.parentElement!;
+    expect(summary.textContent ?? '').not.toMatch(/keep going|push|one more|debt|failed|behind/i);
+    vi.useRealTimers();
+  });
+
+  test('a single miss in an otherwise fine sitting keeps the ordinary close', () => {
+    vi.useFakeTimers();
+    const store = makeStore();
+    setDate('2026-07-30');
+    solveAndAdvanceToDue(store, 1);
+    solveAndAdvanceToDue(store, 2);
+
+    renderWithStore(<RevisionPage />, store);
+    fireEvent.click(screen.getByRole('button', { name: 'Start session' }));
+    fireEvent.click(screen.getAllByRole('button', { name: 'Recalled it' })[0]!);
+    fireEvent.click(screen.getAllByRole('button', { name: 'Not yet' })[0]!);
+    fireEvent.click(screen.getByRole('button', { name: 'Finish session' }));
+
+    expect(screen.queryByText(/Stopping here is a good stop/)).not.toBeInTheDocument();
+    expect(screen.getByText(/Back on the ladder tomorrow/)).toBeInTheDocument();
+    vi.useRealTimers();
+  });
+
   test('planning another session clears the sitting and returns to the chooser', () => {
     vi.useFakeTimers();
     const store = makeStore();

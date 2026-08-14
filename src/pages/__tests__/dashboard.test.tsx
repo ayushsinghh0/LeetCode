@@ -3,7 +3,7 @@ import { makeStore } from '@/store/store';
 import { renderWithStore } from '@/test/renderWithStore';
 import DashboardPage from '@/pages/DashboardPage';
 import { solveQuestion } from '@/store/actions';
-import { quoteForDate } from '@/data/quotes';
+import { reflectionForDate } from '@/data/reflections';
 import { seededRandomQuestion } from '@/utils/engine/recommendations';
 import { initialProgress } from '@/utils/engine/spacedRepetition';
 import questionsData from '@/data/questions.json';
@@ -26,7 +26,7 @@ afterEach(() => {
 });
 
 describe('DashboardPage', () => {
-  test('fresh store: shows "Day 1 of 68", "0 / 539", and today\'s quote; hero renders', () => {
+  test('fresh store: shows "Day 1 of 68", "0 / 539", and today\'s reflection; hero renders', () => {
     renderWithStore(<DashboardPage />);
 
     // The hero heading styles "of 68" in a nested span, so match on the element's full text.
@@ -34,10 +34,27 @@ describe('DashboardPage', () => {
       screen.getByText((_, el) => el?.tagName === 'P' && el.textContent?.replace(/\s+/g, ' ').trim() === 'Day 1 of 68'),
     ).toBeInTheDocument();
     expect(screen.getByText('0 / 539')).toBeInTheDocument();
-    expect(screen.getByText(quoteForDate(TODAY))).toBeInTheDocument();
+    // A fresh store has never been active, so daysAway is null — not a "return". Ordinary pool.
+    const reflection = reflectionForDate(TODAY, false);
+    expect(screen.getByText(reflection.text)).toBeInTheDocument();
+    if (reflection.attribution) {
+      expect(screen.getByText(`— ${reflection.attribution}`)).toBeInTheDocument();
+    }
     // hero current-position line for day 1's first (unsolved) question, "Valid Palindrome" (two-pointers/easy)
     expect(screen.getByText(/you're in/i)).toBeInTheDocument();
     expect(screen.getByText('Two Pointers')).toBeInTheDocument();
+  });
+
+  test('a genuine return draws the epigraph from the returning pool — same gate as ReturnNotice', () => {
+    const store = makeStore();
+    store.dispatch(solveQuestion(1));
+
+    vi.setSystemTime(new Date('2026-08-04T12:00:00')); // 5 days later, nothing logged since
+    renderWithStore(<DashboardPage />, store);
+
+    const reflection = reflectionForDate('2026-08-04', true);
+    expect(reflection.theme).toBe('returning');
+    expect(screen.getByText(reflection.text)).toBeInTheDocument();
   });
 
   test('after solving 8 questions via thunks, shows "Day 2 of 68" and "8 / 539"', () => {

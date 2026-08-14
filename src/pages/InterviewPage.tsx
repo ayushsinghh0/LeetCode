@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState, type KeyboardEvent, type ReactNode } from 'react';
 import { format, parseISO } from 'date-fns';
 import {
   ArrowRight,
@@ -522,28 +522,16 @@ export default function InterviewPage() {
                     {prompt.question}
                   </p>
                 </div>
-                <div
-                  className="flex flex-wrap items-center gap-2"
-                  role="group"
-                  aria-label={`${prompt.label} self-rating`}
-                >
-                  <span className="text-xs text-muted-foreground">{prompt.low}</span>
-                  {SELF_ASSESSMENT_SCALE.map((value) => {
-                    const active = interview.selfAssessment[prompt.id] === value;
-                    return (
-                      <button
-                        key={value}
-                        type="button"
-                        aria-pressed={active}
-                        onClick={() => dispatch(selfAssessmentSet({ id: prompt.id, value }))}
-                        className={cn('figures min-w-[44px]', CHIP_CLASS, active ? CHIP_ON : CHIP_OFF)}
-                      >
-                        {value}
-                      </button>
-                    );
-                  })}
-                  <span className="text-xs text-muted-foreground">{prompt.high}</span>
-                </div>
+                <ChipRadioRow
+                  label={`${prompt.label} self-rating`}
+                  options={SELF_ASSESSMENT_SCALE}
+                  value={interview.selfAssessment[prompt.id]}
+                  onSelect={(value) => dispatch(selfAssessmentSet({ id: prompt.id, value }))}
+                  chipClassName="figures min-w-[44px]"
+                  className="items-center"
+                  before={<span className="text-xs text-muted-foreground">{prompt.low}</span>}
+                  after={<span className="text-xs text-muted-foreground">{prompt.high}</span>}
+                />
               </div>
             ))}
           </Lead>
@@ -661,22 +649,13 @@ export default function InterviewPage() {
 
           <div className="flex flex-col gap-3">
             <p className="text-sm font-medium">How did that go?</p>
-            <div className="flex flex-wrap gap-2" role="group" aria-label="Your own read on this stage">
-              {STAGE_OUTCOMES.map((outcome) => {
-                const active = interview.stageOutcomes[interview.stage] === outcome;
-                return (
-                  <button
-                    key={outcome}
-                    type="button"
-                    aria-pressed={active}
-                    onClick={() => dispatch(stageOutcomeSet({ stage: interview.stage, outcome }))}
-                    className={cn(CHIP_CLASS, active ? CHIP_ON : CHIP_OFF)}
-                  >
-                    {STAGE_OUTCOME_LABEL[outcome]}
-                  </button>
-                );
-              })}
-            </div>
+            <ChipRadioRow
+              label="Your own read on this stage"
+              options={STAGE_OUTCOMES}
+              value={interview.stageOutcomes[interview.stage]}
+              onSelect={(outcome) => dispatch(stageOutcomeSet({ stage: interview.stage, outcome }))}
+              format={(outcome) => STAGE_OUTCOME_LABEL[outcome]}
+            />
           </div>
 
           <Rule />
@@ -724,5 +703,110 @@ export default function InterviewPage() {
         {unlockList()}
       </Section>
     </Page>
+  );
+}
+
+/* ------------------------------------------------------------------------------------------- */
+
+/**
+ * A single-choice chip row — the capacity-chip radiogroup idiom (DESIGN.md § Capacity chips),
+ * shared by the stage self-report and the five self-assessment scales. `aria-pressed` announced
+ * N independent switches, all but one "not pressed", for a control where at most one option is
+ * ever true; `role="radiogroup"`/`aria-checked` names the actual shape, and arrow-key selection
+ * is the contract that role promises. Roving tabindex keeps the group to one tab stop — and with
+ * nothing chosen yet (both rows start unanswered), the first chip stays tabbable, because a
+ * radiogroup every one of whose radios is tabIndex -1 cannot be reached at all.
+ */
+function ChipRadioRow<T extends string | number>({
+  label,
+  options,
+  value,
+  onSelect,
+  format,
+  chipClassName,
+  className,
+  before,
+  after,
+}: {
+  label: string;
+  options: readonly T[];
+  value: T | undefined;
+  onSelect: (option: T) => void;
+  /** Visible chip text; defaults to the option itself. */
+  format?: (option: T) => ReactNode;
+  chipClassName?: string;
+  className?: string;
+  /** Flanking non-interactive text (the scale's low/high anchors). */
+  before?: ReactNode;
+  after?: ReactNode;
+}) {
+  const chipRefs = useRef<(HTMLButtonElement | null)[]>([]);
+  const selectedIndex = options.findIndex((option) => option === value);
+  const focusIndex = selectedIndex === -1 ? 0 : selectedIndex;
+
+  function moveTo(index: number) {
+    const option = options[index];
+    if (option === undefined) return;
+    onSelect(option);
+    chipRefs.current[index]?.focus();
+  }
+
+  // Arrow keys move selection inside a radiogroup — a group that only responds to Tab and click
+  // is announcing one thing and behaving as another (same handler shape as RevisionPage's
+  // length chooser).
+  function onKeyDown(event: KeyboardEvent<HTMLDivElement>) {
+    const last = options.length - 1;
+    let next: number;
+    switch (event.key) {
+      case 'ArrowRight':
+      case 'ArrowDown':
+        next = selectedIndex === -1 ? 0 : (selectedIndex + 1) % options.length;
+        break;
+      case 'ArrowLeft':
+      case 'ArrowUp':
+        next = selectedIndex === -1 ? last : (selectedIndex + last) % options.length;
+        break;
+      case 'Home':
+        next = 0;
+        break;
+      case 'End':
+        next = last;
+        break;
+      default:
+        return;
+    }
+    event.preventDefault();
+    moveTo(next);
+  }
+
+  return (
+    <div
+      className={cn('flex flex-wrap gap-2', className)}
+      role="radiogroup"
+      aria-label={label}
+      onKeyDown={onKeyDown}
+    >
+      {before}
+      {options.map((option, i) => {
+        const active = option === value;
+        return (
+          <button
+            key={option}
+            type="button"
+            role="radio"
+            aria-checked={active}
+            tabIndex={i === focusIndex ? 0 : -1}
+            ref={(node) => {
+              chipRefs.current[i] = node;
+            }}
+            onClick={() => onSelect(option)}
+            className={cn(chipClassName, CHIP_CLASS, active ? CHIP_ON : CHIP_OFF)}
+          >
+            {format ? format(option) : option}
+          </button>
+        );
+      })}
+      {after}
+    </div>
   );
 }

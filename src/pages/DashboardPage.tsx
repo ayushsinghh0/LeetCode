@@ -11,7 +11,7 @@ import { XpBadge } from '@/components/gamification/XpBadge';
 import type { LedgerItem } from '@/components/layout/Page';
 import { Ledger, Meta, Page, PageHeader, RuledItem, RuledList, Section } from '@/components/layout/Page';
 import { patternById } from '@/data/patterns';
-import { quoteForDate } from '@/data/quotes';
+import { reflectionForDate } from '@/data/reflections';
 import { useToday } from '@/hooks/useToday';
 import { useAppDispatch, useAppSelector } from '@/store/hooks';
 import { activeQuestionSet } from '@/store/slices/uiSlice';
@@ -21,6 +21,7 @@ import {
   selectCourseProjectedFinish,
   selectCourseStats,
   selectCurrentDay,
+  selectDaysAway,
   selectHeatmapData,
   selectLevelInfo,
   selectPerDay,
@@ -75,6 +76,7 @@ export default function DashboardPage() {
   const weakest = useAppSelector((s) => selectPatternWeakness(s, today));
   const revisionQueueIds = useAppSelector((s) => selectRevisionQueueIds(s, today));
   const todayLog = useAppSelector((s) => selectTodayLog(s, today));
+  const daysAway = useAppSelector((s) => selectDaysAway(s, today));
   const courseStats = useAppSelector(selectCourseStats);
   const courseNext = useAppSelector(selectCourseNextSession);
   const courseFinish = useAppSelector((s) => selectCourseProjectedFinish(s, today));
@@ -97,6 +99,12 @@ export default function DashboardPage() {
   const currentPattern = currentQuestion ? patternById[currentQuestion.pattern] : null;
 
   const solvedToday = todayLog ? todayLog.solvedIds.length : 0;
+
+  // Same gate as Today's ReturnNotice: two or more days away, nothing logged yet today. The
+  // epigraph swaps its pool on a genuine return — it never adds a second line.
+  const minutesToday = todayLog ? todayLog.focusMinutes : 0;
+  const returning = daysAway !== null && daysAway >= 2 && solvedToday === 0 && minutesToday === 0;
+  const reflection = reflectionForDate(today, returning);
 
   const weakestEntry = weakest[0] ?? null;
 
@@ -170,10 +178,15 @@ export default function DashboardPage() {
         }
       />
 
-      {/* The epigraph. A rail, not a plate — one italic line is not a component. */}
-      <p className="max-w-prose border-l-2 border-border pl-4 font-serif italic text-muted-foreground">
-        {quoteForDate(today)}
-      </p>
+      {/* The epigraph. A rail, not a plate — one reflection is not a component. The corpus rule
+          (src/data/reflections.ts) is absolute: a quotation shows its verbatim text and its
+          attribution; an original note shows no attribution at all. One line per day, never more. */}
+      <figure className="max-w-prose border-l-2 border-border pl-4">
+        <blockquote className="font-serif italic text-muted-foreground">{reflection.text}</blockquote>
+        {reflection.attribution && (
+          <figcaption className="mt-1 text-xs text-muted-foreground">— {reflection.attribution}</figcaption>
+        )}
+      </figure>
 
       <Ledger items={ledgerItems} columns={ledgerItems.length === 3 ? 3 : 4} />
 

@@ -1,6 +1,6 @@
 import { act } from 'react';
 import { describe, expect, test, vi, beforeEach, afterEach } from 'vitest';
-import { screen, fireEvent } from '@testing-library/react';
+import { screen, fireEvent, within } from '@testing-library/react';
 import { renderWithStore } from '@/test/renderWithStore';
 import InterviewPage from '@/pages/InterviewPage';
 import questionsData from '@/data/questions.json';
@@ -318,12 +318,34 @@ describe('InterviewPage — self-report and self-assessment', () => {
     const store = interviewStore();
     renderWithStore(<InterviewPage />, store);
 
-    const group = screen.getByRole('group', { name: 'Your own read on this stage' });
-    const shaky = [...group.querySelectorAll('button')].find((b) => b.textContent === 'Shaky')!;
+    // One choice, not three independent switches: `aria-pressed` announced three toggles, two
+    // of them "not pressed", for a row where at most one option is ever true. The Revision
+    // length chooser and Today's capacity chips already carry the radiogroup idiom — same
+    // defect class, same correction (DESIGN.md § Capacity chips).
+    const group = screen.getByRole('radiogroup', { name: 'Your own read on this stage' });
+    const chips = within(group).getAllByRole('radio');
+    expect(chips).toHaveLength(3);
+    for (const chip of chips) expect(chip).not.toHaveAttribute('aria-pressed');
+
+    const shaky = within(group).getByRole('radio', { name: 'Shaky' });
     fireEvent.click(shaky);
 
-    expect(shaky).toHaveAttribute('aria-pressed', 'true');
+    expect(shaky).toHaveAttribute('aria-checked', 'true');
+    expect(chips.filter((c) => c.getAttribute('aria-checked') === 'true')).toHaveLength(1);
     expect(store.getState().interview.stageOutcomes.understand).toBe('shaky');
+
+    // Arrow keys move the selection — the contract `role="radiogroup"` promises — and focus
+    // travels with it, so the group keeps exactly one tab stop.
+    shaky.focus();
+    fireEvent.keyDown(shaky, { key: 'ArrowRight' });
+
+    expect(store.getState().interview.stageOutcomes.understand).toBe('stuck');
+    const nowChecked = within(group)
+      .getAllByRole('radio')
+      .find((c) => c.getAttribute('aria-checked') === 'true')!;
+    expect(nowChecked).toHaveTextContent('Stuck');
+    expect(document.activeElement).toBe(nowChecked);
+    expect(nowChecked).toHaveAttribute('tabindex', '0');
   });
 
   test('finishing collects a self-assessment and says plainly that nothing judged the attempt', () => {
@@ -342,7 +364,7 @@ describe('InterviewPage — self-report and self-assessment', () => {
       'Confidence',
       'Follow-up handling',
     ]) {
-      expect(screen.getByRole('group', { name: `${label} self-rating` })).toBeInTheDocument();
+      expect(screen.getByRole('radiogroup', { name: `${label} self-rating` })).toBeInTheDocument();
     }
     // No aggregate anywhere — a total would read as a measurement of something nothing observed.
     expect(document.body.textContent ?? '').not.toMatch(
@@ -354,11 +376,12 @@ describe('InterviewPage — self-report and self-assessment', () => {
     const store = interviewStore({ finishedOn: TODAY });
     renderWithStore(<InterviewPage />, store);
 
-    const group = screen.getByRole('group', { name: 'Clarity self-rating' });
-    const four = [...group.querySelectorAll('button')].find((b) => b.textContent === '4')!;
+    const group = screen.getByRole('radiogroup', { name: 'Clarity self-rating' });
+    const four = within(group).getByRole('radio', { name: '4' });
     fireEvent.click(four);
 
-    expect(four).toHaveAttribute('aria-pressed', 'true');
+    expect(four).toHaveAttribute('aria-checked', 'true');
+    expect(four).not.toHaveAttribute('aria-pressed');
     expect(store.getState().interview.selfAssessment.clarity).toBe(4);
   });
 

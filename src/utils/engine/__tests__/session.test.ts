@@ -272,10 +272,12 @@ describe('buildRevisionSession — overflow and surplus', () => {
       candidates: [candidate(1), candidate(2, { overdueDays: -2 }), candidate(3, { overdueDays: -5 })],
     });
 
-    expect(session.usedSurplus).toBe(true);
-    const pulled = session.activities.find((a) => a.questionId === 2)!;
-    expect(pulled.why).toContain('Not due yet');
-    expect(pulled.why).not.toContain('3-day step');
+    // The pull-forward is asserted on the plan itself — the not-due item is IN the session —
+    // not on a flag about it. (`usedSurplus` was such a flag; nothing consumed it.)
+    const pulled = session.activities.find((a) => a.questionId === 2);
+    expect(pulled).toBeDefined();
+    expect(pulled!.why).toContain('Not due yet');
+    expect(pulled!.why).not.toContain('3-day step');
   });
 
   test('a not-due item never outranks one whose date has actually arrived', () => {

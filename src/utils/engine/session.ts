@@ -295,8 +295,6 @@ export interface RevisionSession {
    * silently under-reported how many of them the session had left behind.
    */
   deferredCourseReviews: CourseReviewCandidate[];
-  /** True when due work ran out and the remaining budget was filled with surplus material. */
-  usedSurplus: boolean;
 }
 
 /* ------------------------------------------------------------------------------------------- */
@@ -580,7 +578,6 @@ export function buildRevisionSession(input: SessionInput): RevisionSession {
   // Due work genuinely ran out before the budget did. Fill forward rather than pad: pull the
   // nearest upcoming reviews in early, which costs nothing on the ladder and buys a quieter
   // tomorrow.
-  let usedSurplus = false;
   if (pot >= MIN_USEFUL_SLOT) {
     const pullForward = scored
       .filter((s) => s.candidate.overdueDays < 0 && !taken.has(s.candidate.question.id))
@@ -598,7 +595,6 @@ export function buildRevisionSession(input: SessionInput): RevisionSession {
       taken.add(item.candidate.question.id);
       pot -= minutes;
       spent += minutes;
-      usedSurplus = true;
     }
   }
 
@@ -630,15 +626,6 @@ export function buildRevisionSession(input: SessionInput): RevisionSession {
     if (item.candidate.overdueDays >= 0 && item.reason === 'weak-pattern') rationale.weakness--;
   });
 
-  // Recomputed from the final list rather than trusting the placement loop's flag: the one
-  // surplus item a session held may just have been dropped by the spacing rule above.
-  usedSurplus = activities.some(
-    (a) =>
-      a.questionId !== undefined &&
-      a.kind !== 'transfer' &&
-      (scoredById.get(a.questionId)?.candidate.overdueDays ?? 0) < 0,
-  );
-
   if (activities.length > 0 && reflectReserve > 0) {
     activities.push({
       id: 'reflect',
@@ -657,10 +644,10 @@ export function buildRevisionSession(input: SessionInput): RevisionSession {
     .filter((s) => s.candidate.overdueDays >= 0 && !taken.has(s.candidate.question.id))
     .map((s) => s.candidate);
 
-  // Read off the FINAL activity list rather than the placement loop, for the same reason
-  // `usedSurplus` is recomputed above: whatever the composition passes do to a course review —
-  // today they leave it alone, tomorrow they might not — anything absent from the session is a
-  // thing the learner did not get, and belongs on the list of what is still waiting.
+  // Read off the FINAL activity list rather than the placement loop: whatever the composition
+  // passes do to a course review — today they leave it alone, tomorrow they might not — anything
+  // absent from the session is a thing the learner did not get, and belongs on the list of what
+  // is still waiting.
   const placedWeekIds = new Set(
     activities.map((a) => a.weekId).filter((id): id is string => id !== undefined),
   );
@@ -680,7 +667,6 @@ export function buildRevisionSession(input: SessionInput): RevisionSession {
     rationale,
     deferred,
     deferredCourseReviews,
-    usedSurplus,
   };
 }
 

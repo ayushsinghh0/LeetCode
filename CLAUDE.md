@@ -2,6 +2,10 @@
 
 This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 
+**Resuming prior work? Read `HANDOFF.md` first** — it records where the last session stopped,
+what is verified vs. pending, and the exact pick-up order. Design decisions behind in-flight
+feature work live in `docs/superpowers/specs/` (latest: `2026-08-14-practice-engine-design.md`).
+
 ## Commands
 
 ```powershell
@@ -59,13 +63,16 @@ The per-problem premise was re-tested on 2026-08-13 across 17 companies and fail
 
 **Course recall checks** (`src/data/courseRecall.json` + `courseRecall.ts`, adversarially reviewed content, 130 prompts / 26 core weeks) power the "Check yourself" dialog on `/aiml` — treat the JSON as generated (fix source content and re-merge, don't hand-edit entries).
 
+**The reflection corpus** (`src/data/reflections.ts`, the Dashboard epigraph) has one absolute, test-enforced rule: a `quotation` renders verbatim from a source that was actually fetched and may legally be quoted (BDK grant, DN 16, or a fresh project translation of a public-domain Japanese original — the attribution states which), and an original `note` carries no attribution at all. Provenance and the licensing analysis live in `docs/superpowers/specs/2026-08-14-practice-engine-design.md`. Never add a line on the strength of an internet attribution — that is how the corpus this file replaced (`quotes.ts`, deleted) shipped two misattributions; `reflections.test.ts` bans the famous-name failure mode outright.
+
 ### Invariants that bite if forgotten
 
 - **`progress.byId` is sparse** — only touched questions exist. Every reader must fall back: `byId[id] ?? initialProgress()`. Same rule for **`course.byWeekId`** (`initialCourseProgress()`) and **`tasks.byId`** (may simply be absent).
 - **Product rules are locked spec** (see `PRODUCT.md` and the tests): revision ladder 1/3/7/15/30 days, stage 5 = mastered (`nextRevision: null`), any fail → stage 0 due tomorrow; XP 10/20/30 solve, half for revisions, +25 daily goal, +50 weekly clear; course XP 20 session / +50 week clear / 10 review; weekly revision day = roadmap day % 7 === 0; `daySlice` is static id ranges and `currentDay` derives from solved count. Bonus gates: daily bonus at most once per calendar date (`gamification.dailyGoalBonusDate`), weekly bonus at most once per roadmap day (`gamification.weeklyClearBonusDay`); only solved, unmastered questions are revisable. Don't "fix" these without being asked.
 - **Course activity is derived, not logged** — streaks/heatmap/calendar count course work via `courseActivityByDate(course.byWeekId)` (session stamps + review grades), never by writing into `DayLog` arrays, which stay DSA-only ledgers.
 - **Time has one attribution model** — `DayLog.focusMinutes` is the canonical total time ledger; `QuestionProgress.timeSpentMin` is a per-question *breakdown* of those same minutes (attributed via `ui.focusQuestionId`, maintained by FocusPage). Never sum the two dimensions.
-- **Persisted-schema evolution is optional-with-boundary-default** — new `PersistedStateV1` fields are optional (old payloads keep validating); `validatePersisted` echoes them only when present; `loadInitialState` and each slice's `stateImported` case normalize defaults in. Follow this pattern (see the bonus gates, `settings.dailyCapacityMin`, `tasks`, and `QuestionProgress.hintLevelUsed`/`reflection`).
+- **Persisted-schema evolution is optional-with-boundary-default** — new `PersistedStateV1` fields are optional (old payloads keep validating); `validatePersisted` echoes them only when present; `loadInitialState` and each slice's `stateImported` case normalize defaults in. Follow this pattern (see the bonus gates, `settings.dailyCapacityMin`, `tasks`, `QuestionProgress.hintLevelUsed`/`reflection`, and the `contests` stall channel).
+- **Contest evidence persists as derived records, never as the sitting.** The live contest slice stays unpersisted (a restored stopped clock lies); `finishContest` stamps the sitting first, then banks `analyzeContest`'s reading into the `contests` channel with a thunk-normalized payload (the logDrillResult discipline). That channel feeds weakness's 8th signal; an inconclusive sitting writes nothing, and `analyzeContest` remains the single owner of that decision.
 - **Hint use is a signal, never a penalty.** `hintLevelUsed` is monotonic and costs no XP. `engine/mastery.ts` reports the ladder state and hint use *side by side* rather than folding hints into the state — a learner who took a hint must still be able to reach "mastered", or the support feature becomes something people avoid and the signal disappears with it.
 - **Daily plan estimates are explicit constants** in `engine/planner.ts` (course session 60m, review 10m, task default 15m) — the UI writes `~` before every total on purpose. The exception is a question revision: `revisionMinutes(q)` derives it from that question's own authored estimate (35%, clamped 5–20m), because revising Two Sum and revising Burst Balloons are not the same eight minutes.
 - **The daily plan must be finishable.** `currentDay` derives from the solved count, so finishing today's slice immediately advances the roadmap and exposes the next day's questions. `selectRankedWork` caps new questions at `perDay - solvedToday`, and withholds the course session once one is done today. Without both caps the plan refills the instant it empties and the day can never be completed — a treadmill with no completion moment. Don't remove them.

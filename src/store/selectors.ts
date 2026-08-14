@@ -56,6 +56,12 @@ import {
   type ContestProblem,
 } from '@/utils/engine/contest';
 import { interviewDraws, type InterviewDraw } from '@/utils/engine/interview';
+import { companyById, type Company } from '@/data/companies';
+import {
+  companyCoverage,
+  companyPracticeSet,
+  type CompanyCoverage,
+} from '@/utils/engine/companies';
 import {
   buildRevisionSession,
   type RevisionCandidate,
@@ -795,6 +801,41 @@ export const selectDaysAway = createSelector(
     }
     return last === null ? null : diffDays(today, last);
   },
+);
+
+// --- Company preparation -----------------------------------------------------------------------
+
+/**
+ * The company being prepared for, or null. Resolved through the dataset every time and gated on
+ * the topics tier, so retiring a company (or downgrading its evidence) makes a stored target inert
+ * rather than dangerous — the setting stores a bare id precisely so it can go stale safely.
+ */
+export const selectTargetCompany = createSelector(
+  [(state: RootState) => state.settings.targetCompanyId],
+  (targetCompanyId): Company | null => {
+    if (!targetCompanyId) return null;
+    const company = companyById[targetCompanyId];
+    return company && company.evidence === 'topics' ? company : null;
+  },
+);
+
+/**
+ * How this learner stands across the target company's OWN named topics, and the highest-value
+ * practice inside them. One memoized seam, so Today, the company page and the interview scope all
+ * read the same reading rather than three surfaces each recomputing (and eventually disagreeing).
+ *
+ * Null without a target, which is most of the time and is not a gap.
+ */
+export const selectTargetCompanyCoverage = createSelector(
+  [selectTargetCompany, selectPatternStats, selectProgressById],
+  (company, stats, byId): CompanyCoverage | null =>
+    company ? companyCoverage(company.patterns, stats, questions, byId) : null,
+);
+
+export const selectTargetCompanyPracticeSet = createSelector(
+  [selectTargetCompanyCoverage, selectProgressById],
+  (coverage, byId): Question[] =>
+    coverage ? companyPracticeSet(coverage, questions, byId) : [],
 );
 
 // --- Interviews ------------------------------------------------------------------------------

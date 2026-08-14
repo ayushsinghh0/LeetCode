@@ -64,7 +64,20 @@ export const EVIDENCE_MEANING: Record<CompanyEvidence, string> = {
     'Their own engineering writing states they deliberately do not ask algorithm-puzzle questions. Worth knowing before you prepare for one.',
 };
 
-/** Companies whose published topics touch a given pattern. */
+/**
+ * Companies whose own published topics touch a given pattern.
+ *
+ * The `evidence === 'topics'` check is load-bearing and is stated here rather than inherited. It
+ * was previously absent, and the function was correct only by accident: the generator and
+ * `validate:data` guarantee that `patterns` is non-empty ONLY at the topics tier, so a
+ * pattern-only filter happened to return the same rows. That is a guarantee held one layer away
+ * from the code that depends on it — a dataset regression, or a categories-tier company gaining a
+ * stray pattern, would have put a company's name on a sentence its own page does not support.
+ *
+ * Every function whose output becomes a sentence with a company name in it re-checks this, so the
+ * failure direction is silence rather than a fabricated claim (see
+ * `companiesNamingPatternTopics`, which does the same for the question sheet).
+ */
 export function companiesNamingPattern(pattern: PatternId): Company[] {
-  return COMPANIES.filter((c) => c.patterns.includes(pattern));
+  return COMPANIES.filter((c) => c.evidence === 'topics' && c.patterns.includes(pattern));
 }

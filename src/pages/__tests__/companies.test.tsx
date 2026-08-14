@@ -5,9 +5,10 @@ import { ThemeProvider } from '@/contexts/ThemeContext';
 import { TooltipProvider } from '@/components/ui/tooltip';
 import { makeStore } from '@/store/store';
 import CompaniesPage from '@/pages/CompaniesPage';
-import { reviseQuestion, solveQuestion } from '@/store/actions';
+import { reviseQuestion, setTargetCompany, solveQuestion } from '@/store/actions';
 import { COMPANIES, EVIDENCE_LABEL, EVIDENCE_MEANING } from '@/data/companies';
-import { selectQuestionById } from '@/store/selectors';
+import { selectQuestionById, selectTargetCompany } from '@/store/selectors';
+import { selectPersistedState, validatePersisted } from '@/services/storage/serialize';
 import questionsData from '@/data/questions.json';
 import type { AppStore } from '@/store/store';
 import type { Question } from '@/types';
@@ -117,6 +118,80 @@ describe('CompaniesPage — evidence-aware wording', () => {
       }
       cleanup();
     }
+  });
+
+  test('the fence holds with a company targeted — the state that adds the most new copy', () => {
+    // Targeting is the feature most at risk of being read as "show me their questions". The scope
+    // control, the confirmation copy and the Today pointer are all new sentences with a company
+    // name in them, so the same fence runs over the targeted state of every company.
+    const forbidden = [
+      /\basked by\b/i,
+      /\basked at\b/i,
+      /\bcommonly asked\b/i,
+      /\bfrequently asked\b/i,
+      /\btop questions\b/i,
+      /\bmost asked\b/i,
+      // A readiness FIGURE, which is the shape the claim would actually take. Prose patterns are
+      // useless here: the page's own disclaimers legitimately say "whether you are ready for an
+      // interview" and "not a readiness score", and fencing those would ban the very sentences
+      // that exist to prevent this claim.
+      /\d+\s*%\s*ready/i,
+      /readiness\s*[:=]\s*\d/i,
+    ];
+
+    for (const company of COMPANIES.filter((c) => c.evidence === 'topics')) {
+      const store = makeStore();
+      store.dispatch(setTargetCompany(company.id));
+      renderAt(`/companies/${company.id}`, store);
+      const text = document.body.textContent ?? '';
+      for (const pattern of forbidden) {
+        expect(text).not.toMatch(pattern);
+      }
+      cleanup();
+    }
+  });
+});
+
+describe('targeting a company', () => {
+  test('only topics-tier companies can be targeted — the rest would change nothing', () => {
+    // A target's ONLY effect is to scope by the patterns a company's own page names. Setting a
+    // categories-tier company would leave the learner with a setting that silently does nothing.
+    const store = makeStore();
+    const categories = COMPANIES.find((c) => c.evidence === 'categories')!;
+    store.dispatch(setTargetCompany(categories.id));
+    expect(store.getState().settings.targetCompanyId).toBeUndefined();
+
+    const topics = COMPANIES.find((c) => c.evidence === 'topics')!;
+    store.dispatch(setTargetCompany(topics.id));
+    expect(store.getState().settings.targetCompanyId).toBe(topics.id);
+
+    store.dispatch(setTargetCompany(null));
+    expect(store.getState().settings.targetCompanyId).toBeUndefined();
+  });
+
+  test('a target for a company this build no longer has is inert, not fatal', () => {
+    // The setting stores a bare id precisely so it can go stale safely: a retired company must
+    // make the target do nothing, never quarantine the learner's entire state.
+    const store = makeStore({ settings: { ...makeStore().getState().settings, targetCompanyId: 'gone-inc' } });
+    expect(selectTargetCompany(store.getState())).toBeNull();
+    expect(
+      validatePersisted(JSON.parse(JSON.stringify(selectPersistedState(store.getState())))),
+    ).not.toBeNull();
+  });
+
+  test('the target control offers itself only where it can do something', () => {
+    const categories = COMPANIES.find((c) => c.evidence === 'categories')!;
+    renderAt(`/companies/${categories.id}`);
+    expect(screen.queryByRole('button', { name: /prepare for/i })).not.toBeInTheDocument();
+    cleanup();
+
+    const topics = COMPANIES.find((c) => c.evidence === 'topics')!;
+    const store = makeStore();
+    renderAt(`/companies/${topics.id}`, store);
+    fireEvent.click(screen.getByRole('button', { name: new RegExp(`prepare for ${topics.name}`, 'i') }));
+
+    expect(store.getState().settings.targetCompanyId).toBe(topics.id);
+    expect(screen.getByRole('button', { name: /stop targeting/i })).toBeInTheDocument();
   });
 });
 

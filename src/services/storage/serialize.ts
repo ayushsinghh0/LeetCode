@@ -340,6 +340,13 @@ export function validatePersisted(raw: unknown): PersistedStateV1 | null {
       return null;
     }
   }
+  // Optional, and validated as a BARE non-blank string rather than against the company dataset:
+  // retiring a company must make the setting inert at read time (every reader resolves it through
+  // `companyById` and falls back), never quarantine the learner's entire state on the next load.
+  const target = settings.targetCompanyId;
+  if ('targetCompanyId' in settings && target !== undefined && target !== null) {
+    if (typeof target !== 'string' || target === '') return null;
+  }
 
   const gamification = raw.gamification;
   if (!isPlainObject(gamification)) return null;
@@ -688,6 +695,9 @@ export function validatePersisted(raw: unknown): PersistedStateV1 | null {
       // Echoed only when the payload carried it — same input-shape-preserving rule as the
       // gamification bonus gates below; the load boundary defaults it.
       ...('dailyCapacityMin' in settings && capacity !== undefined ? { dailyCapacityMin: capacity as number } : {}),
+      ...('targetCompanyId' in settings && typeof target === 'string'
+        ? { targetCompanyId: target }
+        : {}),
     },
     // Bonus gates are echoed only when the payload carried them — validation preserves the
     // input shape; defaulting absent fields to null is the load boundary's job

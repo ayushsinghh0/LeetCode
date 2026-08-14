@@ -136,6 +136,18 @@ export interface SettingsState {
   theme: 'dark' | 'light';        // default 'dark'
   notifications: boolean;         // default false
   dailyCapacityMin: number;       // default 180 — study minutes the daily plan budgets against
+  /**
+   * A company the learner is preparing for, or absent when they are not preparing for one.
+   *
+   * Stored as a bare id and validated as a bare non-blank string: a company retired from the
+   * dataset must make this setting inert, never quarantine the learner's entire state. Every
+   * reader resolves it against `companyById` and falls back to "no target" when it misses.
+   *
+   * What it can influence is deliberately narrow. There is no per-problem company data and there
+   * never will be (PRODUCT.md), so a target can only ever scope practice by the PATTERNS a
+   * company's own page names — and only for the five companies whose pages enumerate any.
+   */
+  targetCompanyId?: string;
 }
 
 // --- Daily execution layer -------------------------------------------------------------

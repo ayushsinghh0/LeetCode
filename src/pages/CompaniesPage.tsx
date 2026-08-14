@@ -14,12 +14,17 @@ import {
   RuledList,
   Section,
 } from '@/components/layout/Page';
-import { COMPANIES, EVIDENCE_LABEL, EVIDENCE_MEANING, companyById } from '@/data/companies';
-import type { Company } from '@/data/companies';
+import { COMPANIES, EVIDENCE_LABEL, EVIDENCE_MEANING, companyById, type Company } from '@/data/companies';
 import { patternById } from '@/data/patterns';
 import { useAppDispatch, useAppSelector } from '@/store/hooks';
 import { activeQuestionSet } from '@/store/slices/uiSlice';
-import { selectPatternStats, selectPatternWeakness, selectQuestions } from '@/store/selectors';
+import {
+  selectPatternStats,
+  selectPatternWeakness,
+  selectQuestions,
+  selectTargetCompany,
+} from '@/store/selectors';
+import { setTargetCompany } from '@/store/actions';
 import { useToday } from '@/hooks/useToday';
 import {
   STRONG_PASS_RATE,
@@ -550,6 +555,41 @@ function BroadPracticeSection() {
   );
 }
 
+/**
+ * Set this company as the one being prepared for, or clear it.
+ *
+ * Offered only where it can do something: a target's ONLY effect is to scope practice by the
+ * patterns a company's own page names, so a categories-tier company would produce a setting that
+ * silently changes nothing. The copy says what it will and will not do — this is the surface most
+ * at risk of being read as "show me their questions", which do not exist.
+ */
+function TargetControl({ company }: { company: Company }) {
+  const dispatch = useAppDispatch();
+  const target = useAppSelector(selectTargetCompany);
+  const isTarget = target?.id === company.id;
+
+  return (
+    <Section aria-label="Prepare for this company">
+      <div className="flex flex-col gap-3">
+        <p className="max-w-prose text-sm leading-relaxed text-muted-foreground">
+          {isTarget
+            ? `Today carries a quiet line pointing back here while ${company.name} is your target, and an interview can be drawn from these patterns. Nothing else changes: there is still no per-problem claim to make.`
+            : `Marking a target adds one line to Today and lets an interview draw from these patterns. It cannot tell you what ${company.name} asks — nobody publishes that.`}
+        </p>
+        <div>
+          <Button
+            variant={isTarget ? 'outline' : 'default'}
+            size="sm"
+            onClick={() => dispatch(setTargetCompany(isTarget ? null : company.id))}
+          >
+            {isTarget ? 'Stop targeting' : `Prepare for ${company.name}`}
+          </Button>
+        </div>
+      </div>
+    </Section>
+  );
+}
+
 function CompanyDetail({ companyId }: { companyId: string }) {
   const stats = useAppSelector(selectPatternStats);
   const byId = useAppSelector((s) => s.progress.byId);
@@ -592,6 +632,7 @@ function CompanyDetail({ companyId }: { companyId: string }) {
         <>
           <CoverageSection company={company} coverage={coverage} />
           <PracticeSection company={company} coverage={coverage} />
+          <TargetControl company={company} />
         </>
       ) : (
         <>

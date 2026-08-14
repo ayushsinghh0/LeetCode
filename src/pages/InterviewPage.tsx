@@ -38,7 +38,11 @@ import {
   reflectOnInterview,
   revealHint,
 } from '@/store/actions';
-import { selectInterviewDraws, selectPreviousInterviewSitting } from '@/store/selectors';
+import {
+  selectInterviewDraws,
+  selectPreviousInterviewSitting,
+  selectTargetCompany,
+} from '@/store/selectors';
 import {
   interviewAdvanced,
   interviewCleared,
@@ -123,6 +127,8 @@ export default function InterviewPage() {
   // Held here rather than in the slice because it is answered BEFORE a sitting exists. Optional
   // throughout: skipping it must cost nothing, or the page acquires a gate where it had none.
   const [expectation, setExpectation] = useState<SelfAssessmentValue | null>(null);
+  const [companyScope, setCompanyScope] = useState(false);
+  const targetCompany = useAppSelector(selectTargetCompany);
   // Set when "Need a hint" is pressed with nothing left to give. See takeHint.
   const [hintNote, setHintNote] = useState(false);
 
@@ -184,9 +190,20 @@ export default function InterviewPage() {
     showLanding ? selectInterviewDraws(state, today) : NO_DRAWS,
   );
 
+  // Optional company scope. Narrows the pool to the patterns the target company's OWN page names
+  // — which is the only thing a company target can ever do here, because no per-problem company
+  // data exists and none ever will. Falls back to the full pool rather than emptying the page if
+  // the scope leaves nothing: an interview on something is better than an empty landing.
+  const scoped = useMemo(() => {
+    if (!companyScope || !targetCompany) return draws;
+    const patterns = new Set(targetCompany.patterns);
+    const inScope = draws.filter((draw) => patterns.has(draw.question.pattern));
+    return inScope.length > 0 ? inScope : draws;
+  }, [companyScope, targetCompany, draws]);
+
   const proposedDraw = useMemo(
-    () => (draws.length === 0 ? undefined : draws[rerolls % draws.length]),
-    [draws, rerolls],
+    () => (scoped.length === 0 ? undefined : scoped[rerolls % scoped.length]),
+    [scoped, rerolls],
   );
 
   const proposed = proposedDraw?.question;
@@ -500,6 +517,24 @@ export default function InterviewPage() {
                     after={<span className="text-xs text-muted-foreground">Comfortable</span>}
                   />
                 </div>
+
+                {/* The company scope. Names the company, never a pattern: a target maps to seven
+                    to twelve of them, so this narrows the draw without saying what is coming. */}
+                {targetCompany && (
+                  <label className="flex max-w-prose items-start gap-2.5 text-sm text-muted-foreground">
+                    <input
+                      type="checkbox"
+                      checked={companyScope}
+                      onChange={(event) => setCompanyScope(event.target.checked)}
+                      className="mt-0.5 h-4 w-4 shrink-0 accent-primary"
+                    />
+                    <span>
+                      Draw from the topics {targetCompany.name}&apos;s own prep page names. That is
+                      the whole of what targeting them can do — nobody publishes the problems they
+                      ask.
+                    </span>
+                  </label>
+                )}
 
                 <div className="flex flex-wrap items-center gap-2">
                   <Button onClick={() => begin(proposed.id)}>

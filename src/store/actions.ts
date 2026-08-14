@@ -83,6 +83,7 @@ import {
 } from '@/store/slices/sessionSlice';
 import { settingsUpdated } from '@/store/slices/settingsSlice';
 import { courseWeekById } from '@/data/aimlCourse';
+import { companyById } from '@/data/companies';
 import { mlTrackById } from '@/data/mlTracks';
 import { mlProjectById } from '@/data/mlProjects';
 import {
@@ -494,6 +495,27 @@ export const deferTaskToTomorrow = (id: string): AppThunk => (dispatch) => {
 export const setDailyCapacity = (minutes: number): AppThunk => (dispatch) => {
   if (!Number.isInteger(minutes) || minutes < CAPACITY_MIN || minutes > CAPACITY_MAX) return;
   dispatch(settingsUpdated({ dailyCapacityMin: minutes }));
+};
+
+/**
+ * Set (or clear) the company being prepared for.
+ *
+ * Guarded to companies that actually exist AND whose own page enumerates topics: those are the
+ * only ones a target can do anything with, because the only thing a company target may scope is
+ * patterns, and only the topics tier has any. Setting a categories-tier company would produce a
+ * target that silently changes nothing, which is worse than refusing it.
+ *
+ * `null` clears. The key is dropped from the payload entirely rather than written as null, so a
+ * learner who never set a target still produces a pre-V8-identical payload.
+ */
+export const setTargetCompany = (companyId: string | null): AppThunk => (dispatch) => {
+  if (companyId === null) {
+    dispatch(settingsUpdated({ targetCompanyId: undefined }));
+    return;
+  }
+  const company = companyById[companyId];
+  if (!company || company.evidence !== 'topics') return;
+  dispatch(settingsUpdated({ targetCompanyId: companyId }));
 };
 
 /**

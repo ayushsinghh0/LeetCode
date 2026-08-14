@@ -102,24 +102,21 @@ export default function ContestPage() {
     return () => clearInterval(id);
   }, [running]);
 
-  // The clock only counts time the learner is actually here for. Leaving the page or hiding the
-  // tab settles whatever is running onto the active problem and stops it; without this, walking
-  // away for forty minutes credited those minutes to a problem nobody was looking at, and
-  // `analyzeContest` would then read that as a stall and name a pattern weakness from it — the
-  // exact invented claim contest.ts's header promises never to make. Coming back requires
-  // pressing "Put on the clock" again, which is the honest gesture anyway.
+  // Unmount settles whatever is on the clock: a page that is gone cannot be paused, and minutes
+  // credited to a problem nobody has open would be exactly the invented claim contest.ts's header
+  // refuses to make.
+  //
+  // Hiding the tab deliberately does NOT settle. It used to, on `visibilitychange → hidden`, and
+  // that sounded protective while being fatal: the only sanctioned work surface here is the
+  // external LeetCode link, so *attempting* a problem always hid this tab. Every unsolved problem
+  // therefore settled at ~0 minutes, classified `untouched`, every sitting came out
+  // `inconclusive`, and the whole contest→weakness evidence path could never carry anything. The
+  // contract is now the explicit control instead: arming a problem is a deliberate commitment,
+  // and Pause is the learner's own honest exit. The copy beside the clock says so.
   useEffect(() => {
     if (!running) return;
-    function stopClock() {
-      dispatch(blurContestProblem());
-    }
-    function onVisibility() {
-      if (document.visibilityState === 'hidden') stopClock();
-    }
-    document.addEventListener('visibilitychange', onVisibility);
     return () => {
-      document.removeEventListener('visibilitychange', onVisibility);
-      stopClock(); // unmount: navigating away, or the contest ending
+      dispatch(blurContestProblem()); // unmount: navigating away, or the contest ending
     };
   }, [running, dispatch]);
 
@@ -171,7 +168,8 @@ export default function ContestPage() {
               </p>
               <p className="max-w-prose text-sm leading-relaxed text-muted-foreground">
                 Time counts only while a problem is on the clock, and you can move the clock
-                freely. At the end there is no score and no rank — just an honest reading of each
+                freely; once a problem is on it, it keeps counting until you pause it, tab away or
+                not. At the end there is no score and no rank — just an honest reading of each
                 problem, and the one pattern worth acting on when the set supports a claim at all.
               </p>
               {/* What the seed actually guarantees. The old line promised "reloading rebuilds the
@@ -216,7 +214,7 @@ export default function ContestPage() {
 
           <Section
             title="The set"
-            support="Time counts only while a problem is on the clock, and only while this page is open."
+            support="Time counts only while a problem is on the clock. Once a problem is on it, the clock runs until you pause it — including while you work in another tab, which is where the solving actually happens. Pause it when you step away."
           >
             <RuledList aria-label="Contest problems" as="ol">
               {problems.map(({ question, order, targetMinutes }) => {

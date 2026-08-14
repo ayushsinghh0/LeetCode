@@ -358,7 +358,7 @@ export default function AnalyticsPage() {
       {/* --------------------------------------------------------------------- 5. Next ------ */}
       <Section
         title="What should I do next?"
-        support="One weakness model, built from every signal the record holds: drill misses, failed recalls, your own ratings, unfinished attempts, time against estimate, hint use, and whether an idea carried into its next disguise. Recent evidence outweighs old, and nothing is scored on a single observation."
+        support="One weakness model, built from every signal the record holds: drill misses, failed recalls, your own ratings, unfinished attempts, time against estimate, hint use, stalls under a contest clock, and whether an idea carried into its next disguise. Recent evidence outweighs old, and nothing is scored on a single observation."
       >
         {weakness.length === 0 ? (
           <p className="max-w-prose text-sm text-muted-foreground">

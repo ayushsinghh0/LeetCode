@@ -570,9 +570,25 @@ export const selectInsights = createSelector(
     selectCourseByWeekId,
     selectTransferRecord,
     (state: RootState) => state.practice.sittings,
+    selectContestsByDate,
+    (state: RootState) => state.interviews.sittings,
     selectTodayArg,
   ],
-  (byId, dayLogs, drills, weakness, forecast, capacityMin, courseActiveDates, courseByWeekId, transfer, sittings, today) =>
+  (
+    byId,
+    dayLogs,
+    drills,
+    weakness,
+    forecast,
+    capacityMin,
+    courseActiveDates,
+    courseByWeekId,
+    transfer,
+    sittings,
+    contests,
+    interviews,
+    today,
+  ) =>
     buildInsights(
       {
         today,
@@ -595,6 +611,10 @@ export const selectInsights = createSelector(
         // different numbers about the same recalls on the same screen.
         courseByWeekId,
         transfer,
+        // The V8 performance channels. Both are derived records of finished sittings; the live
+        // slices never persist, so there is nothing here that a reload could invent.
+        contests,
+        interviews,
       },
       courseActiveDates,
     ),

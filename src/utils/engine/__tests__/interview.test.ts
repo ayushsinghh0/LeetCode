@@ -6,10 +6,14 @@ import {
   LAST_STAGE,
   MAX_FOLLOW_UPS,
   REVEALS,
+  DRAW_BASIS_NOTE,
+  FOLLOW_UP_OUTCOMES,
+  FOLLOW_UP_OUTCOME_LABEL,
   SELF_ASSESSMENT,
   SELF_ASSESSMENT_SCALE,
   STAGES,
   followUpsFor,
+  interviewDraws,
   formatElapsed,
   isRevealed,
   isSelfAssessmentValue,
@@ -321,6 +325,12 @@ describe('self-assessment', () => {
     expect(isSelfAssessmentValue(3.5)).toBe(false);
   });
 
+  test('follow-up outcomes are the learner’s own three-way call, never a mark', () => {
+    expect(FOLLOW_UP_OUTCOMES).toEqual(['held', 'partly', 'missed']);
+    // "Missed" describes the answer, not the person, and nothing converts these into a figure.
+    expect(Object.values(FOLLOW_UP_OUTCOME_LABEL).join(' ')).not.toMatch(/fail|wrong|bad/i);
+  });
+
   test('exports no aggregate — there is no judge here and a total would look like one', () => {
     // Guards the design decision, not an implementation detail: any function that folds five
     // self-reports into one number would be the app inventing an assessment it never observed.
@@ -328,5 +338,84 @@ describe('self-assessment', () => {
       /score|grade|total|verdict|rating$/i.test(key),
     );
     expect(suspicious).toEqual([]);
+  });
+});
+
+describe('interviewDraws — which problem, and on what grounds', () => {
+  const pool: Question[] = [
+    q({ id: 1, pattern: 'hash-maps', familyId: 'fam-a' }),
+    q({ id: 2, pattern: 'graphs', familyId: 'fam-b' }),
+    q({ id: 3, pattern: 'greedy', familyId: 'fam-c' }),
+    q({ id: 4, pattern: 'stacks' }),
+    q({ id: 5, pattern: 'trie' }),
+  ];
+  const draw = (over = {}) =>
+    interviewDraws({
+      pool,
+      seed: 'interview:2026-07-30',
+      stalledQuestionIds: [],
+      weakPatterns: [],
+      hintReliantFamilyIds: [],
+      ...over,
+    });
+
+  test('a problem that stalled under a contest clock comes first — the interview is the re-serve', () => {
+    const order = draw({ stalledQuestionIds: [3], weakPatterns: ['graphs'] });
+
+    expect(order[0]!.question.id).toBe(3);
+    expect(order[0]!.basis).toBe('contest-stall');
+  });
+
+  test('then problems in the areas the one weakness model marked shaky', () => {
+    const order = draw({ weakPatterns: ['graphs'] });
+
+    expect(order[0]!.question.id).toBe(2);
+    expect(order[0]!.basis).toBe('weak-pattern');
+  });
+
+  test('then problems whose family holds something the hint ladder had to carry', () => {
+    const order = draw({ hintReliantFamilyIds: ['fam-c'] });
+
+    expect(order[0]!.question.id).toBe(3);
+    expect(order[0]!.basis).toBe('hint-reliant-family');
+  });
+
+  test('every problem in the pool is offered exactly once — a reroll can always walk on', () => {
+    const order = draw({ stalledQuestionIds: [3], weakPatterns: ['graphs'], hintReliantFamilyIds: ['fam-a'] });
+
+    expect(order).toHaveLength(pool.length);
+    expect(new Set(order.map((d) => d.question.id)).size).toBe(pool.length);
+  });
+
+  test('the same seed draws the same order — a reload is not a reshuffle', () => {
+    const a = draw({ weakPatterns: ['graphs'] });
+    const b = draw({ weakPatterns: ['graphs'] });
+    const c = interviewDraws({
+      pool,
+      seed: 'interview:2026-07-31',
+      stalledQuestionIds: [],
+      weakPatterns: [],
+      hintReliantFamilyIds: [],
+    });
+
+    expect(a.map((d) => d.question.id)).toEqual(b.map((d) => d.question.id));
+    expect(a.map((d) => d.question.id)).not.toEqual(c.map((d) => d.question.id));
+  });
+
+  test('with no evidence at all it is still a draw, and it claims nothing', () => {
+    const order = draw();
+
+    expect(order).toHaveLength(pool.length);
+    expect(order.every((d) => d.basis === 'open-ground')).toBe(true);
+    expect(DRAW_BASIS_NOTE['open-ground']).toBeNull();
+  });
+
+  test('no basis note names a pattern — the landing must not leak what it is testing', () => {
+    for (const note of Object.values(DRAW_BASIS_NOTE)) {
+      if (note === null) continue;
+      expect(note).not.toMatch(/graphs|hash map|sliding window|greedy|stack/i);
+      // And none of them grades the learner for having been drawn there.
+      expect(note).not.toMatch(/weak at|bad at|struggling|poor/i);
+    }
   });
 });

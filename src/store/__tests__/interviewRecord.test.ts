@@ -106,13 +106,21 @@ describe('interviewsSlice', () => {
     // A stale dispatch naming the older sitting must not rewrite the newer one's numbers.
     state = reducer(
       state,
-      interviewSittingAmended({ questionId: 1, date: '2026-07-28', assessment: { clarity: 5 } }),
+      interviewSittingAmended({
+        questionId: 1,
+        date: '2026-07-28',
+        patch: { assessment: { clarity: 5 } },
+      }),
     );
     expect(state.sittings[1]!.assessment).toEqual({ clarity: 3 });
 
     state = reducer(
       state,
-      interviewSittingAmended({ questionId: 2, date: '2026-07-30', assessment: { clarity: 5 } }),
+      interviewSittingAmended({
+        questionId: 2,
+        date: '2026-07-30',
+        patch: { assessment: { clarity: 5 } },
+      }),
     );
     expect(state.sittings[1]!.assessment).toEqual({ clarity: 5 });
   });
@@ -121,7 +129,9 @@ describe('interviewsSlice', () => {
     const seeded = reducer(undefined, interviewSittingRecorded(sitting(TODAY, 1)));
     const imported = reducer(
       seeded,
-      stateImported({ interviews: { sittings: [sitting('2026-06-01', 9)] } } as PersistedStateV1),
+      stateImported({
+        interviews: { sittings: [sitting('2026-06-01', 9)] },
+      } as unknown as PersistedStateV1),
     );
     expect(imported.sittings.map((s) => s.questionId)).toEqual([9]);
 

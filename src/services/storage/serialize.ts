@@ -483,6 +483,39 @@ export function validatePersisted(raw: unknown): PersistedStateV1 | null {
         if (typeof value !== 'number' || !Number.isInteger(value) || value < 1 || value > 5) return null;
         parsedAssessment[dimension] = value;
       }
+      // The optional half — absent on records written before these were captured. Each is
+      // admitted at least as leniently as the write path can produce it.
+      const { expectation, followUpsAsked, followUpsHeld, reflection } = entry;
+      if (expectation !== undefined && expectation !== null) {
+        if (
+          typeof expectation !== 'number' ||
+          !Number.isInteger(expectation) ||
+          expectation < 1 ||
+          expectation > 5
+        ) {
+          return null;
+        }
+      }
+      if (followUpsAsked !== undefined) {
+        if (
+          typeof followUpsAsked !== 'number' ||
+          !Number.isInteger(followUpsAsked) ||
+          followUpsAsked < 0
+        ) {
+          return null;
+        }
+      }
+      if (followUpsHeld !== undefined && followUpsHeld !== null) {
+        if (typeof followUpsHeld !== 'number' || !Number.isInteger(followUpsHeld) || followUpsHeld < 0) {
+          return null;
+        }
+        if (typeof followUpsAsked === 'number' && followUpsHeld > followUpsAsked) return null;
+      }
+      // Learner prose is length-unbounded here exactly as `QuestionProgress.reflection` is: the
+      // write path imposes no cap, so a cap here would be a validator stricter than its own
+      // writer, which is the shape of every quarantine bug this file exists to prevent.
+      if (reflection !== undefined && typeof reflection !== 'string') return null;
+
       sittings.push({
         date,
         questionId,
@@ -492,6 +525,10 @@ export function validatePersisted(raw: unknown): PersistedStateV1 | null {
         minutes,
         hintsTaken,
         hintsAvailable,
+        ...(expectation !== undefined ? { expectation: expectation as number | null } : {}),
+        ...(followUpsAsked !== undefined ? { followUpsAsked: followUpsAsked as number } : {}),
+        ...(followUpsHeld !== undefined ? { followUpsHeld: followUpsHeld as number | null } : {}),
+        ...(reflection !== undefined ? { reflection: reflection as string } : {}),
       });
     }
     interviews = { sittings };

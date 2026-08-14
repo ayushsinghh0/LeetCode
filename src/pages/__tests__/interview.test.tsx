@@ -10,16 +10,23 @@ import { makeStore } from '@/store/store';
 import { revealHint } from '@/store/actions';
 import { interviewSittingRecorded } from '@/store/slices/interviewsSlice';
 import type { InterviewState } from '@/store/slices/interviewSlice';
-import { hashSeed, mulberry32, seededShuffle } from '@/utils/engine/prng';
-import { followUpsFor } from '@/utils/engine/interview';
+import { followUpsFor, interviewDraws } from '@/utils/engine/interview';
+import { initialProgress } from '@/utils/engine/spacedRepetition';
 import type { Question } from '@/types';
 
 const questions = questionsData as Question[];
 
 // The page seeds its proposal off todayISO(), so the pinned clock makes the landing screen
-// reproducible; the test recomputes the same draw.
+// reproducible; the test recomputes the same draw. On a fresh store there is no evidence to lead
+// the ranking, so every problem sits in the `open-ground` tier and the draw is that tier's shuffle.
 const TODAY = '2026-07-30';
-const proposed = seededShuffle(questions, mulberry32(hashSeed(`interview:${TODAY}`)))[0]!;
+const proposed = interviewDraws({
+  pool: questions,
+  seed: `interview:${TODAY}`,
+  stalledQuestionIds: [],
+  weakPatterns: [],
+  hintReliantFamilyIds: [],
+})[0]!.question;
 
 // The running/finished shapes are driven off a preloaded slice rather than the day's draw, so the
 // reveal assertions can name a problem that genuinely has a family and recorded bounds.
@@ -52,6 +59,10 @@ function interviewStore(overrides: Partial<InterviewState> = {}) {
       hintsTaken: 0,
       startedOn: TODAY,
       finishedOn: null,
+      expectation: null,
+      drawBasis: null,
+      followUpOutcomes: {},
+      reflection: '',
       ...overrides,
     },
   });
@@ -83,6 +94,42 @@ describe('InterviewPage — choosing a problem', () => {
     fireEvent.click(screen.getByRole('button', { name: /different problem/i }));
 
     expect(screen.queryByRole('heading', { level: 2, name: proposed.title })).not.toBeInTheDocument();
+  });
+
+  test('an optional expectation is asked before starting, and never shown back during the sitting', () => {
+    const store = makeStore();
+    renderWithStore(<InterviewPage />, store);
+
+    const group = screen.getByRole('radiogroup', { name: 'Expectation before starting' });
+    fireEvent.click(within(group).getByRole('radio', { name: '2' }));
+    fireEvent.click(screen.getByRole('button', { name: /begin interview/i }));
+
+    expect(store.getState().interview.expectation).toBe(2);
+    // A prediction visible while working is a target the learner answers to; this measures
+    // calibration rather than setting one.
+    expect(
+      screen.queryByRole('radiogroup', { name: 'Expectation before starting' }),
+    ).not.toBeInTheDocument();
+  });
+
+  test('skipping the expectation costs nothing and records nothing', () => {
+    const store = makeStore();
+    renderWithStore(<InterviewPage />, store);
+
+    fireEvent.click(screen.getByRole('button', { name: /begin interview/i }));
+
+    expect(store.getState().interview.questionId).not.toBeNull();
+    expect(store.getState().interview.expectation).toBeNull();
+  });
+
+  test('the landing states no reason for its draw — that would name what is coming', () => {
+    // The ranking is evidence-led, and saying so here would leak the technique three stages before
+    // the pattern gate opens, as well as turning opening the page into a verdict.
+    renderWithStore(<InterviewPage />, makeStore());
+
+    expect(document.body.textContent ?? '').not.toMatch(
+      /drawn from|chosen from|not holding|marks as|stalled/i,
+    );
   });
 
   test('lists the ten stages and what each one unlocks, before anything is committed', () => {
@@ -214,6 +261,10 @@ describe('InterviewPage — the hint gate', () => {
         hintsTaken: 0,
         startedOn: TODAY,
         finishedOn: null,
+        expectation: null,
+        drawBasis: null,
+        followUpOutcomes: {},
+        reflection: '',
       },
     });
     renderWithStore(<InterviewPage />, store);
@@ -257,9 +308,18 @@ describe('InterviewPage — the hint gate', () => {
   });
 
   test('beginning an interview snapshots the hint record the question already carried', () => {
-    const store = makeStore();
-    act(() => {
-      store.dispatch(revealHint(proposed.id, 2));
+    // Every problem carries the same history here on purpose: the draw is evidence-led since V8,
+    // and hint use IS evidence, so revealing a rung on one problem can legitimately change which
+    // problem is offered. Giving the whole pool the same record makes the assertion about the
+    // snapshot rather than about the draw.
+    const store = makeStore({
+      progress: {
+        byId: Object.fromEntries(
+          questions.map((q) => [q.id, { ...initialProgress(), hintLevelUsed: 2 }]),
+        ),
+        dayLogs: {},
+        startDate: TODAY,
+      },
     });
     renderWithStore(<InterviewPage />, store);
 
@@ -450,6 +510,63 @@ describe('InterviewPage — self-report and self-assessment', () => {
   test('a first sitting says nothing about a previous one', () => {
     renderWithStore(<InterviewPage />, interviewStore({ finishedOn: TODAY }));
     expect(screen.queryByText(/last sitting/i)).not.toBeInTheDocument();
+  });
+
+  test('the follow-up round is called by the learner, three ways, and counted on the record', () => {
+    const store = interviewStore({ finishedOn: TODAY });
+    store.dispatch(
+      interviewSittingRecorded({
+        date: TODAY,
+        questionId: subject.id,
+        stageReached: 10,
+        outcomes: {},
+        assessment: {},
+        minutes: 30,
+        hintsTaken: 0,
+        hintsAvailable: 3,
+      }),
+    );
+    renderWithStore(<InterviewPage />, store);
+
+    const group = screen.getByRole('radiogroup', { name: `${followUps[0]!.label} follow-up` });
+    fireEvent.click(within(group).getByRole('radio', { name: 'Held it' }));
+
+    expect(store.getState().interview.followUpOutcomes[followUps[0]!.axis]).toBe('held');
+    const banked = store.getState().interviews.sittings[0]!;
+    expect(banked.followUpsAsked).toBe(followUps.length);
+    expect(banked.followUpsHeld).toBe(1);
+  });
+
+  test('the debrief says why this problem came up, and closes with one optional line', () => {
+    const store = interviewStore({ finishedOn: TODAY, drawBasis: 'contest-stall' });
+    store.dispatch(
+      interviewSittingRecorded({
+        date: TODAY,
+        questionId: subject.id,
+        stageReached: 10,
+        outcomes: {},
+        assessment: {},
+        minutes: 30,
+        hintsTaken: 0,
+        hintsAvailable: 3,
+      }),
+    );
+    renderWithStore(<InterviewPage />, store);
+
+    expect(screen.getByText(/real time went into it under a contest clock/i)).toBeInTheDocument();
+
+    fireEvent.change(screen.getByRole('textbox', { name: /one line about this sitting/i }), {
+      target: { value: '  Should have written the brute force first.  ' },
+    });
+    expect(store.getState().interviews.sittings[0]!.reflection).toBe(
+      'Should have written the brute force first.',
+    );
+  });
+
+  test('a draw with no evidence behind it claims no reason at all', () => {
+    renderWithStore(<InterviewPage />, interviewStore({ finishedOn: TODAY, drawBasis: 'open-ground' }));
+
+    expect(screen.queryByText(/was chosen/i)).not.toBeInTheDocument();
   });
 
   test('"Interview another problem" returns to the landing screen', () => {

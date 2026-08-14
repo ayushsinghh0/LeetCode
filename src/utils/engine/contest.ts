@@ -21,7 +21,13 @@
 //
 // Pure and deterministic like every engine module: no clock, no store, no randomness beyond the
 // seeded PRNG the caller supplies a seed for.
-import type { Difficulty, PatternId, Question, QuestionProgress } from '@/types';
+import type {
+  ContestStallRecord,
+  Difficulty,
+  PatternId,
+  Question,
+  QuestionProgress,
+} from '@/types';
 import { hashSeed, mulberry32 } from '@/utils/engine/prng';
 
 /* ------------------------------------------------------------------------------------------- */
@@ -305,6 +311,26 @@ export function analyzeContest(contest: Contest, attempts: ContestAttempt[]): Co
     next,
     inconclusive,
   };
+}
+
+/**
+ * The stalled problems a PERSISTED sitting still holds, applying the same rule the live analysis
+ * applied. Kept here beside that rule rather than in the reader, so "what counts as a stall" is
+ * decided once: a set-aside with real minutes behind it is evidence, and a set-aside without them
+ * is a decision and nothing more.
+ *
+ * A record written before per-problem rows existed yields nothing, which is correct — its stalls
+ * were only ever known at pattern resolution.
+ */
+export function stalledIdsFromRecord(record: ContestStallRecord): number[] {
+  return (record.problems ?? [])
+    .filter(
+      (problem) =>
+        problem.outcome === 'stalled' ||
+        (problem.outcome === 'set-aside' &&
+          hasRealTime(problem.minutesSpent, problem.targetMinutes)),
+    )
+    .map((problem) => problem.questionId);
 }
 
 /* ------------------------------------------------------------------------------------------- */

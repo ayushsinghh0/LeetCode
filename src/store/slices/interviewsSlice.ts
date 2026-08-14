@@ -58,13 +58,18 @@ const interviewsSlice = createSlice({
       action: PayloadAction<{
         questionId: number;
         date: string;
-        assessment: Record<string, number>;
+        patch: Partial<
+          Pick<
+            InterviewSittingRecord,
+            'assessment' | 'followUpsAsked' | 'followUpsHeld' | 'reflection'
+          >
+        >;
       }>,
     ) {
       const last = state.sittings[state.sittings.length - 1];
       if (!last) return;
       if (last.questionId !== action.payload.questionId || last.date !== action.payload.date) return;
-      last.assessment = { ...action.payload.assessment };
+      Object.assign(last, action.payload.patch);
     },
   },
   extraReducers: (builder) => {

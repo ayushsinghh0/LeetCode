@@ -53,12 +53,23 @@ import {
   contestWrongSubmitLogged,
 } from '@/store/slices/contestSlice';
 import { contestSittingRecorded } from '@/store/slices/contestsSlice';
-import { interviewFinished, selfAssessmentSet } from '@/store/slices/interviewSlice';
+import {
+  followUpOutcomeSet,
+  interviewFinished,
+  interviewReflected,
+  selfAssessmentSet,
+} from '@/store/slices/interviewSlice';
 import {
   interviewSittingAmended,
   interviewSittingRecorded,
 } from '@/store/slices/interviewsSlice';
-import { stageIndex, type SelfAssessmentId } from '@/utils/engine/interview';
+import {
+  followUpsFor,
+  stageIndex,
+  type FollowUpAxis,
+  type FollowUpOutcome,
+  type SelfAssessmentId,
+} from '@/utils/engine/interview';
 import { familyById } from '@/data/curriculum';
 import { intentionsSet, journalWritten, sittingRecorded } from '@/store/slices/practiceSlice';
 import { normalizeIntentions, normalizeSitting, sittingCounts } from '@/utils/engine/practice';
@@ -606,6 +617,9 @@ export const finishInterview = (): AppThunk => (dispatch, getState) => {
       // both unpersistable and untrue.
       hintsTaken: Math.min(Math.max(0, Math.floor(interview.hintsTaken)), hintsAvailable),
       hintsAvailable,
+      // An expectation nobody offered stays null. Defaulting it to a middling 3 would fabricate
+      // the very reading the calibration comparison exists to make.
+      expectation: interview.expectation ?? null,
     }),
   );
 };
@@ -635,7 +649,63 @@ export const rateInterview =
       interviewSittingAmended({
         questionId: interview.questionId,
         date: interview.startedOn,
-        assessment,
+        patch: { assessment },
+      }),
+    );
+  };
+
+/**
+ * One follow-up answered, in the learner's own three-way call.
+ *
+ * What reaches the record is a count, not the individual calls: how many follow-ups the sitting
+ * actually reached, and how many the learner said they held. The axis-level detail belongs to the
+ * sitting on screen; a persisted per-axis history would invite exactly the cross-sitting
+ * arithmetic ("your memory axis is 40%") that this feature has no judge to justify.
+ */
+export const answerInterviewFollowUp =
+  (axis: FollowUpAxis, outcome: FollowUpOutcome): AppThunk =>
+  (dispatch, getState) => {
+    dispatch(followUpOutcomeSet({ axis, outcome }));
+
+    const interview = getState().interview;
+    if (interview.questionId === null || interview.startedOn === null) return;
+    const question = questionById.get(interview.questionId);
+    if (!question) return;
+    const family = question.familyId !== undefined ? familyById[question.familyId] : undefined;
+
+    const asked = followUpsFor(question, family).length;
+    const answered = Object.values(interview.followUpOutcomes);
+    const held = answered.filter((value) => value === 'held').length;
+
+    dispatch(
+      interviewSittingAmended({
+        questionId: interview.questionId,
+        date: interview.startedOn,
+        patch: {
+          followUpsAsked: asked,
+          // Null until the learner has called at least one: zero held out of nothing rated is a
+          // claim about a round that never happened.
+          followUpsHeld: answered.length > 0 ? Math.min(held, asked) : null,
+        },
+      }),
+    );
+  };
+
+/** The closing line, kept as written. No parsing, no scoring, no requirement to write one. */
+export const reflectOnInterview =
+  (line: string): AppThunk =>
+  (dispatch, getState) => {
+    dispatch(interviewReflected({ line }));
+
+    const interview = getState().interview;
+    if (interview.questionId === null || interview.startedOn === null) return;
+    const trimmed = line.trim();
+
+    dispatch(
+      interviewSittingAmended({
+        questionId: interview.questionId,
+        date: interview.startedOn,
+        patch: { reflection: trimmed },
       }),
     );
   };

@@ -4,6 +4,9 @@ import {
   FIRST_STAGE,
   STAGES,
   isSelfAssessmentValue,
+  type DrawBasis,
+  type FollowUpAxis,
+  type FollowUpOutcome,
   type SelfAssessmentId,
   type SelfAssessmentValue,
   type StageId,
@@ -65,6 +68,20 @@ export interface InterviewState {
   startedOn: string | null;
   /** ISO date it ended. Non-null means the attempt is over and the debrief is unlocked. */
   finishedOn: string | null;
+  /**
+   * What the learner said to expect before starting, 1..5, or null when they did not say.
+   *
+   * Asked BEFORE the attempt and never shown back during it: a prediction the learner can see
+   * while working is a target they will unconsciously answer to, and this is meant to measure
+   * calibration, not to set one.
+   */
+  expectation: SelfAssessmentValue | null;
+  /** Why this problem was drawn. Held here and stated only at the debrief — see `DrawBasis`. */
+  drawBasis: DrawBasis | null;
+  /** The learner's own call on each follow-up they answered, keyed by axis. Sparse. */
+  followUpOutcomes: Partial<Record<FollowUpAxis, FollowUpOutcome>>;
+  /** One optional closing line at the debrief. Their words, kept as written. */
+  reflection: string;
 }
 
 const initialState: InterviewState = {
@@ -78,6 +95,10 @@ const initialState: InterviewState = {
   hintsTaken: 0,
   startedOn: null,
   finishedOn: null,
+  expectation: null,
+  drawBasis: null,
+  followUpOutcomes: {},
+  reflection: '',
 };
 
 /** Fold the running segment into the settled total and stop the clock. Whole seconds, no drift. */
@@ -102,6 +123,10 @@ const interviewSlice = createSlice({
         nowMs: number;
         /** The question's all-time `hintLevelUsed` at this instant. See `hintsAtStart`. */
         hintsAtStart: number;
+        /** Optional pre-attempt prediction, 1..5. */
+        expectation?: number | null;
+        /** Why this problem came up. Stated only at the debrief. */
+        drawBasis?: DrawBasis | null;
       }>,
     ) {
       state.questionId = action.payload.questionId;
@@ -114,6 +139,12 @@ const interviewSlice = createSlice({
       state.hintsTaken = 0;
       state.startedOn = action.payload.date;
       state.finishedOn = null;
+      const expectation = action.payload.expectation;
+      state.expectation =
+        typeof expectation === 'number' && isSelfAssessmentValue(expectation) ? expectation : null;
+      state.drawBasis = action.payload.drawBasis ?? null;
+      state.followUpOutcomes = {};
+      state.reflection = '';
     },
     // The page supplies the destination rather than asking the reducer to walk the list — the
     // stage order lives in the engine, and two places knowing it is one place too many.
@@ -158,6 +189,25 @@ const interviewSlice = createSlice({
       if (!isSelfAssessmentValue(action.payload.value)) return;
       state.selfAssessment[action.payload.id] = action.payload.value;
     },
+    /**
+     * The learner's own call on a follow-up. Debrief-only, so it is deliberately NOT guarded
+     * against a finished sitting: the follow-up round is answered after the attempt ends, which
+     * is when a real interviewer asks these too.
+     */
+    followUpOutcomeSet(
+      state,
+      action: PayloadAction<{ axis: FollowUpAxis; outcome: FollowUpOutcome }>,
+    ) {
+      if (state.questionId === null) return;
+      state.followUpOutcomes[action.payload.axis] = action.payload.outcome;
+    },
+
+    /** One closing line, kept exactly as written. Debrief-only, same reasoning. */
+    interviewReflected(state, action: PayloadAction<{ line: string }>) {
+      if (state.questionId === null) return;
+      state.reflection = action.payload.line;
+    },
+
     // Ending is allowed from any stage — a real interview can stop early, and an app that
     // refuses to let you stop is not rehearsing anything realistic.
     interviewFinished(state, action: PayloadAction<{ date: string; nowMs: number }>) {
@@ -183,6 +233,8 @@ export const {
   interviewHintTaken,
   stageOutcomeSet,
   selfAssessmentSet,
+  followUpOutcomeSet,
+  interviewReflected,
   interviewFinished,
   interviewCleared,
 } = interviewSlice.actions;

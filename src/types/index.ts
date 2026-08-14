@@ -260,6 +260,18 @@ export interface InterviewSittingRecord {
   minutes: number;
   hintsTaken: number;
   hintsAvailable: number;
+  /**
+   * What the learner expected before starting, 1..5, or null when they did not say. Optional and
+   * nullable on purpose: it is the calibration half of the V7 confidence model applied to a whole
+   * sitting, and an expectation nobody offered must read as absent rather than as a middling 3.
+   */
+  expectation?: number | null;
+  /** Follow-ups the sitting actually reached. The denominator; without it a count means nothing. */
+  followUpsAsked?: number;
+  /** How many of them the learner said they held. Null when they rated none. */
+  followUpsHeld?: number | null;
+  /** The learner's own closing line. Their words, never parsed, never scored. */
+  reflection?: string;
 }
 
 export interface InterviewsState {

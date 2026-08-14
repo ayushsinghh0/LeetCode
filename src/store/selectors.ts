@@ -40,12 +40,14 @@ import { patternWeakness, transferRecord, type PatternWeakness } from '@/utils/e
 import { isHintReliant } from '@/utils/engine/hints';
 import {
   analyzeContest,
+  stalledIdsFromRecord,
   timeReading,
   type Contest,
   type ContestAnalysis,
   type ContestAttempt,
   type ContestProblem,
 } from '@/utils/engine/contest';
+import { interviewDraws, type InterviewDraw } from '@/utils/engine/interview';
 import {
   buildRevisionSession,
   type RevisionCandidate,
@@ -726,6 +728,53 @@ export const selectDaysAway = createSelector(
 );
 
 // --- Interviews ------------------------------------------------------------------------------
+
+/**
+ * The problems an interview could draw, most worth interviewing first, each with its grounds.
+ *
+ * This assembles the inputs; `interviewDraws` decides the order. Note what it reads: the ONE
+ * weakness model, the persisted contest record, and the existing hint-reliance rule — three
+ * signals that already exist, joined here rather than re-derived. Interview mode computes no
+ * weakness of its own, and it may not: a second opinion about what the learner is bad at is the
+ * failure this codebase has already had twice.
+ */
+export const selectInterviewDraws = createSelector(
+  [selectQuestions, selectProgressById, selectContestsByDate, selectPatternWeakness, selectTodayArg],
+  (all, byId, contests, weakness, todayArg): InterviewDraw[] => {
+    const pool = all.filter((question) => {
+      const status = byId[question.id]?.status ?? 'unsolved';
+      return status === 'unsolved' || status === 'in_progress';
+    });
+
+    // Every stall the persisted record still holds. No recency cutoff on purpose: a stalled
+    // problem stays in the pool only until it is solved, so solving it is what retires the
+    // evidence — an arbitrary "last 30 days" would just hide work that is still undone.
+    const stalledQuestionIds = Object.values(contests).flatMap(stalledIdsFromRecord);
+
+    const hintReliantFamilyIds = Array.from(
+      new Set(
+        all
+          .filter((question) => {
+            const progress = byId[question.id];
+            if (!progress || question.familyId === undefined) return false;
+            return (
+              isHintReliant(progress.hintLevelUsed) &&
+              !progress.revisionHistory.some((event) => event.passed)
+            );
+          })
+          .map((question) => question.familyId!),
+      ),
+    );
+
+    return interviewDraws({
+      pool,
+      seed: `interview:${todayArg}`,
+      stalledQuestionIds,
+      weakPatterns: weakness.map((entry) => entry.id),
+      hintReliantFamilyIds,
+    });
+  },
+);
 
 /**
  * The sitting before this one, or null when there is no earlier one to compare against.

@@ -38,6 +38,7 @@ const candidate = (
   failures: 0,
   confidence: null,
   daysSinceSeen: 3,
+  hintReliant: false,
   ...overrides,
 });
 
@@ -233,6 +234,42 @@ describe('buildRevisionSession — priority and its explanation', () => {
     expect(lead.title).toBe('Q2');
     expect(lead.why).toContain('Graphs');
     expect(lead.why).not.toMatch(/score|0\.\d/);
+  });
+
+  test('a hint-reliant item takes the deep slot — reconstruction is the treatment (V7)', () => {
+    // 60m focused: plan budget 57 after the reflect reserve, deep allowance 14 — a 20-minute
+    // question's deep treatment costs 12, so exactly one of these two fits the deep band, and
+    // the assertion below fails honestly if that footing ever moves (0 or 2 would both fail).
+    const session = buildRevisionSession({
+      ...base,
+      budgetMin: 60,
+      candidates: [
+        candidate(1, {}, { estimatedTime: 20 }),
+        candidate(2, { hintReliant: true }, { estimatedTime: 20 }),
+      ],
+    });
+
+    const deep = session.activities.filter((a) => a.kind === 'deep');
+    expect(deep.map((a) => a.questionId)).toEqual([2]);
+    const why = deep[0]!.why;
+    expect(why).toMatch(/hint/i);
+    expect(why).toMatch(/unaided|re-deriv/i);
+    // Copy rule: a support feature must never read as a penalty.
+    expect(why).not.toMatch(/penalt|because you needed|had to|crutch|dependen/i);
+  });
+
+  test('an actually-failed review outranks hint reliance — a real miss is stronger evidence', () => {
+    const session = buildRevisionSession({
+      ...base,
+      budgetMin: 60,
+      candidates: [
+        candidate(1, { failures: 2 }, { estimatedTime: 20 }),
+        candidate(2, { hintReliant: true }, { estimatedTime: 20 }),
+      ],
+    });
+
+    const deep = session.activities.filter((a) => a.kind === 'deep');
+    expect(deep.map((a) => a.questionId)).toEqual([1]);
   });
 
   test('no reason ever uses loss, blame, or streak language', () => {

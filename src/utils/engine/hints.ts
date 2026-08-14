@@ -63,3 +63,15 @@ export const HINT_USE_LABEL: Record<HintUse, string> = {
   guided: 'Took the technique hint',
   'walked-through': 'Took the full ladder',
 };
+
+/**
+ * Rung 2 ("which technique") and above is reliance: the solve did not demonstrate independent
+ * command of the idea — the same threshold the weakness model's hint signal uses. A nudge
+ * (rung 1) is noticing help, not solving help. This is evidence about the solve, never a
+ * penalty: its only consumer routes the question toward the session's deeper re-implement
+ * treatment, i.e. MORE support, until a review passes unaided.
+ */
+export function isHintReliant(hintLevelUsed: number | undefined): boolean {
+  const use = hintUse(hintLevelUsed);
+  return use === 'guided' || use === 'walked-through';
+}

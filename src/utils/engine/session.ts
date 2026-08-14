@@ -206,6 +206,12 @@ export interface RevisionCandidate {
   confidence: number | null;
   /** Days since the learner last touched it. Recently seen work is worth less right now. */
   daysSinceSeen: number;
+  /**
+   * V7: solved only with the hint ladder's real help (rung ≥2) and not yet re-derived in any
+   * passed review — the reconstruction gap. Raises priority so the deep band's
+   * deepest-band-first placement gives it the re-implement treatment; never touches the ladder.
+   */
+  hintReliant: boolean;
 }
 
 export interface TransferCandidate {
@@ -301,7 +307,7 @@ export interface RevisionSession {
 /* Priority                                                                                     */
 /* ------------------------------------------------------------------------------------------- */
 
-type Reason = 'overdue' | 'due' | 'failed' | 'low-confidence' | 'weak-pattern' | 'pull-forward';
+type Reason = 'overdue' | 'due' | 'failed' | 'low-confidence' | 'weak-pattern' | 'hint-reliant' | 'pull-forward';
 
 interface Scored {
   candidate: RevisionCandidate;
@@ -329,6 +335,11 @@ function score(candidate: RevisionCandidate, weak: Map<PatternId, { name: string
     { reason: 'failed', value: Math.min(failures, FAILURE_CAP) * 5 },
     { reason: 'low-confidence', value: confidence !== null && confidence <= LOW_CONFIDENCE ? 6 : 0 },
     { reason: 'weak-pattern', value: (weakHit?.score ?? 0) * 8 },
+    // V7: the reconstruction gap. Sits above `due` and `low-confidence` (the learner literally
+    // could not produce this solution unaided yet) but below a single real failed review — an
+    // actual miss is stronger fragility evidence than an assisted solve. The bump routes the
+    // item into the deep band's re-implement treatment; it never reschedules anything.
+    { reason: 'hint-reliant', value: candidate.hintReliant ? 7 : 0 },
   ];
 
   // Two signals that raise an item's priority but must never *explain* it.
@@ -374,6 +385,8 @@ function reasonText(scored: Scored): string {
       return `You rated your recall ${candidate.confidence} out of 5 last time.`;
     case 'weak-pattern':
       return `${weakPatternName} is where your recent answers have been shakiest.`;
+    case 'hint-reliant':
+      return 'Solved with the hint ladder’s help and not yet re-derived unaided — a blank-page rebuild is what settles it.';
     case 'pull-forward':
       return 'Not due yet — pulled in because there was time left, and reviewing early costs nothing.';
     case 'due':

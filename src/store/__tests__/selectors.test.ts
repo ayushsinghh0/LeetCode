@@ -28,6 +28,7 @@ import {
   selectQuestionById,
   selectQuestions,
   selectRevisionQueueIds,
+  selectRevisionSession,
   selectSolvedNewCount,
   selectStreaks,
   selectTodayLog,
@@ -331,4 +332,33 @@ test('selectPatternStats is memoized: same state reference => same result refere
   const state2 = store.getState();
   const c = selectPatternStats(state2);
   expect(c).not.toBe(a); // progress changed -> recomputed
+});
+
+describe('hintReliant assembly (V7 slice 2)', () => {
+  // The reconstruction gap: real hint help (rung ≥2) with no passed review since. Derived at
+  // the selector boundary so the session engine stays a pure function of its candidates.
+  function sessionFor(progress: Partial<QuestionProgress>) {
+    const byId: Record<number, QuestionProgress> = {
+      1: { ...initialProgress(), status: 'solved', revisionStage: 1, nextRevision: TODAY, ...progress },
+    };
+    const store = makeStore({ progress: { byId, dayLogs: {}, startDate: '2026-07-01' } });
+    return selectRevisionSession(store.getState(), TODAY);
+  }
+
+  test('rung 2 with no passed review flags the candidate, and the session says why', () => {
+    const session = sessionFor({ hintLevelUsed: 2 });
+    const item = session.activities.find((a) => a.questionId === 1)!;
+    expect(item.why).toMatch(/hint/i);
+  });
+
+  test('one nudge (rung 1) is not reliance; a passed review clears the flag', () => {
+    const nudged = sessionFor({ hintLevelUsed: 1 });
+    expect(nudged.activities.find((a) => a.questionId === 1)!.why).not.toMatch(/hint/i);
+
+    const rederived = sessionFor({
+      hintLevelUsed: 3,
+      revisionHistory: [{ date: '2026-07-20', passed: true }],
+    });
+    expect(rederived.activities.find((a) => a.questionId === 1)!.why).not.toMatch(/hint/i);
+  });
 });

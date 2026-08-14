@@ -31,6 +31,7 @@ import {
   solveCoverage,
 } from '@/utils/engine/insights';
 import { patternWeakness, transferRecord, type PatternWeakness } from '@/utils/engine/weakness';
+import { isHintReliant } from '@/utils/engine/hints';
 import {
   analyzeContest,
   type ContestAnalysis,
@@ -598,6 +599,9 @@ const selectLadderCandidates = createSelector(
         // a question solved a month ago and never revisited as freshly seen, which zeroed the
         // staleness tiebreak on precisely the work most at risk of being forgotten.
         daysSinceSeen: diffDays(today, progress.lastReviewed ?? progress.completedAt ?? today),
+        // V7: the reconstruction gap — real hint help (rung ≥2) and no passed review since. One
+        // unaided pass clears it: the learner has re-derived the idea, whatever help started it.
+        hintReliant: isHintReliant(progress.hintLevelUsed) && !progress.revisionHistory.some((e) => e.passed),
       });
     }
     return out;

@@ -2,6 +2,8 @@ import { describe, expect, test, vi, beforeEach, afterEach } from 'vitest';
 import { screen, fireEvent } from '@testing-library/react';
 import { renderWithStore } from '@/test/renderWithStore';
 import { FamilyPanel } from '@/components/questions/FamilyPanel';
+import { makeStore } from '@/store/store';
+import { solveQuestion } from '@/store/actions';
 import type { ProblemFamily } from '@/types';
 
 // Fixture family over real dataset ids (1 = Valid Palindrome, 2 = 3Sum, 4 = Sort Colors),
@@ -31,6 +33,26 @@ afterEach(() => {
 const openLadder = () => fireEvent.click(screen.getByRole('button', { name: /the problem ladder/i }));
 
 describe('FamilyPanel', () => {
+  test('states how far through the idea the learner is, without opening the ladder', () => {
+    // A list of five problems says what exists; "2 of 3 solved" says where you are in it.
+    const store = makeStore();
+    store.dispatch(solveQuestion(1));
+    store.dispatch(solveQuestion(4));
+    renderWithStore(<FamilyPanel family={family} currentQuestionId={1} />, store);
+
+    expect(screen.getByText('2 of 3 solved')).toBeInTheDocument();
+  });
+
+  test('the count is over members that exist, so a renamed member cannot inflate it', () => {
+    const withGhost: ProblemFamily = {
+      ...family,
+      members: [...family.members, { questionId: 999_999, role: 'stretch' }],
+    };
+    renderWithStore(<FamilyPanel family={withGhost} currentQuestionId={1} />);
+
+    expect(screen.getByText('0 of 3 solved')).toBeInTheDocument();
+  });
+
   test('the core idea is the only thing shown up front — signals, trap and ladder each wait to be asked for', () => {
     renderWithStore(<FamilyPanel family={family} currentQuestionId={1} />);
 

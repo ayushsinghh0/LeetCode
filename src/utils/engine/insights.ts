@@ -17,9 +17,11 @@
 // stated floor so the page can say "not measurable yet, here is what it would take" instead of
 // printing a confident number over four data points.
 import type {
+  ContestStallRecord,
   CourseWeekProgress,
   DayLog,
   DrillDayResult,
+  InterviewSittingRecord,
   PracticeSitting,
   Question,
   QuestionProgress,
@@ -124,6 +126,10 @@ export interface InsightInput {
    * Optional so an engine test can drive one builder at a time.
    */
   sittings?: PracticeSitting[];
+  /** Persisted contest sittings (V8). The only record of work done with a clock running. */
+  contests?: Record<string, ContestStallRecord>;
+  /** Persisted interview sittings (V8). Self-reported throughout — nothing here is a judge. */
+  interviews?: InterviewSittingRecord[];
 }
 
 // 1. Recognition vs implementation ---------------------------------------------------------
@@ -701,6 +707,149 @@ function transferHold(input: InsightInput): Insight | null {
  * `extraActiveDates` carries course activity (session stamps and review grades), which is
  * derived rather than logged — the same rule the streak and heatmap follow.
  */
+/**
+ * Does the clock change your pace?
+ *
+ * Both figures are "minutes taken divided by the problem's authored estimate", over problems the
+ * learner solved — one measured by the focus ledger with no clock running, one by the contest
+ * stopwatch. The populations differ only in the clock, which is the thing being asked about.
+ *
+ * The copy never says "worse under pressure". A pace difference is a fact about minutes; the
+ * conclusion a learner draws from it is theirs, and this product does not hand out verdicts about
+ * how someone performs when observed.
+ */
+function timedPaceGap(input: InsightInput): Insight | null {
+  if (!input.contests) return null;
+  const timed = timedPace(input.contests);
+  if (timed === null) return null;
+
+  // The same population and the same floor `paceAgainstEstimate` uses — the untimed half of this
+  // comparison must be exactly the figure the page already reports, or two cards disagree about
+  // one learner's pace.
+  const samples = paceSamples(input.all, input.byId);
+  const untimedFigure = paceAgainstEstimate(samples);
+  if (!untimedFigure) return null;
+  const untimed = untimedFigure.ratio;
+
+  const record = timedRecord(input.contests);
+  const evidence = [
+    `Untimed: solves land at ${untimed.toFixed(2)}× the authored estimate, over ${untimedFigure.samples} measured problems.`,
+    `On the clock: ${timed.toFixed(2)}× the estimate, over the contest problems you solved.`,
+  ];
+  if (record) {
+    evidence.push(
+      `Across ${record.problems} timed problems in ${record.sittings} ${record.sittings === 1 ? 'sitting' : 'sittings'}: ${record.clean} clean, ${record.slow} slow, ${record.stalled} without a solution.`,
+    );
+  }
+
+  const delta = timed - untimed;
+  if (delta >= TIMED_PACE_DELTA) {
+    return {
+      id: 'timed-pace-gap',
+      headline: 'Your solves take longer with a clock running than without one.',
+      evidence,
+      recommendation:
+        'That is a fact about minutes, not about you — and it is the dimension ordinary practice ' +
+        'cannot rehearse. Sit another contest and give the opener a hard time limit.',
+      action: { label: 'Sit a contest', href: '/contest' },
+      tone: 'attention',
+    };
+  }
+  if (delta <= -TIMED_PACE_DELTA) {
+    return {
+      id: 'timed-pace-strength',
+      headline: 'The clock does not slow you down.',
+      evidence,
+      recommendation:
+        'Timed and untimed pace agree, or the clock is faster. Push the difficulty rather than ' +
+        'the timing — a harder set is what still has something to tell you.',
+      action: { label: 'Sit a contest', href: '/contest' },
+      tone: 'strength',
+    };
+  }
+  return null;
+}
+
+/**
+ * Are the interview sittings needing less scaffolding?
+ *
+ * Hint use is a signal and never a penalty (CLAUDE.md), so this card can only ever report a
+ * direction — it never costs anything, and the "more hints" direction is written as information
+ * rather than as a slide backwards.
+ */
+function interviewIndependence(input: InsightInput): Insight | null {
+  if (!input.interviews) return null;
+  const log = interviewLog(input.interviews);
+  if (!log || log.earlyHints === null || log.lateHints === null) return null;
+
+  const delta = log.lateHints - log.earlyHints;
+  if (Math.abs(delta) < 0.5) return null; // half a rung across a handful of sittings is noise
+
+  const evidence = [
+    `Earlier sittings: ${log.earlyHints.toFixed(1)} rungs per sitting. Recent: ${log.lateHints.toFixed(1)}.`,
+    `Measured over ${log.withLadder} sittings whose problem had a hint ladder, of ${log.sittings} total.`,
+  ];
+
+  return delta < 0
+    ? {
+        id: 'interview-independence',
+        headline: 'You are reaching for the ladder less than you were.',
+        evidence,
+        recommendation:
+          'Independence is the thing an interview actually measures. Keep sitting them, and let ' +
+          'the draw take you somewhere your evidence says is shaky.',
+        action: { label: 'Sit an interview', href: '/interview' },
+        tone: 'strength',
+      }
+    : {
+        id: 'interview-hint-use',
+        headline: 'Recent interview sittings have leaned on the ladder more.',
+        evidence,
+        recommendation:
+          'Taking hints costs nothing here and never will. If you want the unaided reading, the ' +
+          'session already routes hinted problems into the re-implement band — work those first.',
+        action: { label: 'Open revision', href: '/revision' },
+        tone: 'steady',
+      };
+}
+
+/** Prediction against the learner's own read of how it went. Both halves are self-reported. */
+function interviewCalibration(input: InsightInput): Insight | null {
+  if (!input.interviews) return null;
+  const log = interviewLog(input.interviews);
+  if (!log || log.predictionError === null) return null;
+
+  const error = log.predictionError;
+  if (Math.abs(error) < 0.5) return null; // half a point on a five-point scale claims nothing
+
+  const evidence = [
+    `Across ${log.predicted} sittings you called it ${Math.abs(error).toFixed(1)} points ${error > 0 ? 'higher' : 'lower'} than your own read afterwards.`,
+    'Both numbers are yours: the prediction before, the self-assessment after. Nothing here graded you.',
+  ];
+
+  return error > 0
+    ? {
+        id: 'interview-over-prediction',
+        headline: 'You expect interviews to go better than you then judge them.',
+        evidence,
+        recommendation:
+          'Knowing how well you can call it is worth as much as the sitting. Before the next one, ' +
+          'predict the stage you will reach as well as the number.',
+        action: { label: 'Sit an interview', href: '/interview' },
+        tone: 'steady',
+      }
+    : {
+        id: 'interview-under-prediction',
+        headline: 'Interviews go better than you expect them to.',
+        evidence,
+        recommendation:
+          'The gap is worth knowing before a real one, where the expectation is what you walk in ' +
+          'with. Keep predicting; the record is the only thing that argues with it.',
+        action: { label: 'Sit an interview', href: '/interview' },
+        tone: 'strength',
+      };
+}
+
 export function buildInsights(input: InsightInput, extraActiveDates: ReadonlySet<string> = new Set()): Insight[] {
   // Order breaks ties within a tone (the sort below is stable). `accuracyDirection` sits second
   // because a pass rate that is moving is a statement about the whole ladder, where the weakest
@@ -708,6 +857,7 @@ export function buildInsights(input: InsightInput, extraActiveDates: ReadonlySet
   // about unfamiliar work rather than with the scheduling ones.
   const candidates = [
     recognitionGap(input),
+    timedPaceGap(input),
     accuracyDirection(input),
     weakestPattern(input),
     scheduleRisk(input),
@@ -721,6 +871,10 @@ export function buildInsights(input: InsightInput, extraActiveDates: ReadonlySet
     // card is the no-failure-state surface, and the follow-through card only ever shrinks.
     returnAfterFailure(input),
     sessionFollowThrough(input),
+    // The interview cards sit last among the candidates: sittings are rare, so these speak
+    // seldom, and when they do they are describing a handful of events rather than a record.
+    interviewIndependence(input),
+    interviewCalibration(input),
   ];
 
   const order: Record<InsightTone, number> = { attention: 0, steady: 1, strength: 2 };
@@ -1156,4 +1310,157 @@ export function courseRetention(
   }
 
   return { onLadder, retained, neverReviewed, attempts, passRate: attempts === 0 ? null : passes / attempts };
+}
+
+/* --- Can I do it with a clock running? ------------------------------------------------------ */
+
+/**
+ * The timed record, read off the persisted contest channel.
+ *
+ * Floors are stated rather than felt. Six informative problems is roughly two conclusive sittings
+ * — below that the shares are 0%, 33%, 50% or 100% and every one of them is noise. The channel
+ * banks EVERY conclusive sitting (see finishContest), including the clean ones, which is what
+ * makes this a record of timed work rather than a record of bad afternoons.
+ */
+export const MIN_TIMED_PROBLEMS = 6;
+
+export interface TimedRecord {
+  sittings: number;
+  /** Problems that produced a reading at all — untouched ones are excluded by construction. */
+  problems: number;
+  clean: number;
+  slow: number;
+  stalled: number;
+  /** Share of informative problems that came out at all (clean or slow). */
+  solveRate: number;
+}
+
+export function timedRecord(contests: Record<string, ContestStallRecord>): TimedRecord | null {
+  let sittings = 0;
+  let clean = 0;
+  let slow = 0;
+  let stalled = 0;
+
+  for (const record of Object.values(contests)) {
+    const rows = record.problems ?? [];
+    if (rows.length === 0) continue; // pre-V8 records carry patterns only
+    sittings += 1;
+    for (const row of rows) {
+      if (row.outcome === 'clean') clean += 1;
+      else if (row.outcome === 'slow') slow += 1;
+      else if (row.outcome === 'stalled') stalled += 1;
+      else if (row.outcome === 'set-aside' && row.minutesSpent >= row.targetMinutes * 0.25) {
+        // Same rule `hasRealTime` applies in engine/contest.ts: the decision to put a problem down
+        // is named, but minutes genuinely spent on it still count as evidence.
+        stalled += 1;
+      }
+    }
+  }
+
+  const problems = clean + slow + stalled;
+  if (problems < MIN_TIMED_PROBLEMS) return null;
+  return { sittings, problems, clean, slow, stalled, solveRate: (clean + slow) / problems };
+}
+
+/**
+ * Untimed pace against timed pace — the one practice-vs-performance comparison this product can
+ * actually make.
+ *
+ * The obvious comparison is a trap. "Untimed accuracy vs contest solve rate" compares revisiting a
+ * problem you already solved with meeting a new one cold, and untimed practice has no failure
+ * state to measure at all (everything is eventually marked solved). The comparison would be
+ * between two different tasks and would read as a pressure effect regardless of the truth.
+ *
+ * What IS comparable: how long a solve takes against the problem's own authored estimate, measured
+ * both ways. Untimed that ratio comes from the focus ledger; timed it comes from the contest
+ * clock. Both are ratios over problems the learner actually solved, so the only difference between
+ * the populations is the clock — which is the thing being asked about.
+ *
+ * `MAX_PLAUSIBLE_RATIO` is applied on both sides. It is the fourth consumer of that constant
+ * (timeEstimate, weakness, the pace builder, here); all four must discard the same implausible
+ * samples or they will disagree about the same learner.
+ */
+export const MIN_TIMED_PACE_SAMPLES = 4;
+/** Below this the two medians are the same number wearing different error bars. */
+const TIMED_PACE_DELTA = 0.25;
+
+export function timedPace(contests: Record<string, ContestStallRecord>): number | null {
+  const ratios: number[] = [];
+  for (const record of Object.values(contests)) {
+    for (const row of record.problems ?? []) {
+      if (row.outcome !== 'clean' && row.outcome !== 'slow') continue;
+      if (row.targetMinutes <= 0 || row.minutesSpent <= 0) continue;
+      const ratio = row.minutesSpent / row.targetMinutes;
+      if (ratio > MAX_PLAUSIBLE_RATIO) continue;
+      ratios.push(ratio);
+    }
+  }
+  return ratios.length >= MIN_TIMED_PACE_SAMPLES ? median(ratios) : null;
+}
+
+/* --- What the interview sittings show ------------------------------------------------------- */
+
+/**
+ * Three sittings, not two. A trend through two points is a line through two points — it always
+ * has a direction, and the direction is meaningless. Interviews are rare events, so this floor
+ * costs real time to clear, which is the honest price of saying anything about a trend at all.
+ */
+export const MIN_INTERVIEW_SITTINGS = 3;
+
+export interface InterviewLog {
+  sittings: number;
+  /** Sittings whose problem had a hint ladder at all — the only ones hint counts mean anything on. */
+  withLadder: number;
+  /** Rungs taken in the earlier half vs the later half, over `withLadder` sittings. */
+  earlyHints: number | null;
+  lateHints: number | null;
+  /** Mean stage reached, out of ten. */
+  meanStage: number;
+  /** Sittings carrying both a prediction and a self-assessment — the calibration population. */
+  predicted: number;
+  /** Mean signed error: predicted minus what they then said it was. Positive = over-predicted. */
+  predictionError: number | null;
+}
+
+export function interviewLog(sittings: InterviewSittingRecord[]): InterviewLog | null {
+  if (sittings.length < MIN_INTERVIEW_SITTINGS) return null;
+
+  const withLadder = sittings.filter((s) => s.hintsAvailable > 0);
+  let earlyHints: number | null = null;
+  let lateHints: number | null = null;
+  // Split rather than a regression: with a handful of points a slope is theatre, and "the first
+  // half against the second half" is a claim a learner can check against their own memory.
+  if (withLadder.length >= MIN_INTERVIEW_SITTINGS) {
+    const half = Math.floor(withLadder.length / 2);
+    const early = withLadder.slice(0, half);
+    const late = withLadder.slice(-half);
+    earlyHints = early.reduce((sum, s) => sum + s.hintsTaken, 0) / early.length;
+    lateHints = late.reduce((sum, s) => sum + s.hintsTaken, 0) / late.length;
+  }
+
+  const meanStage = sittings.reduce((sum, s) => sum + s.stageReached, 0) / sittings.length;
+
+  // Calibration needs both halves: a prediction the learner made, and their own read afterwards.
+  // The self-assessment is five separate dimensions and stays five — the mean here is used ONLY
+  // as the thing the single prediction is compared against, and never surfaced as a score.
+  const predictedPairs = sittings.flatMap((sitting) => {
+    const expectation = sitting.expectation;
+    if (typeof expectation !== 'number') return [];
+    const ratings = Object.values(sitting.assessment);
+    if (ratings.length === 0) return [];
+    return [expectation - ratings.reduce((sum, r) => sum + r, 0) / ratings.length];
+  });
+
+  return {
+    sittings: sittings.length,
+    withLadder: withLadder.length,
+    earlyHints,
+    lateHints,
+    meanStage,
+    predicted: predictedPairs.length,
+    predictionError:
+      predictedPairs.length >= MIN_INTERVIEW_SITTINGS
+        ? predictedPairs.reduce((sum, e) => sum + e, 0) / predictedPairs.length
+        : null,
+  };
 }

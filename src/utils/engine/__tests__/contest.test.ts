@@ -4,6 +4,7 @@ import {
   CONTEST_SHAPE,
   SLOW_FACTOR,
   UNTOUCHED_SHARE,
+  timeReading,
   type Contest,
   type ContestAttempt,
 } from '@/utils/engine/contest';
@@ -161,6 +162,62 @@ describe('analyzeContest — conservative by design', () => {
     expect(analysis.solved).toBe(1);
   });
 
+  test('a problem set aside early is a decision, not a stall — and produces no claim', () => {
+    const analysis = analyzeContest(contest, [
+      attempt(p1!.question.id, true, p1!.targetMinutes),
+      attempt(p2!.question.id, true, p2!.targetMinutes),
+      attempt(p3!.question.id, true, p3!.targetMinutes),
+      { ...attempt(p4!.question.id, false, 2), setAside: true },
+    ]);
+
+    const last = analysis.readings[3]!;
+    expect(last.outcome).toBe('set-aside');
+    expect(last.reading).toMatch(/not enough time in it to read anything into/i);
+    expect(analysis.patternGaps).not.toContain(last.question.pattern);
+  });
+
+  test('setting a problem aside after real time keeps the stall evidence — the decision was good, the gap is still real', () => {
+    // Protecting the clock is the right call and the product says so; it does not erase the fact
+    // that twenty-five minutes went in without a solution. Naming the decision must not launder
+    // the evidence, or "set aside" becomes the button that hides every weakness.
+    const analysis = analyzeContest(contest, [
+      attempt(p1!.question.id, true, p1!.targetMinutes),
+      attempt(p2!.question.id, true, p2!.targetMinutes),
+      { ...attempt(p3!.question.id, false, p3!.targetMinutes), setAside: true },
+      attempt(p4!.question.id, true, p4!.targetMinutes),
+    ]);
+
+    expect(analysis.readings[2]!.outcome).toBe('set-aside');
+    expect(analysis.readings[2]!.reading).toMatch(/without a solution/i);
+    expect(analysis.patternGaps).toContain(p3!.question.pattern);
+    expect(analysis.stalledQuestionIds).toContain(p3!.question.id);
+  });
+
+  test('submissions that did not pass are reported as the fact they are', () => {
+    const analysis = analyzeContest(contest, [
+      { ...attempt(p1!.question.id, true, p1!.targetMinutes), wrongSubmits: 2 },
+      { ...attempt(p2!.question.id, false, p2!.targetMinutes), wrongSubmits: 1 },
+      attempt(p3!.question.id, true, p3!.targetMinutes),
+      attempt(p4!.question.id, true, p4!.targetMinutes),
+    ]);
+
+    expect(analysis.readings[0]!.reading).toMatch(/2 submissions didn't pass/i);
+    expect(analysis.readings[1]!.reading).toMatch(/1 submission didn't pass/i);
+    // Never a verdict about the learner — a wrong submit is an event, not a trait.
+    expect(analysis.readings[0]!.reading).not.toMatch(/careless|sloppy|rushed/i);
+  });
+
+  test('stalled question ids survive the analysis so one problem can be served again later', () => {
+    const analysis = analyzeContest(contest, [
+      attempt(p1!.question.id, true, p1!.targetMinutes),
+      attempt(p2!.question.id, true, p2!.targetMinutes),
+      attempt(p3!.question.id, false, p3!.targetMinutes),
+      attempt(p4!.question.id, false, 1),
+    ]);
+
+    expect(analysis.stalledQuestionIds).toEqual([p3!.question.id]);
+  });
+
   test('there is no score, rank, or rating anywhere in the reading', () => {
     const analysis = analyzeContest(contest, [
       attempt(p1!.question.id, true, p1!.targetMinutes),
@@ -171,5 +228,75 @@ describe('analyzeContest — conservative by design', () => {
 
     const prose = analysis.readings.map((r) => r.reading).join(' ') + (analysis.next?.why ?? '');
     expect(prose).not.toMatch(/score|rank|rating|percentile|\bpoints\b/i);
+  });
+});
+
+describe('timeReading — where the clock actually went', () => {
+  const contest: Contest = buildContest({ all, byId: {}, seed: '2026-07-30' });
+  const [p1, p2, p3, p4] = contest.problems;
+  const attempt = (id: number, solved: boolean, minutesSpent: number): ContestAttempt => ({
+    questionId: id,
+    solved,
+    minutesSpent,
+  });
+
+  test('says nothing when only one problem got real time — a single figure is not a distribution', () => {
+    expect(
+      timeReading(contest, [
+        attempt(p1!.question.id, true, p1!.targetMinutes),
+        attempt(p2!.question.id, false, 1),
+        attempt(p3!.question.id, false, 0),
+        attempt(p4!.question.id, false, 0),
+      ]),
+    ).toBeNull();
+  });
+
+  test('names the problem that took the clock when one of them dominated', () => {
+    const reading = timeReading(contest, [
+      attempt(p1!.question.id, true, 10),
+      attempt(p2!.question.id, true, 10),
+      attempt(p3!.question.id, false, 60),
+      attempt(p4!.question.id, false, 0),
+    ]);
+
+    expect(reading).toContain(p3!.question.title);
+    expect(reading).toMatch(/60 of your 80 minutes/i);
+    expect(reading).toMatch(/did not solve/i);
+  });
+
+  test('reports an even spread as an even spread rather than inventing a story', () => {
+    const reading = timeReading(contest, [
+      attempt(p1!.question.id, true, 20),
+      attempt(p2!.question.id, true, 22),
+      attempt(p3!.question.id, false, 24),
+      attempt(p4!.question.id, false, 21),
+    ]);
+
+    expect(reading).toMatch(/spread/i);
+    expect(reading).toMatch(/20.*24 min/);
+  });
+
+  test('states plainly when problems never got real time', () => {
+    const reading = timeReading(contest, [
+      attempt(p1!.question.id, true, 30),
+      attempt(p2!.question.id, false, 30),
+      attempt(p3!.question.id, false, 0),
+      attempt(p4!.question.id, false, 0),
+    ]);
+
+    expect(reading).toMatch(/2 problems never got real time/i);
+  });
+
+  test('carries no judgment register — it reports minutes, it does not grade the learner', () => {
+    const reading = timeReading(contest, [
+      attempt(p1!.question.id, false, 50),
+      attempt(p2!.question.id, false, 30),
+      attempt(p3!.question.id, false, 0),
+      attempt(p4!.question.id, false, 0),
+    ]);
+
+    expect(reading).not.toMatch(
+      /score|rank|too long|wasted|should have|poor|bad|worse under pressure|mismanag/i,
+    );
   });
 });

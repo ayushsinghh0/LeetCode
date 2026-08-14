@@ -31,6 +31,11 @@ function startViaUi() {
   fireEvent.click(screen.getByRole('button', { name: /start the contest/i }));
 }
 
+function setVisibility(state: 'visible' | 'hidden') {
+  Object.defineProperty(document, 'visibilityState', { value: state, configurable: true });
+  fireEvent(document, new Event('visibilitychange'));
+}
+
 describe('ContestPage: start screen', () => {
   test('explains the set and its honesty rules before anything starts', () => {
     renderContest();
@@ -101,6 +106,39 @@ describe('ContestPage: the sitting', () => {
     expect(store.getState().contest.attempts[firstId]!.minutesSpent).toBe(10);
   });
 
+  test('a submission that did not pass is recorded on the problem being worked', () => {
+    const { store } = renderContest();
+    startViaUi();
+    const firstId = store.getState().contest.questionIds[0]!;
+
+    fireEvent.click(within(problemRows()[0]!).getByRole('button', { name: /put on the clock/i }));
+    fireEvent.click(within(problemRows()[0]!).getByRole('button', { name: /didn't pass/i }));
+    fireEvent.click(within(problemRows()[0]!).getByRole('button', { name: /didn't pass/i }));
+
+    expect(store.getState().contest.attempts[firstId]!.wrongSubmits).toBe(2);
+    expect(within(problemRows()[0]!).getByText(/2 didn't pass/i)).toBeInTheDocument();
+  });
+
+  test('setting a problem aside stops its clock and says so, and it can be picked back up', () => {
+    const { store } = renderContest();
+    startViaUi();
+    const secondId = store.getState().contest.questionIds[1]!;
+
+    fireEvent.click(within(problemRows()[1]!).getByRole('button', { name: /put on the clock/i }));
+    act(() => {
+      vi.advanceTimersByTime(12 * 60_000);
+    });
+    fireEvent.click(within(problemRows()[1]!).getByRole('button', { name: /set aside/i }));
+
+    // The minutes already spent stand — the decision is about what happens next, not about them.
+    expect(store.getState().contest.attempts[secondId]!.minutesSpent).toBe(12);
+    expect(store.getState().contest.activeQuestionId).toBeNull();
+    expect(within(problemRows()[1]!).getByText(/set aside · 12 min/i)).toBeInTheDocument();
+
+    fireEvent.click(within(problemRows()[1]!).getByRole('button', { name: /pick it back up/i }));
+    expect(store.getState().contest.attempts[secondId]!.setAside).toBe(false);
+  });
+
   test('marking a problem solved goes through the real solve path — XP, progress, the ledger', () => {
     const { store } = renderContest();
     startViaUi();
@@ -146,6 +184,31 @@ describe('ContestPage: the verdict', () => {
     );
   });
 
+  test('the verdict says where the minutes went, and offers the stalled problem a second look', () => {
+    const { store } = renderContest();
+    startViaUi();
+    const secondId = store.getState().contest.questionIds[1]!;
+
+    fireEvent.click(within(problemRows()[0]!).getByRole('button', { name: /put on the clock/i }));
+    act(() => {
+      vi.advanceTimersByTime(15 * 60_000);
+    });
+    fireEvent.click(within(problemRows()[0]!).getByRole('button', { name: /mark solved/i }));
+    fireEvent.click(within(problemRows()[1]!).getByRole('button', { name: /put on the clock/i }));
+    act(() => {
+      vi.advanceTimersByTime(45 * 60_000);
+    });
+    fireEvent.click(screen.getByRole('button', { name: /finish/i }));
+
+    // Time allocation is the one thing a contest can see that self-paced practice cannot.
+    expect(screen.getByText(/45 of your 60 minutes went to/i)).toBeInTheDocument();
+
+    // The clock is off, so the problem that beat it can now be opened with everything the sheet
+    // carries — which the contest withheld on purpose while it was running.
+    fireEvent.click(screen.getByRole('button', { name: /take a calm second look/i }));
+    expect(store.getState().ui.activeQuestionId).toBe(secondId);
+  });
+
   test('an abandoned contest is declared inconclusive, never mined for weakness', () => {
     renderContest();
     startViaUi();
@@ -157,10 +220,40 @@ describe('ContestPage: the verdict', () => {
     expect(screen.getAllByText('Barely touched')).toHaveLength(4);
   });
 
-  test('leaving the page stops the clock, so time away is never credited as a stall', () => {
-    // Without this the stopwatch kept running while the learner was on another page: come back
-    // forty minutes later and analyzeContest reads an untouched problem as "stalled" and names a
-    // pattern weakness from a navigation. contest.ts promises the opposite in its header.
+  test('an armed problem keeps counting while the tab is hidden — that is where the work happens', () => {
+    // The clock used to stop on `visibilitychange → hidden`, which sounds protective and was in
+    // fact fatal: the only sanctioned work surface is the external LeetCode link, so *attempting*
+    // a problem always hid the tab. Every unsolved problem settled at ~0 min, classified
+    // `untouched`, every sitting came out `inconclusive`, and `patternGaps` could never be
+    // non-empty. The contract is now the explicit control: arming is a commitment, Pause is the
+    // learner's own honest exit.
+    const { store } = renderContest();
+    startViaUi();
+    const secondId = store.getState().contest.questionIds[1]!;
+
+    fireEvent.click(within(problemRows()[1]!).getByRole('button', { name: /put on the clock/i }));
+    setVisibility('hidden'); // switching to the LeetCode tab to actually solve it
+    act(() => {
+      vi.advanceTimersByTime(20 * 60_000);
+    });
+    setVisibility('visible');
+    fireEvent.click(within(problemRows()[1]!).getByRole('button', { name: /pause/i }));
+
+    expect(store.getState().contest.attempts[secondId]!.minutesSpent).toBe(20);
+  });
+
+  test('the page says the clock runs until you pause it', () => {
+    renderContest();
+    startViaUi();
+
+    expect(screen.getByText(/runs until you pause it/i)).toBeInTheDocument();
+    // The old promise — that time stopped whenever this page was not on screen — is now false.
+    expect(screen.queryByText(/only while this page is open/i)).not.toBeInTheDocument();
+  });
+
+  test('leaving the page settles the clock rather than leaving it running', () => {
+    // Unmount is still a settle: a contest page that is gone cannot be paused, and time credited
+    // to a problem nobody has open would be the invented claim contest.ts's header refuses.
     const { store, unmount } = renderContest();
     startViaUi();
     const secondId = store.getState().contest.questionIds[1]!;

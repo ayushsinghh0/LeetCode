@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { format, parseISO } from 'date-fns';
-import { CheckCircle2, ExternalLink, Flag, Pause, Play, Swords } from 'lucide-react';
+import { CheckCircle2, ExternalLink, Flag, Pause, Play, Swords, XCircle } from 'lucide-react';
 import questionsData from '@/data/questions.json';
 import { patternById } from '@/data/patterns';
 import { Button } from '@/components/ui/button';
@@ -19,15 +19,22 @@ import {
   Section,
 } from '@/components/layout/Page';
 import { useAppDispatch, useAppSelector } from '@/store/hooks';
-import { selectContestAnalysis, selectContestProblems } from '@/store/selectors';
+import {
+  selectContestAnalysis,
+  selectContestProblems,
+  selectContestTimeReading,
+} from '@/store/selectors';
 import {
   blurContestProblem,
   clearContest,
   finishContest,
   focusContestProblem,
+  logContestWrongSubmit,
+  setAsideContestProblem,
   solveContestProblem,
   startContest,
 } from '@/store/actions';
+import { activeQuestionSet } from '@/store/slices/uiSlice';
 import { useToday } from '@/hooks/useToday';
 import { contestElapsedMin, type ContestAttemptState } from '@/store/slices/contestSlice';
 import type { Outcome } from '@/utils/engine/contest';
@@ -43,15 +50,19 @@ const OUTCOME_LABEL: Record<Outcome, string> = {
   clean: 'Clean solve',
   slow: 'Solved slowly',
   stalled: 'Stalled',
+  'set-aside': 'Set aside',
   untouched: 'Barely touched',
 };
 
 // The easy/hard inks already carry right/wrong in the drill (see DrillsPage's option borders);
 // the same idiom applies here. Untouched deliberately gets the muted voice — it is a non-claim.
+// Set-aside gets the medium ink rather than the hard one: it names a decision, and the decision
+// was a reasonable one however the minutes behind it read.
 const OUTCOME_CLASS: Record<Outcome, string> = {
   clean: 'text-easy',
   slow: 'text-medium',
   stalled: 'text-hard',
+  'set-aside': 'text-medium',
   untouched: 'text-muted-foreground',
 };
 
@@ -76,10 +87,14 @@ export default function ContestPage() {
   const contest = useAppSelector((s) => s.contest);
   const problems = useAppSelector(selectContestProblems);
   const analysis = useAppSelector(selectContestAnalysis);
+  const timeSpread = useAppSelector(selectContestTimeReading);
   const byId = useAppSelector((s) => s.progress.byId);
 
   const running = contest.seed !== null && contest.finishedAtMs === null;
   const finished = analysis !== null;
+  // Everything after the one named next step. `patternGaps[0]` is `next`, and it already has the
+  // page's one recommendation attached to it.
+  const otherGaps = analysis ? analysis.patternGaps.slice(1) : [];
 
   // Mirrors buildContest's eligibility filter — mastered-out-of-existence catalogs are rare, but
   // a Start button that silently does nothing would be worse than the empty state.
@@ -102,24 +117,21 @@ export default function ContestPage() {
     return () => clearInterval(id);
   }, [running]);
 
-  // The clock only counts time the learner is actually here for. Leaving the page or hiding the
-  // tab settles whatever is running onto the active problem and stops it; without this, walking
-  // away for forty minutes credited those minutes to a problem nobody was looking at, and
-  // `analyzeContest` would then read that as a stall and name a pattern weakness from it — the
-  // exact invented claim contest.ts's header promises never to make. Coming back requires
-  // pressing "Put on the clock" again, which is the honest gesture anyway.
+  // Unmount settles whatever is on the clock: a page that is gone cannot be paused, and minutes
+  // credited to a problem nobody has open would be exactly the invented claim contest.ts's header
+  // refuses to make.
+  //
+  // Hiding the tab deliberately does NOT settle. It used to, on `visibilitychange → hidden`, and
+  // that sounded protective while being fatal: the only sanctioned work surface here is the
+  // external LeetCode link, so *attempting* a problem always hid this tab. Every unsolved problem
+  // therefore settled at ~0 minutes, classified `untouched`, every sitting came out
+  // `inconclusive`, and the whole contest→weakness evidence path could never carry anything. The
+  // contract is now the explicit control instead: arming a problem is a deliberate commitment,
+  // and Pause is the learner's own honest exit. The copy beside the clock says so.
   useEffect(() => {
     if (!running) return;
-    function stopClock() {
-      dispatch(blurContestProblem());
-    }
-    function onVisibility() {
-      if (document.visibilityState === 'hidden') stopClock();
-    }
-    document.addEventListener('visibilitychange', onVisibility);
     return () => {
-      document.removeEventListener('visibilitychange', onVisibility);
-      stopClock(); // unmount: navigating away, or the contest ending
+      dispatch(blurContestProblem()); // unmount: navigating away, or the contest ending
     };
   }, [running, dispatch]);
 
@@ -171,7 +183,8 @@ export default function ContestPage() {
               </p>
               <p className="max-w-prose text-sm leading-relaxed text-muted-foreground">
                 Time counts only while a problem is on the clock, and you can move the clock
-                freely. At the end there is no score and no rank — just an honest reading of each
+                freely; once a problem is on it, it keeps counting until you pause it, tab away or
+                not. At the end there is no score and no rank — just an honest reading of each
                 problem, and the one pattern worth acting on when the set supports a claim at all.
               </p>
               {/* What the seed actually guarantees. The old line promised "reloading rebuilds the
@@ -216,7 +229,7 @@ export default function ContestPage() {
 
           <Section
             title="The set"
-            support="Time counts only while a problem is on the clock, and only while this page is open."
+            support="Time counts only while a problem is on the clock. Once a problem is on it, the clock runs until you pause it — including while you work in another tab, which is where the solving actually happens. Pause it when you step away."
           >
             <RuledList aria-label="Contest problems" as="ol">
               {problems.map(({ question, order, targetMinutes }) => {
@@ -250,7 +263,11 @@ export default function ContestPage() {
                           ]}
                         />
                       </div>
-                      <div className="flex shrink-0 flex-wrap items-center gap-2">
+                      {/* `shrink-0` used to sit here. It was survivable with three controls (352px,
+                          inside a 375px viewport) and overflowed the moment an armed row grew to
+                          four: a flex item that cannot shrink lays out at its natural width and
+                          takes the page with it. Wrapping is the correct behaviour on a phone. */}
+                      <div className="flex w-full min-w-0 flex-wrap items-center gap-2 sm:w-auto">
                         {attempt.solved ? (
                           <p className="flex items-center gap-1.5 text-sm text-easy">
                             <CheckCircle2 className="h-4 w-4 shrink-0" aria-hidden="true" />
@@ -265,7 +282,13 @@ export default function ContestPage() {
                                 active ? 'text-foreground' : 'text-muted-foreground',
                               )}
                             >
-                              {active ? `on the clock · ${spent} min` : `${spent} min`}
+                              {attempt.setAside
+                                ? `set aside · ${spent} min`
+                                : active
+                                  ? `on the clock · ${spent} min`
+                                  : `${spent} min`}
+                              {attempt.wrongSubmits > 0 &&
+                                ` · ${attempt.wrongSubmits} didn't pass`}
                             </p>
                             {active ? (
                               <Button
@@ -281,7 +304,28 @@ export default function ContestPage() {
                                 size="sm"
                                 onClick={() => dispatch(focusContestProblem(question.id))}
                               >
-                                <Play /> Put on the clock
+                                <Play /> {attempt.setAside ? 'Pick it back up' : 'Put on the clock'}
+                              </Button>
+                            )}
+                            {/* Reporting a failed submission is only meaningful for the problem
+                                actually being worked, and keeping it off the other rows keeps
+                                four controls from landing on a phone-width row. */}
+                            {active && (
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                onClick={() => dispatch(logContestWrongSubmit(question.id))}
+                              >
+                                <XCircle /> Didn't pass
+                              </Button>
+                            )}
+                            {!attempt.setAside && (
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                onClick={() => dispatch(setAsideContestProblem(question.id))}
+                              >
+                                Set aside
                               </Button>
                             )}
                             <Button size="sm" onClick={() => dispatch(solveContestProblem(question.id))}>
@@ -310,6 +354,14 @@ export default function ContestPage() {
                   <span className="figures">{analysis.minutesSpent} min</span> on the clock against
                   a <span className="figures">~{contest.durationMin} min</span> schedule.
                 </p>
+                {/* Where the minutes went — the one thing a contest can observe that self-paced
+                    practice cannot. It reports the distribution and stops there; whether the
+                    allocation was right needs a counterfactual nobody has. */}
+                {timeSpread && (
+                  <p className="max-w-prose text-sm leading-relaxed text-muted-foreground">
+                    {timeSpread}
+                  </p>
+                )}
               </div>
 
               {analysis.inconclusive ? (
@@ -332,6 +384,15 @@ export default function ContestPage() {
                     <p className="max-w-prose text-sm leading-relaxed text-muted-foreground">
                       {analysis.next.why}
                     </p>
+                    {/* The other patterns that stalled, stated once and quietly. They are real
+                        evidence and the learner should see them, but only one thing can be the
+                        next thing — a second heading here would make four findings compete. */}
+                    {otherGaps.length > 0 && (
+                      <p className="max-w-prose text-sm leading-relaxed text-muted-foreground">
+                        It also stalled on{' '}
+                        {otherGaps.map((p) => patternById[p]?.name ?? p).join(', ')}.
+                      </p>
+                    )}
                   </div>
                 </>
               ) : null}
@@ -366,6 +427,22 @@ export default function ContestPage() {
                   <p className="max-w-prose text-sm leading-relaxed text-muted-foreground">
                     {reading.reading}
                   </p>
+                  {/* The clock is off now, so the problem that beat it can be opened with
+                      everything the sheet carries — hints, the family, the notes field. The
+                      contest withheld all of that on purpose; the point of finishing is that it
+                      stops being withheld. */}
+                  {analysis.stalledQuestionIds.includes(reading.question.id) && (
+                    <div>
+                      <Button
+                        variant="link"
+                        size="sm"
+                        className="h-auto p-0"
+                        onClick={() => dispatch(activeQuestionSet(reading.question.id))}
+                      >
+                        Take a calm second look
+                      </Button>
+                    </div>
+                  )}
                 </RuledItem>
               ))}
             </RuledList>

@@ -110,9 +110,14 @@ export function combinedRevisionLoadForecast(
   byWeekId: Record<string, CourseWeekProgress>,
   today: string,
   horizonDays = 30,
+  // Third ladder, added in V8: an ML track enters it when its scratch rung is stamped. Optional so
+  // every existing caller and test keeps working, and because the forecast must describe the whole
+  // load or it is not a load forecast — a learner with eight tracks on the ladder would otherwise
+  // be shown a schedule missing a third of the work it is warning them about.
+  mlItems: LadderState[] = [],
 ): { date: string; count: number }[] {
   return ladderForecast(
-    [...solvedQuestions(byId), ...courseLadderItems(weeks, byWeekId)],
+    [...solvedQuestions(byId), ...courseLadderItems(weeks, byWeekId), ...mlItems],
     today,
     horizonDays,
   );

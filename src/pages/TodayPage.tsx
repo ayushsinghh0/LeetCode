@@ -20,6 +20,8 @@ import {
   selectPerDay,
   selectRankedWork,
   selectRevisionQueueIds,
+  selectTargetCompany,
+  selectTargetCompanyCoverage,
   selectTodayLog,
   selectTotalDays,
 } from '@/store/selectors';
@@ -53,6 +55,8 @@ export default function TodayPage() {
   const daysAway = useAppSelector((state) => selectDaysAway(state, today));
   const capacityMin = useAppSelector((s) => s.settings.dailyCapacityMin);
   const intentions = useAppSelector((s) => s.practice.intentions);
+  const targetCompany = useAppSelector(selectTargetCompany);
+  const targetCoverage = useAppSelector(selectTargetCompanyCoverage);
 
   const solvedToday = todayLog ? todayLog.solvedIds.length : 0;
   const minutesToday = todayLog ? todayLog.focusMinutes : 0;
@@ -104,6 +108,25 @@ export default function TodayPage() {
       </Section>
 
       <CourseTodayCard />
+
+      {/* One quiet line while a company target is set, in the coverage vocabulary the company page
+          already uses — never the weakness vocabulary, which is claimed in exactly one place, and
+          never a readiness figure, which no evidence here could support. It is a pointer, not a
+          recommendation: the day's one recommendation is above, and a second thing competing with
+          it is the failure the hero exists to prevent. */}
+      {targetCompany && targetCoverage && (
+        <p className="text-sm text-muted-foreground">
+          Preparing for {targetCompany.name}:{' '}
+          <span className="figures">
+            {targetCoverage.solved} of {targetCoverage.total}
+          </span>{' '}
+          solved across the {targetCoverage.patterns.length} patterns their own page names.{' '}
+          <Link to={`/companies/${targetCompany.id}`} className="underline underline-offset-2">
+            Open the set
+          </Link>
+          .
+        </p>
+      )}
 
       <TodayTasks />
 

@@ -136,6 +136,18 @@ export interface SettingsState {
   theme: 'dark' | 'light';        // default 'dark'
   notifications: boolean;         // default false
   dailyCapacityMin: number;       // default 180 — study minutes the daily plan budgets against
+  /**
+   * A company the learner is preparing for, or absent when they are not preparing for one.
+   *
+   * Stored as a bare id and validated as a bare non-blank string: a company retired from the
+   * dataset must make this setting inert, never quarantine the learner's entire state. Every
+   * reader resolves it against `companyById` and falls back to "no target" when it misses.
+   *
+   * What it can influence is deliberately narrow. There is no per-problem company data and there
+   * never will be (PRODUCT.md), so a target can only ever scope practice by the PATTERNS a
+   * company's own page names — and only for the five companies whose pages enumerate any.
+   */
+  targetCompanyId?: string;
 }
 
 // --- Daily execution layer -------------------------------------------------------------
@@ -203,6 +215,18 @@ export interface DrillsState {
 // An inconclusive contest writes nothing — `analyzeContest` suppresses `patternGaps` to [] and
 // that stays the single source of that decision. Keyed by date like drills: contests are seeded
 // by the date, so a same-day rerun replays a set whose problems have already been seen.
+export interface ContestProblemRecord {
+  questionId: number;
+  minutesSpent: number;
+  targetMinutes: number;
+  /**
+   * The engine's outcome label for this problem, stored as a bare string on purpose: renaming or
+   * retiring an outcome must never quarantine a learner's entire state on the next load (the
+   * missKind precedent). Readers treat an unrecognised value as "no claim".
+   */
+  outcome: string;
+}
+
 export interface ContestStallRecord {
   /** Pattern id of every problem that stalled, deduped — one stall per pattern per sitting. */
   stalledPatterns: string[];
@@ -210,10 +234,89 @@ export interface ContestStallRecord {
   attempted: number;
   /** Problems in the set. */
   total: number;
+  /**
+   * Per-problem readings of the sitting. Optional: payloads written before V8 have none, and a
+   * reader must fall back rather than assume. This is what makes timed evidence measurable —
+   * without it the channel could only ever say which patterns stalled, so the only sittings it
+   * described were the bad ones, and any "practice vs performance" comparison built on that would
+   * be reading a sample selected for failure.
+   */
+  problems?: ContestProblemRecord[];
 }
 
 export interface ContestsState {
   byDate: Record<string, ContestStallRecord>;
+}
+
+// Interview evidence — what a finished sitting leaves behind. The live sitting
+// (`interviewSlice`) is never persisted: an interview is a performance, and reloading into
+// "stage 6, 24 minutes elapsed" would restore a rehearsal that stopped happening. The derived
+// record is different: it is the only thing that lets the debrief's own promise — "compare this
+// sitting with your next one" — be kept at all.
+//
+// Nothing here aggregates. There is no judge (PRODUCT.md), so the numbers stay separate
+// dimensions the learner reported themselves, and no reader may total them into a score.
+export interface InterviewSittingRecord {
+  /** ISO date the sitting STARTED — a sitting that crosses midnight belongs to the evening it began. */
+  date: string;
+  questionId: number;
+  /** 1-based stage the sitting reached, out of the ten. */
+  stageReached: number;
+  /**
+   * The learner's own per-stage call, keyed by stage id. Both key and value are stored as bare
+   * strings: renaming or retiring a stage must never quarantine a learner's whole state.
+   */
+  outcomes: Record<string, string>;
+  /** The 1..5 self-ratings, by dimension id. Sparse — an unanswered dimension is simply absent. */
+  assessment: Record<string, number>;
+  minutes: number;
+  hintsTaken: number;
+  hintsAvailable: number;
+  /**
+   * What the learner expected before starting, 1..5, or null when they did not say. Optional and
+   * nullable on purpose: it is the calibration half of the V7 confidence model applied to a whole
+   * sitting, and an expectation nobody offered must read as absent rather than as a middling 3.
+   */
+  expectation?: number | null;
+  /** Follow-ups the sitting actually reached. The denominator; without it a count means nothing. */
+  followUpsAsked?: number;
+  /** How many of them the learner said they held. Null when they rated none. */
+  followUpsHeld?: number | null;
+  /** The learner's own closing line. Their words, never parsed, never scored. */
+  reflection?: string;
+}
+
+// --- ML implementation tracks (V8) ------------------------------------------------------------
+// The eleven from-scratch tracks shipped as content with nowhere to record having done them. This
+// is that record, and it is deliberately NOT courseSlice: the id spaces are different, a track's
+// `weekId` is frequently null, and folding them together would make "the course" mean two things.
+//
+// The ladder is entered at the SCRATCH rung, not on finishing the track. Deriving the maths is
+// reading; writing the thing in numpy is the first moment there is something to forget. What a
+// review asks for is a rebuild from a blank file, which is why it is worth scheduling at all.
+export interface MlTrackProgress {
+  /** Rung id → the ISO date it was first stamped. Sparse; stamps never move once written. */
+  rungs: Record<string, string>;
+  revisionStage: number; // 0..5; 5 = retained, same ladder as questions and course weeks
+  nextRevision: string | null;
+  lastReviewed: string | null;
+  revisionHistory: RevisionEvent[];
+}
+
+export interface MlProjectProgress {
+  startedOn: string | null;
+  shippedOn: string | null;
+}
+
+export interface MlState {
+  /** Sparse — only tracks the learner has touched exist. Readers must fall back. */
+  tracksById: Record<string, MlTrackProgress>;
+  projectsById: Record<string, MlProjectProgress>;
+}
+
+export interface InterviewsState {
+  /** Most recent last. Capped — see MAX_INTERVIEW_SITTINGS. */
+  sittings: InterviewSittingRecord[];
 }
 
 // --- Practice layer (V6) ---------------------------------------------------------------
@@ -273,6 +376,10 @@ export interface PersistedStateV1 {
   drills?: DrillsState;
   // Optional for the same reason — payloads saved before contest stalls were recorded.
   contests?: ContestsState;
+  // Optional for the same reason — payloads saved before interview sittings were recorded.
+  interviews?: InterviewsState;
+  // Optional for the same reason — payloads saved before the ML tracks could be worked through.
+  ml?: MlState;
   // Optional for the same reason — payloads saved before the practice layer (V6) shipped.
   practice?: PracticeState;
 }

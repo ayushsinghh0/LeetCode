@@ -21,7 +21,13 @@
 //
 // Pure and deterministic like every engine module: no clock, no store, no randomness beyond the
 // seeded PRNG the caller supplies a seed for.
-import type { Difficulty, PatternId, Question, QuestionProgress } from '@/types';
+import type {
+  ContestStallRecord,
+  Difficulty,
+  PatternId,
+  Question,
+  QuestionProgress,
+} from '@/types';
 import { hashSeed, mulberry32 } from '@/utils/engine/prng';
 
 /* ------------------------------------------------------------------------------------------- */
@@ -118,6 +124,10 @@ export interface ContestAttempt {
   solved: boolean;
   /** Minutes actually spent on this problem. */
   minutesSpent: number;
+  /** Submissions the learner reported as not passing. Optional: older callers never had them. */
+  wrongSubmits?: number;
+  /** The learner explicitly stepped away from this one to protect the clock. */
+  setAside?: boolean;
 }
 
 export type Outcome =
@@ -127,6 +137,8 @@ export type Outcome =
   | 'slow'
   /** Real time went in without a solution. This is the one that is worth acting on. */
   | 'stalled'
+  /** Put down deliberately. Describes the decision; see `hasRealTime` for what it evidences. */
+  | 'set-aside'
   /** Barely touched. Deliberately produces no claim. */
   | 'untouched';
 
@@ -135,6 +147,7 @@ export interface ProblemReading {
   outcome: Outcome;
   minutesSpent: number;
   targetMinutes: number;
+  wrongSubmits: number;
   /** What the evidence supports — never more than that. */
   reading: string;
 }
@@ -149,6 +162,13 @@ export interface ContestAnalysis {
    * nothing in the set was informative, which is a normal outcome for a short contest.
    */
   patternGaps: PatternId[];
+  /**
+   * The specific problems real time went into without a solution. Same evidence as `patternGaps`,
+   * kept at question resolution so a later sitting can serve one of them again — the pattern-level
+   * model rightly refuses to shout about a lone stall, and this is how the learner still gets to
+   * meet the actual problem a second time.
+   */
+  stalledQuestionIds: number[];
   /** The single most useful thing to do next, or null when the set said nothing conclusive. */
   next: { pattern: PatternId; why: string } | null;
   /** True when too little of the contest was actually attempted to read anything into it. */
@@ -160,25 +180,57 @@ export const SLOW_FACTOR = 1.5;
 /** Below this share of the target, an unsolved problem says nothing about the learner. */
 export const UNTOUCHED_SHARE = 0.25;
 
-function classify(attempt: ContestAttempt, target: number): Outcome {
-  if (attempt.solved) return attempt.minutesSpent > target * SLOW_FACTOR ? 'slow' : 'clean';
-  return attempt.minutesSpent < target * UNTOUCHED_SHARE ? 'untouched' : 'stalled';
+/**
+ * The single gate for "did real time go into this". Every no-claim decision in this module hangs
+ * off it, which is what keeps `set-aside` from becoming a laundering button: naming the decision
+ * changes the label, never whether the minutes count as evidence.
+ */
+function hasRealTime(minutes: number, target: number): boolean {
+  return minutes >= target * UNTOUCHED_SHARE;
 }
 
-function readingFor(outcome: Outcome, question: Question, minutes: number, target: number): string {
+function classify(attempt: ContestAttempt, target: number): Outcome {
+  if (attempt.solved) return attempt.minutesSpent > target * SLOW_FACTOR ? 'slow' : 'clean';
+  // The decision the learner made is worth naming — protecting the clock is a real contest skill
+  // and an unlabelled skip reads as an abandonment. It describes what they did; `hasRealTime`
+  // still decides what it evidences.
+  if (attempt.setAside) return 'set-aside';
+  return hasRealTime(attempt.minutesSpent, target) ? 'stalled' : 'untouched';
+}
+
+/** A submission that did not pass is an event, never a trait. Stated as a count, and no more. */
+function submitsNote(wrongSubmits: number): string {
+  if (wrongSubmits < 1) return '';
+  return ` ${wrongSubmits} submission${wrongSubmits === 1 ? '' : 's'} didn't pass.`;
+}
+
+function readingFor(
+  outcome: Outcome,
+  question: Question,
+  minutes: number,
+  target: number,
+  wrongSubmits: number,
+): string {
+  const submits = submitsNote(wrongSubmits);
   switch (outcome) {
     case 'clean':
-      return `Solved in ${minutes} min against a ${target} min target.`;
+      return `Solved in ${minutes} min against a ${target} min target.${submits}`;
     case 'slow':
       // The honest version of "you recognised it but the implementation ate the clock". It is
       // stated as an observation about time, not as a claim about what the learner was thinking.
-      return `Solved, but it took ${minutes} min against a ${target} min target — the approach was there and the time went into getting it written.`;
+      return `Solved, but it took ${minutes} min against a ${target} min target — the approach was there and the time went into getting it written.${submits}`;
     case 'stalled':
-      return `${minutes} min went in without a solution. ${question.tests}`;
+      return `${minutes} min went in without a solution.${submits} ${question.tests}`;
+    case 'set-aside':
+      // Both halves are facts, and both belong: the learner put it down on purpose, and the
+      // minutes before that still happened.
+      return hasRealTime(minutes, target)
+        ? `Set aside after ${minutes} min to protect the clock — a deliberate call, and those minutes still went in without a solution.${submits} ${question.tests}`
+        : `Set aside after ${minutes} min — not enough time in it to read anything into.${submits}`;
     case 'untouched':
       // Saying nothing is the correct output here, and it has to be said out loud, or the reader
       // will fill the silence with "I am bad at this".
-      return `Only ${minutes} min spent — not enough to read anything into.`;
+      return `Only ${minutes} min spent — not enough to read anything into.${submits}`;
   }
 }
 
@@ -198,18 +250,34 @@ export function analyzeContest(contest: Contest, attempts: ContestAttempt[]): Co
       solved: false,
       minutesSpent: 0,
     };
+    const wrongSubmits = Math.max(0, Math.floor(attempt.wrongSubmits ?? 0));
     const outcome = classify(attempt, problem.targetMinutes);
     return {
       question: problem.question,
       outcome,
       minutesSpent: attempt.minutesSpent,
       targetMinutes: problem.targetMinutes,
-      reading: readingFor(outcome, problem.question, attempt.minutesSpent, problem.targetMinutes),
+      wrongSubmits,
+      reading: readingFor(
+        outcome,
+        problem.question,
+        attempt.minutesSpent,
+        problem.targetMinutes,
+        wrongSubmits,
+      ),
     };
   });
 
-  const stalled = readings.filter((r) => r.outcome === 'stalled');
-  const informative = readings.filter((r) => r.outcome !== 'untouched');
+  // A solve is evidence however fast it came. An unsolved problem is evidence only when real time
+  // went into it — that rule predates `set-aside` and now governs it too, so putting a problem
+  // down deliberately can never erase minutes that were genuinely spent on it.
+  const evidential = (r: ProblemReading): boolean =>
+    r.outcome === 'clean' ||
+    r.outcome === 'slow' ||
+    (r.outcome !== 'untouched' && hasRealTime(r.minutesSpent, r.targetMinutes));
+
+  const stalled = readings.filter((r) => evidential(r) && r.outcome !== 'clean' && r.outcome !== 'slow');
+  const informative = readings.filter(evidential);
 
   // Fewer than half the problems genuinely attempted means the contest measured availability,
   // not ability. Reporting pattern weakness off that would be drawing a conclusion from a
@@ -219,6 +287,7 @@ export function analyzeContest(contest: Contest, attempts: ContestAttempt[]): Co
   const patternGaps = inconclusive
     ? []
     : Array.from(new Set(stalled.map((r) => r.question.pattern)));
+  const stalledQuestionIds = inconclusive ? [] : stalled.map((r) => r.question.id);
 
   // The count must describe THIS pattern, not the set: "2 problems stalled here" when one of the
   // two stalls was a different technique is exactly the invented precision this module refuses.
@@ -238,7 +307,79 @@ export function analyzeContest(contest: Contest, attempts: ContestAttempt[]): Co
     minutesSpent: attempts.reduce((sum, a) => sum + a.minutesSpent, 0),
     readings,
     patternGaps,
+    stalledQuestionIds,
     next,
     inconclusive,
   };
+}
+
+/**
+ * The stalled problems a PERSISTED sitting still holds, applying the same rule the live analysis
+ * applied. Kept here beside that rule rather than in the reader, so "what counts as a stall" is
+ * decided once: a set-aside with real minutes behind it is evidence, and a set-aside without them
+ * is a decision and nothing more.
+ *
+ * A record written before per-problem rows existed yields nothing, which is correct — its stalls
+ * were only ever known at pattern resolution.
+ */
+export function stalledIdsFromRecord(record: ContestStallRecord): number[] {
+  return (record.problems ?? [])
+    .filter(
+      (problem) =>
+        problem.outcome === 'stalled' ||
+        (problem.outcome === 'set-aside' &&
+          hasRealTime(problem.minutesSpent, problem.targetMinutes)),
+    )
+    .map((problem) => problem.questionId);
+}
+
+/* ------------------------------------------------------------------------------------------- */
+/* Where the clock went                                                                          */
+/* ------------------------------------------------------------------------------------------- */
+
+/**
+ * Time allocation is a different skill from solving, and it is the one a contest is uniquely able
+ * to observe: practice is self-paced, so nothing else in this product can see a learner spend an
+ * hour on the problem they were never going to get. This states where the minutes went and stops
+ * there. It does not say the allocation was wrong — that judgment needs a counterfactual nobody
+ * has, and "you should have skipped it" is exactly the invented verdict this module refuses.
+ */
+/** Below two problems with real time in them there is no distribution to describe, only a figure. */
+const MIN_ALLOCATION_PROBLEMS = 2;
+/** Above this share of the clock, one problem is the story of the sitting rather than part of it. */
+const CONCENTRATION_SHARE = 0.5;
+
+export function timeReading(contest: Contest, attempts: ContestAttempt[]): string | null {
+  const byQuestion = new Map(attempts.map((a) => [a.questionId, a]));
+  const rows = contest.problems.map((problem) => {
+    const attempt = byQuestion.get(problem.question.id);
+    return {
+      title: problem.question.title,
+      minutes: Math.max(0, attempt?.minutesSpent ?? 0),
+      target: problem.targetMinutes,
+      solved: attempt?.solved ?? false,
+    };
+  });
+
+  const engaged = rows.filter((r) => hasRealTime(r.minutes, r.target));
+  if (engaged.length < MIN_ALLOCATION_PROBLEMS) return null;
+
+  const total = rows.reduce((sum, r) => sum + r.minutes, 0);
+  if (total <= 0) return null;
+
+  const idle = rows.length - engaged.length;
+  const idleNote =
+    idle > 0 ? ` ${idle} problem${idle === 1 ? '' : 's'} never got real time.` : '';
+
+  const ranked = [...engaged].sort((a, b) => b.minutes - a.minutes);
+  const most = ranked[0]!;
+  const least = ranked[ranked.length - 1]!;
+
+  if (most.minutes / total > CONCENTRATION_SHARE) {
+    return `${most.minutes} of your ${total} minutes went to ${most.title}, which you ${most.solved ? 'solved' : 'did not solve'}.${idleNote}`;
+  }
+  if (most.minutes === least.minutes) {
+    return `Your ${total} minutes spread evenly across ${engaged.length} problems, ${most.minutes} min each.${idleNote}`;
+  }
+  return `Your ${total} minutes spread across ${engaged.length} problems, ${least.minutes}–${most.minutes} min each.${idleNote}`;
 }

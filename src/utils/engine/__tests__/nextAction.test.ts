@@ -16,6 +16,7 @@ const base: WorkInput = {
   newQuestions: [],
   drill: { eligible: true, doneToday: true, missedMostPatternName: null, minutes: 6 },
   course: { dueReviews: [], nextSession: null },
+  ml: { dueRebuilds: [] },
   openTasks: [],
   taskDefaultMinutes: 15,
 };

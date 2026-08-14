@@ -47,10 +47,30 @@ import {
   contestFinished,
   contestProblemBlurred,
   contestProblemFocused,
+  contestProblemSetAside,
   contestProblemSolved,
   contestStarted,
+  contestWrongSubmitLogged,
 } from '@/store/slices/contestSlice';
-import { contestStallsRecorded } from '@/store/slices/contestsSlice';
+import { contestSittingRecorded } from '@/store/slices/contestsSlice';
+import {
+  followUpOutcomeSet,
+  interviewFinished,
+  interviewReflected,
+  selfAssessmentSet,
+} from '@/store/slices/interviewSlice';
+import {
+  interviewSittingAmended,
+  interviewSittingRecorded,
+} from '@/store/slices/interviewsSlice';
+import {
+  followUpsFor,
+  stageIndex,
+  type FollowUpAxis,
+  type FollowUpOutcome,
+  type SelfAssessmentId,
+} from '@/utils/engine/interview';
+import { familyById } from '@/data/curriculum';
 import { intentionsSet, journalWritten, sittingRecorded } from '@/store/slices/practiceSlice';
 import { normalizeIntentions, normalizeSitting, sittingCounts } from '@/utils/engine/practice';
 import { isMissKind } from '@/utils/engine/miss';
@@ -63,6 +83,25 @@ import {
 } from '@/store/slices/sessionSlice';
 import { settingsUpdated } from '@/store/slices/settingsSlice';
 import { courseWeekById } from '@/data/aimlCourse';
+import { companyById } from '@/data/companies';
+import { isMlProjectId, isMlRungId, isMlTrackId } from '@/data/mlTrackIndex';
+import {
+  mlProjectShipped,
+  mlProjectStarted,
+  mlRungCompleted,
+  mlTrackRebuilt,
+} from '@/store/slices/mlSlice';
+import {
+  ML_LADDER_RUNG,
+  ML_REBUILD_XP,
+  ML_RUNG_XP,
+  ML_TRACK_CLEAR_BONUS,
+  isRebuiltOn,
+  isRungDone,
+  isTrackClear,
+  isTrackRetained,
+  mlTrackProgressFor,
+} from '@/utils/engine/mlTrack';
 import {
   COURSE_REVIEW_XP,
   COURSE_SESSION_XP,
@@ -81,7 +120,7 @@ import {
   xpAdded,
 } from '@/store/slices/gamificationSlice';
 import { isMastered } from '@/utils/engine/spacedRepetition';
-import { MAX_HINT_LEVEL } from '@/utils/engine/hints';
+import { hintsFor, MAX_HINT_LEVEL } from '@/utils/engine/hints';
 import { celebrationShown, toastPushed } from '@/store/slices/uiSlice';
 import { progressReset, stateImported } from '@/store/sharedActions';
 import {
@@ -457,6 +496,27 @@ export const setDailyCapacity = (minutes: number): AppThunk => (dispatch) => {
 };
 
 /**
+ * Set (or clear) the company being prepared for.
+ *
+ * Guarded to companies that actually exist AND whose own page enumerates topics: those are the
+ * only ones a target can do anything with, because the only thing a company target may scope is
+ * patterns, and only the topics tier has any. Setting a categories-tier company would produce a
+ * target that silently changes nothing, which is worse than refusing it.
+ *
+ * `null` clears. The key is dropped from the payload entirely rather than written as null, so a
+ * learner who never set a target still produces a pre-V8-identical payload.
+ */
+export const setTargetCompany = (companyId: string | null): AppThunk => (dispatch) => {
+  if (companyId === null) {
+    dispatch(settingsUpdated({ targetCompanyId: undefined }));
+    return;
+  }
+  const company = companyById[companyId];
+  if (!company || company.evidence !== 'topics') return;
+  dispatch(settingsUpdated({ targetCompanyId: companyId }));
+};
+
+/**
  * The Settings form's Save. Everything except the capacity goes straight through; the capacity
  * is delegated to `setDailyCapacity` so its range guard cannot be bypassed by editing the one
  * surface that writes several settings at once.
@@ -540,6 +600,250 @@ export const writeJournal = (line: string): AppThunk => (dispatch) => {
   dispatch(journalWritten({ date: todayISO(), line: line.trim() }));
 };
 
+// --- ML implementation tracks -----------------------------------------------------------------
+// The one place in V8 that pays XP, because it is the one place recording real work rather than
+// evidence about work. Same double-entry bookkeeping as the course: `xpAdded` moves the total,
+// `bonusXpLogged` writes the day ledger, and the stamp-once guard in the engine is what keeps a
+// work register from becoming a farm.
+
+/**
+ * Stamp one rung of one track.
+ *
+ * Idempotent at the same choke point `completeCourseSession` uses: `applyMlRung` returns the
+ * existing entry unchanged when the rung is already stamped, so re-pressing pays nothing. Stamping
+ * `scratch` also enters the track into the shared 1/3/7/15/30 ladder — the first moment there is
+ * an implementation to forget.
+ */
+export const completeMlRung =
+  (trackId: string, rungId: string): AppThunk =>
+  (dispatch, getState) => {
+    // Validated against the id index rather than the catalog: the app chunk must not carry the
+    // 275 kB of track content (src/data/mlTrackIndex.ts).
+    if (!isMlTrackId(trackId) || !isMlRungId(rungId)) return;
+
+    const before = mlTrackProgressFor(getState().ml.tracksById, trackId);
+    if (isRungDone(before, rungId)) return;
+
+    const date = todayISO();
+    dispatch(mlRungCompleted({ trackId, rungId, date }));
+    dispatch(xpAdded(ML_RUNG_XP));
+    dispatch(bonusXpLogged({ date, xp: ML_RUNG_XP }));
+
+    const after = mlTrackProgressFor(getState().ml.tracksById, trackId);
+    if (isTrackClear(after)) {
+      dispatch(xpAdded(ML_TRACK_CLEAR_BONUS));
+      dispatch(bonusXpLogged({ date, xp: ML_TRACK_CLEAR_BONUS }));
+      dispatch(celebrationShown('confetti'));
+    }
+
+    evaluateAndUnlockAchievements(dispatch, getState, date);
+  };
+
+/**
+ * Grade a rebuild — "write the core loop again from a blank file, then say whether it came out".
+ *
+ * One per track per calendar date: a second grade the same day is a rerun of something just done,
+ * which is practice rather than a retrieval, exactly as drills and course recall checks treat it.
+ * Ladder semantics are the shared ones: a fail drops to stage 0, due tomorrow.
+ */
+export const reviseMlTrack =
+  (trackId: string, passed: boolean): AppThunk =>
+  (dispatch, getState) => {
+    if (!isMlTrackId(trackId)) return;
+
+    const before = mlTrackProgressFor(getState().ml.tracksById, trackId);
+    if (!isRungDone(before, ML_LADDER_RUNG) || isTrackRetained(before)) return;
+
+    const date = todayISO();
+    if (isRebuiltOn(before, date)) return;
+
+    dispatch(mlTrackRebuilt({ trackId, date, passed }));
+    if (passed) {
+      dispatch(xpAdded(ML_REBUILD_XP));
+      dispatch(bonusXpLogged({ date, xp: ML_REBUILD_XP }));
+    }
+
+    evaluateAndUnlockAchievements(dispatch, getState, date);
+  };
+
+/**
+ * Projects are marked, not graded. Starting one earns nothing — it is a statement of intent, and
+ * paying for intent is how a plan becomes a scoreboard. Shipping one pays the track-clear bonus,
+ * because a finished project is the same class of event as a finished track.
+ */
+export const startMlProject =
+  (projectId: string): AppThunk =>
+  (dispatch, getState) => {
+    if (!isMlProjectId(projectId)) return;
+    if (getState().ml.projectsById[projectId]?.startedOn) return;
+    dispatch(mlProjectStarted({ projectId, date: todayISO() }));
+  };
+
+export const shipMlProject =
+  (projectId: string): AppThunk =>
+  (dispatch, getState) => {
+    if (!isMlProjectId(projectId)) return;
+    if (getState().ml.projectsById[projectId]?.shippedOn) return;
+
+    const date = todayISO();
+    dispatch(mlProjectShipped({ projectId, date }));
+    dispatch(xpAdded(ML_TRACK_CLEAR_BONUS));
+    dispatch(bonusXpLogged({ date, xp: ML_TRACK_CLEAR_BONUS }));
+    dispatch(celebrationShown('confetti'));
+
+    evaluateAndUnlockAchievements(dispatch, getState, date);
+  };
+
+// --- Interviews ------------------------------------------------------------------------------
+// The live sitting stays unpersisted; what survives is a derived record, banked here. Same
+// division of labour as contests, and the same normalization discipline: `validatePersisted`
+// rejects a malformed record wholesale and a rejected payload quarantines the learner's ENTIRE
+// state on the next load, so the thunk guarantees a persistable payload itself rather than
+// trusting the page that called it.
+
+/**
+ * Close the sitting and bank what it showed.
+ *
+ * Recorded at FINISH rather than when the learner leaves the debrief, because a sitting that
+ * happened must survive the learner simply navigating away. The self-assessment, which is answered
+ * on the debrief screen afterwards, lands through `rateInterview` amending this same record.
+ *
+ * The record earns nothing. No XP, no achievement, no streak credit — the work inside an interview
+ * (solving the problem, taking a hint) already counts through its own paths. A sitting that paid
+ * out would make starting interviews worth more than performing in them.
+ */
+export const finishInterview = (): AppThunk => (dispatch, getState) => {
+  const before = getState().interview;
+  if (before.questionId === null || before.finishedOn !== null) return;
+
+  dispatch(interviewFinished({ date: todayISO(), nowMs: Date.now() }));
+
+  const interview = getState().interview;
+  const questionId = interview.questionId;
+  if (questionId === null) return;
+  const question = questionById.get(questionId);
+
+  // The sitting's own start date, not today's: an interview that runs past midnight belongs to the
+  // evening it began, which is also the date every other dated record in this product uses.
+  const date = interview.startedOn ?? todayISO();
+  const family = question?.familyId !== undefined ? familyById[question.familyId] : undefined;
+  const hintsAvailable = hintsFor(family).length;
+
+  // Widened to bare strings on the way out: the persisted record stores stage ids and outcomes as
+  // plain strings so retiring either can never quarantine a payload, and the blank-string guard is
+  // the validator's rule restated at the write path rather than an assumption about the union.
+  const outcomes: Record<string, string> = {};
+  for (const [stageId, outcome] of Object.entries(interview.stageOutcomes)) {
+    const value: string = outcome ?? '';
+    if (stageId === '' || value === '') continue;
+    outcomes[stageId] = value;
+  }
+
+  dispatch(
+    interviewSittingRecorded({
+      date,
+      questionId,
+      stageReached: Math.max(1, stageIndex(interview.stage) + 1),
+      outcomes,
+      assessment: {},
+      minutes: Math.max(0, Math.round(interview.elapsedSec / 60)),
+      // Clamped against the ladder that actually exists: a record claiming 3 of 0 hints would be
+      // both unpersistable and untrue.
+      hintsTaken: Math.min(Math.max(0, Math.floor(interview.hintsTaken)), hintsAvailable),
+      hintsAvailable,
+      // An expectation nobody offered stays null. Defaulting it to a middling 3 would fabricate
+      // the very reading the calibration comparison exists to make.
+      expectation: interview.expectation ?? null,
+    }),
+  );
+};
+
+/**
+ * One self-assessment dimension, written to the live sitting and mirrored onto its record.
+ *
+ * Mirrored rather than totalled: the dimensions stay five separate numbers the learner reported
+ * about themselves. Nothing may add them up — there is no judge, so a single figure would be an
+ * invented verdict, and the anti-score tests exist to keep it that way.
+ */
+export const rateInterview =
+  (id: SelfAssessmentId, value: number): AppThunk =>
+  (dispatch, getState) => {
+    dispatch(selfAssessmentSet({ id, value }));
+
+    const interview = getState().interview;
+    if (interview.questionId === null || interview.startedOn === null) return;
+    const assessment: Record<string, number> = {};
+    for (const [dimension, rating] of Object.entries(interview.selfAssessment)) {
+      if (dimension === '' || typeof rating !== 'number') continue;
+      if (!Number.isInteger(rating) || rating < 1 || rating > 5) continue;
+      assessment[dimension] = rating;
+    }
+
+    dispatch(
+      interviewSittingAmended({
+        questionId: interview.questionId,
+        date: interview.startedOn,
+        patch: { assessment },
+      }),
+    );
+  };
+
+/**
+ * One follow-up answered, in the learner's own three-way call.
+ *
+ * What reaches the record is a count, not the individual calls: how many follow-ups the sitting
+ * actually reached, and how many the learner said they held. The axis-level detail belongs to the
+ * sitting on screen; a persisted per-axis history would invite exactly the cross-sitting
+ * arithmetic ("your memory axis is 40%") that this feature has no judge to justify.
+ */
+export const answerInterviewFollowUp =
+  (axis: FollowUpAxis, outcome: FollowUpOutcome): AppThunk =>
+  (dispatch, getState) => {
+    dispatch(followUpOutcomeSet({ axis, outcome }));
+
+    const interview = getState().interview;
+    if (interview.questionId === null || interview.startedOn === null) return;
+    const question = questionById.get(interview.questionId);
+    if (!question) return;
+    const family = question.familyId !== undefined ? familyById[question.familyId] : undefined;
+
+    const asked = followUpsFor(question, family).length;
+    const answered = Object.values(interview.followUpOutcomes);
+    const held = answered.filter((value) => value === 'held').length;
+
+    dispatch(
+      interviewSittingAmended({
+        questionId: interview.questionId,
+        date: interview.startedOn,
+        patch: {
+          followUpsAsked: asked,
+          // Null until the learner has called at least one: zero held out of nothing rated is a
+          // claim about a round that never happened.
+          followUpsHeld: answered.length > 0 ? Math.min(held, asked) : null,
+        },
+      }),
+    );
+  };
+
+/** The closing line, kept as written. No parsing, no scoring, no requirement to write one. */
+export const reflectOnInterview =
+  (line: string): AppThunk =>
+  (dispatch, getState) => {
+    dispatch(interviewReflected({ line }));
+
+    const interview = getState().interview;
+    if (interview.questionId === null || interview.startedOn === null) return;
+    const trimmed = line.trim();
+
+    dispatch(
+      interviewSittingAmended({
+        questionId: interview.questionId,
+        date: interview.startedOn,
+        patch: { reflection: trimmed },
+      }),
+    );
+  };
+
 // --- Contests --------------------------------------------------------------------------------
 // The clock lives here, not in the reducer: every timestamp arrives in a payload, so the slice
 // stays a dumb writer and the tests stay deterministic.
@@ -573,6 +877,16 @@ export const blurContestProblem = (): AppThunk => (dispatch) => {
   dispatch(contestProblemBlurred({ nowMs: Date.now() }));
 };
 
+/** A submission that did not pass. Costs nothing and earns nothing — it is only ever evidence. */
+export const logContestWrongSubmit = (questionId: number): AppThunk => (dispatch) => {
+  dispatch(contestWrongSubmitLogged({ questionId }));
+};
+
+/** Putting a problem down on purpose. The clock settles, so the minutes already in it stand. */
+export const setAsideContestProblem = (questionId: number): AppThunk => (dispatch) => {
+  dispatch(contestProblemSetAside({ questionId, nowMs: Date.now() }));
+};
+
 /**
  * Solving inside a contest is a real solve. It goes through the ordinary `solveQuestion` path so
  * XP, the day log, streaks and the revision ladder all see it exactly as they would any other —
@@ -587,34 +901,59 @@ export const solveContestProblem = (questionId: number): AppThunk => (dispatch, 
 /**
  * The single line that closes the contest→weakness loop. Finishing stamps the sitting, then the
  * engine's own reading of it (`selectContestAnalysis`, which runs `analyzeContest`) is banked as
- * a dated stall record in the persisted `contests` channel — the live contest slice itself never
- * persists, because a restored stopped clock lies. An inconclusive sitting writes nothing:
- * `analyzeContest` suppresses `patternGaps` to [] and that stays the single source of that
- * decision, here included.
+ * a dated record in the persisted `contests` channel — the live contest slice itself never
+ * persists, because a restored stopped clock lies. An INCONCLUSIVE sitting writes nothing:
+ * `analyzeContest` decides that and stays the single source of the decision, here included.
+ *
+ * A conclusive sitting with no stalls DOES write, with an empty `stalledPatterns`. It adds
+ * nothing to the weakness model (which iterates that array) and it is the whole reason the timed
+ * record can be read honestly later: a channel that only kept the sittings that went badly is a
+ * sample selected for failure, and every "practice vs performance" comparison drawn from it would
+ * inherit that bias.
  *
  * The normalization mirrors `logDrillResult`, for the same reason: `validatePersisted` hard-
- * rejects blank or duplicated pattern ids, non-positive counts, `attempted > total` and more
- * stalls than attempts — and a rejected payload quarantines the learner's ENTIRE state on the
- * next load. Today `analyzeContest` happens to guarantee all of that; that is a property of one
- * producer, not of this API, so the thunk guarantees a persistable payload itself.
+ * rejects blank or duplicated pattern ids, non-positive counts, `attempted > total`, more stalls
+ * than attempts and malformed problem rows — and a rejected payload quarantines the learner's
+ * ENTIRE state on the next load. Today `analyzeContest` happens to guarantee all of that; that is
+ * a property of one producer, not of this API, so the thunk guarantees a persistable payload
+ * itself.
  */
 export const finishContest = (): AppThunk => (dispatch, getState) => {
   dispatch(contestFinished({ nowMs: Date.now() }));
 
   const analysis = selectContestAnalysis(getState());
-  if (!analysis || analysis.patternGaps.length === 0) return;
+  if (!analysis || analysis.inconclusive) return;
 
   const safeTotal = Math.floor(analysis.total);
   if (!Number.isFinite(safeTotal) || safeTotal < 1) return;
   const stalledPatterns = Array.from(
     new Set(analysis.patternGaps.filter((p) => typeof p === 'string' && (p as string) !== '')),
   ).slice(0, safeTotal);
-  if (stalledPatterns.length === 0) return;
+  // `attempted` must stay >= 1 (the validator's floor) and >= the number of stalls behind it.
   const informative = analysis.readings.filter((r) => r.outcome !== 'untouched').length;
-  const attempted = Math.min(Math.max(Math.floor(informative) || 0, stalledPatterns.length), safeTotal);
+  const attempted = Math.min(
+    Math.max(Math.floor(informative) || 0, stalledPatterns.length, 1),
+    safeTotal,
+  );
+
+  const problems = analysis.readings
+    .filter((r) => Number.isInteger(r.question.id) && r.question.id >= 1)
+    .slice(0, safeTotal)
+    .map((r) => ({
+      questionId: r.question.id,
+      minutesSpent: Math.max(0, Math.floor(r.minutesSpent) || 0),
+      targetMinutes: Math.max(1, Math.floor(r.targetMinutes) || 1),
+      outcome: r.outcome,
+    }));
 
   dispatch(
-    contestStallsRecorded({ date: todayISO(), stalledPatterns, attempted, total: safeTotal }),
+    contestSittingRecorded({
+      date: todayISO(),
+      stalledPatterns,
+      attempted,
+      total: safeTotal,
+      ...(problems.length > 0 ? { problems } : {}),
+    }),
   );
 };
 

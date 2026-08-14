@@ -10,25 +10,27 @@ import { patternById } from '@/data/patterns';
 import { useToday } from '@/hooks/useToday';
 import { useAppSelector } from '@/store/hooks';
 import {
-  selectAccuracyTrend,
-  selectCalibration,
-  selectCourseActiveDates,
+  selectOtherTrackActiveDates,
   selectCourseProjectedFinish,
-  selectCourseRetention,
   selectCourseStats,
   selectDifficultyStats,
   selectForecast,
-  selectInsights,
-  selectPaceAgainstEstimate,
-  selectPaceTrend,
   selectPatternWeakness,
   selectPaceSamples,
   selectRecallRecord,
+  selectStreaks,
+} from '@/store/selectors';
+import {
+  selectAccuracyTrend,
+  selectCalibration,
+  selectCourseRetention,
+  selectInsights,
+  selectPaceAgainstEstimate,
+  selectPaceTrend,
   selectRecognitionRecord,
   selectSolveCoverage,
-  selectStreaks,
   selectTransferRecord,
-} from '@/store/selectors';
+} from '@/store/analyticsSelectors';
 import {
   HIGH_CONFIDENCE,
   LOW_CONFIDENCE,
@@ -82,7 +84,7 @@ export default function AnalyticsPage() {
   const weakness = useAppSelector((s) => selectPatternWeakness(s, today));
   const forecast = useAppSelector((s) => selectForecast(s, today));
   const dayLogs = useAppSelector((s) => s.progress.dayLogs);
-  const courseActiveDates = useAppSelector(selectCourseActiveDates);
+  const otherTrackActiveDates = useAppSelector(selectOtherTrackActiveDates);
   const courseStats = useAppSelector(selectCourseStats);
   const courseFinish = useAppSelector((s) => selectCourseProjectedFinish(s, today));
   const courseRetention = useAppSelector(selectCourseRetention);
@@ -99,8 +101,8 @@ export default function AnalyticsPage() {
 
   // Unified activity definition, matching the streak: a course-only day is an active day.
   const activeDays = useMemo(
-    () => Math.round(consistency(dayLogs, today, ACTIVE_WINDOW_DAYS, courseActiveDates) * ACTIVE_WINDOW_DAYS),
-    [dayLogs, today, courseActiveDates],
+    () => Math.round(consistency(dayLogs, today, ACTIVE_WINDOW_DAYS, otherTrackActiveDates) * ACTIVE_WINDOW_DAYS),
+    [dayLogs, today, otherTrackActiveDates],
   );
 
   // Focus-timer minutes and what they bought. DayLog.focusMinutes is the canonical time ledger;
@@ -358,7 +360,7 @@ export default function AnalyticsPage() {
       {/* --------------------------------------------------------------------- 5. Next ------ */}
       <Section
         title="What should I do next?"
-        support="One weakness model, built from every signal the record holds: drill misses, failed recalls, your own ratings, unfinished attempts, time against estimate, hint use, and whether an idea carried into its next disguise. Recent evidence outweighs old, and nothing is scored on a single observation."
+        support="One weakness model, built from every signal the record holds: drill misses, failed recalls, your own ratings, unfinished attempts, time against estimate, hint use, stalls under a contest clock, and whether an idea carried into its next disguise. Recent evidence outweighs old, and nothing is scored on a single observation."
       >
         {weakness.length === 0 ? (
           <p className="max-w-prose text-sm text-muted-foreground">

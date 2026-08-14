@@ -19,7 +19,27 @@ export interface ContestAttemptState {
   solved: boolean;
   /** Whole minutes accumulated on this problem across every visit to it. */
   minutesSpent: number;
+  /**
+   * Submissions the learner reported as not passing. Self-reported like everything else here —
+   * there is no judge to count them — and worth exactly one tap, because "I had it wrong twice
+   * before it went through" is the difference between knowing an approach and being able to
+   * execute it, and nothing else in this product can see that.
+   */
+  wrongSubmits: number;
+  /**
+   * The learner deliberately stepped away from this problem to protect the clock. A skip with
+   * intent is a contest skill and reads differently from an abandonment; it does not, however,
+   * erase minutes already spent (see engine/contest.ts `hasRealTime`).
+   */
+  setAside: boolean;
 }
+
+const initialAttempt = (): ContestAttemptState => ({
+  solved: false,
+  minutesSpent: 0,
+  wrongSubmits: 0,
+  setAside: false,
+});
 
 export interface ContestState {
   /** Stable seed the set was built from — null when no contest is running. */
@@ -85,9 +105,7 @@ const contestSlice = createSlice({
       state.durationMin = durationMin;
       state.startedAtMs = nowMs;
       state.finishedAtMs = null;
-      state.attempts = Object.fromEntries(
-        questionIds.map((id) => [id, { solved: false, minutesSpent: 0 }]),
-      );
+      state.attempts = Object.fromEntries(questionIds.map((id) => [id, initialAttempt()]));
       state.activeQuestionId = null;
       state.activeSinceMs = null;
     },
@@ -97,7 +115,12 @@ const contestSlice = createSlice({
       const { questionId, nowMs } = action.payload;
       if (state.activeQuestionId === questionId) return;
       settleActive(state, nowMs);
-      if (state.attempts[questionId]) {
+      const attempt = state.attempts[questionId];
+      if (attempt) {
+        // Putting a problem back on the clock is the learner taking the decision back, so the
+        // set-aside label goes with it — otherwise the verdict would report a problem as put down
+        // when they spent the rest of the contest on it.
+        attempt.setAside = false;
         state.activeQuestionId = questionId;
         state.activeSinceMs = nowMs;
       }
@@ -107,12 +130,29 @@ const contestSlice = createSlice({
       settleActive(state, action.payload.nowMs);
     },
 
+    /** A submission that did not pass. Self-reported, uncounted by anything but the reading. */
+    contestWrongSubmitLogged(state, action: PayloadAction<{ questionId: number }>) {
+      const attempt = state.attempts[action.payload.questionId];
+      if (!attempt || attempt.solved) return;
+      attempt.wrongSubmits += 1;
+    },
+
+    /** Put a problem down on purpose. Settles its clock, so the minutes already in it stand. */
+    contestProblemSetAside(state, action: PayloadAction<{ questionId: number; nowMs: number }>) {
+      const { questionId, nowMs } = action.payload;
+      const attempt = state.attempts[questionId];
+      if (!attempt || attempt.solved) return;
+      if (state.activeQuestionId === questionId) settleActive(state, nowMs);
+      attempt.setAside = true;
+    },
+
     contestProblemSolved(state, action: PayloadAction<{ questionId: number; nowMs: number }>) {
       const { questionId, nowMs } = action.payload;
       const attempt = state.attempts[questionId];
       if (!attempt) return;
       if (state.activeQuestionId === questionId) settleActive(state, nowMs);
       attempt.solved = true;
+      attempt.setAside = false;
     },
 
     contestFinished(state, action: PayloadAction<{ nowMs: number }>) {
@@ -133,6 +173,8 @@ export const {
   contestStarted,
   contestProblemFocused,
   contestProblemBlurred,
+  contestWrongSubmitLogged,
+  contestProblemSetAside,
   contestProblemSolved,
   contestFinished,
   contestCleared,

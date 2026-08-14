@@ -25,7 +25,10 @@ import {
   selectCourseProjectedFinish,
   selectCourseSchedule,
   selectCourseStats,
+  selectMlDueTrackIds,
+  selectMlStanding,
 } from '@/store/selectors';
+import { MlRebuildList } from '@/components/course/MlRebuildList';
 import { AIML_COURSE_URL, CORE_WEEKS, EXTRA_WEEKS, courseWeekById, lectureUrl, type CourseWeek } from '@/data/aimlCourse';
 import { initialCourseProgress } from '@/utils/engine/aimlCourse';
 import { formatMinutes } from '@/utils/engine/planner';
@@ -52,6 +55,9 @@ export default function AimlCoursePage() {
   const schedule = useAppSelector((s) => selectCourseSchedule(s, today));
   const finish = useAppSelector((s) => selectCourseProjectedFinish(s, today));
   const dueReviewIds = useAppSelector((s) => selectCourseDueReviewIds(s, today));
+  const dueRebuildIds = useAppSelector((s) => selectMlDueTrackIds(s, today));
+  const mlTracksById = useAppSelector((s) => s.ml.tracksById);
+  const mlStanding = useAppSelector(selectMlStanding);
   // Single subscription to the whole byWeekId map — rows read their own entry out of it,
   // mirroring TodayPage's progressById pattern.
   const byWeekId = useAppSelector((s) => s.course.byWeekId);
@@ -177,6 +183,16 @@ export default function AimlCoursePage() {
         </Section>
       )}
 
+      {dueRebuildIds.length > 0 && (
+        <Section
+          title="Rebuilds due"
+          support="Open a blank file and write the core loop again, then say whether it came out. Not &ldquo;do you remember this&rdquo; — anyone can answer yes to that."
+          action={<Badge variant="secondary">{dueRebuildIds.length}</Badge>}
+        >
+          <MlRebuildList trackIds={dueRebuildIds} tracksById={mlTracksById} />
+        </Section>
+      )}
+
       <Section title="Syllabus">
         <RuledList>
           {CORE_WEEKS.map((week) => (
@@ -216,6 +232,11 @@ export default function AimlCoursePage() {
             items={[
               <span className="figures">{formatMinutes(totalTrackMinutes())}</span>,
               <span className="figures">{totalFailureModes()} failure modes</span>,
+              mlStanding.rungsDone > 0 && (
+                <span className="figures text-foreground">
+                  {mlStanding.rungsDone} of {mlStanding.rungsTotal} rungs done
+                </span>
+              ),
             ]}
           />
         }

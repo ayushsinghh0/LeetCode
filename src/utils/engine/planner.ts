@@ -48,6 +48,13 @@ export function formatProjection(iso: string, today: string): string {
 export const REVISION_MINUTES = 8;
 export const COURSE_SESSION_MINUTES = 60;
 export const COURSE_REVIEW_MINUTES = 10;
+/**
+ * A track rebuild — write the core loop again from a blank file and grade it. Longer than a course
+ * review (10m, which is re-deriving from slides you still have) because this one asks for working
+ * code from nothing; far shorter than the track's own authored minutes (75–240), which cover
+ * deriving, implementing, the library comparison and the experiment for the first time.
+ */
+export const ML_REBUILD_MINUTES = 20;
 export const DEFAULT_TASK_MINUTES = 15;
 
 // A revision is a re-derive, not a re-solve — roughly a third of the first attempt. Derived from

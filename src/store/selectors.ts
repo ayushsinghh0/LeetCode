@@ -4,7 +4,13 @@
 // memoizable. Call sites (UI, thunks) supply `todayISO()` themselves.
 import { createSelector } from '@reduxjs/toolkit';
 import questionsData from '@/data/questions.json';
-import type { DayLog, PatternId, Question, QuestionProgress } from '@/types';
+import type {
+  DayLog,
+  InterviewSittingRecord,
+  PatternId,
+  Question,
+  QuestionProgress,
+} from '@/types';
 import type { RootState } from '@/store/store';
 import { PATTERNS } from '@/data/patterns';
 import { addDays, diffDays } from '@/utils/dates';
@@ -17,27 +23,34 @@ import {
   COURSE_REVIEW_MINUTES,
   COURSE_SESSION_MINUTES,
   DEFAULT_TASK_MINUTES,
-  REVISION_MINUTES,
+  ML_REBUILD_MINUTES,
   revisionMinutes,
 } from '@/utils/engine/planner';
+import { ML_TRACK_TITLES } from '@/data/mlTrackIndex';
 import {
-  accuracyTrend,
-  buildInsights,
-  confidenceCalibration,
-  courseRetention,
-  paceAgainstEstimate,
-  paceTrend,
-  recognitionRecord,
-  solveCoverage,
-} from '@/utils/engine/insights';
-import { patternWeakness, transferRecord, type PatternWeakness } from '@/utils/engine/weakness';
+  dueMlTrackIds,
+  mlActivityByDate,
+  mlLadderItems,
+  mlStanding,
+} from '@/utils/engine/mlTrack';
+import { patternWeakness, type PatternWeakness } from '@/utils/engine/weakness';
 import { isHintReliant } from '@/utils/engine/hints';
 import {
   analyzeContest,
+  stalledIdsFromRecord,
+  timeReading,
+  type Contest,
   type ContestAnalysis,
   type ContestAttempt,
   type ContestProblem,
 } from '@/utils/engine/contest';
+import { interviewDraws, type InterviewDraw } from '@/utils/engine/interview';
+import { companyById, type Company } from '@/data/companies';
+import {
+  companyCoverage,
+  companyPracticeSet,
+  type CompanyCoverage,
+} from '@/utils/engine/companies';
 import {
   buildRevisionSession,
   type RevisionCandidate,
@@ -75,12 +88,13 @@ export const selectQuestionById = (id: number): Question | undefined => question
 
 // --- Base (non-memoized) field accessors, reused as createSelector inputs -------------------
 
-const selectProgressById = (state: RootState): Record<number, QuestionProgress> => state.progress.byId;
-const selectDayLogs = (state: RootState): Record<string, DayLog> => state.progress.dayLogs;
+export const selectProgressById = (state: RootState): Record<number, QuestionProgress> =>
+  state.progress.byId;
+export const selectDayLogs = (state: RootState): Record<string, DayLog> => state.progress.dayLogs;
 const selectRevisionEnabled = (state: RootState): boolean => state.settings.revisionEnabled;
 const selectXp = (state: RootState): number => state.gamification.xp;
-const selectTodayArg = (_state: RootState, today: string): string => today;
-const selectCourseByWeekId = (state: RootState): Record<string, CourseWeekProgress> =>
+export const selectTodayArg = (_state: RootState, today: string): string => today;
+export const selectCourseByWeekId = (state: RootState): Record<string, CourseWeekProgress> =>
   state.course.byWeekId;
 
 // Course work per date (sessions + graded reviews), derived from byWeekId. Every activity
@@ -92,6 +106,36 @@ export const selectCourseActivityByDate = createSelector([selectCourseByWeekId],
 
 export const selectCourseActiveDates = createSelector(
   [selectCourseActivityByDate],
+  (activity): ReadonlySet<string> => new Set(activity.keys()),
+);
+
+/**
+ * Work on the ML implementation tracks and projects, per date — rung stamps, graded rebuilds,
+ * projects started and shipped. Derived from progress rather than logged, exactly as the course's
+ * is, so DayLog stays the DSA-only ledger it has always been.
+ */
+export const selectMlActivityByDate = createSelector(
+  [(state: RootState) => state.ml.tracksById, (state: RootState) => state.ml.projectsById],
+  (tracksById, projectsById) => mlActivityByDate(tracksById, projectsById),
+);
+
+/**
+ * Everything that is not DSA solving, per date. The product's rule is "a day counts as active when
+ * EITHER track saw work"; V8 makes the implementation tracks a third source of that work, so every
+ * activity surface reads this rather than the course alone — otherwise an evening spent rebuilding
+ * backprop from a blank file would break a streak.
+ */
+export const selectOtherTrackActivityByDate = createSelector(
+  [selectCourseActivityByDate, selectMlActivityByDate],
+  (course, ml): Map<string, number> => {
+    const merged = new Map(course);
+    for (const [date, count] of ml) merged.set(date, (merged.get(date) ?? 0) + count);
+    return merged;
+  },
+);
+
+export const selectOtherTrackActiveDates = createSelector(
+  [selectOtherTrackActivityByDate],
   (activity): ReadonlySet<string> => new Set(activity.keys()),
 );
 
@@ -158,8 +202,8 @@ export const selectDifficultyStats = createSelector([selectProgressById], (byId)
 );
 
 export const selectStreaks = createSelector(
-  [selectDayLogs, selectTodayArg, selectCourseActiveDates],
-  (dayLogs, today, courseActiveDates) => computeStreaks(dayLogs, today, courseActiveDates),
+  [selectDayLogs, selectTodayArg, selectOtherTrackActiveDates],
+  (dayLogs, today, otherTrackDates) => computeStreaks(dayLogs, today, otherTrackDates),
 );
 
 export const selectLevelInfo = createSelector([selectXp], (xp) => levelProgress(xp));
@@ -174,7 +218,7 @@ function heatmapLevel(count: number): 0 | 1 | 2 | 3 | 4 {
 
 // Last 365 days ending today (oldest first).
 export const selectHeatmapData = createSelector(
-  [selectDayLogs, selectTodayArg, selectCourseActivityByDate],
+  [selectDayLogs, selectTodayArg, selectOtherTrackActivityByDate],
   (dayLogs, today, courseActivity): { date: string; count: number; level: 0 | 1 | 2 | 3 | 4 }[] => {
     const days: { date: string; count: number; level: 0 | 1 | 2 | 3 | 4 }[] = [];
     for (let i = 364; i >= 0; i--) {
@@ -209,8 +253,16 @@ export const selectProductivityScore = createSelector(
 // Course weeks climb the same 1/3/7/15/30 ladder as questions, so the load forecast counts
 // both tracks in one series.
 export const selectForecast = createSelector(
-  [selectProgressById, selectCourseByWeekId, selectTodayArg],
-  (byId, byWeekId, today) => combinedRevisionLoadForecast(byId, COURSE_WEEKS, byWeekId, today),
+  [selectProgressById, selectCourseByWeekId, (state: RootState) => state.ml.tracksById, selectTodayArg],
+  (byId, byWeekId, mlTracksById, today) =>
+    combinedRevisionLoadForecast(
+      byId,
+      COURSE_WEEKS,
+      byWeekId,
+      today,
+      30,
+      mlLadderItems(mlTracksById),
+    ),
 );
 
 export const selectBookmarkedIds = createSelector([selectProgressById], (byId): number[] =>
@@ -255,6 +307,26 @@ export const selectCourseDueReviewIds = createSelector(
   (byWeekId, today) => dueCourseReviewWeekIds(COURSE_WEEKS, byWeekId, today),
 );
 
+// --- ML implementation tracks ------------------------------------------------------------------
+
+const selectMlTracksById = (state: RootState) => state.ml.tracksById;
+
+/** Tracks whose rebuild has come due — the third ladder, same 1/3/7/15/30 arithmetic. */
+export const selectMlDueTrackIds = createSelector(
+  [selectMlTracksById, selectTodayArg],
+  (tracksById, today) => dueMlTrackIds(tracksById, today),
+);
+
+/**
+ * How much of the eleven-track ladder has been worked. One line on /aiml, no more.
+ *
+ * Computed from the progress map and the id index — never from the track catalog, which would
+ * pull 275 kB of content onto the app chunk (see src/data/mlTrackIndex.ts).
+ */
+export const selectMlStanding = createSelector([selectMlTracksById], (tracksById) =>
+  mlStanding(tracksById),
+);
+
 /** Whether a course session was already marked done today — the track's one-a-day cadence. */
 export const selectCourseSessionDoneToday = createSelector(
   [selectCourseByWeekId, selectTodayArg],
@@ -278,8 +350,8 @@ export const selectTimeEstimate = createSelector(
 
 // --- What to do next ----------------------------------------------------------------------
 
-const selectDrillsByDate = (state: RootState) => state.drills.byDate;
-const selectContestsByDate = (state: RootState) => state.contests.byDate;
+export const selectDrillsByDate = (state: RootState) => state.drills.byDate;
+export const selectContestsByDate = (state: RootState) => state.contests.byDate;
 const selectTasksById = (state: RootState) => state.tasks.byId;
 
 /**
@@ -299,6 +371,7 @@ export const selectRankedWork = createSelector(
     selectMostMissedPatterns,
     selectCourseDueReviewIds,
     selectCourseNextSession,
+    selectMlDueTrackIds,
     selectTasksById,
     selectSolvedNewCount,
     selectDayLogs,
@@ -315,6 +388,7 @@ export const selectRankedWork = createSelector(
     mostMissed,
     courseDueReviewIds,
     courseNext,
+    mlDueTrackIds,
     tasksById,
     solvedNewCount,
     dayLogs,
@@ -401,6 +475,13 @@ export const selectRankedWork = createSelector(
             }
           : null,
       },
+      ml: {
+        dueRebuilds: mlDueTrackIds.map((trackId) => ({
+          trackId,
+          title: ML_TRACK_TITLES[trackId] ?? trackId,
+          minutes: ML_REBUILD_MINUTES,
+        })),
+      },
       openTasks: Object.values(tasksById).filter((t) => t.date === today && !t.done),
       taskDefaultMinutes: DEFAULT_TASK_MINUTES,
     });
@@ -443,113 +524,6 @@ export const selectPatternWeakness = createSelector(
  * and the session plan quoting compatible numbers; the flat constant is only the empty-ladder
  * fallback.
  */
-function meanRevisionMinutes(byId: Record<number, QuestionProgress>): number {
-  let total = 0;
-  let count = 0;
-  for (const [id, progress] of Object.entries(byId)) {
-    if (progress.status !== 'solved' || progress.nextRevision === null) continue;
-    const question = questionById.get(Number(id));
-    if (!question) continue;
-    total += revisionMinutes(question);
-    count += 1;
-  }
-  return count === 0 ? REVISION_MINUTES : Math.round(total / count);
-}
-
-/**
- * Transfer, measured once. Declared above `selectInsights` because the insight and the figure on
- * the analytics page must quote the same record — the card reads this selector rather than
- * re-deriving, exactly as it does for the weakness model.
- */
-export const selectTransferRecord = createSelector([selectProgressById], (byId) =>
-  transferRecord(questions, byId, FAMILIES),
-);
-
-/**
- * The findings the current evidence actually supports, most actionable first.
- *
- * Returns [] freely: each builder in the insights engine states its own minimum sample and
- * declines below it, so an early-days learner correctly gets nothing rather than a confident
- * reading of four data points.
- */
-export const selectInsights = createSelector(
-  [
-    selectProgressById,
-    selectDayLogs,
-    selectDrillsByDate,
-    selectAllPatternWeakness,
-    selectForecast,
-    (state: RootState) => state.settings.dailyCapacityMin,
-    selectCourseActiveDates,
-    selectCourseByWeekId,
-    selectTransferRecord,
-    (state: RootState) => state.practice.sittings,
-    selectTodayArg,
-  ],
-  (byId, dayLogs, drills, weakness, forecast, capacityMin, courseActiveDates, courseByWeekId, transfer, sittings, today) =>
-    buildInsights(
-      {
-        today,
-        all: questions,
-        byId,
-        dayLogs,
-        drills,
-        weakness,
-        forecast,
-        capacityMin,
-        // The sitting ledger feeds the follow-through card (measurement stays internal).
-        sittings,
-        // The mean cost of the reviews actually on this learner's ladder — not the flat
-        // REVISION_MINUTES fallback. The forecast counts reviews, not questions, so a single
-        // figure is unavoidable here; it must at least be the same figure the session plan
-        // would arrive at, or the schedule-risk card quotes minutes the plan contradicts.
-        revisionMinutes: meanRevisionMinutes(byId),
-        // Both tracks climb one ladder, so the accuracy card grades both — the same blend
-        // `selectAccuracyTrend` feeds the figure with, or the card and the figure would print
-        // different numbers about the same recalls on the same screen.
-        courseByWeekId,
-        transfer,
-      },
-      courseActiveDates,
-    ),
-);
-
-/**
- * The measurements the analytics page reads.
- *
- * Every one of them is an engine call with its own suppression floor — the selectors do the joins
- * against the static dataset and nothing else. A `null` here means "the record cannot answer that
- * yet", and the page is required to say so rather than render a zero.
- */
-export const selectSolveCoverage = createSelector([selectProgressById], (byId) => solveCoverage(byId));
-
-export const selectCalibration = createSelector([selectProgressById], (byId) =>
-  confidenceCalibration(byId),
-);
-
-export const selectRecognitionRecord = createSelector([selectDrillsByDate], (drills) =>
-  recognitionRecord(drills),
-);
-
-export const selectPaceAgainstEstimate = createSelector([selectPaceSamples], (samples) =>
-  paceAgainstEstimate(samples),
-);
-
-export const selectPaceTrend = createSelector([selectProgressById], (byId) =>
-  paceTrend(questions, byId),
-);
-
-// Both tracks climb the same ladder and share the revisionHistory shape, so accuracy is measured
-// across both — the same blending the pass-rate figure on the analytics page does.
-export const selectAccuracyTrend = createSelector(
-  [selectProgressById, selectCourseByWeekId],
-  (byId, byWeekId) => accuracyTrend(byId, byWeekId),
-);
-
-export const selectCourseRetention = createSelector([selectCourseByWeekId], (byWeekId) =>
-  courseRetention(byWeekId),
-);
-
 /** Raw pass/fail counts across both tracks — `overallRevisionPassRate` returns only the ratio. */
 export const selectRecallRecord = createSelector(
   [selectProgressById, selectCourseByWeekId],
@@ -717,6 +691,113 @@ export const selectDaysAway = createSelector(
   },
 );
 
+// --- Company preparation -----------------------------------------------------------------------
+
+/**
+ * The company being prepared for, or null. Resolved through the dataset every time and gated on
+ * the topics tier, so retiring a company (or downgrading its evidence) makes a stored target inert
+ * rather than dangerous — the setting stores a bare id precisely so it can go stale safely.
+ */
+export const selectTargetCompany = createSelector(
+  [(state: RootState) => state.settings.targetCompanyId],
+  (targetCompanyId): Company | null => {
+    if (!targetCompanyId) return null;
+    const company = companyById[targetCompanyId];
+    return company && company.evidence === 'topics' ? company : null;
+  },
+);
+
+/**
+ * How this learner stands across the target company's OWN named topics, and the highest-value
+ * practice inside them. One memoized seam, so Today, the company page and the interview scope all
+ * read the same reading rather than three surfaces each recomputing (and eventually disagreeing).
+ *
+ * Null without a target, which is most of the time and is not a gap.
+ */
+export const selectTargetCompanyCoverage = createSelector(
+  [selectTargetCompany, selectPatternStats, selectProgressById],
+  (company, stats, byId): CompanyCoverage | null =>
+    company ? companyCoverage(company.patterns, stats, questions, byId) : null,
+);
+
+export const selectTargetCompanyPracticeSet = createSelector(
+  [selectTargetCompanyCoverage, selectProgressById],
+  (coverage, byId): Question[] =>
+    coverage ? companyPracticeSet(coverage, questions, byId) : [],
+);
+
+// --- Interviews ------------------------------------------------------------------------------
+
+/**
+ * The problems an interview could draw, most worth interviewing first, each with its grounds.
+ *
+ * This assembles the inputs; `interviewDraws` decides the order. Note what it reads: the ONE
+ * weakness model, the persisted contest record, and the existing hint-reliance rule — three
+ * signals that already exist, joined here rather than re-derived. Interview mode computes no
+ * weakness of its own, and it may not: a second opinion about what the learner is bad at is the
+ * failure this codebase has already had twice.
+ */
+export const selectInterviewDraws = createSelector(
+  [selectQuestions, selectProgressById, selectContestsByDate, selectPatternWeakness, selectTodayArg],
+  (all, byId, contests, weakness, todayArg): InterviewDraw[] => {
+    const pool = all.filter((question) => {
+      const status = byId[question.id]?.status ?? 'unsolved';
+      return status === 'unsolved' || status === 'in_progress';
+    });
+
+    // Every stall the persisted record still holds. No recency cutoff on purpose: a stalled
+    // problem stays in the pool only until it is solved, so solving it is what retires the
+    // evidence — an arbitrary "last 30 days" would just hide work that is still undone.
+    const stalledQuestionIds = Object.values(contests).flatMap(stalledIdsFromRecord);
+
+    const hintReliantFamilyIds = Array.from(
+      new Set(
+        all
+          .filter((question) => {
+            const progress = byId[question.id];
+            if (!progress || question.familyId === undefined) return false;
+            return (
+              isHintReliant(progress.hintLevelUsed) &&
+              !progress.revisionHistory.some((event) => event.passed)
+            );
+          })
+          .map((question) => question.familyId!),
+      ),
+    );
+
+    return interviewDraws({
+      pool,
+      seed: `interview:${todayArg}`,
+      stalledQuestionIds,
+      weakPatterns: weakness.map((entry) => entry.id),
+      hintReliantFamilyIds,
+    });
+  },
+);
+
+/**
+ * The sitting before this one, or null when there is no earlier one to compare against.
+ *
+ * `finishInterview` banks the current sitting the moment it ends, so on the debrief screen the
+ * last record IS the sitting being read — the previous one is the record behind it. Resolving that
+ * here rather than in the page keeps the debrief from doing index arithmetic on a growing array,
+ * which is exactly the sort of thing that silently starts comparing a sitting with itself.
+ */
+export const selectPreviousInterviewSitting = createSelector(
+  [(state: RootState) => state.interviews.sittings, (state: RootState) => state.interview],
+  (sittings, live): InterviewSittingRecord | null => {
+    if (sittings.length === 0) return null;
+    const last = sittings[sittings.length - 1]!;
+    const lastIsCurrent =
+      live.questionId !== null &&
+      live.finishedOn !== null &&
+      last.questionId === live.questionId &&
+      last.date === live.startedOn;
+    const index = sittings.length - (lastIsCurrent ? 2 : 1);
+    return index >= 0 ? sittings[index]! : null;
+  },
+);
+
 // --- Contest ---------------------------------------------------------------------------------
 
 const selectContestState = (state: RootState) => state.contest;
@@ -744,25 +825,46 @@ export const selectContestProblems = createSelector(
  * half-analysis mid-contest: `analyzeContest` treats unattempted problems as untouched, so
  * running it early would "read" a sitting that is still happening.
  */
-export const selectContestAnalysis = createSelector(
+/** The live attempts in the engine's shape. One conversion, so every reader sees the same sitting. */
+export const selectContestAttempts = createSelector(
   [selectContestState, selectContestProblems],
-  (contest, problems): ContestAnalysis | null => {
-    if (contest.seed === null || contest.finishedAtMs === null) return null;
-    const attempts: ContestAttempt[] = problems.map((p) => ({
-      questionId: p.question.id,
-      solved: contest.attempts[p.question.id]?.solved ?? false,
-      minutesSpent: contest.attempts[p.question.id]?.minutesSpent ?? 0,
-    }));
-    return analyzeContest(
-      {
-        id: contest.seed,
-        // The honest shape is what the set actually holds, not the ladder it aimed for — a slot
-        // can go unfilled when the eligible pool for its difficulty runs dry.
-        shape: problems.map((p) => p.question.difficulty),
-        problems,
-        durationMin: contest.durationMin,
-      },
-      attempts,
-    );
-  },
+  (contest, problems): ContestAttempt[] =>
+    problems.map((p) => {
+      const attempt = contest.attempts[p.question.id];
+      return {
+        questionId: p.question.id,
+        solved: attempt?.solved ?? false,
+        minutesSpent: attempt?.minutesSpent ?? 0,
+        wrongSubmits: attempt?.wrongSubmits ?? 0,
+        setAside: attempt?.setAside ?? false,
+      };
+    }),
+);
+
+/** The set the finished analysis was read from — the frozen contest, in the engine's shape. */
+const selectFinishedContest = createSelector(
+  [selectContestState, selectContestProblems],
+  (contest, problems): Contest | null =>
+    contest.seed === null || contest.finishedAtMs === null
+      ? null
+      : {
+          id: contest.seed,
+          // The honest shape is what the set actually holds, not the ladder it aimed for — a slot
+          // can go unfilled when the eligible pool for its difficulty runs dry.
+          shape: problems.map((p) => p.question.difficulty),
+          problems,
+          durationMin: contest.durationMin,
+        },
+);
+
+export const selectContestAnalysis = createSelector(
+  [selectFinishedContest, selectContestAttempts],
+  (contest, attempts): ContestAnalysis | null =>
+    contest === null ? null : analyzeContest(contest, attempts),
+);
+
+/** How the sitting's minutes were distributed, or null when there is no distribution to describe. */
+export const selectContestTimeReading = createSelector(
+  [selectFinishedContest, selectContestAttempts],
+  (contest, attempts): string | null => (contest === null ? null : timeReading(contest, attempts)),
 );

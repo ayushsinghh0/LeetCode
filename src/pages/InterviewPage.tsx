@@ -14,6 +14,7 @@ import questionsData from '@/data/questions.json';
 import { familyById } from '@/data/curriculum';
 import { patternById } from '@/data/patterns';
 import { Button } from '@/components/ui/button';
+import { Textarea } from '@/components/ui/textarea';
 import { DifficultyBadge } from '@/components/questions/DifficultyBadge';
 import { PatternChip } from '@/components/questions/PatternChip';
 import { EmptyState } from '@/components/shared/EmptyState';
@@ -30,23 +31,35 @@ import {
   Eyebrow,
 } from '@/components/layout/Page';
 import { useAppDispatch, useAppSelector } from '@/store/hooks';
-import { revealHint } from '@/store/actions';
+import {
+  answerInterviewFollowUp,
+  finishInterview,
+  rateInterview,
+  reflectOnInterview,
+  revealHint,
+} from '@/store/actions';
+import {
+  selectInterviewDraws,
+  selectPreviousInterviewSitting,
+  selectTargetCompany,
+} from '@/store/selectors';
 import {
   interviewAdvanced,
   interviewCleared,
-  interviewFinished,
   interviewHintTaken,
   interviewPaused,
   interviewResumed,
   interviewStarted,
   selectInterviewPhase,
   selectRatedStages,
-  selfAssessmentSet,
   stageOutcomeSet,
 } from '@/store/slices/interviewSlice';
 import { useToday } from '@/hooks/useToday';
 import { hintsFor } from '@/utils/engine/hints';
 import {
+  DRAW_BASIS_NOTE,
+  FOLLOW_UP_OUTCOMES,
+  FOLLOW_UP_OUTCOME_LABEL,
   REVEALS,
   SELF_ASSESSMENT,
   SELF_ASSESSMENT_SCALE,
@@ -56,19 +69,24 @@ import {
   followUpsFor,
   formatElapsed,
   isRevealed,
+  isSelfAssessmentValue,
   nextStage,
   paceNote,
   paceReading,
   revealById,
   stageById,
   stageIndex,
+  type InterviewDraw,
   type RevealId,
+  type SelfAssessmentValue,
 } from '@/utils/engine/interview';
-import { hashSeed, mulberry32, seededShuffle } from '@/utils/engine/prng';
 import { cn } from '@/utils/cn';
 import type { Question } from '@/types';
 
 const questions = questionsData as Question[];
+
+/** Stable empty reference — a fresh `[]` from a selector re-renders on every store change. */
+const NO_DRAWS: InterviewDraw[] = [];
 const questionById = new Map(questions.map((q) => [q.id, q]));
 
 // The capacity-chip idiom (DESIGN.md § Capacity chips): small bordered toggles, ink fill for the
@@ -102,9 +120,15 @@ export default function InterviewPage() {
   const interview = useAppSelector((state) => state.interview);
   const ratedStages = useAppSelector(selectRatedStages);
   const progressById = useAppSelector((state) => state.progress.byId);
+  const previous = useAppSelector(selectPreviousInterviewSitting);
 
   const [rerolls, setRerolls] = useState(0);
   const [checkOpen, setCheckOpen] = useState(false);
+  // Held here rather than in the slice because it is answered BEFORE a sitting exists. Optional
+  // throughout: skipping it must cost nothing, or the page acquires a gate where it had none.
+  const [expectation, setExpectation] = useState<SelfAssessmentValue | null>(null);
+  const [companyScope, setCompanyScope] = useState(false);
+  const targetCompany = useAppSelector(selectTargetCompany);
   // Set when "Need a hint" is pressed with nothing left to give. See takeHint.
   const [hintNote, setHintNote] = useState(false);
 
@@ -154,21 +178,37 @@ export default function InterviewPage() {
 
   // --- The problem on offer ------------------------------------------------------------------
   // Unsolved first: an interview on a problem you have already solved is a rehearsal of your own
-  // memory, not of your recognition. Date-seeded so the proposal is stable across a reload, with
-  // a reroll for the days when it is not the one you want. Both memos short-circuit once an
-  // interview is running — the proposal is not on screen then, and revealing a hint writes to
-  // `progress.byId`, which would otherwise re-scan and re-shuffle 539 questions mid-sitting.
-  const pool = useMemo(() => {
-    if (!showLanding) return questions;
-    const unsolved = questions.filter((q) => progressById[q.id]?.status !== 'solved');
-    return unsolved.length > 0 ? unsolved : questions;
-  }, [showLanding, progressById]);
+  // memory, not of your recognition. The ORDER within that pool is evidence-led (see
+  // `interviewDraws`) — a problem that stalled under a contest clock, then the areas the one
+  // weakness model marks as not holding — while every problem stays reachable by rerolling, so
+  // the learner is never cornered by their own record. Date-seeded, so a reload proposes the same
+  // problem rather than reshuffling. The reason is NOT shown here: it would name what is coming.
+  // Gated on `showLanding`, not merely memoized: the proposal is off screen once a sitting starts,
+  // and revealing a hint writes to `progress.byId` — which would otherwise re-rank the whole
+  // catalog (and recompute the weakness model behind it) on every rung taken mid-sitting.
+  const draws = useAppSelector((state) =>
+    showLanding ? selectInterviewDraws(state, today) : NO_DRAWS,
+  );
 
-  const proposed = useMemo(() => {
-    if (!showLanding) return undefined;
-    const order = seededShuffle(pool, mulberry32(hashSeed(`interview:${today}`)));
-    return order[rerolls % order.length];
-  }, [showLanding, pool, today, rerolls]);
+  // Optional company scope. Narrows the pool to the patterns the target company's OWN page names
+  // — which is the only thing a company target can ever do here, because no per-problem company
+  // data exists and none ever will. Falls back to the full pool rather than emptying the page if
+  // the scope leaves nothing: an interview on something is better than an empty landing.
+  const scoped = useMemo(() => {
+    if (!companyScope || !targetCompany) return draws;
+    const patterns = new Set(targetCompany.patterns);
+    const inScope = draws.filter((draw) => patterns.has(draw.question.pattern));
+    return inScope.length > 0 ? inScope : draws;
+  }, [companyScope, targetCompany, draws]);
+
+  const proposedDraw = useMemo(
+    () => (scoped.length === 0 ? undefined : scoped[rerolls % scoped.length]),
+    [scoped, rerolls],
+  );
+
+  const proposed = proposedDraw?.question;
+
+  const basisNote = interview.drawBasis ? DRAW_BASIS_NOTE[interview.drawBasis] : null;
 
   const family = question?.familyId !== undefined ? familyById[question.familyId] : undefined;
   const hints = hintsFor(family);
@@ -197,12 +237,17 @@ export default function InterviewPage() {
         date: today,
         nowMs: Date.now(),
         hintsAtStart: progressById[id]?.hintLevelUsed ?? 0,
+        expectation,
+        drawBasis: proposedDraw?.question.id === id ? proposedDraw.basis : null,
       }),
     );
+    setExpectation(null);
   }
 
   function finish() {
-    dispatch(interviewFinished({ date: today, nowMs: Date.now() }));
+    // Through the thunk, not the slice action: finishing is the moment the sitting stops being a
+    // performance and becomes a record, and that record is a cross-slice write.
+    dispatch(finishInterview());
   }
 
   function advance() {
@@ -354,6 +399,20 @@ export default function InterviewPage() {
                 <p className="max-w-prose text-xs leading-relaxed text-muted-foreground">
                   {followUp.because}
                 </p>
+                {/* Answered out loud, then called by the learner — three ways, because "most of
+                    the way there" is the commonest honest answer and a yes/no forces it into a
+                    lie. Only offered once the attempt is over, which is when a real interviewer
+                    asks these; during the sitting it would be a form to fill in. */}
+                {finished && (
+                  <ChipRadioRow
+                    label={`${followUp.label} follow-up`}
+                    options={FOLLOW_UP_OUTCOMES}
+                    format={(outcome) => FOLLOW_UP_OUTCOME_LABEL[outcome]}
+                    value={interview.followUpOutcomes[followUp.axis]}
+                    onSelect={(outcome) => dispatch(answerInterviewFollowUp(followUp.axis, outcome))}
+                    className="pt-1"
+                  />
+                )}
               </div>
             ))}
           </div>
@@ -433,6 +492,50 @@ export default function InterviewPage() {
 
                 <Rule />
 
+                {/* Asked before the attempt and never shown back during it: a prediction the
+                    learner can see while working is a target they answer to, and this exists to
+                    measure calibration rather than to set one. Optional, and skipping it costs
+                    nothing — an expectation nobody offered is recorded as absent, not as a 3. */}
+                <div className="flex flex-col gap-3">
+                  <div className="flex flex-col gap-1">
+                    <p className="text-sm font-medium">How do you expect this to go?</p>
+                    <p className="max-w-prose text-sm leading-relaxed text-muted-foreground">
+                      Optional, and only ever compared with your own read afterwards. Knowing how
+                      well you can call it is worth as much as the sitting.
+                    </p>
+                  </div>
+                  <ChipRadioRow
+                    label="Expectation before starting"
+                    options={SELF_ASSESSMENT_SCALE}
+                    value={expectation ?? undefined}
+                    onSelect={(value) =>
+                      setExpectation(isSelfAssessmentValue(value) ? value : null)
+                    }
+                    chipClassName="figures min-w-[44px]"
+                    className="items-center"
+                    before={<span className="text-xs text-muted-foreground">Rough</span>}
+                    after={<span className="text-xs text-muted-foreground">Comfortable</span>}
+                  />
+                </div>
+
+                {/* The company scope. Names the company, never a pattern: a target maps to seven
+                    to twelve of them, so this narrows the draw without saying what is coming. */}
+                {targetCompany && (
+                  <label className="flex max-w-prose items-start gap-2.5 text-sm text-muted-foreground">
+                    <input
+                      type="checkbox"
+                      checked={companyScope}
+                      onChange={(event) => setCompanyScope(event.target.checked)}
+                      className="mt-0.5 h-4 w-4 shrink-0 accent-primary"
+                    />
+                    <span>
+                      Draw from the topics {targetCompany.name}&apos;s own prep page names. That is
+                      the whole of what targeting them can do — nobody publishes the problems they
+                      ask.
+                    </span>
+                  </label>
+                )}
+
                 <div className="flex flex-wrap items-center gap-2">
                   <Button onClick={() => begin(proposed.id)}>
                     Begin interview <ArrowRight />
@@ -511,13 +614,44 @@ export default function InterviewPage() {
                 explanation, so there is no score, no grade and no verdict &mdash; the five numbers
                 exist so you can compare this sitting with your next one.
               </p>
+              {/* The line above promised a comparison the app could not make until the sittings
+                  persisted. It can now, and it is stated as marginalia rather than as a finding:
+                  two sittings on two different problems are two data points, and a trend across
+                  five of them belongs on Analytics, not in the middle of a debrief. */}
+              {previous && (
+                <Meta
+                  items={[
+                    <span>
+                      Last sitting ·{' '}
+                      {questionById.get(previous.questionId)?.title ?? 'another problem'}
+                    </span>,
+                    <span>{format(parseISO(previous.date), 'd MMM')}</span>,
+                    <span>
+                      reached{' '}
+                      {(STAGES[previous.stageReached - 1] ?? STAGES[0]!).label.toLowerCase()}
+                    </span>,
+                    previous.hintsAvailable > 0 && (
+                      <span className="figures">
+                        {previous.hintsTaken} of {previous.hintsAvailable} hints
+                      </span>
+                    ),
+                  ]}
+                />
+              )}
             </div>
 
             {SELF_ASSESSMENT.map((prompt) => (
               <div key={prompt.id} className="flex flex-col gap-3">
                 <Rule />
                 <div className="flex flex-col gap-1">
-                  <p className="text-sm font-medium">{prompt.label}</p>
+                  <div className="flex flex-wrap items-baseline justify-between gap-x-4 gap-y-1">
+                    <p className="text-sm font-medium">{prompt.label}</p>
+                    {previous?.assessment[prompt.id] !== undefined && (
+                      <Eyebrow>
+                        <span className="figures">Last time: {previous.assessment[prompt.id]}</span>
+                      </Eyebrow>
+                    )}
+                  </div>
                   <p className="max-w-prose text-sm leading-relaxed text-muted-foreground">
                     {prompt.question}
                   </p>
@@ -526,7 +660,7 @@ export default function InterviewPage() {
                   label={`${prompt.label} self-rating`}
                   options={SELF_ASSESSMENT_SCALE}
                   value={interview.selfAssessment[prompt.id]}
-                  onSelect={(value) => dispatch(selfAssessmentSet({ id: prompt.id, value }))}
+                  onSelect={(value) => dispatch(rateInterview(prompt.id, value))}
                   chipClassName="figures min-w-[44px]"
                   className="items-center"
                   before={<span className="text-xs text-muted-foreground">{prompt.low}</span>}
@@ -591,6 +725,25 @@ export default function InterviewPage() {
           support="Everything the stages were holding back. The attempt is over, so none of it is worth hiding now."
         >
           {unlockList()}
+        </Section>
+
+        <Section title="Close it out" support="Optional, and nothing reads it but you.">
+          <div className="flex flex-col gap-4">
+            {/* Why this problem came up. Stated here and nowhere earlier: on the landing it would
+                have named what was coming, and turned opening the page into a verdict. */}
+            {basisNote && (
+              <p className="max-w-prose text-sm leading-relaxed text-muted-foreground">
+                {basisNote}
+              </p>
+            )}
+            <Textarea
+              aria-label="One line about this sitting"
+              placeholder="One line about this sitting — what you would do differently at the start."
+              value={interview.reflection}
+              onChange={(event) => dispatch(reflectOnInterview(event.target.value))}
+              rows={2}
+            />
+          </div>
         </Section>
 
         <Section aria-label="Next">

@@ -19,6 +19,7 @@ export type ActionKind =
   | 'revision'
   | 'drill'
   | 'course-review'
+  | 'ml-review'
   | 'course-session'
   | 'new-question'
   | 'task'
@@ -36,6 +37,7 @@ export interface WorkItem {
   href: string;
   questionId?: number;
   weekId?: string;
+  trackId?: string;
   taskId?: string;
 }
 
@@ -77,6 +79,10 @@ export interface WorkInput {
   course: {
     dueReviews: { weekId: string; title: string; minutes: number }[];
     nextSession: { weekId: string; title: string; minutes: number } | null;
+  };
+  /** ML implementation tracks due for a rebuild. Rung progression is deliberately absent — see below. */
+  ml: {
+    dueRebuilds: { trackId: string; title: string; minutes: number }[];
   };
   openTasks: DailyTask[];
   taskDefaultMinutes: number;
@@ -154,6 +160,26 @@ export function rankWork(input: WorkInput): WorkItem[] {
       minutes: review.minutes,
       href: '/aiml',
       weekId: review.weekId,
+    });
+  }
+
+  // 3b. ML rebuilds — retention on the third ladder. Ranked beside course reviews for the reason
+  // the whole spine is ordered by: retention outranks acquisition. An implementation you wrote
+  // once and never rebuilt is knowledge already leaving.
+  //
+  // Note what is NOT here: rung progression. Working a new track is self-paced elective work, and
+  // the day plan proposing "derive the transformer" beside a due revision would put a two-hour
+  // block on a list the learner is meant to be able to finish. The course carries the paced
+  // sprint; the tracks stay chosen rather than assigned.
+  for (const rebuild of input.ml.dueRebuilds) {
+    items.push({
+      id: `ml-review-${rebuild.trackId}`,
+      kind: 'ml-review',
+      title: rebuild.title,
+      why: 'Due for a rebuild — write the core loop again from a blank file.',
+      minutes: rebuild.minutes,
+      href: '/aiml',
+      trackId: rebuild.trackId,
     });
   }
 
@@ -242,6 +268,7 @@ const SMALL_START_KINDS: ReadonlySet<ActionKind> = new Set<ActionKind>([
   'revision',
   'new-question',
   'course-review',
+  'ml-review',
   'course-session',
 ]);
 

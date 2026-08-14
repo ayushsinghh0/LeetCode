@@ -18,6 +18,7 @@
 // Pure and deterministic like every engine module: no clock, no store, no React. The elapsed
 // seconds and the ISO dates arrive from the caller.
 import type { Complexity, PatternId, ProblemFamily, Question } from '@/types';
+import { hashSeed, mulberry32, seededShuffle } from '@/utils/engine/prng';
 
 /* ------------------------------------------------------------------------------------------- */
 /* Stages                                                                                       */
@@ -660,4 +661,124 @@ export function followUpsFor(question: Question, family: ProblemFamily | undefin
   return found
     .sort((a, b) => AXIS_ORDER.indexOf(a.axis) - AXIS_ORDER.indexOf(b.axis))
     .slice(0, MAX_FOLLOW_UPS);
+}
+
+/* ------------------------------------------------------------------------------------------- */
+/* The follow-up round's own record                                                             */
+/* ------------------------------------------------------------------------------------------- */
+
+/**
+ * How a follow-up went, in the learner's own words.
+ *
+ * Three values rather than two because "I got most of the way there" is the commonest honest
+ * answer to a follow-up and a yes/no forces it into a lie. "Missed" describes the answer, never
+ * the person, and nothing anywhere folds these into a figure — see the anti-aggregate test.
+ */
+export type FollowUpOutcome = 'held' | 'partly' | 'missed';
+
+export const FOLLOW_UP_OUTCOMES: FollowUpOutcome[] = ['held', 'partly', 'missed'];
+
+export const FOLLOW_UP_OUTCOME_LABEL: Record<FollowUpOutcome, string> = {
+  held: 'Held it',
+  partly: 'Partly',
+  missed: 'Not this time',
+};
+
+/* ------------------------------------------------------------------------------------------- */
+/* Choosing the problem                                                                          */
+/* ------------------------------------------------------------------------------------------- */
+
+/**
+ * Why this problem was put in front of the learner.
+ *
+ * The directive's ask is that an interview "deliberately test weaknesses without becoming
+ * unfair", and the two halves pull in opposite directions. This is where the balance is struck:
+ * the ORDER is evidence-led, so the strongest available reason wins; but the pool is still the
+ * whole eligible dataset, every problem is offered exactly once, and a reroll always walks on.
+ * The learner is never cornered by their own record.
+ *
+ * The basis is stated only AFTER the sitting. On the landing it would be a leak — "drawn from an
+ * area your evidence marked shaky" tells you what technique is coming, which is precisely what
+ * interview mode withholds, and it also turns opening the page into a verdict. The debrief is
+ * where it becomes information.
+ */
+export type DrawBasis =
+  /** Real time went into this one under a contest clock and it did not come out. */
+  | 'contest-stall'
+  /** Its area is one the single weakness model currently marks as not holding. */
+  | 'weak-pattern'
+  /** Its family holds a problem that needed the hint ladder and has not had a clean pass since. */
+  | 'hint-reliant-family'
+  /** No particular reason. Most draws, most days — and it says so by saying nothing. */
+  | 'open-ground';
+
+/**
+ * The debrief's one sentence about why this problem. Never names the pattern (the leak fence
+ * covers the landing, and naming it here would still be a weakness claim made outside the one
+ * place allowed to make them), and never grades the learner for having been drawn there.
+ */
+export const DRAW_BASIS_NOTE: Record<DrawBasis, string | null> = {
+  'contest-stall':
+    'This one was chosen: real time went into it under a contest clock without a solution, and a staged sitting is the closest thing here to meeting it again properly.',
+  'weak-pattern':
+    'This one was chosen from an area your recent evidence marks as not holding — which is the area an interview is most worth spending on.',
+  'hint-reliant-family':
+    'This one was chosen because its family holds a problem you needed the ladder for, and the idea transfers between them.',
+  'open-ground': null,
+};
+
+const BASIS_ORDER: DrawBasis[] = [
+  'contest-stall',
+  'weak-pattern',
+  'hint-reliant-family',
+  'open-ground',
+];
+
+export interface InterviewDraw {
+  question: Question;
+  basis: DrawBasis;
+}
+
+export interface InterviewDrawInput {
+  /** Everything eligible — unsolved problems, as the landing already filters them. */
+  pool: Question[];
+  /** Stable seed, so a reload proposes the same problem rather than reshuffling it. */
+  seed: string;
+  /** Problems that stalled in recent contest sittings, from the persisted `contests` channel. */
+  stalledQuestionIds: number[];
+  /** The head of the ONE weakness model. This module never computes weakness itself. */
+  weakPatterns: PatternId[];
+  /** Families holding a question whose ladder was needed and not yet cleared by an unaided pass. */
+  hintReliantFamilyIds: string[];
+}
+
+/**
+ * The whole pool, most-worth-interviewing first, each with the grounds for its position.
+ *
+ * Deterministic: within a tier the order is a seeded shuffle, so the same day proposes the same
+ * problem and "Not this one" walks a stable list rather than rolling dice again.
+ */
+export function interviewDraws(input: InterviewDrawInput): InterviewDraw[] {
+  const { pool, seed, stalledQuestionIds, weakPatterns, hintReliantFamilyIds } = input;
+  const stalled = new Set(stalledQuestionIds);
+  const weak = new Set<PatternId>(weakPatterns);
+  const hintFamilies = new Set(hintReliantFamilyIds);
+
+  const basisOf = (question: Question): DrawBasis => {
+    if (stalled.has(question.id)) return 'contest-stall';
+    if (weak.has(question.pattern)) return 'weak-pattern';
+    if (question.familyId !== undefined && hintFamilies.has(question.familyId)) {
+      return 'hint-reliant-family';
+    }
+    return 'open-ground';
+  };
+
+  const draws = pool.map((question) => ({ question, basis: basisOf(question) }));
+
+  return BASIS_ORDER.flatMap((basis) =>
+    seededShuffle(
+      draws.filter((draw) => draw.basis === basis),
+      mulberry32(hashSeed(`${seed}:${basis}`)),
+    ),
+  );
 }

@@ -1,8 +1,13 @@
 import type {
   Confidence,
+  ContestProblemRecord,
+  ContestStallRecord,
   CourseWeekProgress,
   DailyTask,
   DayLog,
+  InterviewSittingRecord,
+  MlProjectProgress,
+  MlTrackProgress,
   PersistedStateV1,
   PracticeIntention,
   PracticeSitting,
@@ -27,6 +32,9 @@ export function selectPersistedState(root: RootState): PersistedStateV1 {
   const tasksById = root.tasks.byId;
   const drillDates = root.drills.byDate;
   const contestDates = root.contests.byDate;
+  const interviewSittings = root.interviews.sittings;
+  const mlTracks = root.ml.tracksById;
+  const mlProjects = root.ml.projectsById;
   const practice = root.practice;
   return {
     version: 1,
@@ -45,6 +53,14 @@ export function selectPersistedState(root: RootState): PersistedStateV1 {
     // Note this is `contests` (persisted stall records), never `contest` (the live sitting) —
     // a restored stopped clock lies, so only the derived evidence survives a reload.
     ...(Object.keys(contestDates).length > 0 ? { contests: { byDate: contestDates } } : {}),
+    // Note this is `interviews` (the finished sittings' derived records), never `interview` (the
+    // live sitting) — an interview is a performance, and a restored one would be a fiction.
+    ...(interviewSittings.length > 0 ? { interviews: { sittings: interviewSittings } } : {}),
+    // Same written-only-once-touched rule: a learner who never opened a track produces a payload
+    // byte-identical to a pre-V8 one.
+    ...(Object.keys(mlTracks).length > 0 || Object.keys(mlProjects).length > 0
+      ? { ml: { tracksById: mlTracks, projectsById: mlProjects } }
+      : {}),
     // Same written-only-once-touched rule: a learner who set no intention, wrote no journal line
     // and ran no sitting produces a payload byte-identical to a pre-practice-layer one.
     ...(practice.intentions.length > 0 ||
@@ -186,6 +202,28 @@ function isValidCourseEntry(value: unknown): value is CourseWeekProgress {
   );
 }
 
+// Per-entry shape check for ml.tracksById[id]. `rungs` is a bare date map on purpose: the rung
+// KEYS are validated only as non-blank strings, never against the current stage list, so renaming
+// or retiring a rung later can never quarantine a learner's whole state (the missKind precedent).
+function isValidMlTrackEntry(value: unknown): value is MlTrackProgress {
+  if (!isPlainObject(value)) return false;
+  if (!isPlainObject(value.rungs)) return false;
+  for (const [rungId, date] of Object.entries(value.rungs)) {
+    if (rungId === '' || !isIsoDate(date)) return false;
+  }
+  return (
+    isRevisionStage(value.revisionStage) &&
+    isNullableIsoDate(value.nextRevision) &&
+    isNullableIsoDate(value.lastReviewed) &&
+    isRevisionEventArray(value.revisionHistory)
+  );
+}
+
+function isValidMlProjectEntry(value: unknown): value is MlProjectProgress {
+  if (!isPlainObject(value)) return false;
+  return isNullableIsoDate(value.startedOn) && isNullableIsoDate(value.shippedOn);
+}
+
 function isTaskCategory(value: unknown): value is TaskCategory {
   return value === 'study' || value === 'project' || value === 'communication' || value === 'admin';
 }
@@ -302,6 +340,13 @@ export function validatePersisted(raw: unknown): PersistedStateV1 | null {
       return null;
     }
   }
+  // Optional, and validated as a BARE non-blank string rather than against the company dataset:
+  // retiring a company must make the setting inert at read time (every reader resolves it through
+  // `companyById` and falls back), never quarantine the learner's entire state on the next load.
+  const target = settings.targetCompanyId;
+  if ('targetCompanyId' in settings && target !== undefined && target !== null) {
+    if (typeof target !== 'string' || target === '') return null;
+  }
 
   const gamification = raw.gamification;
   if (!isPlainObject(gamification)) return null;
@@ -368,30 +413,163 @@ export function validatePersisted(raw: unknown): PersistedStateV1 | null {
 
   // `contests` is optional (absent before contest stalls were recorded) — reject-wholesale when
   // malformed: date keys must be real ISO dates (the weakness model decays on them), counters
-  // real positive integers with attempted <= total, and stalledPatterns a non-empty array of
-  // non-blank, DEDUPED pattern ids no longer than the attempts behind it. The dedupe check is
-  // not stricter than the write path — analyzeContest dedupes and finishContest re-dedupes — and
-  // it matters because a duplicate here would double-count a single sitting in the weakness model.
+  // real positive integers with attempted <= total, and stalledPatterns an array of non-blank,
+  // DEDUPED pattern ids no longer than the attempts behind it. The dedupe check is not stricter
+  // than the write path — analyzeContest dedupes and finishContest re-dedupes — and it matters
+  // because a duplicate here would double-count a single sitting in the weakness model.
+  //
+  // `stalledPatterns` may be EMPTY since V8: a conclusive sitting where nothing stalled is real
+  // evidence about timed performance and now banks a record too. Widening what the validator
+  // admits is always safe (every payload that validated before still does); the reverse — a
+  // validator stricter than its write path — is the data-loss bug this file exists to avoid.
+  //
+  // `problems` is optional and deliberately LENIENT: `outcome` is only checked for being a
+  // non-blank string, never against the engine's Outcome union, so retiring an outcome later can
+  // never quarantine an old payload.
   let contests: PersistedStateV1['contests'];
   if ('contests' in raw && raw.contests !== undefined) {
     const rawContests = raw.contests;
     if (!isPlainObject(rawContests)) return null;
     if (!isPlainObject(rawContests.byDate)) return null;
-    const byDate: Record<string, { stalledPatterns: string[]; attempted: number; total: number }> = {};
+    const byDate: Record<string, ContestStallRecord> = {};
     for (const [date, entry] of Object.entries(rawContests.byDate)) {
       if (!isIsoDate(date)) return null;
       if (!isPlainObject(entry)) return null;
-      const { stalledPatterns, attempted, total } = entry;
+      const { stalledPatterns, attempted, total, problems } = entry;
       if (typeof attempted !== 'number' || !Number.isInteger(attempted) || attempted < 1) return null;
       if (typeof total !== 'number' || !Number.isInteger(total) || total < 1) return null;
       if (attempted > total) return null;
-      if (!Array.isArray(stalledPatterns) || stalledPatterns.length < 1) return null;
+      if (!Array.isArray(stalledPatterns)) return null;
       if (stalledPatterns.some((p) => typeof p !== 'string' || p === '')) return null;
       if (new Set(stalledPatterns).size !== stalledPatterns.length) return null;
       if (stalledPatterns.length > attempted) return null;
-      byDate[date] = { stalledPatterns: [...stalledPatterns], attempted, total };
+
+      let problemRecords: ContestProblemRecord[] | undefined;
+      if (problems !== undefined) {
+        if (!Array.isArray(problems)) return null;
+        if (problems.length > total) return null;
+        const parsed: ContestProblemRecord[] = [];
+        for (const problem of problems) {
+          if (!isPlainObject(problem)) return null;
+          const { questionId, minutesSpent, targetMinutes, outcome } = problem;
+          if (typeof questionId !== 'number' || !Number.isInteger(questionId) || questionId < 1) {
+            return null;
+          }
+          if (typeof minutesSpent !== 'number' || !Number.isInteger(minutesSpent) || minutesSpent < 0) {
+            return null;
+          }
+          if (typeof targetMinutes !== 'number' || !Number.isInteger(targetMinutes) || targetMinutes < 1) {
+            return null;
+          }
+          if (typeof outcome !== 'string' || outcome === '') return null;
+          parsed.push({ questionId, minutesSpent, targetMinutes, outcome });
+        }
+        problemRecords = parsed;
+      }
+
+      byDate[date] = {
+        stalledPatterns: [...stalledPatterns],
+        attempted,
+        total,
+        ...(problemRecords ? { problems: problemRecords } : {}),
+      };
     }
     contests = { byDate };
+  }
+
+  // `interviews` is optional (absent before interview sittings were recorded) — reject-wholesale
+  // when malformed, but deliberately LENIENT about vocabulary: stage ids, stage outcomes and
+  // self-assessment dimension ids are only checked for being non-blank strings, never against the
+  // engine's unions, so renaming or retiring a stage can never quarantine a learner's whole state
+  // (the missKind precedent). Numbers are range-checked, because those ranges are what the copy
+  // means: a 7 in a 1..5 self-report would silently change what every comparison says.
+  let interviews: PersistedStateV1['interviews'];
+  if ('interviews' in raw && raw.interviews !== undefined) {
+    const rawInterviews = raw.interviews;
+    if (!isPlainObject(rawInterviews)) return null;
+    if (!Array.isArray(rawInterviews.sittings)) return null;
+    const sittings: InterviewSittingRecord[] = [];
+    for (const entry of rawInterviews.sittings) {
+      if (!isPlainObject(entry)) return null;
+      const { date, questionId, stageReached, outcomes, assessment, minutes, hintsTaken, hintsAvailable } =
+        entry;
+      if (!isIsoDate(date)) return null;
+      if (typeof questionId !== 'number' || !Number.isInteger(questionId) || questionId < 1) return null;
+      if (typeof stageReached !== 'number' || !Number.isInteger(stageReached) || stageReached < 1) {
+        return null;
+      }
+      if (typeof minutes !== 'number' || !Number.isInteger(minutes) || minutes < 0) return null;
+      if (typeof hintsTaken !== 'number' || !Number.isInteger(hintsTaken) || hintsTaken < 0) return null;
+      if (
+        typeof hintsAvailable !== 'number' ||
+        !Number.isInteger(hintsAvailable) ||
+        hintsAvailable < 0
+      ) {
+        return null;
+      }
+      if (hintsTaken > hintsAvailable) return null;
+      if (!isPlainObject(outcomes)) return null;
+      const parsedOutcomes: Record<string, string> = {};
+      for (const [stageId, outcome] of Object.entries(outcomes)) {
+        if (stageId === '' || typeof outcome !== 'string' || outcome === '') return null;
+        parsedOutcomes[stageId] = outcome;
+      }
+      if (!isPlainObject(assessment)) return null;
+      const parsedAssessment: Record<string, number> = {};
+      for (const [dimension, value] of Object.entries(assessment)) {
+        if (dimension === '') return null;
+        if (typeof value !== 'number' || !Number.isInteger(value) || value < 1 || value > 5) return null;
+        parsedAssessment[dimension] = value;
+      }
+      // The optional half — absent on records written before these were captured. Each is
+      // admitted at least as leniently as the write path can produce it.
+      const { expectation, followUpsAsked, followUpsHeld, reflection } = entry;
+      if (expectation !== undefined && expectation !== null) {
+        if (
+          typeof expectation !== 'number' ||
+          !Number.isInteger(expectation) ||
+          expectation < 1 ||
+          expectation > 5
+        ) {
+          return null;
+        }
+      }
+      if (followUpsAsked !== undefined) {
+        if (
+          typeof followUpsAsked !== 'number' ||
+          !Number.isInteger(followUpsAsked) ||
+          followUpsAsked < 0
+        ) {
+          return null;
+        }
+      }
+      if (followUpsHeld !== undefined && followUpsHeld !== null) {
+        if (typeof followUpsHeld !== 'number' || !Number.isInteger(followUpsHeld) || followUpsHeld < 0) {
+          return null;
+        }
+        if (typeof followUpsAsked === 'number' && followUpsHeld > followUpsAsked) return null;
+      }
+      // Learner prose is length-unbounded here exactly as `QuestionProgress.reflection` is: the
+      // write path imposes no cap, so a cap here would be a validator stricter than its own
+      // writer, which is the shape of every quarantine bug this file exists to prevent.
+      if (reflection !== undefined && typeof reflection !== 'string') return null;
+
+      sittings.push({
+        date,
+        questionId,
+        stageReached,
+        outcomes: parsedOutcomes,
+        assessment: parsedAssessment,
+        minutes,
+        hintsTaken,
+        hintsAvailable,
+        ...(expectation !== undefined ? { expectation: expectation as number | null } : {}),
+        ...(followUpsAsked !== undefined ? { followUpsAsked: followUpsAsked as number } : {}),
+        ...(followUpsHeld !== undefined ? { followUpsHeld: followUpsHeld as number | null } : {}),
+        ...(reflection !== undefined ? { reflection: reflection as string } : {}),
+      });
+    }
+    interviews = { sittings };
   }
 
   // `practice` is optional (absent before the V6 practice layer) — reject-wholesale when
@@ -475,6 +653,33 @@ export function validatePersisted(raw: unknown): PersistedStateV1 | null {
     course = { byWeekId };
   }
 
+  // `ml` is optional (absent before the implementation tracks could be worked through) —
+  // reject-wholesale when malformed, same as every other channel.
+  let ml: PersistedStateV1['ml'];
+  if ('ml' in raw && raw.ml !== undefined) {
+    const rawMl = raw.ml;
+    if (!isPlainObject(rawMl)) return null;
+    if (!isPlainObject(rawMl.tracksById)) return null;
+    if (!isPlainObject(rawMl.projectsById)) return null;
+    const tracksById: Record<string, MlTrackProgress> = {};
+    for (const [trackId, entry] of Object.entries(rawMl.tracksById)) {
+      if (trackId === '' || !isValidMlTrackEntry(entry)) return null;
+      tracksById[trackId] = {
+        rungs: { ...entry.rungs },
+        revisionStage: entry.revisionStage,
+        nextRevision: entry.nextRevision,
+        lastReviewed: entry.lastReviewed,
+        revisionHistory: entry.revisionHistory.map(copyRevisionEvent),
+      };
+    }
+    const projectsById: Record<string, MlProjectProgress> = {};
+    for (const [projectId, entry] of Object.entries(rawMl.projectsById)) {
+      if (projectId === '' || !isValidMlProjectEntry(entry)) return null;
+      projectsById[projectId] = { startedOn: entry.startedOn, shippedOn: entry.shippedOn };
+    }
+    ml = { tracksById, projectsById };
+  }
+
   return {
     version: 1,
     progress: {
@@ -490,6 +695,9 @@ export function validatePersisted(raw: unknown): PersistedStateV1 | null {
       // Echoed only when the payload carried it — same input-shape-preserving rule as the
       // gamification bonus gates below; the load boundary defaults it.
       ...('dailyCapacityMin' in settings && capacity !== undefined ? { dailyCapacityMin: capacity as number } : {}),
+      ...('targetCompanyId' in settings && typeof target === 'string'
+        ? { targetCompanyId: target }
+        : {}),
     },
     // Bonus gates are echoed only when the payload carried them — validation preserves the
     // input shape; defaulting absent fields to null is the load boundary's job
@@ -508,6 +716,8 @@ export function validatePersisted(raw: unknown): PersistedStateV1 | null {
     ...(tasks ? { tasks } : {}),
     ...(drills ? { drills } : {}),
     ...(contests ? { contests } : {}),
+    ...(interviews ? { interviews } : {}),
+    ...(ml ? { ml } : {}),
     ...(practice ? { practice } : {}),
   };
 }

@@ -4,9 +4,15 @@
 import questionsData from '@/data/questions.json';
 import type { ContestsState, PersistedStateV1, Question } from '@/types';
 import { makeStore } from '@/store/store';
-import reducer, { contestStallsRecorded } from '@/store/slices/contestsSlice';
+import reducer, { contestSittingRecorded } from '@/store/slices/contestsSlice';
 import { progressReset, stateImported } from '@/store/sharedActions';
-import { finishContest, focusContestProblem, startContest } from '@/store/actions';
+import {
+  finishContest,
+  focusContestProblem,
+  setAsideContestProblem,
+  solveContestProblem,
+  startContest,
+} from '@/store/actions';
 import { selectAllPatternWeakness } from '@/store/selectors';
 import { selectPersistedState, validatePersisted } from '@/services/storage/serialize';
 
@@ -16,7 +22,7 @@ const TODAY = '2026-07-30';
 const empty: ContestsState = { byDate: {} };
 
 const record = (date: string, stalled: string[], attempted = 4, total = 4) =>
-  contestStallsRecorded({ date, stalledPatterns: stalled, attempted, total });
+  contestSittingRecorded({ date, stalledPatterns: stalled, attempted, total });
 
 beforeEach(() => {
   vi.useFakeTimers();
@@ -88,15 +94,60 @@ describe('finishContest banks stall evidence', () => {
     store.dispatch(finishContest());
 
     const expected = Array.from(new Set([patternOf(ids[0]!), patternOf(ids[1]!)]));
-    expect(store.getState().contests.byDate[TODAY]).toEqual({
-      stalledPatterns: expected,
-      attempted: 2,
-      total: ids.length,
-    });
+    const banked = store.getState().contests.byDate[TODAY]!;
+    expect(banked.stalledPatterns).toEqual(expected);
+    expect(banked.attempted).toBe(2);
+    expect(banked.total).toBe(ids.length);
+    // Since V8 the record also keeps how each problem read, at question resolution — the pattern
+    // list alone could never say whether a sitting went well, only which parts went badly.
+    expect(banked.problems).toHaveLength(ids.length);
+    expect(banked.problems!.slice(0, 2).map((p) => p.outcome)).toEqual(['stalled', 'stalled']);
+    expect(banked.problems![0]!.questionId).toBe(ids[0]);
+    expect(banked.problems![0]!.minutesSpent).toBe(20);
     // The live sitting itself is over, not re-recorded: finishing twice cannot double-book.
     store.dispatch(finishContest());
     expect(Object.keys(store.getState().contests.byDate)).toEqual([TODAY]);
     expect(store.getState().contests.byDate[TODAY]!.attempted).toBe(2);
+  });
+
+  test('a conclusive sitting with nothing stalled still banks a record, with no stalls in it', () => {
+    // Only ever recording the sittings that went badly would make the channel a sample selected
+    // for failure, and every comparison later drawn from it would inherit that. A clean sitting
+    // is evidence about timed work too — it just has no stalls to hand the weakness model.
+    const store = makeStore();
+    store.dispatch(startContest());
+    const ids = store.getState().contest.questionIds;
+
+    store.dispatch(solveContestProblem(ids[0]!));
+    store.dispatch(solveContestProblem(ids[1]!));
+    store.dispatch(finishContest());
+
+    const banked = store.getState().contests.byDate[TODAY]!;
+    expect(banked.stalledPatterns).toEqual([]);
+    expect(banked.problems!.slice(0, 2).map((p) => p.outcome)).toEqual(['clean', 'clean']);
+    // And it stays silent in the one weakness model.
+    expect(selectAllPatternWeakness(store.getState(), TODAY)).toEqual([]);
+    // A record with no stalls must still round-trip rather than quarantine the learner's state.
+    expect(
+      validatePersisted(JSON.parse(JSON.stringify(selectPersistedState(store.getState())))),
+    ).not.toBeNull();
+  });
+
+  test('setting a problem aside keeps its minutes as evidence — the decision is not an eraser', () => {
+    const store = makeStore();
+    store.dispatch(startContest());
+    const ids = store.getState().contest.questionIds;
+
+    store.dispatch(solveContestProblem(ids[0]!));
+    store.dispatch(focusContestProblem(ids[1]!));
+    advanceMinutes(25);
+    store.dispatch(setAsideContestProblem(ids[1]!));
+    store.dispatch(finishContest());
+
+    const banked = store.getState().contests.byDate[TODAY]!;
+    expect(banked.problems![1]!.outcome).toBe('set-aside');
+    expect(banked.problems![1]!.minutesSpent).toBe(25);
+    expect(banked.stalledPatterns).toContain(patternOf(ids[1]!));
   });
 
   test('an inconclusive sitting writes nothing — analyzeContest owns that decision', () => {

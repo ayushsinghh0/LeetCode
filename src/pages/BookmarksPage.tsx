@@ -1,7 +1,7 @@
 import { useMemo, useState } from 'react';
 import { Bookmark, SearchX } from 'lucide-react';
 import { EmptyState } from '@/components/shared/EmptyState';
-import { Page, PageHeader, RuledList, Section } from '@/components/layout/Page';
+import { Panel, RuledList, Screen, ScreenBody, ScreenHeader } from '@/components/layout/Page';
 import { QuestionRow } from '@/components/questions/QuestionCard';
 import {
   QuestionFilterRow,
@@ -63,12 +63,12 @@ export default function BookmarksPage() {
   const count = bookmarkedQuestions.length;
 
   return (
-    <Page>
+    <Screen>
       {/* One purpose clause. The support's first sentence — "Questions you flagged to come back
           to" — was the eyebrow's "N bookmarked questions" said again in the reading voice, and a
           masthead that states a fact twice teaches the reader to skip it. What survives is the
           only part the eyebrow doesn't carry: what to do with the list. */}
-      <PageHeader
+      <ScreenHeader
         eyebrow={`${count} bookmarked question${count === 1 ? '' : 's'}`}
         title="Bookmarks"
         support="Narrow the list, then open one to work on it."
@@ -84,7 +84,14 @@ export default function BookmarksPage() {
         // The filter row is chrome for the list below it, so it sits on the page ground directly
         // under the masthead rule. It draws its own boundary out of chips and a select; wrapping
         // that in a plate was a second outline around something already outlined.
-        <Section aria-label="Bookmarked questions">
+        // The landmark stays a real labelled region. `ScreenBody` is layout, not semantics — it
+        // takes no `aria-label`, so replacing the old `Section` with it silently dropped the
+        // "Bookmarked questions" region. A named section inside the body keeps both.
+        <ScreenBody>
+          <section
+            aria-label="Bookmarked questions"
+            className="flex flex-col gap-4 md:min-h-0 md:flex-1"
+          >
           <QuestionFilterRow
             difficulty={difficulty}
             onDifficultyChange={setDifficulty}
@@ -101,19 +108,24 @@ export default function BookmarksPage() {
             // Hairline-ruled rows, not a grid of cards. A bookmark list is something you scan and
             // pick from, so each entry is an index row on the page ground — boxing every one of
             // them was the "list becomes plates" defect DESIGN.md § The plate rule names.
-            <RuledList>
-              {filtered.map((q) => (
-                <QuestionRow
-                  key={q.id}
-                  question={q}
-                  progress={progressById[q.id] ?? initialProgress()}
-                  onOpen={openQuestion}
-                />
-              ))}
-            </RuledList>
+            // The filter row stays put while the list scrolls beneath it — the control that
+            // narrows a list should not scroll away from the list it narrows.
+            <Panel>
+              <RuledList>
+                {filtered.map((q) => (
+                  <QuestionRow
+                    key={q.id}
+                    question={q}
+                    progress={progressById[q.id] ?? initialProgress()}
+                    onOpen={openQuestion}
+                  />
+                ))}
+              </RuledList>
+            </Panel>
           )}
-        </Section>
+          </section>
+        </ScreenBody>
       )}
-    </Page>
+    </Screen>
   );
 }

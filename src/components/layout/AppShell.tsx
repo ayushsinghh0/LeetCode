@@ -97,14 +97,15 @@ export function AppShell() {
       <Sidebar />
       {/* `tabIndex={-1}` so the fragment jump actually moves focus here rather than only the
           scroll position — several engines will not focus a non-focusable target. */}
-      {/* The one scroll container in the application.
+      {/* THE one scroll container in the application.
           - `min-h-0` is load-bearing: a flex child defaults to `min-height:auto`, which refuses to
             shrink below its content, so without it the main column would push the 100dvh row taller
             and hand the scroll straight back to the document.
-          - `lg:overflow-y-auto`: screens built to fit produce no scrollbar at all (which is the
-            zero-scroll contract); a genuine detail view scrolls HERE, inside the shell, with the
-            rail and the header staying put. That is the "application shell + one intentional
-            content panel" allowance, and nothing nested is permitted a second one.
+          - `lg:overflow-y-auto`: pages flow at their natural height and scroll HERE, inside the
+            shell, with the sidebar staying put. Nothing below this is permitted its own scrollbar —
+            not a Panel, not a rail, not a tab body. § NO NESTED SCROLL HELL.
+          - `[scrollbar-gutter:stable]` reserves the bar's lane on every route, so navigating from
+            a short page to a long one does not shift the whole content column sideways.
           - `overscroll-contain` stops a finished inner scroll from chaining out to the page. */}
       <main
         id="content"
@@ -118,21 +119,20 @@ export function AppShell() {
         // static offset *below* the clipped viewport, and extended
         // `documentElement.scrollHeight` — 1208px on /today, from ten 1px spans. The body reported
         // 800px and looked correct; the document scrolled anyway.
-        className="relative min-w-0 flex-1 focus:outline-none lg:min-h-0 lg:overflow-y-auto lg:overscroll-contain"
+        className="relative min-w-0 flex-1 focus:outline-none lg:min-h-0 lg:overflow-y-auto lg:overscroll-contain lg:[scrollbar-gutter:stable]"
       >
         {/* pb-28 on phones: the bottom-nav clearance the design system specifies (DESIGN.md
             § Adding a New Surface #8). It was pb-36 to accommodate the floating pomodoro's
             permanent plate — 144px of dead page foot on every phone screen to make room for a
             timer that is idle almost all the time. The widget now collapses to a 40px ghost
-            button when idle, and its glyph sits inside this reservation. Desktop has neither.
+            button when idle, and its glyph sits inside this reservation.
 
-            `lg:h-full` hands the viewport height down to the page: a `Screen` needs a definite
-            height to divide into a header and a flexing body, and `h-full` only resolves because
-            `main` itself now has a definite height. `max-w-6xl` is gone at `md` and up — the
-            directive is explicit that a 1280px laptop must not render a narrow column beside dead
-            space, and the measure now belongs to each screen's own columns rather than to a cap on
-            the whole application. */}
-        <div className="mx-auto w-full max-w-6xl px-4 py-5 pb-28 md:px-6 md:py-5 md:pb-5 lg:h-full lg:max-w-none lg:px-8">
+            `max-w-6xl` is the application measure (72rem): pages flow at natural height again, so
+            an unbounded line length would stretch a masthead across 1600px of a wide display. Each
+            page still narrows further through `Page`'s own width prop where prose wants less. No
+            `h-full` — height belongs to content now, and the generous `md:pb-12` is what lets the
+            last block of a scrolled page breathe instead of kissing the viewport edge. */}
+        <div className="mx-auto w-full max-w-6xl px-4 py-5 pb-28 md:px-6 md:py-6 md:pb-12 lg:px-8">
           {/* Boundary inside the shell: a page crash keeps the sidebar/nav alive so the user
               can still move to another route. App.tsx carries the outer backstop. */}
           <ErrorBoundary>

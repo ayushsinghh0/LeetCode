@@ -88,10 +88,7 @@ export default function BookmarksPage() {
         // takes no `aria-label`, so replacing the old `Section` with it silently dropped the
         // "Bookmarked questions" region. A named section inside the body keeps both.
         <ScreenBody>
-          <section
-            aria-label="Bookmarked questions"
-            className="flex flex-col gap-4 lg:min-h-0 lg:flex-1"
-          >
+          <section aria-label="Bookmarked questions" className="flex flex-col gap-4">
           <QuestionFilterRow
             difficulty={difficulty}
             onDifficultyChange={setDifficulty}
@@ -108,8 +105,6 @@ export default function BookmarksPage() {
             // Hairline-ruled rows, not a grid of cards. A bookmark list is something you scan and
             // pick from, so each entry is an index row on the page ground — boxing every one of
             // them was the "list becomes plates" defect DESIGN.md § The plate rule names.
-            // The filter row stays put while the list scrolls beneath it — the control that
-            // narrows a list should not scroll away from the list it narrows.
             <Panel>
               <RuledList>
                 {filtered.map((q) => (

@@ -89,10 +89,9 @@ export default function TodayPage() {
       <DailyGoalProgress solvedToday={solvedToday} perDay={perDay} />
 
       <ScreenBody cols="main-rail">
-        {/* The work column. The hero is fixed-size; the plan is the one thing here that grows with
-            the day, so it takes the leftover height in a `Panel` and scrolls inside itself. That is
-            the sanctioned single content panel — the screen around it never moves. */}
-        <div className="flex min-w-0 flex-col gap-4 lg:min-h-0 lg:flex-1">
+        {/* The work column: the hero, then the plan flowing at its natural height under it.
+            `main` carries the scroll; nothing in here scrolls on its own. */}
+        <div className="flex min-w-0 flex-col gap-4">
           {/* Day-level framing, above the hero because it reframes the whole day rather than
               accompanying it. Both are rare and both are quiet. */}
           {isWeeklyDay && <WeeklyRevisionBanner count={revisionIds.length} />}
@@ -113,10 +112,7 @@ export default function TodayPage() {
         {/* The context rail: the other track, the learner's own tasks, their standing routines, a
             company target. None of it is a decision, all of it accompanies the day. Main is first
             in the DOM, so below `lg` — and for every screen reader — the work still comes first. */}
-        <aside
-          aria-label="Today's context"
-          className="flex min-w-0 flex-col gap-4 lg:min-h-0 lg:overflow-y-auto lg:overscroll-contain"
-        >
+        <aside aria-label="Today's context" className="flex min-w-0 flex-col gap-4">
           {/* The learner's own routines — a reminder, never a headline. In the rail it is beside
               the day rather than above the recommendation, which is where a reminder belongs. */}
           <PracticeIntentionsRail intentions={intentions} />

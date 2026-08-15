@@ -363,7 +363,11 @@ export default function SettingsPage() {
           </SettingRows>
           </Section>
 
-          <div className="flex justify-end">
+          {/* A form footer, tucked to the rows it commits: `SettingRows` already closes with its
+              own bottom rule, so the footer draws none (a second line 16px below the first is the
+              duplicate-separator problem) and instead pulls up under that rule with a negative
+              margin, so the button reads as the form's last row rather than a floating control. */}
+          <div className="-mt-4 flex justify-end">
             <Button type="button" onClick={handleSave} disabled={!isDirty}>
               Save
             </Button>

@@ -90,20 +90,28 @@ export function Sidebar() {
           vs another, and semibold-vs-medium text for anyone who reads neither. Every item carries
           the border at `transparent` so nothing shifts by 2px when it inks. Focus is the global
           `:focus-visible` outline in index.css and is untouched. */}
-      {/* `min-h-0` + `overflow-y-auto`: the rail is now height-capped, so fifteen 36px rows plus
-          the wordmark, the search button and the level block can exceed a 720px laptop. This is
-          the rail's OWN controlled scroll — the second and last scroll container in the shell, and
-          it only engages when the list genuinely does not fit. `overscroll-contain` keeps a
-          finished scroll here from chaining into `main`. */}
+      {/* `min-h-0` + `overflow-y-auto`: the rail is height-capped, so fifteen 36px rows plus the
+          wordmark, the search button and the level block can exceed a short laptop. This is the
+          rail's OWN controlled scroll — the second and last scroll container in the shell, and it
+          only engages when the list genuinely does not fit. `scrollbar-quiet` keeps its bar
+          invisible until the pointer (or keyboard focus) is in the rail: navigation chrome that
+          permanently draws a scrollbar track reads as a defect, not an affordance.
+          `overscroll-contain` keeps a finished scroll here from chaining into `main`. */}
       <nav
         aria-label="Sidebar navigation"
-        className="flex min-h-0 flex-1 flex-col gap-0.5 overflow-y-auto overscroll-contain"
+        className="scrollbar-quiet flex min-h-0 flex-1 flex-col gap-0.5 overflow-y-auto overscroll-contain"
       >
         {NAV_ITEMS.filter((item) => item.group === 'work').map(({ to, label, icon: Icon }) => (
           <NavLink key={to} to={to} end={to === '/'} className={navLinkClass}>
             {({ isActive }) => (
               <>
-                <Icon className={cn('h-4 w-4 shrink-0', isActive && 'text-primary')} aria-hidden="true" />
+                <Icon
+                  className={cn(
+                    'h-4 w-4 shrink-0 transition-colors duration-150 ease-swift',
+                    isActive && 'text-primary',
+                  )}
+                  aria-hidden="true"
+                />
                 {/* sr-only below lg (not display:none): in the 72px icon-only rail each link keeps
                     its accessible name instead of becoming an unlabeled icon. */}
                 <span className="sr-only lg:not-sr-only">{label}</span>
@@ -119,7 +127,13 @@ export function Sidebar() {
             <NavLink key={to} to={to} className={navLinkClass}>
               {({ isActive }) => (
                 <>
-                  <Icon className={cn('h-4 w-4 shrink-0', isActive && 'text-primary')} aria-hidden="true" />
+                  <Icon
+                  className={cn(
+                    'h-4 w-4 shrink-0 transition-colors duration-150 ease-swift',
+                    isActive && 'text-primary',
+                  )}
+                  aria-hidden="true"
+                />
                   <span className="sr-only lg:not-sr-only">{label}</span>
                 </>
               )}

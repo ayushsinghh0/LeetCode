@@ -65,7 +65,13 @@ export function MobileNav() {
           >
             {({ isActive }) => (
               <>
-                <Icon className={cn('h-5 w-5 shrink-0', isActive && 'text-primary')} aria-hidden="true" />
+                <Icon
+                  className={cn(
+                    'h-5 w-5 shrink-0 transition-colors duration-150 ease-swift',
+                    isActive && 'text-primary',
+                  )}
+                  aria-hidden="true"
+                />
                 <span className="w-full truncate text-center">{label}</span>
               </>
             )}
@@ -119,7 +125,13 @@ export function MobileNav() {
               >
                 {({ isActive }) => (
                   <>
-                    <Icon className={cn('h-4 w-4 shrink-0', isActive && 'text-primary')} aria-hidden="true" />
+                    <Icon
+                      className={cn(
+                        'h-4 w-4 shrink-0 transition-colors duration-150 ease-swift',
+                        isActive && 'text-primary',
+                      )}
+                      aria-hidden="true"
+                    />
                     <span className="min-w-0 truncate">{label}</span>
                   </>
                 )}

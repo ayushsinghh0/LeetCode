@@ -114,7 +114,9 @@ Canonical source is src/index.css: raw HSL triplets consumed as `hsl(var(--token
 
 ## Layout
 
-One centered content column: `max-w-6xl` (72rem), `px-4 py-5 pb-28` on mobile (bottom-nav clearance) and `md:px-8 md:py-8` on desktop (AppShell.tsx). Spacing is the stock Tailwind 4px scale — no custom steps. Sidebar on desktop, bottom nav on phones (see PRODUCT.md). Density is calm: one plate per concern, hairline `.rule` dividers inside a plate instead of nested cards.
+One centered content column: `max-w-6xl` (72rem), `px-4 py-5 pb-28` on mobile (bottom-nav clearance), `md:px-6 md:py-6 md:pb-12` and `lg:px-8` on desktop (AppShell.tsx). Spacing is the stock Tailwind 4px scale — no custom steps. Sidebar on desktop, bottom nav on phones (see PRODUCT.md). Density is calm: one plate per concern, hairline `.rule` dividers inside a plate instead of nested cards.
+
+**The scroll contract (V11).** Above `lg` the shell is a fixed `100dvh` row and `<main>` is the application's **single** scroll container (`scrollbar-gutter: stable`, so a short route and a long one paint the column in the same place). Pages flow at their natural height: no `Screen`, `Panel`, rail, or tab body may own a scrollbar. The sidebar's nav is the one sanctioned second scroller and keeps its bar invisible until pointer or focus enters it (`.scrollbar-quiet`); the tab strip may pan sideways below `md` with no bar at all (`.scrollbar-none`) and wraps from `md` up. V10's fixed-height division of the viewport into internally-scrolling panels is retired — it held only above ~720px of effective height and collapsed into clipped scroll boxes on a 150%-scaled 1080p display (~590px). Content scrolls; chrome stays.
 
 **The section rhythm is defined once, in § Composition → The rhythm, and `Page.tsx` is its implementation.** This paragraph used to restate it as `space-y-6` with `gap-6` inside the hero plate; both numbers were stale, and a page built from this paragraph would have disagreed with every page built from the vocabulary. Read the table below, not this line.
 

@@ -81,30 +81,22 @@ export function Page({ children, width = 'default', className }: PageProps) {
 /**
  * A screen, as opposed to a page.
  *
- * `Page` composes a document: it stacks sections downward and the reader travels through them.
- * That was the right model while the shell let the document grow. It no longer does — `AppShell`
- * is a fixed 100dvh row above `lg` — so a surface built to stack simply overflows into `main`'s
- * scroll and the application becomes a webpage again inside its own frame.
+ * `Page` composes a document at document rhythm (32/40px sections). `Screen` composes a working
+ * surface: a compact masthead, the day's figures, a two-column body — the same vocabulary, one
+ * step denser, because these routes are visited many times a day and re-read rather than read.
  *
- * `Screen` inverts the relationship. It takes a definite height from the shell and *divides* it:
- * a compact header that costs what it costs, and a body that takes exactly the rest. Content
- * beyond that does not extend the screen — it opens. A tab, a drawer, a dialog, a detail route.
- *
- * The rule that makes this work is `min-h-0`, and it appears on every level of the chain. A flex
- * child defaults to `min-height:auto`, which refuses to shrink below its content; one missing
- * `min-h-0` anywhere between `main` and a scrollable panel hands the scroll back to the ancestor
- * and the whole contract silently fails. If a screen is scrolling when it should not be, look for
- * the level that is missing it before looking at the content.
- *
- * Below `lg` this is deliberately an ordinary column, matching the shell's own breakpoint: a phone
- * or a small tablet has no room to be an application viewport, and the brief keeps an intentional
- * document scroll there. The height lock and the two-column bodies MUST share a breakpoint — when
- * they did not, the band between them collapsed the work column to ~96px and painted it over the
- * rail.
+ * What `Screen` is NOT, any more, is a fixed height. V10 divided `100dvh` into internally
+ * scrolling panels, which held at the 720px laptops it was measured on and collapsed below them:
+ * on a 150%-scaled 1080p display (~590px of effective height) every panel crushed into a tiny
+ * scroll box with its own Windows scrollbar, and the syllabus rendered ~60px tall. A layout that
+ * only works above a height it cannot control is a layout bug. The contract is now: **content
+ * flows, `main` is the single scroll container, and no region inside a screen scrolls on its
+ * own.** The shell still locks at `lg`, so the rail and masthead chrome stay put while the work
+ * scrolls beside them — the application feel V10 wanted, without the crush.
  */
 export function Screen({ children, className }: { children: ReactNode; className?: string }) {
   return (
-    <div className={cn('flex flex-col gap-5 lg:h-full lg:min-h-0 lg:gap-4', className)}>
+    <div className={cn('flex flex-col gap-5 lg:gap-6', className)}>
       {children}
     </div>
   );
@@ -166,15 +158,14 @@ export function ScreenBody({
   return (
     <div
       className={cn(
-        'flex flex-col gap-5 lg:min-h-0 lg:flex-1 lg:gap-4',
-        // `grid-rows-[minmax(0,1fr)]` is as load-bearing as `min-h-0` and fails the same way.
-        // A grid's implicit rows are `auto`, which sizes to content — so a body with a definite
-        // height still gave its children a content-sized row, every `min-h-0` below resolved
-        // against that, and a panel that was supposed to scroll simply grew instead. One explicit
-        // row that is exactly the container's height is what makes the whole chain resolve.
+        'flex flex-col gap-5 lg:gap-6',
+        // `items-start`, because the tracks flow now: without it a short rail stretches to the
+        // height of a long work column and its last block floats in dead space (and vice versa).
+        // `minmax(0,1fr)` on the work track, not `1fr` — grid items default to `min-width:auto`,
+        // so one unbroken string would widen the track and push the rail off-screen.
         cols === 'main-rail' &&
-          'lg:grid lg:grid-cols-[minmax(0,1fr)_19rem] lg:grid-rows-[minmax(0,1fr)] lg:gap-6 xl:grid-cols-[minmax(0,1fr)_22rem]',
-        cols === 'split' && 'lg:grid lg:grid-cols-2 lg:grid-rows-[minmax(0,1fr)] lg:gap-6',
+          'lg:grid lg:grid-cols-[minmax(0,1fr)_19rem] lg:items-start lg:gap-8 xl:grid-cols-[minmax(0,1fr)_22rem]',
+        cols === 'split' && 'lg:grid lg:grid-cols-2 lg:items-start lg:gap-8',
         className,
       )}
     >
@@ -184,22 +175,15 @@ export function ScreenBody({
 }
 
 /**
- * A region inside a screen body that may scroll when its content genuinely exceeds it.
- *
- * This is the sanctioned exception to "the application does not scroll": a queue, an index, a
- * syllabus. It is `min-h-0` + `overflow-y-auto` and it never nests inside another one — the shell
- * allows `main` plus at most one intentional panel, and a scroll inside a scroll inside a page is
- * the failure the brief names.
- *
- * `overscroll-contain` keeps a finished scroll from chaining out into `main`.
+ * A region inside a screen body. It used to be V10's sanctioned inner scroll container; it no
+ * longer scrolls — a queue, an index, a syllabus flow at full height and `main` carries the one
+ * scrollbar. The component stays in the vocabulary because eleven routes name their primary
+ * region with it, and because if a genuine inner-scroll case ever returns (it should not), this
+ * is the single place it would be argued for.
  */
 export function Panel({ children, className }: { children: ReactNode; className?: string }) {
   return (
-    // `relative` for the same reason `main` carries it: a scroll container only clips
-    // absolutely-positioned descendants when it is their containing block. Without it an `sr-only`
-    // span inside a panel escapes to the initial containing block and silently re-extends the
-    // document.
-    <div className={cn('relative flex flex-col lg:min-h-0 lg:flex-1 lg:overflow-y-auto lg:overscroll-contain', className)}>
+    <div className={cn('relative flex min-w-0 flex-col', className)}>
       {children}
     </div>
   );

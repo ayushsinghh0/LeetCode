@@ -11,8 +11,14 @@ const TabsList = React.forwardRef<
 >(({ className, ...props }, ref) => (
   <TabsPrimitive.List
     ref={ref}
+    // A six-trigger strip is 510px of whitespace-nowrap buttons, which overflowed a 390px phone
+    // by 120px and dragged the whole document sideways. Below `md` it pans silently inside its own
+    // box (`overflow-x-auto scrollbar-none`) — a tab strip is the one row that has earned a
+    // horizontal pan, and touch is how those users already expect to move it. From `md` up it
+    // wraps instead: a pointer user gets no scrollbar cue, so a panning strip on desktop would
+    // simply hide the last tabs.
     className={cn(
-      'inline-flex items-center justify-start gap-1 border-b border-border text-muted-foreground',
+      'scrollbar-none inline-flex max-w-full items-center justify-start gap-1 overflow-x-auto border-b border-border text-muted-foreground md:flex-wrap md:overflow-x-visible',
       className,
     )}
     {...props}

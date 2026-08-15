@@ -189,12 +189,12 @@ export default function AimlCoursePage() {
             projects) rendered head to toe, so "open the course" meant scrolling a document to find
             the lesson. The catalogues are not smaller now and nothing was removed from them; they
             are simply not all on screen at once. A tab is the brief's answer for exactly this
-            shape: sibling bodies of material, one of which you are in. The selected list scrolls
-            inside its own `Panel`, so the sprint above it never moves. */}
-        <div className="flex min-w-0 flex-col gap-4 lg:min-h-0 lg:flex-1">
+            shape: sibling bodies of material, one of which you are in. The selected list flows at
+            its natural height; `main` carries the scroll. */}
+        <div className="flex min-w-0 flex-col gap-4">
           {upNext}
 
-          <Tabs defaultValue="syllabus" className="flex flex-col gap-3 lg:min-h-0 lg:flex-1">
+          <Tabs defaultValue="syllabus" className="flex flex-col gap-3">
             <TabsList>
               <TabsTrigger value="syllabus">Syllabus</TabsTrigger>
               <TabsTrigger value="implement">Implement</TabsTrigger>
@@ -202,9 +202,7 @@ export default function AimlCoursePage() {
               <TabsTrigger value="extras">Extras</TabsTrigger>
             </TabsList>
 
-            {/* Every tab body is a `Panel`: `min-h-0` plus its own scroll, so a 26-row syllabus and
-                a 4-row extras list produce the same screen height. */}
-            <TabsContent value="syllabus" className="lg:min-h-0 lg:flex-1 lg:flex-col lg:data-[state=active]:flex">
+            <TabsContent value="syllabus">
               <Panel>
                 <h2 className="sr-only">Syllabus</h2>
                 {/* Cleared weeks stay behind their own latch inside the tab. A week you finished in
@@ -242,7 +240,7 @@ export default function AimlCoursePage() {
               </Panel>
             </TabsContent>
 
-            <TabsContent value="implement" className="lg:min-h-0 lg:flex-1 lg:flex-col lg:data-[state=active]:flex">
+            <TabsContent value="implement">
               <Panel>
                 <h2 className="sr-only">Implement it from scratch</h2>
                 <Meta
@@ -272,7 +270,7 @@ export default function AimlCoursePage() {
               </Panel>
             </TabsContent>
 
-            <TabsContent value="ship" className="lg:min-h-0 lg:flex-1 lg:flex-col lg:data-[state=active]:flex">
+            <TabsContent value="ship">
               <Panel>
                 <h2 className="sr-only">Ship something measurable</h2>
                 <Meta
@@ -296,7 +294,7 @@ export default function AimlCoursePage() {
               </Panel>
             </TabsContent>
 
-            <TabsContent value="extras" className="lg:min-h-0 lg:flex-1 lg:flex-col lg:data-[state=active]:flex">
+            <TabsContent value="extras">
               <Panel>
                 <h2 className="sr-only">Extra sessions</h2>
                 <RuledList>
@@ -321,10 +319,7 @@ export default function AimlCoursePage() {
         {/* The rail: where the course stands, and what it is asking of you today. Both due lists
             live here rather than between the lesson and the material — they are work the ladders
             have scheduled, which is context for the sprint, not a third catalogue. */}
-        <aside
-          aria-label="Course standing"
-          className="flex min-w-0 flex-col gap-4 lg:min-h-0 lg:overflow-y-auto lg:overscroll-contain"
-        >
+        <aside aria-label="Course standing" className="flex min-w-0 flex-col gap-4">
           <Section aria-label="Course progress">
             <Progress value={stats.pct} aria-label="Course completion" />
             <Figures

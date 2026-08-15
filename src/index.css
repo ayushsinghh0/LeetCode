@@ -123,6 +123,27 @@
   }
 }
 
+@layer utilities {
+  /* A scrollbar that keeps quiet until the pointer is over its region — for chrome like the
+     sidebar rail, where a permanently drawn track reads as a broken layout rather than an
+     affordance. Content scrollbars (main) stay visible; chrome scrollbars earn theirs on hover. */
+  .scrollbar-quiet {
+    scrollbar-color: transparent transparent;
+  }
+  .scrollbar-quiet:hover,
+  .scrollbar-quiet:focus-within {
+    scrollbar-color: hsl(var(--border)) transparent;
+  }
+  /* No scrollbar at all — reserved for strips that pan sideways by design (the tab row),
+     where drawing a bar under a row of tabs would read as a layout defect. */
+  .scrollbar-none {
+    scrollbar-width: none;
+  }
+  .scrollbar-none::-webkit-scrollbar {
+    display: none;
+  }
+}
+
 @layer components {
   /* The plate: a page of the reader. Solid paper, hairline edge, warm offset shadow.
      (Class name kept from the previous system; every card-like surface uses it.) */

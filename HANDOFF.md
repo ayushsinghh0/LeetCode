@@ -1,99 +1,83 @@
-# HANDOFF — GOD MODE V10 shipped (2026-08-16)
+# HANDOFF — V11 Flowing Application shipped (2026-08-16)
 
-**State: V9 (Composed Interface) and V10 (Zero-Scroll Application) are both complete, committed on
-branch `v9-composed-interface`. NOT merged to main and NOT pushed** — V6–V8 all ended merged, so
-this branch is the outlier and needs a decision.
+**State: V9 (Composed Interface), V10 (Zero-Scroll Application) and V11 (Flowing Application) are
+complete, committed on branch `v9-composed-interface`. NOT merged to main and NOT pushed** —
+V6–V8 all ended merged, so this branch is the outlier and needs a decision.
 
-V10 is the load-bearing change: above `md` the shell is `h-[100dvh] overflow-hidden`, `<main>` is
-the single scroll container, and pages use a `Screen`/`ScreenHeader`/`ScreenBody`/`Panel`
-vocabulary that divides a fixed height instead of stacking into one. All 15 routes fit one viewport
-at 1280×800, 1280×720 and 1366×768 across fresh, mid-course and heavy store states. The design
-record `docs/superpowers/specs/2026-08-16-zero-scroll-application-design.md` is the authority —
-read its "Findings worth keeping" and "Known limitations" first.
+V11 retires V10's load-bearing idea while keeping its shell. The user's real machine (1080p at
+150% scaling ≈ 1280×590 CSS) crushed V10's fixed-height panels into clipped scroll boxes with
+loud Windows scrollbars on nearly every route. The contract is now: **the shell still locks at
+`lg` and the sidebar stays put, `<main>` is the single scroll container
+(`scrollbar-gutter: stable`), and pages flow at natural height — nothing below `main` owns a
+scrollbar.** `docs/superpowers/specs/2026-08-16-flowing-application-design.md` is the authority;
+read its "Findings worth keeping".
 
 ## Where things stand
 
 - **1175/1175 tests across 83 files. `npx tsc --noEmit` clean. `npm run build` clean**, app chunk
-  280.54 kB against the 301 kB budget. The test count is 7 lower than V8's 1182 because the dead
-  `QuestionCard` component and its own tests were deleted — no assertion was weakened or removed.
-- The design record `docs/superpowers/specs/2026-08-16-composed-interface-design.md` is the
-  authority on what changed and why. It records the measured before/after per route, the four
-  non-layout defects the audit turned up, and — importantly — what was **deliberately not done**
-  and why.
-- V9 spanned two sessions. The first built the composition vocabulary (`PageColumns`, `PagePair`,
-  `Figures`, `Disclosure` in `Page.tsx`) and recomposed Dashboard/Today/Revision/Analytics. The
-  second audited that work, finished the routes it had not reached (AI/ML, Drills, Contest,
-  Interview, Settings, Roadmap, the question sheet), and fixed one real regression it had
-  introduced.
+  280.44 kB against the 301 kB budget (V10: 280.54).
+- Probe-verified (real Chrome, all 15 routes × 5 viewports incl. 1280×590): zero document
+  overflow, zero horizontal overflow, zero nested scrollers. The probe script pattern lives in
+  the V11 design record.
+- DESIGN.md § Layout now carries "The scroll contract (V11)" — the one paragraph to read before
+  touching AppShell/Page/Sidebar overflow behavior.
 
-## What V9 actually changed
+## What V11 actually changed
 
-- **Composition.** Priority now runs left-to-right before top-to-bottom (`PageColumns`: work in the
-  main column, context in a rail, main first in the DOM so phones and screen readers still read the
-  work first). Rare content sits behind native `<details>` latches, always verbatim.
-- **The measured wins.** `/aiml` 6011→4313px (−28%), `/analytics` 3832→3451px, Dashboard's primary
-  action 370→327px, Contest's start button on a 375px phone 883→552px (from below the fold to
-  above it). Nothing was deleted to get there.
-- **The regression it found.** `TodayTasks` moved into Today's 240px rail while keeping
-  `sm:flex-row` — and Tailwind media queries are *viewport*-scoped, so the form overflowed the rail
-  by 86px and scrolled the whole document sideways at 1024px. **General rule: a component placeable
-  in a column narrower than the viewport must not use the viewport as a proxy for its own width.**
-- **Four defects that were not layout:** two surfaces printing one sentence over two different
-  numbers (Dashboard "Revisions queued" vs Today's banner — now "Reviews queued"); Analytics' range
-  tabs sitting outside the latch holding the chart they filter, so operating them changed nothing
-  visible; Today's capacity chips declaring `role="radiogroup"` with no arrow-key handling while
-  the docs claimed otherwise (all three chip idioms now share `components/shared/ChipRadioRow`);
-  and the contest clock scrolling out of view on a phone (now `sticky`).
+- `Screen`/`ScreenBody`/`Panel` (Page.tsx) are flow primitives now — no `lg:h-full`, no
+  `min-h-0` chains, no `overflow-y-auto`. `Panel` is a named region, not a scroller.
+- Per-page height locks removed: Today, Dashboard, Analytics, AI/ML, Bookmarks (work columns,
+  rails, and all ten forced-flex `TabsContent` classNames).
+- AppShell's gutter: `max-w-6xl` ceiling restored, `md:py-6 md:pb-12`, no `lg:h-full`;
+  `main` gained `lg:[scrollbar-gutter:stable]`. PageTransition dropped its `h-full`.
+- Scrollbar manners in index.css: `.scrollbar-quiet` (sidebar nav — invisible until
+  hover/focus-within), `.scrollbar-none` (tab strip). TabsList pans below `md`, wraps above —
+  it overflowed a 390px phone by 120px before.
+- Polish: `Progress` animates from zero on first paint (aria untouched); nav icons transition
+  their ink; `EmptyState` got the pressed-seal ring; Settings' Save tucks under the form's own
+  closing rule (`-mt-4`, no second hairline).
 
-## Rules that bit during V6–V9 — still standing
+## Rules that bit during V6–V11 — still standing
 
+- **New (V11): a layout that only works above a height it cannot control is a layout bug.**
+  Verify at ~590px effective height (150%-scaled 1080p), not just 720/800.
+- **New (V11): `overflow-y: auto` computes `overflow-x` to `auto`** — an inner scroll region
+  turns 1px of horizontal overflow into a drawn horizontal scrollbar. Prefer removing the region.
+- **New (V11): Git Bash mangles `/route` args into filesystem paths** — `MSYS_NO_PATHCONV=1`
+  when passing routes to node CLIs.
+- **New (V11): browser-pane MCP unavailable again** (extension account mismatch);
+  `npm i --no-save puppeteer-core` + installed Chrome is the reliable measurement/screenshot
+  path, including forced-`.light` captures (a partial persisted payload gets quarantined — force
+  the class post-load instead).
 - A "failed" background agent may have finished its work — `git status` before assuming loss.
-- `questionCard.test.tsx`'s markdown-preview timeout is a documented under-load flake; it passes
-  solo, and the file now runs in ~5s rather than ~12s since the dead-component tests went.
-- Browser-pane screenshots are unreliable **and were unavailable this session** (pane not
-  displayed). Judge composition with `getBoundingClientRect()` / `scrollHeight` / `read_page`.
-  Computed `backgroundColor` goes stale in the pane — read the CSS custom properties
-  (`getComputedStyle(document.documentElement).getPropertyValue('--background')`), which do flip.
-  React state changes are not visible in the same synchronous script that triggered them.
-- Never edit source through PowerShell text replacement (mojibake); Edit tool only. Commit messages
-  via `git commit -F <file>`. PowerShell chains with `;`, not `&&`.
+- `questionCard.test.tsx`'s markdown-preview timeout is a documented under-load flake; passes solo.
+- Never edit source through PowerShell text replacement (mojibake); Edit tool only. Commit
+  messages via `git commit -F <file>`. PowerShell chains with `;`, not `&&`.
 - Hand-built `QuestionProgress` fixtures must carry every required field or `validatePersisted`
   quarantines the whole payload — build from `initialProgress()`.
 - Adding an import of `@/data/mlTracks`, `@/data/mlProjects` or `@/utils/engine/insights` to
   `store/selectors.ts` or `store/actions.ts` silently puts a large chunk back on the app bundle.
-- **New (V10): `overflow` clips absolutely-positioned descendants ONLY when the scroll container is
-  their containing block.** A `static` scroll container lets every Tailwind `sr-only` span escape
-  and silently extend `documentElement.scrollHeight`. Both `main` and `Panel` carry `relative` for
-  this reason — do not remove it. Invisible to every check except an actual `scrollTo` probe.
-- **New (V10): `grid-rows-[minmax(0,1fr)]` is as load-bearing as `min-h-0`** on any grid that must
-  divide a fixed height; implicit rows are `auto` and silently re-content-size the whole chain.
-- **New (V10): Radix `TabsContent` is `display:block`** — a `flex-1` panel inside needs
-  `md:flex md:flex-col` on the tab body or it overflows visibly.
-- **New (V10): `Screen` collides with the DOM global `Screen` type** — a missing import reads as
-  "cannot be used as a JSX component", not "cannot find name".
-- **New (V10): measure zero-scroll under a HEAVY store.** `/bookmarks` measured 0 under the light
-  seed and overflowed 304px with a real list. Every zero-scroll claim is a claim about a state.
-- **New (V10): resizing the browser pane leaves `100dvh` stale**, showing phantom document scroll
-  equal to the height delta. Reload before measuring.
-- **New (V9): jsdom does not hide closed `<details>` content, and `<summary>` carries no `button`
-  role.** Tests for a `Disclosure` must assert the `open` attribute, not element absence, and must
-  address the control as a summary. `familyPanel.test.tsx` is the worked example.
-- **New (V9): `text-muted-foreground/80` fails AA on the light theme** (3.75:1 against the 4.5:1
-  floor). Full-alpha `muted-foreground` is the floor for small text; the size step already carries
-  the hierarchy.
+- (V10, still true for `main` and dialogs): `overflow` clips absolutely-positioned descendants
+  ONLY when the scroll container is their containing block — `main` and `Panel` keep `relative`.
+- (V10): Radix `TabsContent` is `display:block`; `[hidden]` is UA-origin, so any author `display`
+  (`flex`, `md:flex`) un-hides inactive panels. Use `data-[state=active]:flex` if ever needed.
+- (V10): `Screen` collides with the DOM global `Screen` type — a missing import reads as "cannot
+  be used as a JSX component".
+- (V9): jsdom does not hide closed `<details>` content and `<summary>` has no `button` role —
+  assert the `open` attribute (`familyPanel.test.tsx` is the worked example).
+- (V9): `text-muted-foreground/80` fails AA on the light theme; full-alpha `muted-foreground` is
+  the floor for small text.
 
 ## Known limitation carried forward
 
 `button.tsx` ships `h-10` default / `h-9` small (40px / 36px). Both clear WCAG 2.2 AA's 24×24
-minimum; neither reaches the 44px AAA/HIG figure, and `size="sm"` has 68 call sites. Raising the
-whole scale would change every surface and work against the density V9 exists to deliver, so
-individual controls that are the primary interaction of their row were raised to `min-h-11`
-instead. Moving the scale itself is a design decision awaiting a call, not an open bug.
+minimum; neither reaches the 44px AAA/HIG figure, and `size="sm"` has ~68 call sites. Individual
+controls that are the primary interaction of their row were raised to `min-h-11`. Moving the
+scale itself is a design decision awaiting a call, not an open bug.
 
 ## The law books
 
 `CLAUDE.md` (architecture law), `PRODUCT.md` (locked product truth), `DESIGN.md` (visual system +
-the mandatory composition contract — its rhythm table, progress-bar scale and next-action-plate
-description were corrected in V9 to match the shipped code), and the design records under
+the mandatory composition contract + § The scroll contract), and the design records under
 `docs/superpowers/specs/` (V6 practice engine, V7 adaptive mastery, V8 performance engine, V9
-composed interface).
+composed interface, V10 zero-scroll — superseded by — V11 flowing application).

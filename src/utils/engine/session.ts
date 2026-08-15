@@ -64,6 +64,14 @@ export const DEPTH_PROMPT: Record<Depth, string> = {
  * The clamps hold each depth inside a band a learner can plan against: a "quick recall" that can
  * bill twelve minutes is not quick, whatever the arithmetic says.
  */
+/**
+ * The cheapest a transfer can honestly be. Named because the band allocation has to reserve
+ * against it: a shape that declares a transfer share smaller than this declares one it can never
+ * place, which is how the deep shape spent a release promising "meet one unfamiliar problem" in a
+ * thirteen-minute band.
+ */
+export const TRANSFER_MIN_MINUTES = 20;
+
 export function depthMinutes(question: Question, depth: Depth): number {
   const est = question.estimatedTime;
   switch (depth) {
@@ -74,7 +82,7 @@ export function depthMinutes(question: Question, depth: Depth): number {
     case 'deep':
       return clamp(Math.round(est * 0.6), 10, 25);
     case 'transfer':
-      return clamp(Math.round(est * 0.9), 20, 40);
+      return clamp(Math.round(est * 0.9), TRANSFER_MIN_MINUTES, 40);
   }
 }
 
@@ -455,11 +463,20 @@ export function buildRevisionSession(input: SessionInput): RevisionSession {
   // bands after it, so a session is never left with idle minutes because one band ran dry.
   const order: Depth[] = ['deep', 'review', 'recall'];
   let pot = planBudget - spent;
+  // Shares of what the session ACTUALLY has left to spend, not of the budget it started with.
+  //
+  // They used to divide `planBudget`, which is the same number only when nothing has been placed
+  // yet — and by this point the drill has been. The mix then summed to more than the pot, so the
+  // bands ran in order until the money was gone and the last one got nothing: at 30 minutes the
+  // standard shape promises "a few cold recalls, then re-derive the ones that matter" and
+  // produced a session with no recall in it at all, because the review band (which runs first)
+  // had been handed 70% of a budget that no longer existed. Dividing the pot makes every declared
+  // share mean what it says at every budget.
   const allowance: Record<Depth, number> = {
-    deep: Math.round(planBudget * shape.mix.deep),
-    review: Math.round(planBudget * shape.mix.review),
-    recall: Math.round(planBudget * shape.mix.recall),
-    transfer: Math.round(planBudget * shape.mix.transfer),
+    deep: Math.round(pot * shape.mix.deep),
+    review: Math.round(pot * shape.mix.review),
+    recall: Math.round(pot * shape.mix.recall),
+    transfer: Math.round(pot * shape.mix.transfer),
   };
 
   // Course reviews are retention on the other track and belong in the review band, but they may
@@ -496,6 +513,29 @@ export function buildRevisionSession(input: SessionInput): RevisionSession {
     rationale.retention++;
   }
 
+  // Transfer is RESERVED before the other bands spend, exactly as the closing question is, and for
+  // the same reason: it is part of what the shape promises rather than something to do with the
+  // change. Offered only the leftovers it could never be placed at 90 minutes — the deep shape's
+  // band computes to 13 minutes against a 20-minute floor, so its own blurb ("enough time to
+  // re-implement and to meet one unfamiliar problem") described a session the engine could not
+  // build. Reserved only when there is transfer material to spend it on, so an empty transfer
+  // pool never idles minutes the revision bands could have used.
+  //
+  // What it reserves is the cost of the CHEAPEST transfer actually available, not a constant: the
+  // engine knows the pool, so it can hold back exactly enough for one real item instead of
+  // guessing. `TRANSFER_MIN_MINUTES` is the floor that made the old arithmetic impossible, not a
+  // budget — an easy problem transfers for 20 minutes and a hard one for 40, and reserving the
+  // former for a pool that only contains the latter would fail in the same way, one step later.
+  const cheapestTransfer =
+    transfer.length > 0
+      ? Math.min(...transfer.map((t) => depthMinutes(t.question, 'transfer')))
+      : 0;
+  const transferReserve =
+    shape.mix.transfer > 0 && transfer.length > 0
+      ? Math.min(Math.max(allowance.transfer, cheapestTransfer), Math.max(0, pot))
+      : 0;
+  pot -= transferReserve;
+
   for (const depth of order) {
     let bandLeft = Math.min(allowance[depth], pot);
     if (bandLeft <= 0) continue;
@@ -528,7 +568,10 @@ export function buildRevisionSession(input: SessionInput): RevisionSession {
 
   // --- Transfer -----------------------------------------------------------------------------
   // Weak-pattern families first: an unfamiliar problem is worth most where recognition is worst.
-  let transferLeft = Math.min(allowance.transfer, pot);
+  // The reservation comes back into the pot here; anything the revision bands left unspent is
+  // still available on top of it, so a quiet evening can hold more transfer rather than less.
+  pot += transferReserve;
+  let transferLeft = Math.min(Math.max(allowance.transfer, transferReserve), pot);
   const rankedTransfer = [...transfer].sort(
     (a, b) => (weak.get(b.question.pattern)?.score ?? 0) - (weak.get(a.question.pattern)?.score ?? 0),
   );

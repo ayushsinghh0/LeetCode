@@ -46,6 +46,14 @@ const questions = questionsData as Question[];
 // Minute-resolution clock; a 15s tick keeps the displayed minute honest without meaningful work.
 const TICK_MS = 15_000;
 
+/**
+ * The row controls are the only ones in the product operated with a clock running, on a phone,
+ * against a problem the learner is trying to think about. `size="sm"` is 36px, which is the
+ * app-wide browsing default and the wrong trade here — so these get the 44px minimum the chip
+ * idiom already uses (DESIGN.md § Capacity chips). Height only: the widths still wrap.
+ */
+const CLOCK_CONTROL = 'min-h-[44px]';
+
 const OUTCOME_LABEL: Record<Outcome, string> = {
   clean: 'Clean solve',
   slow: 'Solved slowly',
@@ -294,6 +302,7 @@ export default function ContestPage() {
                               <Button
                                 variant="outline"
                                 size="sm"
+                                className={CLOCK_CONTROL}
                                 onClick={() => dispatch(blurContestProblem())}
                               >
                                 <Pause /> Pause
@@ -302,6 +311,7 @@ export default function ContestPage() {
                               <Button
                                 variant="outline"
                                 size="sm"
+                                className={CLOCK_CONTROL}
                                 onClick={() => dispatch(focusContestProblem(question.id))}
                               >
                                 <Play /> {attempt.setAside ? 'Pick it back up' : 'Put on the clock'}
@@ -314,6 +324,7 @@ export default function ContestPage() {
                               <Button
                                 variant="ghost"
                                 size="sm"
+                                className={CLOCK_CONTROL}
                                 onClick={() => dispatch(logContestWrongSubmit(question.id))}
                               >
                                 <XCircle /> Didn't pass
@@ -323,12 +334,17 @@ export default function ContestPage() {
                               <Button
                                 variant="ghost"
                                 size="sm"
+                                className={CLOCK_CONTROL}
                                 onClick={() => dispatch(setAsideContestProblem(question.id))}
                               >
                                 Set aside
                               </Button>
                             )}
-                            <Button size="sm" onClick={() => dispatch(solveContestProblem(question.id))}>
+                            <Button
+                              size="sm"
+                              className={CLOCK_CONTROL}
+                              onClick={() => dispatch(solveContestProblem(question.id))}
+                            >
                               Mark solved
                             </Button>
                           </>

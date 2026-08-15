@@ -1,7 +1,15 @@
-# HANDOFF — GOD MODE V9 shipped (2026-08-16)
+# HANDOFF — GOD MODE V10 shipped (2026-08-16)
 
-**State: the Composed Interface pass is complete and committed to `main`.** There is no in-flight
-work.
+**State: V9 (Composed Interface) and V10 (Zero-Scroll Application) are both complete, committed on
+branch `v9-composed-interface`. NOT merged to main and NOT pushed** — V6–V8 all ended merged, so
+this branch is the outlier and needs a decision.
+
+V10 is the load-bearing change: above `md` the shell is `h-[100dvh] overflow-hidden`, `<main>` is
+the single scroll container, and pages use a `Screen`/`ScreenHeader`/`ScreenBody`/`Panel`
+vocabulary that divides a fixed height instead of stacking into one. All 15 routes fit one viewport
+at 1280×800, 1280×720 and 1366×768 across fresh, mid-course and heavy store states. The design
+record `docs/superpowers/specs/2026-08-16-zero-scroll-application-design.md` is the authority —
+read its "Findings worth keeping" and "Known limitations" first.
 
 ## Where things stand
 
@@ -53,6 +61,20 @@ work.
   quarantines the whole payload — build from `initialProgress()`.
 - Adding an import of `@/data/mlTracks`, `@/data/mlProjects` or `@/utils/engine/insights` to
   `store/selectors.ts` or `store/actions.ts` silently puts a large chunk back on the app bundle.
+- **New (V10): `overflow` clips absolutely-positioned descendants ONLY when the scroll container is
+  their containing block.** A `static` scroll container lets every Tailwind `sr-only` span escape
+  and silently extend `documentElement.scrollHeight`. Both `main` and `Panel` carry `relative` for
+  this reason — do not remove it. Invisible to every check except an actual `scrollTo` probe.
+- **New (V10): `grid-rows-[minmax(0,1fr)]` is as load-bearing as `min-h-0`** on any grid that must
+  divide a fixed height; implicit rows are `auto` and silently re-content-size the whole chain.
+- **New (V10): Radix `TabsContent` is `display:block`** — a `flex-1` panel inside needs
+  `md:flex md:flex-col` on the tab body or it overflows visibly.
+- **New (V10): `Screen` collides with the DOM global `Screen` type** — a missing import reads as
+  "cannot be used as a JSX component", not "cannot find name".
+- **New (V10): measure zero-scroll under a HEAVY store.** `/bookmarks` measured 0 under the light
+  seed and overflowed 304px with a real list. Every zero-scroll claim is a claim about a state.
+- **New (V10): resizing the browser pane leaves `100dvh` stale**, showing phantom document scroll
+  equal to the height delta. Reload before measuring.
 - **New (V9): jsdom does not hide closed `<details>` content, and `<summary>` carries no `button`
   role.** Tests for a `Disclosure` must assert the `open` attribute, not element absence, and must
   address the control as a summary. `familyPanel.test.tsx` is the worked example.

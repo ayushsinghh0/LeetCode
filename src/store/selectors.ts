@@ -44,7 +44,11 @@ import {
   type ContestAttempt,
   type ContestProblem,
 } from '@/utils/engine/contest';
-import { interviewDraws, type InterviewDraw } from '@/utils/engine/interview';
+import {
+  interviewDraws,
+  unfinishedInterviewIds,
+  type InterviewDraw,
+} from '@/utils/engine/interview';
 import { companyById, type Company } from '@/data/companies';
 import {
   companyCoverage,
@@ -738,8 +742,15 @@ export const selectTargetCompanyPracticeSet = createSelector(
  * failure this codebase has already had twice.
  */
 export const selectInterviewDraws = createSelector(
-  [selectQuestions, selectProgressById, selectContestsByDate, selectPatternWeakness, selectTodayArg],
-  (all, byId, contests, weakness, todayArg): InterviewDraw[] => {
+  [
+    selectQuestions,
+    selectProgressById,
+    selectContestsByDate,
+    (state: RootState) => state.interviews.sittings,
+    selectPatternWeakness,
+    selectTodayArg,
+  ],
+  (all, byId, contests, sittings, weakness, todayArg): InterviewDraw[] => {
     const pool = all.filter((question) => {
       const status = byId[question.id]?.status ?? 'unsolved';
       return status === 'unsolved' || status === 'in_progress';
@@ -769,6 +780,10 @@ export const selectInterviewDraws = createSelector(
       pool,
       seed: `interview:${todayArg}`,
       stalledQuestionIds,
+      // The interview's own reconstruction loop: a sitting that stopped before there was code is
+      // the clearest signal the product has that a problem is worth meeting again, and it comes
+      // from the learner's own decision rather than from a grader.
+      unfinishedQuestionIds: unfinishedInterviewIds(sittings),
       weakPatterns: weakness.map((entry) => entry.id),
       hintReliantFamilyIds,
     });

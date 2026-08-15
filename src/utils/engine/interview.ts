@@ -705,6 +705,8 @@ export const FOLLOW_UP_OUTCOME_LABEL: Record<FollowUpOutcome, string> = {
 export type DrawBasis =
   /** Real time went into this one under a contest clock and it did not come out. */
   | 'contest-stall'
+  /** The last sitting on this problem stopped before there was any code to show for it. */
+  | 'interview-unfinished'
   /** Its area is one the single weakness model currently marks as not holding. */
   | 'weak-pattern'
   /** Its family holds a problem that needed the hint ladder and has not had a clean pass since. */
@@ -720,6 +722,8 @@ export type DrawBasis =
 export const DRAW_BASIS_NOTE: Record<DrawBasis, string | null> = {
   'contest-stall':
     'This one was chosen: real time went into it under a contest clock without a solution, and a staged sitting is the closest thing here to meeting it again properly.',
+  'interview-unfinished':
+    'This one was chosen because your last sitting on it stopped before the implementation stage. Meeting it again is the whole point of having stopped — nothing was lost by ending it early.',
   'weak-pattern':
     'This one was chosen from an area your recent evidence marks as not holding — which is the area an interview is most worth spending on.',
   'hint-reliant-family':
@@ -728,11 +732,42 @@ export const DRAW_BASIS_NOTE: Record<DrawBasis, string | null> = {
 };
 
 const BASIS_ORDER: DrawBasis[] = [
+  // Timed evidence first: a contest stall is the product's own grading of real minutes against no
+  // solution. An unfinished sitting is the learner's own decision to stop, which is weaker
+  // evidence about the problem and stronger evidence about where they got to — so it comes next.
   'contest-stall',
+  'interview-unfinished',
   'weak-pattern',
   'hint-reliant-family',
   'open-ground',
 ];
+
+/**
+ * The stage a sitting has to reach before it counts as having been attempted properly.
+ *
+ * `implement` is where there is finally code, so a sitting that ended before it produced a plan
+ * and no implementation — which is exactly the thing worth meeting again. Stated as a stage rather
+ * than as a judgment: the learner stopping early is a fact, not a failure, and the copy that
+ * quotes it says so.
+ */
+export const RECONSTRUCT_BELOW_STAGE = stageIndex('implement') + 1;
+
+/**
+ * Problems whose MOST RECENT sitting stopped before there was any code.
+ *
+ * Most recent, not any: a problem worked through to the follow-up round last week is not owed a
+ * re-serve because the first attempt on it ended early a month ago. Records arrive oldest-first
+ * (the channel appends), so the last entry per question wins.
+ */
+export function unfinishedInterviewIds(
+  sittings: { questionId: number; stageReached: number }[],
+): number[] {
+  const latest = new Map<number, number>();
+  for (const sitting of sittings) latest.set(sitting.questionId, sitting.stageReached);
+  return [...latest.entries()]
+    .filter(([, stageReached]) => stageReached < RECONSTRUCT_BELOW_STAGE)
+    .map(([questionId]) => questionId);
+}
 
 export interface InterviewDraw {
   question: Question;
@@ -746,6 +781,8 @@ export interface InterviewDrawInput {
   seed: string;
   /** Problems that stalled in recent contest sittings, from the persisted `contests` channel. */
   stalledQuestionIds: number[];
+  /** Problems whose last staged sitting stopped before any code — see `unfinishedInterviewIds`. */
+  unfinishedQuestionIds?: number[];
   /** The head of the ONE weakness model. This module never computes weakness itself. */
   weakPatterns: PatternId[];
   /** Families holding a question whose ladder was needed and not yet cleared by an unaided pass. */
@@ -761,11 +798,13 @@ export interface InterviewDrawInput {
 export function interviewDraws(input: InterviewDrawInput): InterviewDraw[] {
   const { pool, seed, stalledQuestionIds, weakPatterns, hintReliantFamilyIds } = input;
   const stalled = new Set(stalledQuestionIds);
+  const unfinished = new Set(input.unfinishedQuestionIds ?? []);
   const weak = new Set<PatternId>(weakPatterns);
   const hintFamilies = new Set(hintReliantFamilyIds);
 
   const basisOf = (question: Question): DrawBasis => {
     if (stalled.has(question.id)) return 'contest-stall';
+    if (unfinished.has(question.id)) return 'interview-unfinished';
     if (weak.has(question.pattern)) return 'weak-pattern';
     if (question.familyId !== undefined && hintFamilies.has(question.familyId)) {
       return 'hint-reliant-family';

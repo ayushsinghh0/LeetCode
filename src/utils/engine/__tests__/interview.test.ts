@@ -12,8 +12,10 @@ import {
   SELF_ASSESSMENT,
   SELF_ASSESSMENT_SCALE,
   STAGES,
+  RECONSTRUCT_BELOW_STAGE,
   followUpsFor,
   interviewDraws,
+  unfinishedInterviewIds,
   formatElapsed,
   isRevealed,
   isSelfAssessmentValue,
@@ -417,5 +419,51 @@ describe('interviewDraws — which problem, and on what grounds', () => {
       // And none of them grades the learner for having been drawn there.
       expect(note).not.toMatch(/weak at|bad at|struggling|poor/i);
     }
+  });
+});
+
+describe('interview reconstruction — a sitting that stopped early comes back', () => {
+  const pool: Question[] = [
+    q({ id: 1, pattern: 'hash-maps' }),
+    q({ id: 2, pattern: 'graphs' }),
+    q({ id: 3, pattern: 'greedy' }),
+  ];
+  const sitting = (questionId: number, stageReached: number) => ({ questionId, stageReached });
+
+  test('a sitting that never reached the implementation stage is the one worth re-serving', () => {
+    // `implement` is where there is finally code; stopping before it produced a plan and nothing
+    // to test the plan against.
+    expect(RECONSTRUCT_BELOW_STAGE).toBe(stageIndex('implement') + 1);
+    expect(unfinishedInterviewIds([sitting(1, 3), sitting(2, 9)])).toEqual([1]);
+  });
+
+  test('only the most recent sitting counts — an old early stop is not a standing debt', () => {
+    // Worked through to the follow-up round last week? Then the attempt that ended early a month
+    // ago is history, not a reason to serve it again.
+    expect(unfinishedInterviewIds([sitting(1, 2), sitting(1, 10)])).toEqual([]);
+    expect(unfinishedInterviewIds([sitting(1, 10), sitting(1, 2)])).toEqual([1]);
+  });
+
+  test('it outranks weakness but never a contest stall', () => {
+    const order = interviewDraws({
+      pool,
+      seed: 'interview:2026-07-30',
+      stalledQuestionIds: [3],
+      unfinishedQuestionIds: [2],
+      weakPatterns: ['hash-maps'],
+      hintReliantFamilyIds: [],
+    });
+
+    expect(order.map((d) => [d.question.id, d.basis])).toEqual([
+      [3, 'contest-stall'],
+      [2, 'interview-unfinished'],
+      [1, 'weak-pattern'],
+    ]);
+  });
+
+  test('the note explains the stop without grading it', () => {
+    const note = DRAW_BASIS_NOTE['interview-unfinished']!;
+    expect(note).toMatch(/stopped before the implementation stage/i);
+    expect(note).not.toMatch(/failed|gave up|poor|weak/i);
   });
 });

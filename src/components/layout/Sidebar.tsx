@@ -9,6 +9,28 @@ import { NAV_ITEMS } from '@/components/layout/navItems';
 import { LevelRing } from '@/components/gamification/LevelRing';
 import { StreakFlame } from '@/components/gamification/StreakFlame';
 
+/**
+ * One row definition for both nav groups, so the shelf cannot drift from the work list.
+ *
+ * The active state keeps the three independent carriers DESIGN.md requires — `aria-current`
+ * (NavLink writes it), a present-vs-absent 2px ink stroke, and a weight step — and adds the
+ * "optional very subtle surface tint" the V10 brief allows: `bg-muted/50`, which is a tonal fill
+ * of the same neutral used for hover, not a second accent. It is emphatically not the saturated
+ * pill this idiom replaced; the ink budget still belongs to the page's primary action.
+ *
+ * `min-h-9` rather than `min-h-10`: the rail is height-capped now, and 4px × 15 rows is a row and
+ * a half of headroom on a 720px laptop. The 44px pointer-target rule is a *content* rule — these
+ * are 36px navigation rows in a persistent rail, the same register as a menu bar, and they clear
+ * WCAG 2.5.8's 24px floor with room to spare.
+ */
+const navLinkClass = ({ isActive }: { isActive: boolean }) =>
+  cn(
+    'flex min-h-9 items-center gap-3 rounded-md border-l-2 px-2.5 py-1.5 text-sm transition-colors duration-150 ease-swift',
+    isActive
+      ? 'border-primary bg-muted/50 font-semibold text-foreground'
+      : 'border-transparent font-medium text-muted-foreground hover:bg-muted hover:text-foreground',
+  );
+
 export function Sidebar() {
   const dispatch = useAppDispatch();
   const today = useToday();
@@ -25,7 +47,12 @@ export function Sidebar() {
     // pixel wider — the worst number in the layout, and the reason a 1024 laptop had less room to
     // read in than a 1023 one. 208px still fits the longest label ("Achievements", ~90px) beside
     // its icon with room to spare, and hands 32px back to every screen at or above 1024.
-    <aside className="hidden shrink-0 flex-col gap-4 border-r border-border p-3.5 md:flex md:w-[4.5rem] lg:w-52">
+    // `h-full min-h-0` makes this a true application rail. It was a flex child of a `min-h-screen`
+    // row, so it stretched to the height of the *document* — on /aiml that was a 4,300px column
+    // whose nav scrolled off the top and whose level ring sat 3,500px below the fold. Now the row
+    // is exactly one viewport, so the rail is exactly one viewport: stationary while a screen
+    // scrolls beside it, identical on every route, its active mark always in the same place.
+    <aside className="hidden shrink-0 flex-col gap-3 border-r border-border p-3 md:flex md:h-full md:min-h-0 md:w-[4.5rem] lg:w-52">
       {/* The wordmark has 28px of usable width in the 72px icon rail (w-[4.5rem] − p-3.5 − px-2),
           which rendered "DSA Roadmap" as "D…". Below lg it keeps its accessible name and gives up
           its pixels; the rail's identity is the ink-marked active tab, not a clipped title. */}
@@ -58,21 +85,17 @@ export function Sidebar() {
           vs another, and semibold-vs-medium text for anyone who reads neither. Every item carries
           the border at `transparent` so nothing shifts by 2px when it inks. Focus is the global
           `:focus-visible` outline in index.css and is untouched. */}
-      <nav aria-label="Sidebar navigation" className="flex flex-1 flex-col gap-1">
-        {NAV_ITEMS.map(({ to, label, icon: Icon }) => (
-          <NavLink
-            key={to}
-            to={to}
-            end={to === '/'}
-            className={({ isActive }) =>
-              cn(
-                'flex min-h-10 items-center gap-3 rounded-md border-l-2 px-3 py-2 text-sm transition-colors duration-150 ease-swift',
-                isActive
-                  ? 'border-primary font-semibold text-foreground'
-                  : 'border-transparent font-medium text-muted-foreground hover:bg-muted hover:text-foreground',
-              )
-            }
-          >
+      {/* `min-h-0` + `overflow-y-auto`: the rail is now height-capped, so fifteen 36px rows plus
+          the wordmark, the search button and the level block can exceed a 720px laptop. This is
+          the rail's OWN controlled scroll — the second and last scroll container in the shell, and
+          it only engages when the list genuinely does not fit. `overscroll-contain` keeps a
+          finished scroll here from chaining into `main`. */}
+      <nav
+        aria-label="Sidebar navigation"
+        className="flex min-h-0 flex-1 flex-col gap-0.5 overflow-y-auto overscroll-contain"
+      >
+        {NAV_ITEMS.filter((item) => item.group === 'work').map(({ to, label, icon: Icon }) => (
+          <NavLink key={to} to={to} end={to === '/'} className={navLinkClass}>
             {({ isActive }) => (
               <>
                 <Icon className={cn('h-4 w-4 shrink-0', isActive && 'text-primary')} aria-hidden="true" />
@@ -83,6 +106,21 @@ export function Sidebar() {
             )}
           </NavLink>
         ))}
+
+        {/* The shelf: two destinations you visit occasionally, ruled off rather than boxed, so the
+            eye scanning the work list has a floor to stop at instead of fifteen equal rows. */}
+        <div className="mt-1 flex flex-col gap-0.5 border-t border-border pt-1">
+          {NAV_ITEMS.filter((item) => item.group === 'shelf').map(({ to, label, icon: Icon }) => (
+            <NavLink key={to} to={to} className={navLinkClass}>
+              {({ isActive }) => (
+                <>
+                  <Icon className={cn('h-4 w-4 shrink-0', isActive && 'text-primary')} aria-hidden="true" />
+                  <span className="sr-only lg:not-sr-only">{label}</span>
+                </>
+              )}
+            </NavLink>
+          ))}
+        </div>
       </nav>
 
       {/* A rail does not need a plate inside it. This was a `.glass` box holding a 40px ring — a

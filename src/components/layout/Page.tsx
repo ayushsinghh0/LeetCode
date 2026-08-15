@@ -75,6 +75,128 @@ export function Page({ children, width = 'default', className }: PageProps) {
 }
 
 /* ------------------------------------------------------------------------------------------- */
+/* Screen — the V10 vocabulary                                                                  */
+/* ------------------------------------------------------------------------------------------- */
+
+/**
+ * A screen, as opposed to a page.
+ *
+ * `Page` composes a document: it stacks sections downward and the reader travels through them.
+ * That was the right model while the shell let the document grow. It no longer does — `AppShell`
+ * is a fixed 100dvh row above `md` — so a surface built to stack simply overflows into `main`'s
+ * scroll and the application becomes a webpage again inside its own frame.
+ *
+ * `Screen` inverts the relationship. It takes a definite height from the shell and *divides* it:
+ * a compact header that costs what it costs, and a body that takes exactly the rest. Content
+ * beyond that does not extend the screen — it opens. A tab, a drawer, a dialog, a detail route.
+ *
+ * The rule that makes this work is `min-h-0`, and it appears on every level of the chain. A flex
+ * child defaults to `min-height:auto`, which refuses to shrink below its content; one missing
+ * `min-h-0` anywhere between `main` and a scrollable panel hands the scroll back to the ancestor
+ * and the whole contract silently fails. If a screen is scrolling when it should not be, look for
+ * the level that is missing it before looking at the content.
+ *
+ * Below `md` this is deliberately an ordinary column: a phone has no room to be an application
+ * viewport, and the brief keeps an intentional document scroll there.
+ */
+export function Screen({ children, className }: { children: ReactNode; className?: string }) {
+  return (
+    <div className={cn('flex flex-col gap-5 md:h-full md:min-h-0 md:gap-4', className)}>
+      {children}
+    </div>
+  );
+}
+
+export interface ScreenHeaderProps {
+  /** Quiet context: a date, a chapter, a count. Runs inline with the title, not above it. */
+  eyebrow?: ReactNode;
+  title: ReactNode;
+  /** One short line. A screen header is not the place for a paragraph. */
+  support?: ReactNode;
+  /** Controls, right-aligned. Two at most. */
+  action?: ReactNode;
+}
+
+/**
+ * The screen masthead — one line where `PageHeader` was four.
+ *
+ * `PageHeader` renders eyebrow / title / support / rule as a vertical stack costing ~107px before
+ * a single piece of content. On a 1280×800 laptop the shell has ~760px of usable height, so that
+ * masthead was 14% of the screen spent restating the item already highlighted in the rail beside
+ * it. Here the eyebrow sits *inline* under a `text-2xl` title and the action shares the row: ~56px
+ * for the same four facts.
+ *
+ * The hairline is gone too. A screen is bounded by the shell's own edge, so a rule under the title
+ * divides nothing — it was the duplicate-separator problem again, this time against a frame.
+ */
+export function ScreenHeader({ eyebrow, title, support, action }: ScreenHeaderProps) {
+  return (
+    <header className="flex shrink-0 flex-wrap items-end justify-between gap-x-6 gap-y-2">
+      <div className="flex min-w-0 flex-col gap-0.5">
+        {eyebrow && <Eyebrow>{eyebrow}</Eyebrow>}
+        <h1 className="text-2xl font-semibold md:text-[1.75rem]">{title}</h1>
+        {support && <p className="max-w-prose text-sm text-muted-foreground">{support}</p>}
+      </div>
+      {action && <div className="flex shrink-0 items-center gap-2">{action}</div>}
+    </header>
+  );
+}
+
+/**
+ * The body of a screen: everything under the header, taking exactly the height that is left.
+ *
+ * `cols` lays the body out horizontally, which is the other half of the zero-scroll answer — a
+ * 1280px laptop that renders one narrow column beside 400px of nothing has not run out of room,
+ * it has run out of composition. The tracks are asymmetric on purpose (work wide, context narrow);
+ * a symmetric three-up would be the card grid this vocabulary exists to prevent.
+ */
+export function ScreenBody({
+  children,
+  cols,
+  className,
+}: {
+  children: ReactNode;
+  /** `main-rail` = work + context. `split` = two equal halves. Omit for a single column. */
+  cols?: 'main-rail' | 'split';
+  className?: string;
+}) {
+  return (
+    <div
+      className={cn(
+        'flex flex-col gap-5 md:min-h-0 md:flex-1 md:gap-4',
+        cols === 'main-rail' && 'lg:grid lg:grid-cols-[minmax(0,1fr)_19rem] lg:gap-6 xl:grid-cols-[minmax(0,1fr)_22rem]',
+        cols === 'split' && 'lg:grid lg:grid-cols-2 lg:gap-6',
+        className,
+      )}
+    >
+      {children}
+    </div>
+  );
+}
+
+/**
+ * A region inside a screen body that may scroll when its content genuinely exceeds it.
+ *
+ * This is the sanctioned exception to "the application does not scroll": a queue, an index, a
+ * syllabus. It is `min-h-0` + `overflow-y-auto` and it never nests inside another one — the shell
+ * allows `main` plus at most one intentional panel, and a scroll inside a scroll inside a page is
+ * the failure the brief names.
+ *
+ * `overscroll-contain` keeps a finished scroll from chaining out into `main`.
+ */
+export function Panel({ children, className }: { children: ReactNode; className?: string }) {
+  return (
+    // `relative` for the same reason `main` carries it: a scroll container only clips
+    // absolutely-positioned descendants when it is their containing block. Without it an `sr-only`
+    // span inside a panel escapes to the initial containing block and silently re-extends the
+    // document.
+    <div className={cn('relative flex flex-col md:min-h-0 md:flex-1 md:overflow-y-auto md:overscroll-contain', className)}>
+      {children}
+    </div>
+  );
+}
+
+/* ------------------------------------------------------------------------------------------- */
 /* PageHeader                                                                                   */
 /* ------------------------------------------------------------------------------------------- */
 

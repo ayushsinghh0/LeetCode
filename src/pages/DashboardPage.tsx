@@ -233,7 +233,9 @@ export default function DashboardPage() {
           action={
             weakestEntry ? (
               <Button asChild size="sm" variant="ghost">
-                <Link to={`/patterns/${weakestEntry.id}`}>Practise</Link>
+                {/* "Practice", American, like every other string in the product — "Day 2 · Practice",
+                    "Practice intentions", the contest masthead. This was the only British spelling. */}
+                <Link to={`/patterns/${weakestEntry.id}`}>Practice</Link>
               </Button>
             ) : undefined
           }

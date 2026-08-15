@@ -60,8 +60,13 @@ const GROUP_LABEL_CLASS = 'hidden text-xs font-medium tracking-wide text-muted-f
 // `min-h-11` + `inline-flex items-center`: at `py-1` on `text-xs` these computed to 26px, and they
 // are the primary control on /bookmarks and the pattern pages — the row you actually operate to
 // find anything. The capacity and session-length chips they are the sibling of already carry
-// `min-h-[44px]` for the same reason; this row was the one that did not. The visual chip is
-// unchanged (the padding still sets its drawn size); only the hit area grows.
+// `min-h-[44px]` for the same reason; this row was the one that did not.
+//
+// This is a min-height on the bordered element, so the DRAWN chip grows 26px → 44px, not just the
+// hit area — a real increase in visual weight for a row of up to seven ink-fillable chips. That is
+// accepted here because the row is a primary control rather than metadata; if a future surface
+// needs the 26px look with a 44px target, the answer is a padded pseudo-element
+// (`relative` + `after:absolute after:-inset-y-2`), not a smaller `min-h`.
 const CHIP_CLASS =
   'figures inline-flex min-h-11 items-center rounded-sm border px-2.5 py-1 text-xs ' +
   'transition-colors duration-150 ease-swift focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring';

@@ -132,6 +132,54 @@ learner progresses** rather than growing — the right direction for a reader.
   their existing idioms: converting them buys consistency at the cost of rewriting assertions that
   currently pin real behaviour.
 
+## The adversarial pass, and what it caught
+
+A reviewer was run against the finished diff with one instruction: find where this went too far.
+It found seven real defects. The five worth recording:
+
+- **`ChipRadioRow` discarded every call-site override.** `cn` is `twMerge` and last wins, and the
+  base classes were passed last — so `SessionPlan`'s `px-1`, which exists so six chips fit a
+  `grid-cols-6` row at 375px, silently resolved back to the base `px-3`. Verified in the browser
+  (computed padding 12px where 4px was intended) and fixed by putting `chipClassName` last. A
+  `className` prop that cannot override anything in its own property group is worse than no prop.
+- **The extraction was documented as finished when it was not.** The new component's docstring
+  claimed Revision's length chooser had been migrated. It had not, and its copy omits the
+  `focus-visible:ring` classes the shared base carries — so the two rows differ on keyboard focus
+  in the file whose whole purpose is ending that divergence. The claim is now corrected and the
+  outstanding half named.
+- **The contest's counter-intuitive clock rule ended up latched in *both* states.** `CLAUDE.md`
+  makes "the clock runs until the learner pauses it" load-bearing: it decides `hasRealTime`, which
+  decides whether a sitting is conclusive, which decides whether it reaches the weakness model. A
+  learner could have worked a whole set without meeting it. One short clause is now permanently
+  visible on the sticky clock; the full paragraph stays latched.
+  **The test for it had been passing the whole time** — jsdom keeps closed `<details>` content in
+  the DOM, so `getByText` could not tell visible from latched. The latched paragraph was reworded
+  so the phrase exists once, on the visible surface, and the assertion means what it says again.
+- **The Companies index re-buried its own claim boundary.** `PageColumns` stacks the rail after
+  main below `lg`, so "No company publishes the problems it asks" sat at the bottom of the index on
+  every phone and tablet — the exact placement `SCOPE_NOTE`'s comment records having fixed once
+  before, and a disagreement with the detail view, which leads with it. Rendering it twice behind
+  breakpoints would have put the sentence in the document twice; instead it leads the page once and
+  the two lists take the horizontal composition as a `PagePair`. The evidence caveat also came out
+  of a latch labelled "Topics named across that page · 12", which counted topics while also holding
+  the caveat.
+- **`Figures` emitted `<dd>` before `<dt>`.** Invalid inside a `<dl>`, and it made screen readers
+  announce value-then-label. Document order is now `dt`→`dd` with the visual order preserved by
+  `order-1`/`order-2`; the assertion that depended on the old order was updated to pin the valid
+  structure rather than the painted one.
+
+It also caught three comments of mine that asserted more than the code did — the `/aiml`
+cleared-weeks rationale (the row keeps its recall and notes buttons, so the latch does cost one
+click on the recall entry point, and the comment now says so), `QuestionFilterRow`'s claim that only
+the hit area grew (the drawn chip grows too), and a `SessionPlan` `optionLabel` that was
+byte-identical to `format` under a comment claiming it said something more. Those are recorded
+because a wrong comment in this repo outlives the code it describes.
+
+Left open deliberately: `Ledger`'s `sm:grid-cols-*` has the same viewport-vs-container hazard as
+the `TodayTasks` regression and was moved into 240px rails without that review; Revision's chip row
+is still the third copy; and `/patterns/:id` keeps its groups collapsed after a filter is applied,
+so a filter can read as doing nothing.
+
 ## Verification
 
 1175 tests across 83 files (7 fewer than V8's 1182 — the deleted `QuestionCard`'s own tests).

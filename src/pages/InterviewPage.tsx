@@ -687,8 +687,15 @@ export default function InterviewPage() {
             ledger holding half the measure is still wider than any of its three figures needs. */}
         <PagePair>
           <Section title="The sitting" support="What it cost, and how far it got.">
+            {/* `columns={2}`, not 3. This page is `width="reading"` (46rem), so the page cap binds
+                before the viewport at every size, and `PagePair` halves it — ~348px per column at
+                md, lg, xl and 1440 alike. Three tracks in 348px is ~103px, less 20px of `sm:pl-5`
+                on the ruled columns, holding a `text-[1.75rem]` figure: `formatElapsed` returns
+                `1:02:15` for any sitting past an hour, which does not fit, and every `sub` wraps to
+                three lines. `PagePair`'s own docstring says it pairs "two columns of small facts";
+                a 3-up display-figure ledger is not that. */}
             <Ledger
-              columns={3}
+              columns={2}
               items={[
                 {
                   label: 'Time taken',

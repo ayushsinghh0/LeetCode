@@ -33,17 +33,23 @@ export interface ChipRadioRowProps<T extends string | number> {
 }
 
 /**
- * A single-choice chip row, shared by every "exactly one of these is true" control in the app:
- * Today's capacity chips, Revision's session-length chooser, and Interview's stage self-report and
- * five self-assessment scales.
+ * A single-choice chip row for "exactly one of these is true" controls. Used by Today's capacity
+ * chips and by Interview's stage self-report and five self-assessment scales.
  *
- * It exists as one component because it had become three. DESIGN.md § Capacity chips states that
- * "arrow-key selection is the contract the radio role promises", and RevisionPage's own comment
- * claimed it carried "the same correction Today's capacity chips already carry" — but Today's
- * chips shipped `role="radiogroup"` with no `onKeyDown` and no roving `tabIndex`, so all six sat
- * in the tab sequence and the arrow keys did nothing. The documentation was true of two of the
- * three implementations, which is exactly the failure mode a duplicated idiom produces: the
+ * It exists because the idiom had become three hand-written copies. DESIGN.md § Capacity chips
+ * states that "arrow-key selection is the contract the radio role promises", and RevisionPage's own
+ * comment claimed it carried "the same correction Today's capacity chips already carry" — but
+ * Today's chips shipped `role="radiogroup"` with no `onKeyDown` and no roving `tabIndex`, so all
+ * six sat in the tab sequence and the arrow keys did nothing. The documentation was true of two of
+ * the three implementations, which is exactly the failure mode a duplicated idiom produces: the
  * divergence is invisible in any single file.
+ *
+ * **Revision's session-length chooser is the third copy and has NOT been migrated.** Its own
+ * implementation is correct (it has the roving tabindex and the arrow keys), which is why it was
+ * left alone rather than rewritten under a green suite; but it omits the
+ * `focus-visible:ring` classes `CHIP_CLASS` carries, so the two rows differ on focus appearance.
+ * Migrating `RevisionPage`'s `SessionPreview` is the outstanding half of this extraction — do not
+ * read the existence of this file as evidence that it is finished.
  *
  * Roving tabindex keeps the group to one tab stop — and with nothing chosen yet, the first chip
  * stays tabbable, because a radiogroup every one of whose radios is `tabIndex -1` cannot be
@@ -121,7 +127,12 @@ export function ChipRadioRow<T extends string | number>({
               chipRefs.current[i] = node;
             }}
             onClick={() => onSelect(option)}
-            className={cn(chipClassName, CHIP_CLASS, active ? CHIP_ON : CHIP_OFF)}
+            // `chipClassName` goes LAST. `cn` is `twMerge` and last wins, so with the call-site
+            // class first every override it passed was silently discarded by the base — Today's
+            // `px-1`, which exists so six chips fit a `grid-cols-6` row at 375px, resolved back to
+            // `px-3`. A base-classes-last order makes a `chipClassName` prop that cannot actually
+            // override anything in the same property group, which is worse than not having one.
+            className={cn(CHIP_CLASS, active ? CHIP_ON : CHIP_OFF, chipClassName)}
           >
             {format ? format(option) : option}
           </button>

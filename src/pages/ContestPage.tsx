@@ -254,6 +254,17 @@ export default function ContestPage() {
               {problems.filter((p) => contest.attempts[p.question.id]?.solved).length} of{' '}
               {problems.length} solved
             </Eyebrow>
+            {/* This clause stays VISIBLE while a contest runs, and that is not a style choice.
+                `CLAUDE.md` makes the running clock a load-bearing invariant — it does not settle
+                when the tab is hidden, because the only sanctioned work surface is the external
+                problem page — and that behaviour decides `hasRealTime`, which decides whether the
+                sitting is conclusive, which decides whether it reaches the weakness model. Latching
+                the full paragraph is right; latching it in *both* the pre-start and running states,
+                as this page briefly did, meant a learner could work a whole set without ever
+                meeting the one counter-intuitive rule governing it. */}
+            <p className="w-full text-xs text-muted-foreground">
+              The clock runs until you pause it — tab away or not.
+            </p>
           </Lead>
 
           <Section title="The set">
@@ -262,10 +273,16 @@ export default function ContestPage() {
                 vertical space is being spent by a running timer. It is a rule you read once and
                 then work under, not a caption you re-read every sitting. */}
             <Disclosure summary="How the clock works">
+              {/* Deliberately does NOT repeat the sticky clock's "runs until you pause it" clause.
+                  jsdom keeps closed `<details>` content in the DOM, so a `getByText` for that
+                  phrase passes whether it is visible or latched — which is how contest.test.tsx
+                  went on asserting "the page says the clock runs until you pause it" while a real
+                  browser hid it. One instance, on the always-visible surface, keeps the test
+                  honest about what a learner can actually read. */}
               <p className="max-w-prose text-sm leading-relaxed text-muted-foreground">
-                Time counts only while a problem is on the clock. Once a problem is on it, the clock
-                runs until you pause it — including while you work in another tab, which is where
-                the solving actually happens. Pause it when you step away.
+                Time counts only while a problem is on the clock, and you can move the clock freely
+                between problems. Working in another tab is where the solving actually happens, so
+                the count continues there; pause it when you step away instead.
               </p>
             </Disclosure>
 

@@ -11,7 +11,7 @@ import {
   Ledger,
   Meta,
   Page,
-  PageColumns,
+  PagePair,
   PageHeader,
   RuledItem,
   RuledList,
@@ -160,10 +160,20 @@ function CompanyList() {
         ]}
       />
 
-      {/* Work left, claim boundary right. The scope note is the page's standing claim, not its
-          work — at `lg` it now sits beside the lists it governs instead of pushing them down, and
-          below that it stacks after them, still on the ink rail, still full strength. */}
-      <PageColumns railLabel="Scope" rail={<ScopeNote />}>
+      {/* The claim boundary leads the lists it governs, at every width — and it is rendered ONCE.
+          It briefly rode `PageColumns`' context rail, which stacks after main below `lg`, so the
+          app's central epistemic claim ("no company publishes the problems it asks") landed at the
+          very bottom of the index on every phone and tablet: precisely the placement `SCOPE_NOTE`'s
+          own comment records having fixed once before, and a disagreement with `CompanyDetail`,
+          which leads with it. A breakpoint-duplicated pair (`lg:hidden` + `hidden lg:block`) would
+          have fixed the placement by putting the sentence in the document twice, which is a worse
+          answer on a page whose subject is what the app is entitled to claim.
+
+          The horizontal composition survives as `PagePair` on the two lists below, which is the
+          better pairing anyway: "companies that name topics" and "companies that name only the
+          area" are two halves of one census, where the scope note is not a half of anything. */}
+      <ScopeNote />
+      <PagePair>
         <Section
           title="Companies that name specific topics"
           support="These prep pages list actual data structures and algorithms, which is enough to line up against your own coverage — and the only tier where this app maps anything to a pattern."
@@ -213,7 +223,7 @@ function CompanyList() {
             </RuledList>
           </Disclosure>
         </Section>
-      </PageColumns>
+      </PagePair>
     </Page>
   );
 }
@@ -286,14 +296,19 @@ function SourceSection({ company }: { company: Company }) {
           <p className="text-xs text-muted-foreground">
             Collected from the full page, not only the sentence quoted above.
           </p>
-          {company.note && <Caveat label="Scope and caveats">{company.note}</Caveat>}
         </Disclosure>
       ) : (
         // No named topics to summarise (Netflix is this case): a latch headed "Topics named
-        // across that page" over a list that does not exist would be a label telling a lie, so
-        // the caveat keeps its old open rendering instead of inheriting the fold.
-        company.note && <Caveat label="Scope and caveats">{company.note}</Caveat>
+        // across that page" over a list that does not exist would be a label telling a lie.
+        null
       )}
+
+      {/* The caveat renders OUTSIDE the latch in both branches. It was inside the topics
+          disclosure, under a summary that reads "Topics named across that page · 12" — a label
+          that counts topics and silently also holds the scope caveat. On an evidence page the
+          caveat is the one thing a reader must not miss, and `Page.tsx` requires a summary to be
+          "a real summary", which a label naming only part of its contents is not. */}
+      {company.note && <Caveat label="Scope and caveats">{company.note}</Caveat>}
 
       <Button asChild variant="outline" size="sm" className="self-start">
         <a href={company.url} target="_blank" rel="noopener noreferrer">

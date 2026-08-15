@@ -58,14 +58,20 @@ export function AppShell() {
           route, so a keyboard or switch user paid fifteen tab stops per navigation to reach the
           page they had just opened. It is the first thing in the tab order, invisible until
           focused, and then it renders as an ordinary plate above the sidebar's top edge. */}
+      {/* The padding utilities carry the `focus:` prefix deliberately. Tailwind's
+          `.focus\:not-sr-only:focus` sets `padding: 0` at specificity (0,2,0), which beats an
+          unprefixed `px-4 py-2.5` at (0,1,0) — so the unprefixed version rendered a flush,
+          padding-less box on focus. Prefixed, they match its specificity and win on source order. */}
       <a
         href="#content"
-        className="glass sr-only left-4 top-4 z-50 px-4 py-2.5 text-sm font-medium focus:not-sr-only focus:absolute focus:inline-flex focus:min-h-11 focus:items-center"
+        className="glass sr-only left-4 top-4 z-50 text-sm font-medium focus:not-sr-only focus:absolute focus:inline-flex focus:min-h-11 focus:items-center focus:px-4 focus:py-2.5"
       >
         Skip to content
       </a>
       <Sidebar />
-      <main id="content" className="min-w-0 flex-1">
+      {/* `tabIndex={-1}` so the fragment jump actually moves focus here rather than only the
+          scroll position — several engines will not focus a non-focusable target. */}
+      <main id="content" tabIndex={-1} className="min-w-0 flex-1 focus:outline-none">
         {/* pb-28 on phones: the bottom-nav clearance the design system specifies (DESIGN.md
             § Adding a New Surface #8). It was pb-36 to accommodate the floating pomodoro's
             permanent plate — 144px of dead page foot on every phone screen to make room for a

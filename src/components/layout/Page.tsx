@@ -325,12 +325,18 @@ export function Figures({ items, className }: { items: FigureItem[]; className?:
         // and this is a primitive that now renders on nearly every page, so the mistake would have
         // multiplied. A pseudo-element also keeps the separator out of `dd.textContent`, which
         // matters because it is decoration rather than data.
+        //
+        // `<dt>` precedes `<dd>` in the DOM because a `<div>` inside a `<dl>` may only contain
+        // "one or more dt followed by one or more dd" — and because a screen reader walking the
+        // list should hear the term before its definition, not "539 … questions". The visual order
+        // is the reverse (the figure leads), which `order-1`/`order-2` supplies without touching
+        // the document order.
         <div
           key={i}
-          className="flex items-baseline gap-1.5 before:pr-0.5 before:text-border before:content-['·'] first:before:hidden"
+          className="flex items-baseline gap-1.5 before:order-none before:pr-0.5 before:text-border before:content-['·'] first:before:hidden"
         >
-          <dd className="figures font-medium text-foreground">{item.value}</dd>
-          <dt className="text-muted-foreground">{item.label}</dt>
+          <dt className="order-2 text-muted-foreground">{item.label}</dt>
+          <dd className="figures order-1 font-medium text-foreground">{item.value}</dd>
         </div>
       ))}
     </dl>

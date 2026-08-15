@@ -18,7 +18,11 @@ export function DayCleared({ solvedToday, minutesToday }: { solvedToday: number;
     // Same collapse as NextActionCard: the plate names itself and owns the stack.
     <Lead aria-label="Today is clear">
       <>
-        <div className="flex items-center gap-2 border-b border-border/70 pb-2">
+        {/* Same removal as `NextActionCard`'s eyebrow row, and for the same reason: `Lead` already
+            supplies `gap-4` between its children, so the hairline paid twice for one boundary.
+            These two are the same slot on the same page in mutually exclusive branches — fixing one
+            and not the other is how a `border-border/70` that exists nowhere else survives. */}
+        <div className="flex items-center gap-2">
           <CheckCircle2 className="h-4 w-4 shrink-0 text-easy" aria-hidden="true" />
           <p className="text-xs uppercase tracking-[0.14em] text-muted-foreground">Done for today</p>
         </div>

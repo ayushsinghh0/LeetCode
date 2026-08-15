@@ -140,10 +140,15 @@ describe('TodayPage — "I have N minutes"', () => {
     // The budget footer is one Figures line — available / planned / spare — so the value and its
     // label are siblings. "available" is the chosen budget; "planned" carries the "~" hedge,
     // because the estimates are estimates and say so.
+    //
+    // `nextElementSibling`, not `previous`: `Figures` emits `<dt>` before `<dd>` because that is
+    // the only valid content model for a `<div>` inside a `<dl>` (and the order a screen reader
+    // should hear). The figure still renders first — `order-1`/`order-2` handle the visual swap —
+    // so this assertion now pins the document order rather than the painted one.
     const available = within(sessionPlan()).getByText('available');
-    expect(available.previousElementSibling?.textContent).toBe('30m');
+    expect(available.nextElementSibling?.textContent).toBe('30m');
     const planned = within(sessionPlan()).getByText('planned');
-    expect(planned.previousElementSibling?.textContent).toMatch(/^~/);
+    expect(planned.nextElementSibling?.textContent).toMatch(/^~/);
   });
 });
 

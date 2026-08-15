@@ -98,9 +98,9 @@ export function SessionPlan({ ranked }: { ranked: WorkItem[] }) {
         value={capacityMin}
         onSelect={(preset) => dispatch(setDailyCapacity(preset))}
         format={(preset) => SHORT_LABEL[preset] ?? `${preset}m`}
-        // The chip reads "15m"; the accessible name says what fifteen minutes is *for*, because
-        // "15m" alone is not a decodable option name when read out of the row's context.
-        optionLabel={(preset) => SHORT_LABEL[preset] ?? `${preset}m`}
+        // No `optionLabel`: it was passed here as a function byte-identical to `format`, which
+        // produced `aria-label="15m"` over visible text "15m" — an accessible name that overrides
+        // the content with the same string, and a comment claiming it said something more.
         className="grid grid-cols-6 sm:max-w-md"
         chipClassName="figures px-1"
       />

@@ -69,8 +69,15 @@ export default function AimlCoursePage() {
 
   const nextWeek = next ? courseWeekById.get(next.weekId) : undefined;
 
-  // Cleared vs. still-ahead, computed once. `isWeekDone` is the same predicate the row itself uses
-  // to decide it has no controls left to offer, so the split can never disagree with the rows.
+  // Cleared vs. still-ahead, computed once, on the same `isWeekDone` the row uses for its own
+  // done-styling — so the split cannot disagree with how a row presents itself.
+  //
+  // What the latch DOES cost, stated rather than glossed: a cleared row still carries its
+  // "Check yourself" recall button and its notes button, and `clearedLabel` is the only place a
+  // week's upcoming `review <date>` appears (the "Review due" section above surfaces only the ones
+  // already due). So folding cleared weeks puts the recall entry point — for exactly the weeks
+  // recall is for — one click away. That is judged the right trade against 26 rows of archive on a
+  // page whose job is to open on the current lesson, but it is a trade, not a free win.
   const clearedWeeks = CORE_WEEKS.filter((w) => isWeekDone(w, byWeekId[w.id] ?? initialCourseProgress()));
   const openWeeks = CORE_WEEKS.filter((w) => !isWeekDone(w, byWeekId[w.id] ?? initialCourseProgress()));
   const notesProgress = notesWeek ? (byWeekId[notesWeek.id] ?? initialCourseProgress()) : null;

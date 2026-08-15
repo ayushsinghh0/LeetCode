@@ -1,11 +1,12 @@
 import { useState } from 'react';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { format, parseISO } from 'date-fns';
 import { ExternalLink, GraduationCap } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Progress } from '@/components/ui/progress';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog';
-import { Disclosure, Figures, Lead, Meta, Page, PageHeader, PagePair, RuledList, Section } from '@/components/layout/Page';
+import { Disclosure, Figures, Lead, Meta, Panel, PagePair, RuledList, Screen, ScreenBody, ScreenHeader, Section } from '@/components/layout/Page';
 import { CourseResourceChips } from '@/components/course/CourseResourceChips';
 import { CourseNotesEditor } from '@/components/course/CourseNotesEditor';
 import { CourseRecallList } from '@/components/course/CourseRecallList';
@@ -107,15 +108,11 @@ export default function AimlCoursePage() {
   );
 
   return (
-    <Page>
-      {/* The masthead is the masthead everywhere: eyebrow, title, purpose, one action, hairline.
-          This page used to wrap the header, the bar and the ledger in its own `gap-6` column with
-          `rule={false}`, which made /aiml the only page of eighteen that opened without the rule
-          and the only one setting its own vertical step. `Page` owns the section rhythm. */}
-      <PageHeader
+    <Screen>
+      <ScreenHeader
         eyebrow="100xDevs cohort · two-day sprints"
         title="AI & ML"
-        support="One week-module every two days — lecture first, practice the day after."
+        support="One module every two days — lecture, then practice."
         action={
           <Button asChild variant="outline">
             <a href={AIML_COURSE_URL} target="_blank" rel="noreferrer">

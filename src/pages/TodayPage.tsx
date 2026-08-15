@@ -1,7 +1,7 @@
 import { Link } from 'react-router-dom';
 import { format, parseISO } from 'date-fns';
 import { Button } from '@/components/ui/button';
-import { Page, PageColumns, PageHeader, Section } from '@/components/layout/Page';
+import { Panel, Screen, ScreenBody, ScreenHeader } from '@/components/layout/Page';
 import { DailyGoalProgress } from '@/components/shared/DailyGoalProgress';
 import { WeeklyRevisionBanner } from '@/components/shared/WeeklyRevisionBanner';
 import { TodayTasks } from '@/components/tasks/TodayTasks';
@@ -70,11 +70,11 @@ export default function TodayPage() {
   const plannedMinutes = buildSession(capacityMin, ranked).totalMinutes;
 
   return (
-    <Page width="wide">
-      <PageHeader
+    <Screen>
+      <ScreenHeader
         eyebrow={`${format(parseISO(today), 'EEEE, MMMM d')} · Day ${currentDay} of ${totalDays}`}
         title="Today"
-        support="One recommendation at a time, and a plan cut to the hours you actually have."
+        support="One next action, sized to the time you have."
         action={
           <Button asChild variant="outline" size="sm">
             <Link to="/focus">Focus mode</Link>
@@ -88,54 +88,62 @@ export default function TodayPage() {
           already draws the only edge the block needs. */}
       <DailyGoalProgress solvedToday={solvedToday} perDay={perDay} />
 
-      <PageColumns
-        railLabel="Today's context"
-        rail={
-          <>
-            {/* The learner's own routines — a reminder, never a headline. In the rail it is beside
-                the day rather than above the recommendation, which is where a reminder belongs. */}
-            <PracticeIntentionsRail intentions={intentions} />
+      <ScreenBody cols="main-rail">
+        {/* The work column. The hero is fixed-size; the plan is the one thing here that grows with
+            the day, so it takes the leftover height in a `Panel` and scrolls inside itself. That is
+            the sanctioned single content panel — the screen around it never moves. */}
+        <div className="flex min-w-0 flex-col gap-4 md:min-h-0">
+          {/* Day-level framing, above the hero because it reframes the whole day rather than
+              accompanying it. Both are rare and both are quiet. */}
+          {isWeeklyDay && <WeeklyRevisionBanner count={revisionIds.length} />}
+          {returning && <ReturnNotice daysAway={daysAway} plannedMinutes={plannedMinutes} />}
 
-            <CourseTodayCard />
+          {/* The screen's one plate. */}
+          {ranked.length > 0 ? (
+            <NextActionCard ranked={ranked} />
+          ) : (
+            <DayCleared solvedToday={solvedToday} minutesToday={minutesToday} />
+          )}
 
-            <TodayTasks />
+          <Panel>
+            <SessionPlan ranked={ranked} />
+          </Panel>
+        </div>
 
-            {/* One quiet line while a company target is set, in the coverage vocabulary the company
-                page already uses — never the weakness vocabulary, which is claimed in exactly one
-                place, and never a readiness figure, which no evidence here could support. It is a
-                pointer, not a recommendation. */}
-            {targetCompany && targetCoverage && (
-              <Section aria-label="Company target">
-                <p className="text-sm text-muted-foreground">
-                  Preparing for {targetCompany.name}:{' '}
-                  <span className="figures">
-                    {targetCoverage.solved} of {targetCoverage.total}
-                  </span>{' '}
-                  solved across the {targetCoverage.patterns.length} patterns their own page names.{' '}
-                  <Link to={`/companies/${targetCompany.id}`} className="underline underline-offset-2">
-                    Open the set
-                  </Link>
-                  .
-                </p>
-              </Section>
-            )}
-          </>
-        }
-      >
-        {/* Day-level framing, above the hero because it reframes the whole day rather than
-            accompanying it. Both are rare and both are quiet. */}
-        {isWeeklyDay && <WeeklyRevisionBanner count={revisionIds.length} />}
-        {returning && <ReturnNotice daysAway={daysAway} plannedMinutes={plannedMinutes} />}
+        {/* The context rail: the other track, the learner's own tasks, their standing routines, a
+            company target. None of it is a decision, all of it accompanies the day. Main is first
+            in the DOM, so below `lg` — and for every screen reader — the work still comes first. */}
+        <aside
+          aria-label="Today's context"
+          className="flex min-w-0 flex-col gap-4 md:min-h-0 md:overflow-y-auto md:overscroll-contain"
+        >
+          {/* The learner's own routines — a reminder, never a headline. In the rail it is beside
+              the day rather than above the recommendation, which is where a reminder belongs. */}
+          <PracticeIntentionsRail intentions={intentions} />
 
-        {/* The page's one plate. */}
-        {ranked.length > 0 ? (
-          <NextActionCard ranked={ranked} />
-        ) : (
-          <DayCleared solvedToday={solvedToday} minutesToday={minutesToday} />
-        )}
+          <CourseTodayCard />
 
-        <SessionPlan ranked={ranked} />
-      </PageColumns>
-    </Page>
+          <TodayTasks />
+
+          {/* One quiet line while a company target is set, in the coverage vocabulary the company
+              page already uses — never the weakness vocabulary, which is claimed in exactly one
+              place, and never a readiness figure, which no evidence here could support. It is a
+              pointer, not a recommendation. */}
+          {targetCompany && targetCoverage && (
+            <p className="text-sm text-muted-foreground">
+              Preparing for {targetCompany.name}:{' '}
+              <span className="figures">
+                {targetCoverage.solved} of {targetCoverage.total}
+              </span>{' '}
+              solved across the {targetCoverage.patterns.length} patterns their own page names.{' '}
+              <Link to={`/companies/${targetCompany.id}`} className="underline underline-offset-2">
+                Open the set
+              </Link>
+              .
+            </p>
+          )}
+        </aside>
+      </ScreenBody>
+    </Screen>
   );
 }

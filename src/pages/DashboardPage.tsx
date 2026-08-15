@@ -4,7 +4,6 @@ import { format, parseISO } from 'date-fns';
 import { Dices } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Progress } from '@/components/ui/progress';
-import { Heatmap } from '@/components/shared/Heatmap';
 import { DifficultyBadge } from '@/components/questions/DifficultyBadge';
 import { StreakFlame } from '@/components/gamification/StreakFlame';
 import { XpBadge } from '@/components/gamification/XpBadge';
@@ -14,11 +13,11 @@ import {
   Figures,
   Ledger,
   Meta,
-  Page,
-  PageColumns,
-  PageHeader,
   RuledItem,
   RuledList,
+  Screen,
+  ScreenBody,
+  ScreenHeader,
   Section,
 } from '@/components/layout/Page';
 import { patternById } from '@/data/patterns';
@@ -33,7 +32,6 @@ import {
   selectCourseStats,
   selectCurrentDay,
   selectDaysAway,
-  selectHeatmapData,
   selectLevelInfo,
   selectPerDay,
   selectProductivityScore,
@@ -94,7 +92,6 @@ export default function DashboardPage() {
   const levelInfo = useAppSelector(selectLevelInfo);
   const xp = useAppSelector((s) => s.gamification.xp);
   const streaks = useAppSelector((s) => selectStreaks(s, today));
-  const heatmapData = useAppSelector((s) => selectHeatmapData(s, today));
   const dayLogs = useAppSelector((s) => s.progress.dayLogs);
   const startDate = useAppSelector((s) => s.progress.startDate);
   const productivity = useAppSelector((s) => selectProductivityScore(s, today));
@@ -204,12 +201,12 @@ export default function DashboardPage() {
   const behind = ranked.slice(1, 3);
 
   return (
-    <Page width="wide">
+    <Screen>
       {/* The date rides the eyebrow beside the day number, exactly as Today's masthead sets it.
           It was the `support` line — a second register for one fact, in the slot reserved for
           "what this page is for" — which cost 32px above the hero and made the two landing
           surfaces open in two different shapes for no reason a reader could name. */}
-      <PageHeader
+      <ScreenHeader
         eyebrow={`${format(parseISO(today), 'EEEE, MMMM d')} · Day ${currentDay} of ${totalDays}`}
         title="Dashboard"
         action={
@@ -219,85 +216,11 @@ export default function DashboardPage() {
         }
       />
 
-      <PageColumns railLabel="Standing and record" rail={<>
-        {/* Attention first. A pattern only appears here after repeated negative evidence, so its
-            presence is itself the signal — which is why it opens the rail rather than sitting
-            fifth in a stack of equally-weighted bands. */}
-        <Section
-          title="Weakest pattern"
-          // States its basis as well as its threshold. The compressed version kept "repeated
-          // negative evidence" but dropped what the evidence *is*, which leaves the page naming a
-          // learner's weakest pattern without saying what measured it — the one claim on this
-          // surface that most needs its provenance attached.
-          support="Measured from recall, drills and pace — named only after repeated negative evidence."
-          action={
-            weakestEntry ? (
-              <Button asChild size="sm" variant="ghost">
-                {/* "Practice", American, like every other string in the product — "Day 2 · Practice",
-                    "Practice intentions", the contest masthead. This was the only British spelling. */}
-                <Link to={`/patterns/${weakestEntry.id}`}>Practice</Link>
-              </Button>
-            ) : undefined
-          }
-        >
-          {weakestEntry ? (
-            <div className="flex flex-col gap-1">
-              <p className="text-base font-medium">{weakestEntry.name}</p>
-              {/* The model's own because-clause, not a coverage figure. Low coverage is not
-                  weakness: an unstarted pattern is unmeasured, and saying otherwise sent learners
-                  to practise the thing they had simply not reached yet. */}
-              <p className="text-sm text-muted-foreground">{weakestEntry.summary}</p>
-            </div>
-          ) : (
-            <p className="text-sm text-muted-foreground">
-              Nothing has enough evidence against it yet. Recall failures, drill misses and slow
-              solves are what score a pattern here.
-            </p>
-          )}
-        </Section>
-
-        <Section title="The record">
-          <Ledger items={ledgerItems} columns={2} />
-          <Meta items={[<>Productivity <span className="figures">{productivity} / 100</span></>, 'last 14 days']} />
-        </Section>
-
-        <Section
-          title="AI/ML course"
-          action={
-            <Button asChild size="sm" variant="ghost">
-              <Link to="/aiml">Continue</Link>
-            </Button>
-          }
-        >
-          <Progress value={courseStats.pct} aria-label="AI/ML course completion" />
-          <Meta
-            items={[
-              <>
-                <span className="figures">
-                  {courseStats.sessionsDone} / {courseStats.sessionsTotal}
-                </span>{' '}
-                sessions
-              </>,
-              courseNextWeek && `Next: Week ${courseNextWeek.week} — ${courseNextWeek.title}`,
-              courseFinish && `Finish ${formatProjection(courseFinish, today)}`,
-              courseDueReviews.length > 0 &&
-                `${courseDueReviews.length} review${courseDueReviews.length === 1 ? '' : 's'} due`,
-              courseNext === null && 'Complete',
-            ]}
-          />
-        </Section>
-
-        {/* The epigraph. A rail, not a plate — one reflection is not a component. The corpus rule
-            (src/data/reflections.ts) is absolute: a quotation shows its verbatim text and its
-            attribution; an original note shows no attribution at all. One line per day, never
-            more. It closes the context column, which is where a marginal note belongs. */}
-        <figure className="border-l-2 border-border pl-4">
-          <blockquote className="font-serif italic text-muted-foreground">{reflection.text}</blockquote>
-          {reflection.attribution && (
-            <figcaption className="mt-1 text-xs text-muted-foreground">— {reflection.attribution}</figcaption>
-          )}
-        </figure>
-      </>}>
+      <ScreenBody cols="main-rail">
+        {/* The work column. `Panel` because the plan behind the hero is the one thing here that can
+            legitimately grow — everything else is fixed-size — so it takes the leftover height and
+            scrolls inside itself rather than pushing the screen past the shell. */}
+        <div className="flex min-w-0 flex-col gap-4 md:min-h-0">
         {/* The page's one plate, and the first thing in the reading order. */}
         {ranked.length > 0 ? (
           <NextActionCard ranked={ranked} />
@@ -371,34 +294,125 @@ export default function DashboardPage() {
               twice rather than as two different denominators. This section answers "how far
               through the course am I"; the day is Today's question. */}
         </Section>
-      </PageColumns>
+        </div>
 
-      {/* Full width, below the grid, and last. The year is 792px of reference data: in a rail it
-          would scroll sideways, and in the main column it would be the largest object on a page
-          whose largest object should be the decision. */}
-      <Section
-        divider
-        title="Activity"
-        support="Solves, revisions and course sessions over the last year."
-      >
-        <Meta
-          items={[
-            <span className="inline-flex items-center gap-1.5">
-              <StreakFlame current={streaks.current} /> day streak
-            </span>,
-            <>Longest <span className="figures">{streaks.longest}</span></>,
-            <span>
-              Level {levelInfo.level},{' '}
-              <span className="figures">
-                {levelInfo.intoLevel} / {levelInfo.needed}
-              </span>{' '}
-              XP to the next
-            </span>,
-            <XpBadge xp={xp} />,
-          ]}
-        />
-        <Heatmap data={heatmapData} onSelectDate={(date) => navigate('/calendar', { state: { date } })} />
-      </Section>
-    </Page>
+        {/* The context rail. Everything in it is a reading, not a decision; on a laptop it sits
+            beside the work instead of below it, and below `lg` it stacks after — main is first in
+            the DOM, so a phone and a screen reader both still get the work first. */}
+        <aside aria-label="Standing and record" className="flex min-w-0 flex-col gap-4 md:min-h-0 md:overflow-y-auto md:overscroll-contain">
+        {/* Attention first. A pattern only appears here after repeated negative evidence, so its
+            presence is itself the signal — which is why it opens the rail rather than sitting
+            fifth in a stack of equally-weighted bands. */}
+        <Section
+          title="Weakest pattern"
+          // States its basis as well as its threshold. The compressed version kept "repeated
+          // negative evidence" but dropped what the evidence *is*, which leaves the page naming a
+          // learner's weakest pattern without saying what measured it — the one claim on this
+          // surface that most needs its provenance attached.
+          support="Measured from recall, drills and pace — named only after repeated negative evidence."
+          action={
+            weakestEntry ? (
+              <Button asChild size="sm" variant="ghost">
+                {/* "Practice", American, like every other string in the product — "Day 2 · Practice",
+                    "Practice intentions", the contest masthead. This was the only British spelling. */}
+                <Link to={`/patterns/${weakestEntry.id}`}>Practice</Link>
+              </Button>
+            ) : undefined
+          }
+        >
+          {weakestEntry ? (
+            <div className="flex flex-col gap-1">
+              <p className="text-base font-medium">{weakestEntry.name}</p>
+              {/* The model's own because-clause, not a coverage figure. Low coverage is not
+                  weakness: an unstarted pattern is unmeasured, and saying otherwise sent learners
+                  to practise the thing they had simply not reached yet. */}
+              <p className="text-sm text-muted-foreground">{weakestEntry.summary}</p>
+            </div>
+          ) : (
+            <p className="text-sm text-muted-foreground">
+              Nothing has enough evidence against it yet. Recall failures, drill misses and slow
+              solves are what score a pattern here.
+            </p>
+          )}
+        </Section>
+
+        <Section title="The record">
+          <Ledger items={ledgerItems} columns={2} />
+          <Meta items={[<>Productivity <span className="figures">{productivity} / 100</span></>, 'last 14 days']} />
+        </Section>
+
+        <Section
+          title="AI/ML course"
+          action={
+            <Button asChild size="sm" variant="ghost">
+              <Link to="/aiml">Continue</Link>
+            </Button>
+          }
+        >
+          <Progress value={courseStats.pct} aria-label="AI/ML course completion" />
+          <Meta
+            items={[
+              <>
+                <span className="figures">
+                  {courseStats.sessionsDone} / {courseStats.sessionsTotal}
+                </span>{' '}
+                sessions
+              </>,
+              courseNextWeek && `Next: Week ${courseNextWeek.week} — ${courseNextWeek.title}`,
+              courseFinish && `Finish ${formatProjection(courseFinish, today)}`,
+              courseDueReviews.length > 0 &&
+                `${courseDueReviews.length} review${courseDueReviews.length === 1 ? '' : 's'} due`,
+              courseNext === null && 'Complete',
+            ]}
+          />
+        </Section>
+
+        {/* Activity, as a summary rather than as a year.
+            The 53-week heatmap used to close the page as a full-width band — 234px of reference
+            data, and the single largest object on a screen whose largest object should be the
+            decision. It is not deleted and it is not latched: /calendar renders the same
+            `courseActivityByDate` record at full size and fits its own viewport at zero scroll, so
+            this is the "represent it as a clickable summary, put the detail at its destination"
+            move the brief asks for. The streak, level and XP figures stay here in full — they are
+            the part a learner actually checks, and they cost one line. */}
+        <Section
+          title="Activity"
+          action={
+            <Button asChild size="sm" variant="ghost">
+              <Link to="/calendar">Open calendar</Link>
+            </Button>
+          }
+        >
+          <Meta
+            items={[
+              <span className="inline-flex items-center gap-1.5">
+                <StreakFlame current={streaks.current} /> day streak
+              </span>,
+              <>Longest <span className="figures">{streaks.longest}</span></>,
+              <>
+                Level {levelInfo.level},{' '}
+                <span className="figures">
+                  {levelInfo.intoLevel} / {levelInfo.needed}
+                </span>{' '}
+                to next
+              </>,
+              <XpBadge xp={xp} />,
+            ]}
+          />
+        </Section>
+
+        {/* The epigraph. A rail, not a plate — one reflection is not a component. The corpus rule
+            (src/data/reflections.ts) is absolute: a quotation shows its verbatim text and its
+            attribution; an original note shows no attribution at all. One line per day, never
+            more. It closes the context column, which is where a marginal note belongs. */}
+        <figure className="border-l-2 border-border pl-4">
+          <blockquote className="font-serif italic text-muted-foreground">{reflection.text}</blockquote>
+          {reflection.attribution && (
+            <figcaption className="mt-1 text-xs text-muted-foreground">— {reflection.attribution}</figcaption>
+          )}
+        </figure>
+        </aside>
+      </ScreenBody>
+    </Screen>
   );
 }

@@ -411,6 +411,36 @@ Engine untouched. Tests: contest.test.tsx updates + a new armed-while-hidden cas
   `shrink-0`, which survived three controls (352 px) and overflowed the viewport at four. Fixed to
   `w-full … sm:w-auto`; verified no horizontal overflow at 375/768/1024.
 
+### Second pass, same day — the directive re-read against the shipped tree
+
+Four clauses were not satisfied by the nine slices. Three are now closed; the fourth was
+re-tested and stays open with fresh evidence.
+
+- **Priority 7 (per-budget coherence) was the one step of slice 9 I skipped.** Run properly —
+  all six budgets built from one identical twelve-question queue, compared by SHAPE rather than
+  by count — it found two real defects of the same kind: a shape declaring a band it could never
+  fill. Transfer could never be placed at 90 minutes (a 13-minute band against `depthMinutes`'
+  20-minute floor, and only the leftovers at that) while the deep shape's own blurb promised
+  "meet one unfamiliar problem"; and the 30-minute session contained no recall at all, because
+  the band shares divided `planBudget` while the pot had already paid for the drill, so the mix
+  summed to more than the money left and the last band got nothing. Fixed in the allocation, not
+  in the shapes: transfer is reserved before the revision bands spend (like the closing question
+  already is, and sized to the cheapest transfer actually in the pool), and shares now divide the
+  pot. No mix percentage moved. The audit ships as `sessionBudgets.test.ts`.
+- **Interview evidence did not influence future practice.** Contest stalls fed the interview draw
+  and hint use fed the revision session, but the interview's own evidence came back nowhere —
+  the one mode whose loop did not close was the interview. `unfinishedInterviewIds` closes it: a
+  sitting that ended before the `implement` stage re-serves that problem, ranked below a contest
+  stall and above weakness, most-recent-sitting-only so an old early stop is not a standing debt.
+- **44px targets.** Recorded in the first pass as an app-wide `size="sm"` default rather than a
+  V8 regression — true, but not a reason to leave the one surface the clause names below the bar.
+  Scoped to the five controls operated with a clock running.
+- **New ML tracks stay recorded-not-built, now with evidence rather than assumption.** The
+  contingency was "if a resuming session can run Python/numpy locally". This machine has Python
+  3.14.5 and no numpy; the existing tracks' `expect` values are measured against pinned versions
+  (numpy 2.5.2, scikit-learn 1.9.0, PyTorch 2.13). Unmeasured numbers are forbidden by the
+  directive itself, and installing a scientific stack unprompted is not this session's call.
+
 ### Known trade-offs, recorded rather than fixed
 
 - **An armed contest problem left overnight banks a large stall.** The slice-1 contract is that

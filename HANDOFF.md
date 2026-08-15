@@ -4,9 +4,12 @@
 
 ## Where things stand
 
-- **1160/1160 tests across 81 files. `npx tsc --noEmit` clean. App chunk 276.92 kB against the
-  301 kB budget** — below the V7 baseline (277.43 kB) despite eight slices of new work, because
-  slice 9 moved the ML dataset and the analytics engine off the app chunk.
+- **1181/1181 tests across 83 files. `npx tsc --noEmit` clean. App chunk under the 301 kB
+  budget** — below the V7 baseline (277.43 kB) despite the new work, because slice 9 moved the ML
+  dataset and the analytics engine off the app chunk.
+- A second pass re-read the directive against the shipped tree and closed three more clauses:
+  the per-budget coherence audit (which found two real session-engine defects — see §8), the
+  interview's own reconstruction loop, and 44px targets on the clock controls.
 - Browser QA at 375 / 768 / 1024, both themes' tokens confirmed flipping. One live layout defect
   was found and fixed there (the contest row's control cluster overflowed 375 px once an armed row
   carried four controls).

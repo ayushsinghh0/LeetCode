@@ -7,9 +7,9 @@ import { Progress } from '@/components/ui/progress';
 import { Textarea } from '@/components/ui/textarea';
 import { EmptyState } from '@/components/shared/EmptyState';
 import {
-  Page,
   PageColumns,
-  PageHeader,
+  Screen,
+  ScreenHeader,
   Section,
   Lead,
   Rule,
@@ -170,8 +170,8 @@ export default function RevisionPage() {
   }
 
   return (
-    <Page width="wide">
-      <PageHeader
+    <Screen>
+      <ScreenHeader
         eyebrow={format(parseISO(today), 'EEEE, MMMM d')}
         title="Revision"
         support="Tell it how long you have. It works out what is worth doing in that time — and what can wait."
@@ -338,7 +338,7 @@ export default function RevisionPage() {
           />
         )}
       </PageColumns>
-    </Page>
+    </Screen>
   );
 }
 

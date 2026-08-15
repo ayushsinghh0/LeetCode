@@ -15,6 +15,15 @@ afterEach(() => {
   vi.useRealTimers();
 });
 
+// V10: the syllabus, the tracks, the projects and the extras are four tab panels rather than four
+// stacked sections — the screen fits one viewport and you switch between the bodies of material
+// instead of scrolling past them. Radix mounts only the active panel, so a test that wants one has
+// to open it, which is exactly what a learner now does.
+const openTab = (name: string): HTMLElement => {
+  fireEvent.mouseDown(screen.getByRole('tab', { name }));
+  return screen.getByRole('tabpanel');
+};
+
 describe('AimlCoursePage', () => {
   // V9: the four-figure ledger became one `Figures` line below the lead — the assertions are
   // unchanged because they pin the *facts* (the counts, the date), not the arrangement.
@@ -58,7 +67,7 @@ describe('AimlCoursePage', () => {
   test('syllabus lists every core week with two session controls each', () => {
     renderWithStore(<AimlCoursePage />);
 
-    const syllabus = screen.getByRole('heading', { name: 'Syllabus' }).closest('section')!;
+    const syllabus = openTab('Syllabus');
     for (const week of CORE_WEEKS) {
       expect(within(syllabus).getByText(week.title)).toBeInTheDocument();
     }
@@ -77,7 +86,7 @@ describe('AimlCoursePage', () => {
     store.dispatch(completeCourseSession('w00', 2));
     renderWithStore(<AimlCoursePage />, store);
 
-    const syllabus = screen.getByRole('heading', { name: 'Syllabus' }).closest('section')!;
+    const syllabus = openTab('Syllabus');
     expect(within(syllabus).queryByRole('button', { name: 'Mark Week 0 day 1 done' })).not.toBeInTheDocument();
     expect(within(syllabus).getAllByRole('button', { name: /^Mark Week \d+ day [12] done$/ })).toHaveLength(50);
   });
@@ -85,7 +94,7 @@ describe('AimlCoursePage', () => {
   test('extras section lists the 5 optional sessions with single controls', () => {
     renderWithStore(<AimlCoursePage />);
 
-    const extras = screen.getByRole('heading', { name: 'Extra sessions' }).closest('section')!;
+    const extras = openTab('Extras');
     expect(within(extras).getByText('Memory — Class by Samiksha')).toBeInTheDocument();
     expect(within(extras).getAllByRole('button', { name: /^Mark .* done$/ })).toHaveLength(5);
   });
@@ -105,7 +114,7 @@ describe('AimlCoursePage', () => {
     expect(within(plate).getByRole('button', { name: 'Fail Week 0 review' })).toBeInTheDocument();
 
     // The syllabus row carries the retention meta too.
-    const syllabus = screen.getByRole('heading', { name: 'Syllabus' }).closest('section')!;
+    const syllabus = openTab('Syllabus');
     expect(
       within(syllabus).getByText('taught Jan 9 · cleared Jul 29 · review Jul 30'),
     ).toBeInTheDocument();
@@ -122,7 +131,7 @@ describe('AimlCoursePage', () => {
   test('implementation tracks list closed, with the failure-mode count on the shut row', () => {
     renderWithStore(<AimlCoursePage />);
 
-    const tracks = screen.getByRole('heading', { name: 'Implement it from scratch' }).closest('section')!;
+    const tracks = openTab('Implement');
     expect(within(tracks).getAllByRole('button', { name: /failure modes$/ })).toHaveLength(11);
     // The reason to open a track is visible before opening it.
     expect(within(tracks).getAllByText('4 failure modes')).toHaveLength(11);
@@ -133,7 +142,7 @@ describe('AimlCoursePage', () => {
   test('opening a track shows all five rungs, with the maths open first', () => {
     renderWithStore(<AimlCoursePage />);
 
-    const tracks = screen.getByRole('heading', { name: 'Implement it from scratch' }).closest('section')!;
+    const tracks = openTab('Implement');
     fireEvent.click(within(tracks).getByRole('button', { name: /^Linear Regression/ }));
 
     for (const rung of ['The maths', 'From scratch', 'The library', 'The experiment', 'How it breaks']) {
@@ -148,7 +157,7 @@ describe('AimlCoursePage', () => {
   test('the failure rung is open as soon as the track is — never behind a second click', () => {
     renderWithStore(<AimlCoursePage />);
 
-    const tracks = screen.getByRole('heading', { name: 'Implement it from scratch' }).closest('section')!;
+    const tracks = openTab('Implement');
     fireEvent.click(within(tracks).getByRole('button', { name: /^Linear Regression/ }));
 
     // All four modes, symptom-first, with no control of their own to press.
@@ -162,7 +171,7 @@ describe('AimlCoursePage', () => {
   test('selecting another rung swaps the open detail rather than stacking it', () => {
     renderWithStore(<AimlCoursePage />);
 
-    const tracks = screen.getByRole('heading', { name: 'Implement it from scratch' }).closest('section')!;
+    const tracks = openTab('Implement');
     fireEvent.click(within(tracks).getByRole('button', { name: /^Linear Regression/ }));
     fireEvent.click(within(tracks).getByRole('button', { name: /^From scratch/ }));
 
@@ -182,7 +191,7 @@ describe('AimlCoursePage', () => {
   test('a closed project row states tier, title and cost — not its baseline prose', () => {
     renderWithStore(<AimlCoursePage />);
 
-    const projects = screen.getByRole('heading', { name: 'Ship something measurable' }).closest('section')!;
+    const projects = openTab('Ship');
     const row = within(projects).getByRole('button', { name: /California Housing — beat the mean/ });
     expect(row).toHaveAccessibleName(/Beginner · 1/);
     expect(row).toHaveAccessibleName(/~8h/);
@@ -198,7 +207,7 @@ describe('AimlCoursePage', () => {
   test('opening a project leads with the baseline and the metric argument, ahead of the objective', () => {
     renderWithStore(<AimlCoursePage />);
 
-    const projects = screen.getByRole('heading', { name: 'Ship something measurable' }).closest('section')!;
+    const projects = openTab('Ship');
     fireEvent.click(within(projects).getByRole('button', { name: /California Housing/ }));
 
     expect(within(projects).getByText("Predict the training mean for every block (DummyRegressor(strategy='mean'))")).toBeInTheDocument();
@@ -217,7 +226,7 @@ describe('AimlCoursePage', () => {
   test('an unmeasurable baseline says the learner must establish it rather than hiding the field', () => {
     renderWithStore(<AimlCoursePage />);
 
-    const projects = screen.getByRole('heading', { name: 'Ship something measurable' }).closest('section')!;
+    const projects = openTab('Ship');
     for (const title of [
       'An eval harness you trust before a system you tune',
       'An LLM endpoint you can afford and explain',
@@ -235,7 +244,7 @@ describe('AimlCoursePage', () => {
   test('opening a project reveals the objective, experiments and unanswered retrospective', () => {
     renderWithStore(<AimlCoursePage />);
 
-    const projects = screen.getByRole('heading', { name: 'Ship something measurable' }).closest('section')!;
+    const projects = openTab('Ship');
     fireEvent.click(within(projects).getByRole('button', { name: /California Housing/ }));
 
     expect(within(projects).getByText(/Ridge on the raw 8 features/)).toBeInTheDocument();
@@ -249,6 +258,7 @@ describe('AimlCoursePage', () => {
   test('week notes open in a dialog and autosave on blur', () => {
     const { store } = renderWithStore(<AimlCoursePage />);
 
+    openTab('Syllabus');
     fireEvent.click(screen.getByRole('button', { name: 'Add notes for Week 3' }));
     const dialog = screen.getByRole('dialog');
     const textarea = within(dialog).getByLabelText('Notes');

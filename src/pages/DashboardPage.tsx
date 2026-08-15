@@ -220,7 +220,7 @@ export default function DashboardPage() {
         {/* The work column. `Panel` because the plan behind the hero is the one thing here that can
             legitimately grow — everything else is fixed-size — so it takes the leftover height and
             scrolls inside itself rather than pushing the screen past the shell. */}
-        <div className="flex min-w-0 flex-col gap-4 md:min-h-0">
+        <div className="flex min-w-0 flex-col gap-4 md:min-h-0 md:flex-1">
         {/* The page's one plate, and the first thing in the reading order. */}
         {ranked.length > 0 ? (
           <NextActionCard ranked={ranked} />

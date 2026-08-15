@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { AnimatePresence, motion, useReducedMotion } from 'framer-motion';
 import { CheckCircle2, Circle, Sparkles } from 'lucide-react';
 import { DifficultyBadge } from '@/components/questions/DifficultyBadge';
-import { Disclosure, Meta, Page, PageHeader, RuledItem, RuledList } from '@/components/layout/Page';
+import { Disclosure, Meta, Panel, RuledItem, RuledList, Screen, ScreenBody, ScreenHeader } from '@/components/layout/Page';
 import { Progress } from '@/components/ui/progress';
 import { patternById } from '@/data/patterns';
 import { useAppDispatch, useAppSelector } from '@/store/hooks';
@@ -247,8 +247,8 @@ export default function RoadmapPage() {
   const currentWeekIndex = Math.floor((currentDay - 1) / 7);
 
   return (
-    <Page>
-      <PageHeader
+    <Screen>
+      <ScreenHeader
         eyebrow={`Day ${currentDay} of ${totalDays}`}
         title="Roadmap"
         support={`${questions.length} questions across ${totalDays} days, in course order. Open a week, then a day.`}
@@ -257,7 +257,8 @@ export default function RoadmapPage() {
       {/* Disclosures rule themselves (each carries border-b), so the stack needs only its opening
           rule; the inner RuledList drops border-y for the same reason — the week's own boundaries
           already exist, and paying for a boundary twice is the duplicate-separator problem. */}
-      <div className="flex flex-col border-t border-border">
+      <ScreenBody>
+        <Panel className="flex flex-col border-t border-border">
         {weeks.map((weekDays, wi) => {
           const firstDay = weekDays[0]!;
           const lastDay = weekDays[weekDays.length - 1]!;
@@ -307,7 +308,8 @@ export default function RoadmapPage() {
             </Disclosure>
           );
         })}
-      </div>
-    </Page>
+        </Panel>
+      </ScreenBody>
+    </Screen>
   );
 }

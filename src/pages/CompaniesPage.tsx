@@ -10,9 +10,11 @@ import {
   Figures,
   Ledger,
   Meta,
-  Page,
   PagePair,
-  PageHeader,
+  Panel,
+  Screen,
+  ScreenBody,
+  ScreenHeader,
   RuledItem,
   RuledList,
   Section,
@@ -135,11 +137,11 @@ function CompanyList() {
   const categoriesOnly = COMPANIES.filter((c) => c.evidence === 'categories');
 
   return (
-    <Page>
-      <PageHeader
+    <Screen>
+      <ScreenHeader
         eyebrow={`${COMPANIES.length} first-party sources`}
         title="Interview relevance"
-        support="Companies grouped by how much their own published interview guidance actually says. The group a company sits in is the whole of what this app will claim about it."
+        support="Grouped by how much each company's own guidance actually says."
       />
 
       {/* The set's whole shape, before any scrolling: five pages say enough to map, one says the
@@ -173,7 +175,11 @@ function CompanyList() {
           better pairing anyway: "companies that name topics" and "companies that name only the
           area" are two halves of one census, where the scope note is not a half of anything. */}
       <ScopeNote />
-      <PagePair>
+      {/* The two halves of the census sit side by side and scroll together in one panel — a
+          searchable index, not a document. */}
+      <ScreenBody>
+        <Panel>
+        <PagePair>
         <Section
           title="Companies that name specific topics"
           support="These prep pages list actual data structures and algorithms, which is enough to line up against your own coverage — and the only tier where this app maps anything to a pattern."
@@ -223,8 +229,10 @@ function CompanyList() {
             </RuledList>
           </Disclosure>
         </Section>
-      </PagePair>
-    </Page>
+        </PagePair>
+        </Panel>
+      </ScreenBody>
+    </Screen>
   );
 }
 
@@ -234,8 +242,8 @@ function CompanyList() {
 
 function UnknownCompany() {
   return (
-    <Page width="reading">
-      <PageHeader
+    <Screen>
+      <ScreenHeader
         eyebrow={
           <Link to="/companies" className="underline-offset-4 hover:underline">
             Interview relevance
@@ -252,7 +260,7 @@ function UnknownCompany() {
           </>
         }
       />
-    </Page>
+    </Screen>
   );
 }
 
@@ -686,8 +694,8 @@ function CompanyDetail({ companyId }: { companyId: string }) {
   // page is five blocks of pure prose, every one already capped at `max-w-prose`; the wider
   // column only moved the right-hand void around. `UnknownCompany` above was already correct.
   return (
-    <Page width="reading">
-      <PageHeader
+    <Screen>
+      <ScreenHeader
         eyebrow={
           <>
             <Link to="/companies" className="underline-offset-4 hover:underline">
@@ -708,8 +716,13 @@ function CompanyDetail({ companyId }: { companyId: string }) {
         action={hasMapping ? <TargetButton company={company} /> : undefined}
       />
 
+      {/* The claim boundary leads, then the evidence. The evidence itself scrolls in one panel:
+          a company page is a document, and the brief allows a detail view to scroll — but inside
+          the shell, with the masthead and the rail staying put. */}
       <ScopeNote />
 
+      <ScreenBody>
+        <Panel className="max-w-[46rem]">
       <SourceSection company={company} />
 
       <NamedProblemsSection company={company} />
@@ -725,7 +738,9 @@ function CompanyDetail({ companyId }: { companyId: string }) {
           {company.evidence === 'categories' && <BroadPracticeSection />}
         </>
       )}
-    </Page>
+        </Panel>
+      </ScreenBody>
+    </Screen>
   );
 }
 

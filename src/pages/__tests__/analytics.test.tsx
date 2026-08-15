@@ -37,6 +37,33 @@ afterEach(() => {
   vi.useRealTimers();
 });
 
+/**
+ * V10: the five questions are five tab panels rather than five stacked sections — the screen fits
+ * one viewport and you switch between the readings instead of scrolling past them. The tab strip
+ * carries a terse label for navigation; the panel still opens with the question itself, because
+ * the question framing is the product decision this file exists to pin.
+ *
+ * Radix mounts only the active panel, so a test that wants one opens it first — which is exactly
+ * what a learner now does.
+ */
+const QUESTION_TAB: Record<string, string> = {
+  'Am I showing up?': 'Showing up',
+  'Am I getting faster?': 'Faster',
+  'Am I getting more accurate?': 'Accurate',
+  'Can I solve unfamiliar problems?': 'Unfamiliar',
+  'What should I do next?': 'What next',
+};
+
+function openTab(name: string): HTMLElement {
+  fireEvent.mouseDown(screen.getByRole('tab', { name }));
+  return screen.getByRole('tabpanel');
+}
+
+/** Open the panel that answers `question`, so its figures are mounted. */
+function openQuestion(question: string): HTMLElement {
+  return openTab(QUESTION_TAB[question]!);
+}
+
 /** The Ledger renders each figure as a `dt`/`dd` pair inside one wrapper div. */
 function figure(label: string): HTMLElement {
   return screen.getByText(label).closest('div')!;
@@ -54,14 +81,11 @@ describe('AnalyticsPage — the page is five questions, in decision order', () =
     renderWithStore(<AnalyticsPage />, store);
 
     expect(screen.getByRole('heading', { level: 1, name: 'Analytics' })).toBeInTheDocument();
-    for (const question of [
-      'Am I showing up?',
-      'Am I getting faster?',
-      'Am I getting more accurate?',
-      'Can I solve unfamiliar problems?',
-      'What should I do next?',
-    ]) {
-      expect(screen.getByRole('heading', { name: question })).toBeInTheDocument();
+    // Each question still opens its own panel with the question as the heading — the tab label is
+    // navigation, the heading is the claim.
+    for (const question of Object.keys(QUESTION_TAB)) {
+      const panel = openQuestion(question);
+      expect(within(panel).getByRole('heading', { name: question })).toBeInTheDocument();
     }
     expect(screen.getByRole('heading', { name: 'The ML track' })).toBeInTheDocument();
   });
@@ -69,14 +93,13 @@ describe('AnalyticsPage — the page is five questions, in decision order', () =
   test('the questions appear in decision order — "what next" is not the first thing read', () => {
     renderWithStore(<AnalyticsPage />);
 
-    const order = screen
-      .getAllByRole('heading', { level: 2 })
-      .map((h) => h.textContent ?? '');
+    // The order is now the tab strip's order rather than a stack's. "What next" leads it, because
+    // on a screen you choose where to look — the reading you act on should be the one already open,
+    // and the evidence behind it is one click away rather than four screens up.
+    const order = screen.getAllByRole('tab').map((t) => t.textContent ?? '');
 
-    expect(order.indexOf('Am I showing up?')).toBeLessThan(order.indexOf('What should I do next?'));
-    expect(order.indexOf('Can I solve unfamiliar problems?')).toBeLessThan(
-      order.indexOf('What should I do next?'),
-    );
+    expect(order.indexOf('What next')).toBe(0);
+    expect(order.indexOf('Showing up')).toBeLessThan(order.indexOf('Unfamiliar'));
   });
 });
 
@@ -88,6 +111,7 @@ describe('AnalyticsPage — figures come from the same selectors as the rest of 
 
     const streaks = selectStreaks(store.getState(), TODAY);
 
+    openQuestion('Am I showing up?');
     expect(within(figure('Current streak')).getByText(String(streaks.current))).toBeInTheDocument();
     expect(within(figure('Current streak')).getByText(`longest ${streaks.longest}`)).toBeInTheDocument();
     expect(within(figure('Active days')).getByText('1 / 14')).toBeInTheDocument();
@@ -98,6 +122,7 @@ describe('AnalyticsPage — figures come from the same selectors as the rest of 
     store.dispatch(completeCourseSession('w00', 1)); // no DSA work at all today
     renderWithStore(<AnalyticsPage />, store);
 
+    openQuestion('Am I showing up?');
     expect(within(figure('Active days')).getByText('1 / 14')).toBeInTheDocument();
     expect(within(figure('Current streak')).getByText('1')).toBeInTheDocument();
   });
@@ -138,8 +163,11 @@ describe('AnalyticsPage — suppression over padding', () => {
     renderWithStore(<AnalyticsPage />);
 
     // Recognition names its own floor instead of reporting 0%.
+    openQuestion('Can I solve unfamiliar problems?');
     expect(within(figure('Recognition')).getByText(/needs \d+ recorded drill days/)).toBeInTheDocument();
-    // Focus time distinguishes "not measured" from "zero".
+    // Focus time distinguishes "not measured" from "zero". It answers a different question, so it
+    // lives in a different panel.
+    openQuestion('Am I showing up?');
     expect(within(figure('Focus time')).getByText(/not measured/)).toBeInTheDocument();
   });
 
@@ -153,6 +181,7 @@ describe('AnalyticsPage — suppression over padding', () => {
     // A single failed recall used to print a confident "0%" as the largest figure in the
     // accuracy section, directly above a difficulty row correctly reporting "needs 5 reviews —
     // you have 1". One page, two answers to "has this been measured yet".
+    openQuestion('Am I getting more accurate?');
     const tile = figure('Recall pass rate');
     expect(within(tile).queryByText('0%')).toBeNull();
     expect(
@@ -193,13 +222,15 @@ describe('AnalyticsPage — suppression over padding', () => {
 describe('AnalyticsPage — the charts that survived', () => {
   test('solved-per-day defaults to a full 30-day zero-filled series', () => {
     renderWithStore(<AnalyticsPage />);
+    openQuestion('Am I showing up?');
     expect(screen.getByText(/Solved and revision counts for 30 days/)).toBeInTheDocument();
   });
 
   test('switching the range tab to 90 re-renders with a 90-day series', () => {
     renderWithStore(<AnalyticsPage />);
+    openQuestion('Am I showing up?');
 
-    fireEvent.mouseDown(screen.getByRole('tab', { name: /90/i }));
+    fireEvent.mouseDown(screen.getByRole('tab', { name: /90 days/i }));
 
     expect(screen.getByText(/Solved and revision counts for 90 days/)).toBeInTheDocument();
     expect(screen.queryByText(/Solved and revision counts for 30 days/)).not.toBeInTheDocument();

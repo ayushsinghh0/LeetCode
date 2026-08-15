@@ -1,7 +1,7 @@
 import { useState, type ChangeEvent, type ReactNode } from 'react';
 import { Controller, useForm } from 'react-hook-form';
 import questionsData from '@/data/questions.json';
-import { Disclosure, Page, PageHeader, Section } from '@/components/layout/Page';
+import { Disclosure, Panel, Screen, ScreenBody, ScreenHeader, Section } from '@/components/layout/Page';
 import { IntentionsEditor } from '@/components/settings/IntentionsEditor';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
@@ -212,14 +212,15 @@ export default function SettingsPage() {
   }
 
   return (
-    // `reading` because this is a form: a 46rem column keeps every label, its help text and its
-    // control inside one glance instead of stranding a w-32 select at the left edge of 1152px.
-    <Page width="reading">
+    // A form screen: the 46rem measure now lives on the panel rather than on the page, so the
+    // masthead sits at the shell's edge while the settings themselves keep the reading column that
+    // stops a `w-32` select stranding at the left edge of 1152px.
+    <Screen>
       {/* The support line used to spend its second sentence on backup files — the masthead of the
           whole page explaining one section's mechanics. That sentence lives with the backup
           controls now (Danger Zone); the masthead keeps only the fact that orients everything
           else on the page. */}
-      <PageHeader
+      <ScreenHeader
         eyebrow="This device only"
         title="Settings"
         support="Everything you do is stored in this browser."
@@ -230,6 +231,8 @@ export default function SettingsPage() {
           unrelated controls under a sentence describing three of them is the "grouped sections with
           strong hierarchy" gap; it is now two named `level={3}` groups inside the one `<form>`, so
           the outline is truthful and the page is scannable, with the submit path untouched. */}
+      <ScreenBody>
+        <Panel className="max-w-[46rem]">
       <Section title="Preferences">
         {/* A real <form> ancestor (even with no onSubmit wired to it) matters here: Radix Select
             only renders its visually-hidden native <select> fallback — used for native form/
@@ -423,6 +426,8 @@ export default function SettingsPage() {
           </p>
         )}
       </Section>
+        </Panel>
+      </ScreenBody>
 
       <Dialog open={pendingImport !== null} onOpenChange={(open) => !open && setPendingImport(null)}>
         <DialogContent>
@@ -474,6 +479,6 @@ export default function SettingsPage() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
-    </Page>
+    </Screen>
   );
 }

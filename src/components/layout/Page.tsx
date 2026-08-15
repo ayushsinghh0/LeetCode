@@ -164,8 +164,14 @@ export function ScreenBody({
     <div
       className={cn(
         'flex flex-col gap-5 md:min-h-0 md:flex-1 md:gap-4',
-        cols === 'main-rail' && 'lg:grid lg:grid-cols-[minmax(0,1fr)_19rem] lg:gap-6 xl:grid-cols-[minmax(0,1fr)_22rem]',
-        cols === 'split' && 'lg:grid lg:grid-cols-2 lg:gap-6',
+        // `grid-rows-[minmax(0,1fr)]` is as load-bearing as `min-h-0` and fails the same way.
+        // A grid's implicit rows are `auto`, which sizes to content — so a body with a definite
+        // height still gave its children a content-sized row, every `min-h-0` below resolved
+        // against that, and a panel that was supposed to scroll simply grew instead. One explicit
+        // row that is exactly the container's height is what makes the whole chain resolve.
+        cols === 'main-rail' &&
+          'lg:grid lg:grid-cols-[minmax(0,1fr)_19rem] lg:grid-rows-[minmax(0,1fr)] lg:gap-6 xl:grid-cols-[minmax(0,1fr)_22rem]',
+        cols === 'split' && 'lg:grid lg:grid-cols-2 lg:grid-rows-[minmax(0,1fr)] lg:gap-6',
         className,
       )}
     >

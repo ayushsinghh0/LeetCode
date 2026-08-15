@@ -20,8 +20,8 @@ import { DifficultyBadge } from '@/components/questions/DifficultyBadge';
 import { PatternChip } from '@/components/questions/PatternChip';
 import { EmptyState } from '@/components/shared/EmptyState';
 import {
-  Page,
-  PageHeader,
+  Screen,
+  ScreenHeader,
   PagePair,
   Section,
   Disclosure,
@@ -441,8 +441,8 @@ export default function InterviewPage() {
 
   if (showLanding) {
     return (
-      <Page width="reading">
-        <PageHeader
+      <Screen>
+        <ScreenHeader
           eyebrow={format(parseISO(today), 'EEEE, MMMM d')}
           title="Interview mode"
           support="One problem, worked the way an interview runs: out loud, in ten stages, with the pattern, the hints and the bounds held back until you have earned them."
@@ -575,7 +575,7 @@ export default function InterviewPage() {
             </Section>
           </>
         )}
-      </Page>
+      </Screen>
     );
   }
 
@@ -592,8 +592,8 @@ export default function InterviewPage() {
 
   if (finished) {
     return (
-      <Page width="reading">
-        <PageHeader
+      <Screen>
+        <ScreenHeader
           eyebrow="Interview complete"
           title={question.title}
           support={`${DIFFICULTY_WORD[question.difficulty]} · you reached the ${stage.label.toLowerCase()} stage.`}
@@ -776,15 +776,15 @@ export default function InterviewPage() {
             </div>
           </div>
         </Section>
-      </Page>
+      </Screen>
     );
   }
 
   // --- Running: one stage at a time ------------------------------------------------------------
 
   return (
-    <Page width="reading">
-      <PageHeader
+    <Screen>
+      <ScreenHeader
         eyebrow="Interview in progress"
         title={question.title}
         support={`${DIFFICULTY_WORD[question.difficulty]} · recommended ~${question.estimatedTime} min`}
@@ -876,7 +876,7 @@ export default function InterviewPage() {
       >
         {unlockList()}
       </Section>
-    </Page>
+    </Screen>
   );
 }
 

@@ -92,7 +92,7 @@ export default function TodayPage() {
         {/* The work column. The hero is fixed-size; the plan is the one thing here that grows with
             the day, so it takes the leftover height in a `Panel` and scrolls inside itself. That is
             the sanctioned single content panel — the screen around it never moves. */}
-        <div className="flex min-w-0 flex-col gap-4 md:min-h-0">
+        <div className="flex min-w-0 flex-col gap-4 md:min-h-0 md:flex-1">
           {/* Day-level framing, above the hero because it reframes the whole day rather than
               accompanying it. Both are rare and both are quiet. */}
           {isWeeklyDay && <WeeklyRevisionBanner count={revisionIds.length} />}

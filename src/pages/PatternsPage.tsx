@@ -2,7 +2,7 @@ import { useMemo, useState } from 'react';
 import { Shapes } from 'lucide-react';
 import { iconByName } from '@/components/shared/iconMap';
 import { Link } from 'react-router-dom';
-import { Page, PageHeader, RuledItem, RuledList } from '@/components/layout/Page';
+import { Panel, RuledItem, RuledList, Screen, ScreenBody, ScreenHeader } from '@/components/layout/Page';
 import { Progress } from '@/components/ui/progress';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { patternById } from '@/data/patterns';
@@ -122,8 +122,8 @@ export default function PatternsPage() {
   );
 
   return (
-    <Page>
-      <PageHeader
+    <Screen>
+      <ScreenHeader
         title="Patterns"
         support={`${solvedCount} of ${questions.length} solved across ${stats.length} patterns`}
         action={
@@ -142,17 +142,24 @@ export default function PatternsPage() {
         }
       />
 
-      <RuledList>
-        {sortedStats.map((stat) => (
-          <PatternRow
-            key={stat.pattern}
-            stat={stat}
-            // `stats` is course-ordered (patternStats maps PATTERNS in order), so the course
-            // position is the pattern's index there, not its position after sorting.
-            index={stats.indexOf(stat) + 1}
-          />
-        ))}
-      </RuledList>
-    </Page>
+      {/* The 28-row contents page scrolls inside its own panel rather than as a document: a
+          chapter index is exactly the "question list panel" the brief sanctions, and the sort
+          control above it stays put while you read down it. */}
+      <ScreenBody>
+        <Panel>
+          <RuledList>
+            {sortedStats.map((stat) => (
+              <PatternRow
+                key={stat.pattern}
+                stat={stat}
+                // `stats` is course-ordered (patternStats maps PATTERNS in order), so the course
+                // position is the pattern's index there, not its position after sorting.
+                index={stats.indexOf(stat) + 1}
+              />
+            ))}
+          </RuledList>
+        </Panel>
+      </ScreenBody>
+    </Screen>
   );
 }

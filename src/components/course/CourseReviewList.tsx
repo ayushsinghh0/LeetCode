@@ -34,7 +34,7 @@ export function CourseReviewList({ weekIds, byWeekId }: CourseReviewListProps) {
               <p className="font-medium">
                 Week {week.week} — {week.title}
               </p>
-              <p className="figures text-xs text-muted-foreground/80">
+              <p className="figures text-xs text-muted-foreground">
                 stage {progress.revisionStage} of 5
                 {progress.nextRevision && ` · due ${monthDay(progress.nextRevision)}`}
               </p>

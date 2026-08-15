@@ -38,7 +38,7 @@ export function MlRebuildList({ trackIds, tracksById }: MlRebuildListProps) {
           >
             <div className="min-w-0 flex-1 space-y-1">
               <p className="font-medium">{track.title}</p>
-              <p className="figures text-xs text-muted-foreground/80">
+              <p className="figures text-xs text-muted-foreground">
                 stage {progress.revisionStage} of 5
                 {progress.nextRevision && ` · due ${monthDay(progress.nextRevision)}`}
               </p>

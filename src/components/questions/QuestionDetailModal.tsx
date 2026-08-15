@@ -231,42 +231,20 @@ export function QuestionDetailModal() {
             rather than `md:gap-12`, because this column is capped at 42rem and never widens into
             the desktop measure that bump exists for. */}
         <div className="flex flex-col gap-10">
-          {/* --- Where this stands ----------------------------------------------------------- */}
-          <Section level={3} title="Where this stands">
-            <div className="flex flex-col gap-2">
-              <div className="flex flex-wrap items-center gap-3">
-                <span className="text-sm font-medium">{MASTERY_LABEL[state]}</span>
-                {solved && <RevisionStagePips stage={progress.revisionStage} />}
-              </div>
-              <p className="max-w-prose text-sm text-muted-foreground">{MASTERY_MEANING[state]}</p>
-            </div>
-          </Section>
-
-          {/* --- Where to go ---------------------------------------------------------------- */}
-          <Section level={3} title="Where to go">
-            <ResourcePanel question={question} groups={groups} />
-          </Section>
-
-          {/* --- Help, on request only ------------------------------------------------------ */}
-          {!solved && (
-            <Section level={3} title="Hints">
-              {hintsOpen || (progress.hintLevelUsed ?? 0) > 0 ? (
-                <HintLadder
-                  questionId={question.id}
-                  hints={hints}
-                  revealedLevel={progress.hintLevelUsed ?? 0}
-                />
-              ) : (
-                <Button variant="ghost" size="sm" className="self-start" onClick={() => setHintsOpen(true)}>
-                  Stuck? Open the hint ladder
-                </Button>
-              )}
-            </Section>
-          )}
-
           {/* --- The mutation. On an unsolved question this is the whole decision; on a solved
                   one it becomes the recall grade. Untitled on purpose: a row of labelled buttons
-                  names itself, and the hairline above is one of the three real breaks. ------- */}
+                  names itself, and the hairline above is one of the three real breaks.
+
+                  It sits FIRST, directly under the masthead, and that position is the point. It
+                  used to be the fourth block: the walk down to it was 24 (`p-6`) + 169 (header) +
+                  16 + 102 ("Where this stands") + 40 + 526 ("Where to go", whose two resource
+                  groups alone are 372) + 40 + 70 ("Hints") + 40 = **1,044px**, inside a dialog
+                  whose `max-h-[85vh]` is 680px at 1280×800 — so "I solved it" was 364px below the
+                  fold, and ~1,330px down on a 375px phone. The directive's rule for this surface is
+                  that secondary metadata must not compete with the decision; four metadata bands
+                  ahead of it is not competition, it is burial. Identity, then the action, then
+                  everything that describes it. Nothing moved out of the sheet and no block changed
+                  rank relative to any other — this one moved to the top. ------------------------ */}
           <Section divider>
             <div className="flex flex-wrap gap-2">
               {!solved && (
@@ -326,6 +304,39 @@ export function QuestionDetailModal() {
               </p>
             )}
           </Section>
+
+          {/* --- Where this stands ----------------------------------------------------------- */}
+          <Section level={3} title="Where this stands">
+            <div className="flex flex-col gap-2">
+              <div className="flex flex-wrap items-center gap-3">
+                <span className="text-sm font-medium">{MASTERY_LABEL[state]}</span>
+                {solved && <RevisionStagePips stage={progress.revisionStage} />}
+              </div>
+              <p className="max-w-prose text-sm text-muted-foreground">{MASTERY_MEANING[state]}</p>
+            </div>
+          </Section>
+
+          {/* --- Where to go ---------------------------------------------------------------- */}
+          <Section level={3} title="Where to go">
+            <ResourcePanel question={question} groups={groups} />
+          </Section>
+
+          {/* --- Help, on request only ------------------------------------------------------ */}
+          {!solved && (
+            <Section level={3} title="Hints">
+              {hintsOpen || (progress.hintLevelUsed ?? 0) > 0 ? (
+                <HintLadder
+                  questionId={question.id}
+                  hints={hints}
+                  revealedLevel={progress.hintLevelUsed ?? 0}
+                />
+              ) : (
+                <Button variant="ghost" size="sm" className="self-start" onClick={() => setHintsOpen(true)}>
+                  Stuck? Open the hint ladder
+                </Button>
+              )}
+            </Section>
+          )}
 
           {/* --- Everything below appears only after the attempt is resolved. ---------------- */}
           {solved && (

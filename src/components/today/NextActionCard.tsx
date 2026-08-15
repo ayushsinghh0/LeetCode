@@ -3,7 +3,7 @@ import { Link } from 'react-router-dom';
 import { ArrowRight, Check, RotateCcw, Shuffle, Sparkles, Target } from 'lucide-react';
 import { toggleTask } from '@/store/actions';
 import { Button } from '@/components/ui/button';
-import { Lead } from '@/components/layout/Page';
+import { Lead, Meta } from '@/components/layout/Page';
 import { DifficultyBadge } from '@/components/questions/DifficultyBadge';
 import { PatternChip } from '@/components/questions/PatternChip';
 import { patternById } from '@/data/patterns';
@@ -75,9 +75,16 @@ export function NextActionCard({ ranked }: { ranked: WorkItem[] }) {
   const hasAlternative = ranked.length > 1;
 
   return (
-    <Lead>
-      <section className="flex flex-col gap-5" aria-label="Your next action">
-        <div className="flex items-center gap-2 border-b border-border/70 pb-2">
+    // `Lead` names itself and supplies the stack. This was `<Lead><section aria-label=…>` — two
+    // elements for one surface, the inner one existing only to re-declare a flex column the plate
+    // could own, at a 20px step that existed nowhere else in the product.
+    <Lead aria-label="Your next action">
+      <>
+        {/* No `border-b`: `Lead` already puts `gap-4` between its children, so the hairline was
+            paying a second time for a boundary the space had bought — the duplicate-separator
+            problem `PageHeader`'s own comment names. It was also a `border-border/70`, a 70%
+            hairline that exists nowhere else in the product. */}
+        <div className="flex items-center gap-2">
           <Icon className="h-4 w-4 shrink-0 text-primary" aria-hidden="true" />
           <p className="text-xs uppercase tracking-[0.14em] text-muted-foreground">
             Next &middot; {KIND_LABEL[item.kind]}
@@ -94,11 +101,18 @@ export function NextActionCard({ ranked }: { ranked: WorkItem[] }) {
           <p className="max-w-prose text-sm leading-relaxed text-muted-foreground">{item.why}</p>
         </div>
 
+        {/* One `Meta` line, both chips `bare`. Difficulty and pattern describe the one object the
+            `<h2>` directly above already names, and rendering them as two tinted bordered
+            rectangles put two boxes inside the app's single plate to say "two more things" about a
+            thing that had just been named once. DESIGN.md § Related facts look like one fact is
+            explicit that the bordered variant is "never in a row or a `Meta` line". */}
         {(question || pattern) && (
-          <div className="flex flex-wrap items-center gap-2">
-            {question && <DifficultyBadge difficulty={question.difficulty} />}
-            {pattern && <PatternChip pattern={pattern} />}
-          </div>
+          <Meta
+            items={[
+              question && <DifficultyBadge difficulty={question.difficulty} variant="bare" />,
+              pattern && <PatternChip pattern={pattern} variant="bare" />,
+            ]}
+          />
         )}
 
         <div className="flex flex-wrap items-center gap-2">
@@ -166,7 +180,7 @@ export function NextActionCard({ ranked }: { ranked: WorkItem[] }) {
             Begin with two minutes
           </Button>
         )}
-      </section>
+      </>
     </Lead>
   );
 }

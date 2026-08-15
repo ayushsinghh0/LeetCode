@@ -5,10 +5,13 @@ import { Button } from '@/components/ui/button';
 import { Progress } from '@/components/ui/progress';
 import { DifficultyBadge } from '@/components/questions/DifficultyBadge';
 import {
+  Disclosure,
   Eyebrow,
+  Figures,
   Ledger,
   Meta,
   Page,
+  PageColumns,
   PageHeader,
   RuledItem,
   RuledList,
@@ -57,8 +60,10 @@ import { cn } from '@/utils/cn';
  * states its actual reason for existing on every single row.
  */
 
-// The claim boundary. It leads both views on an ink rail — it used to be `text-xs` at the very
-// bottom of the detail page, which made the most important sentence on the page the quietest.
+// The claim boundary. On the detail view it leads the page on an ink rail; on the index it rides
+// the context rail beside the lists it governs (below `lg` it stacks after them, still full
+// strength). It used to be `text-xs` at the very bottom of the detail page, which made the most
+// important sentence on the page the quietest.
 const SCOPE_NOTE =
   'No company publishes the problems it asks. Every claim here is read off a page the company ' +
   'publishes itself — quoted verbatim and dated — and it never descends to the level of an ' +
@@ -137,46 +142,78 @@ function CompanyList() {
         support="Companies grouped by how much their own published interview guidance actually says. The group a company sits in is the whole of what this app will claim about it."
       />
 
-      <ScopeNote />
+      {/* The set's whole shape, before any scrolling: five pages say enough to map, one says the
+          opposite of what prep folklore assumes, and most say almost nothing. Computed from the
+          same arrays the sections render — a hardcoded line here would be a second census. */}
+      <Figures
+        items={[
+          { value: withTopics.length, label: 'name topics' },
+          ...(avoidsPuzzles.length > 0
+            ? [
+                {
+                  value: avoidsPuzzles.length,
+                  label: avoidsPuzzles.length === 1 ? 'avoids puzzles' : 'avoid puzzles',
+                },
+              ]
+            : []),
+          { value: categoriesOnly.length, label: 'name the area only' },
+        ]}
+      />
 
-      <Section
-        title="Companies that name specific topics"
-        support="These prep pages list actual data structures and algorithms, which is enough to line up against your own coverage — and the only tier where this app maps anything to a pattern."
-      >
-        <RuledList>
-          {withTopics.map((company) => (
-            <CompanyRow
-              key={company.id}
-              company={company}
-              trailing={`${company.patterns.length} patterns mapped`}
-            />
-          ))}
-        </RuledList>
-      </Section>
-
-      {avoidsPuzzles.length > 0 && (
+      {/* Work left, claim boundary right. The scope note is the page's standing claim, not its
+          work — at `lg` it now sits beside the lists it governs instead of pushing them down, and
+          below that it stacks after them, still on the ink rail, still full strength. */}
+      <PageColumns railLabel="Scope" rail={<ScopeNote />}>
         <Section
-          title="Companies that say they avoid puzzles"
-          support="Their own engineering writing states they do not ask algorithm-puzzle questions. That is not a gap in the data — it is the most decision-changing thing on this page, so it is not filed under the companies that publish little."
+          title="Companies that name specific topics"
+          support="These prep pages list actual data structures and algorithms, which is enough to line up against your own coverage — and the only tier where this app maps anything to a pattern."
         >
           <RuledList>
-            {avoidsPuzzles.map((company) => (
-              <CompanyRow key={company.id} company={company} />
+            {withTopics.map((company) => (
+              <CompanyRow
+                key={company.id}
+                company={company}
+                trailing={`${company.patterns.length} patterns mapped`}
+              />
             ))}
           </RuledList>
         </Section>
-      )}
 
-      <Section
-        title="Companies that name the area only"
-        support="Their pages confirm the coding interview exists and name data structures and algorithms as an area, but never say which ones. Most companies are here. They are listed so the absence is visible rather than filled in with guesswork."
-      >
-        <RuledList>
-          {categoriesOnly.map((company) => (
-            <CompanyRow key={company.id} company={company} />
-          ))}
-        </RuledList>
-      </Section>
+        {avoidsPuzzles.length > 0 && (
+          <Section
+            title="Companies that say they avoid puzzles"
+            support="Their own engineering writing states they do not ask algorithm-puzzle questions. That is not a gap in the data — it is the most decision-changing thing on this page, so it is not filed under the companies that publish little."
+          >
+            <RuledList>
+              {avoidsPuzzles.map((company) => (
+                <CompanyRow key={company.id} company={company} />
+              ))}
+            </RuledList>
+          </Section>
+        )}
+
+        <Section
+          title="Companies that name the area only"
+          support="Their pages confirm the coding interview exists and name data structures and algorithms as an area, but never say which ones. Most companies are here. They are listed so the absence is visible rather than filled in with guesswork."
+        >
+          {/* The tier's finding is the absence, and the support line above already states it — the
+              eleven rows beneath only repeat it eleven times. The list stays complete (which pages
+              were checked is the evidence), but it folds: reading the citations is a rare errand,
+              and open it cost ~970px of identical rows between the masthead and the next thing.
+              The heading and its meaning stay pinned above the latch, so the tier is never
+              invisible — only its roll call waits to be asked for. */}
+          <Disclosure
+            summary={`All ${categoriesOnly.length} companies`}
+            meta={String(categoriesOnly.length)}
+          >
+            <RuledList className="border-y-0">
+              {categoriesOnly.map((company) => (
+                <CompanyRow key={company.id} company={company} />
+              ))}
+            </RuledList>
+          </Disclosure>
+        </Section>
+      </PageColumns>
     </Page>
   );
 }
@@ -232,9 +269,16 @@ function SourceSection({ company }: { company: Company }) {
         </figcaption>
       </figure>
 
-      {company.namedTopics.length > 0 && (
-        <div className="flex flex-col gap-1.5">
-          <Eyebrow>Topics named across that page</Eyebrow>
+      {/* The methodology tail: every word the page names, and what was or was not inferred from
+          them. It is real evidence consulted rarely — the quote and citation above are what the
+          page leads with — so it folds rather than competing with them. The summary keeps the old
+          eyebrow's exact words, the count says what the latch is holding, and nothing inside is
+          shortened or reworded on its way in. */}
+      {company.namedTopics.length > 0 ? (
+        <Disclosure
+          summary="Topics named across that page"
+          meta={String(company.namedTopics.length)}
+        >
           <p className="text-sm leading-relaxed">{company.namedTopics.join(' · ')}</p>
           {/* The quote above is one excerpt; these are collected from the whole page. Saying so
               matters — otherwise the list reads as an expansion of the sentence above it, which
@@ -242,10 +286,14 @@ function SourceSection({ company }: { company: Company }) {
           <p className="text-xs text-muted-foreground">
             Collected from the full page, not only the sentence quoted above.
           </p>
-        </div>
+          {company.note && <Caveat label="Scope and caveats">{company.note}</Caveat>}
+        </Disclosure>
+      ) : (
+        // No named topics to summarise (Netflix is this case): a latch headed "Topics named
+        // across that page" over a list that does not exist would be a label telling a lie, so
+        // the caveat keeps its old open rendering instead of inheriting the fold.
+        company.note && <Caveat label="Scope and caveats">{company.note}</Caveat>
       )}
-
-      {company.note && <Caveat label="Scope and caveats">{company.note}</Caveat>}
 
       <Button asChild variant="outline" size="sm" className="self-start">
         <a href={company.url} target="_blank" rel="noopener noreferrer">
@@ -351,21 +399,32 @@ function CoverageSection({
 
       {/* "Holding" is the only positive claim on this page, so the page states what earns it.
           Solving is not remembering: a pattern cleared this morning and never once recalled is
-          reported as unreviewed, not quietly counted as recall that is holding up. */}
-      <p className="max-w-prose text-sm leading-relaxed text-muted-foreground">
-        A pattern only reads as holding once its recalls say so —{' '}
-        <span className="figures">{MIN_PASS_RATE_ATTEMPTS}</span> graded reviews or more, at least{' '}
-        <span className="figures">{Math.round(STRONG_PASS_RATE * 100)}%</span> of them passing.
-        Solved but never revised is marked unreviewed instead: nothing has tested yet whether it
-        stuck.
-      </p>
+          reported as unreviewed, not quietly counted as recall that is holding up. Both paragraphs
+          are definitions rather than readings — what the word costs to earn, what the figure is
+          not — and a definition is consulted, not re-read on every visit, so the pair folds. The
+          figures they govern stay open above, and not a word changes on the way in: the fold is
+          composition, never a softening of the claim. */}
+      <Disclosure summary="How these figures are computed">
+        <p className="max-w-prose text-sm leading-relaxed text-muted-foreground">
+          A pattern only reads as holding once its recalls say so —{' '}
+          <span className="figures">{MIN_PASS_RATE_ATTEMPTS}</span> graded reviews or more, at least{' '}
+          <span className="figures">{Math.round(STRONG_PASS_RATE * 100)}%</span> of them passing.
+          Solved but never revised is marked unreviewed instead: nothing has tested yet whether it
+          stuck.
+        </p>
 
-      <p className="max-w-prose text-sm leading-relaxed text-muted-foreground">
-        About <span className="figures">{formatMinutes(coverage.remainingMinutes)}</span> of unsolved
-        material sits in these patterns. That is a workload figure, not a readiness score — this app
-        has no basis for telling you whether you are ready for an interview, and will not pretend to
-        by inventing one.
-      </p>
+        <p className="max-w-prose text-sm leading-relaxed text-muted-foreground">
+          About <span className="figures">{formatMinutes(coverage.remainingMinutes)}</span> of unsolved
+          material sits in these patterns. That is a workload figure, not a readiness score — this app
+          has no basis for telling you whether you are ready for an interview, and will not pretend to
+          by inventing one.
+        </p>
+      </Disclosure>
+
+      {/* The masthead button's fine print. It lives here, not beside the button, because "these
+          patterns" must point at the list above to mean anything — and never behind the
+          disclosure, because what targeting will not do is the load-bearing half of the copy. */}
+      <TargetNote company={company} />
     </Section>
   );
 }
@@ -560,33 +619,40 @@ function BroadPracticeSection() {
  *
  * Offered only where it can do something: a target's ONLY effect is to scope practice by the
  * patterns a company's own page names, so a categories-tier company would produce a setting that
- * silently changes nothing. The copy says what it will and will not do — this is the surface most
- * at risk of being read as "show me their questions", which do not exist.
+ * silently changes nothing. The button rides the masthead's action slot now — it is the page's
+ * one real action, and it used to close the page as a trailing section, roughly two and a half
+ * viewports below the title it acts on. The explanation travels separately (`TargetNote`, kept
+ * beside the coverage list whose patterns the target scopes), because this is the surface most
+ * at risk of being read as "show me their questions", which do not exist — the sentence saying
+ * so must sit where "these patterns" visibly points at something.
  */
-function TargetControl({ company }: { company: Company }) {
+function TargetButton({ company }: { company: Company }) {
   const dispatch = useAppDispatch();
   const target = useAppSelector(selectTargetCompany);
   const isTarget = target?.id === company.id;
 
   return (
-    <Section aria-label="Prepare for this company">
-      <div className="flex flex-col gap-3">
-        <p className="max-w-prose text-sm leading-relaxed text-muted-foreground">
-          {isTarget
-            ? `Today carries a quiet line pointing back here while ${company.name} is your target, and an interview can be drawn from these patterns. Nothing else changes: there is still no per-problem claim to make.`
-            : `Marking a target adds one line to Today and lets an interview draw from these patterns. It cannot tell you what ${company.name} asks — nobody publishes that.`}
-        </p>
-        <div>
-          <Button
-            variant={isTarget ? 'outline' : 'default'}
-            size="sm"
-            onClick={() => dispatch(setTargetCompany(isTarget ? null : company.id))}
-          >
-            {isTarget ? 'Stop targeting' : `Prepare for ${company.name}`}
-          </Button>
-        </div>
-      </div>
-    </Section>
+    <Button
+      variant={isTarget ? 'outline' : 'default'}
+      size="sm"
+      onClick={() => dispatch(setTargetCompany(isTarget ? null : company.id))}
+    >
+      {isTarget ? 'Stop targeting' : `Prepare for ${company.name}`}
+    </Button>
+  );
+}
+
+/** What the masthead's target button will and will not do — word for word the old control's copy. */
+function TargetNote({ company }: { company: Company }) {
+  const target = useAppSelector(selectTargetCompany);
+  const isTarget = target?.id === company.id;
+
+  return (
+    <p className="max-w-prose text-sm leading-relaxed text-muted-foreground">
+      {isTarget
+        ? `Today carries a quiet line pointing back here while ${company.name} is your target, and an interview can be drawn from these patterns. Nothing else changes: there is still no per-problem claim to make.`
+        : `Marking a target adds one line to Today and lets an interview draw from these patterns. It cannot tell you what ${company.name} asks — nobody publishes that.`}
+    </p>
   );
 }
 
@@ -620,6 +686,11 @@ function CompanyDetail({ companyId }: { companyId: string }) {
         }
         title={company.name}
         support={EVIDENCE_MEANING[company.evidence]}
+        // The page's one real action, in the slot a page-level action belongs in. It used to
+        // close the page as a trailing section — the composition's worst priority inversion: the
+        // only thing to DO here sat below every sentence on the page. Gated exactly as the old
+        // section was — offered only where a target can do something.
+        action={hasMapping ? <TargetButton company={company} /> : undefined}
       />
 
       <ScopeNote />
@@ -632,7 +703,6 @@ function CompanyDetail({ companyId }: { companyId: string }) {
         <>
           <CoverageSection company={company} coverage={coverage} />
           <PracticeSection company={company} coverage={coverage} />
-          <TargetControl company={company} />
         </>
       ) : (
         <>

@@ -1,7 +1,7 @@
 import { Link } from 'react-router-dom';
 import { format, parseISO } from 'date-fns';
 import { Button } from '@/components/ui/button';
-import { Page, PageHeader, Section } from '@/components/layout/Page';
+import { Page, PageColumns, PageHeader, Section } from '@/components/layout/Page';
 import { DailyGoalProgress } from '@/components/shared/DailyGoalProgress';
 import { WeeklyRevisionBanner } from '@/components/shared/WeeklyRevisionBanner';
 import { TodayTasks } from '@/components/tasks/TodayTasks';
@@ -36,11 +36,14 @@ import { buildSession } from '@/utils/engine/nextAction';
  * here; listing the same eight problems on three surfaces was the thing that made this page read
  * as a dashboard rather than a plan.
  *
- * Composition: masthead, then exactly one plate — the next action — then open sections. The page
- * previously stacked five bordered boxes of near-identical weight (goal bar, plan, course, tasks,
- * and a solid-ink weekly banner sitting *above* the hero), so the recommendation the whole surface
- * exists to deliver was one rectangle among many. There is now a single `Lead` and nothing else
- * may match it; the size difference is the hierarchy. See DESIGN.md § Composition.
+ * Composition: masthead, the day's own progress bar, then `PageColumns`. The work — hero and plan
+ * — is the main column; the things that merely accompany a day (the other track, the learner's
+ * own tasks, their standing routines, a company target) are the rail. Before this they were six
+ * full-width bands below the hero, which is why a page with one recommendation on it ran to 2.4
+ * viewports and put the day's own progress bar 1.7 screens from the top.
+ *
+ * There is still exactly one plate. The size difference between `Lead` and everything else *is*
+ * the hierarchy, and moving blocks sideways does not license promoting any of them.
  */
 export default function TodayPage() {
   const today = useToday();
@@ -67,7 +70,7 @@ export default function TodayPage() {
   const plannedMinutes = buildSession(capacityMin, ranked).totalMinutes;
 
   return (
-    <Page>
+    <Page width="wide">
       <PageHeader
         eyebrow={`${format(parseISO(today), 'EEEE, MMMM d')} · Day ${currentDay} of ${totalDays}`}
         title="Today"
@@ -79,68 +82,60 @@ export default function TodayPage() {
         }
       />
 
-      {/* Day-level context, grouped so two notes never sit a full section apart. Both are quiet
-          by design: neither is more important than the recommendation below them. */}
-      {(isWeeklyDay || returning || intentions.length > 0) && (
-        <div className="flex flex-col gap-5">
-          {isWeeklyDay && <WeeklyRevisionBanner count={revisionIds.length} />}
-          {returning && <ReturnNotice daysAway={daysAway} plannedMinutes={plannedMinutes} />}
-          {/* The learner's own routines, quiet above the hero — a reminder, never a headline, and
-              never more prominent than the day's one recommendation below it. */}
-          <PracticeIntentionsRail intentions={intentions} />
-        </div>
-      )}
+      {/* The day's own progress, directly under the masthead. It used to be the fifth block —
+          1.7 viewports down — on the one page whose job is to report the day. A bar and its
+          caption need no heading and no plate: "3 / 8 solved today" is its own label, and the bar
+          already draws the only edge the block needs. */}
+      <DailyGoalProgress solvedToday={solvedToday} perDay={perDay} />
 
-      {/* The page's one plate. */}
-      {ranked.length > 0 ? (
-        <NextActionCard ranked={ranked} />
-      ) : (
-        <DayCleared solvedToday={solvedToday} minutesToday={minutesToday} />
-      )}
+      <PageColumns
+        railLabel="Today's context"
+        rail={
+          <>
+            {/* The learner's own routines — a reminder, never a headline. In the rail it is beside
+                the day rather than above the recommendation, which is where a reminder belongs. */}
+            <PracticeIntentionsRail intentions={intentions} />
 
-      <SessionPlan ranked={ranked} />
+            <CourseTodayCard />
 
-      {/* A bar and its caption, ruled off. It needs no heading — "3 / 8 solved today" is its own
-          label — and no box, because a progress bar already draws one edge and a plate would add
-          a second. */}
-      <Section aria-label="Daily goal" divider>
-        <DailyGoalProgress solvedToday={solvedToday} perDay={perDay} />
-      </Section>
+            <TodayTasks />
 
-      <CourseTodayCard />
+            {/* One quiet line while a company target is set, in the coverage vocabulary the company
+                page already uses — never the weakness vocabulary, which is claimed in exactly one
+                place, and never a readiness figure, which no evidence here could support. It is a
+                pointer, not a recommendation. */}
+            {targetCompany && targetCoverage && (
+              <Section aria-label="Company target">
+                <p className="text-sm text-muted-foreground">
+                  Preparing for {targetCompany.name}:{' '}
+                  <span className="figures">
+                    {targetCoverage.solved} of {targetCoverage.total}
+                  </span>{' '}
+                  solved across the {targetCoverage.patterns.length} patterns their own page names.{' '}
+                  <Link to={`/companies/${targetCompany.id}`} className="underline underline-offset-2">
+                    Open the set
+                  </Link>
+                  .
+                </p>
+              </Section>
+            )}
+          </>
+        }
+      >
+        {/* Day-level framing, above the hero because it reframes the whole day rather than
+            accompanying it. Both are rare and both are quiet. */}
+        {isWeeklyDay && <WeeklyRevisionBanner count={revisionIds.length} />}
+        {returning && <ReturnNotice daysAway={daysAway} plannedMinutes={plannedMinutes} />}
 
-      {/* One quiet line while a company target is set, in the coverage vocabulary the company page
-          already uses — never the weakness vocabulary, which is claimed in exactly one place, and
-          never a readiness figure, which no evidence here could support. It is a pointer, not a
-          recommendation: the day's one recommendation is above, and a second thing competing with
-          it is the failure the hero exists to prevent. */}
-      {targetCompany && targetCoverage && (
-        <p className="text-sm text-muted-foreground">
-          Preparing for {targetCompany.name}:{' '}
-          <span className="figures">
-            {targetCoverage.solved} of {targetCoverage.total}
-          </span>{' '}
-          solved across the {targetCoverage.patterns.length} patterns their own page names.{' '}
-          <Link to={`/companies/${targetCompany.id}`} className="underline underline-offset-2">
-            Open the set
-          </Link>
-          .
-        </p>
-      )}
+        {/* The page's one plate. */}
+        {ranked.length > 0 ? (
+          <NextActionCard ranked={ranked} />
+        ) : (
+          <DayCleared solvedToday={solvedToday} minutesToday={minutesToday} />
+        )}
 
-      <TodayTasks />
-
-      <p className="text-sm text-muted-foreground">
-        Looking for the full lists?{' '}
-        <Link to="/roadmap" className="underline underline-offset-2">
-          Roadmap
-        </Link>{' '}
-        has every question,{' '}
-        <Link to="/revision" className="underline underline-offset-2">
-          Revision
-        </Link>{' '}
-        has the whole queue.
-      </p>
+        <SessionPlan ranked={ranked} />
+      </PageColumns>
     </Page>
   );
 }

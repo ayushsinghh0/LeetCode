@@ -1,7 +1,7 @@
 import { useState, type ChangeEvent, type ReactNode } from 'react';
 import { Controller, useForm } from 'react-hook-form';
 import questionsData from '@/data/questions.json';
-import { Page, PageHeader, Section } from '@/components/layout/Page';
+import { Disclosure, Page, PageHeader, Section } from '@/components/layout/Page';
 import { IntentionsEditor } from '@/components/settings/IntentionsEditor';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
@@ -215,13 +215,22 @@ export default function SettingsPage() {
     // `reading` because this is a form: a 46rem column keeps every label, its help text and its
     // control inside one glance instead of stranding a w-32 select at the left edge of 1152px.
     <Page width="reading">
+      {/* The support line used to spend its second sentence on backup files — the masthead of the
+          whole page explaining one section's mechanics. That sentence lives with the backup
+          controls now (Danger Zone); the masthead keeps only the fact that orients everything
+          else on the page. */}
       <PageHeader
         eyebrow="This device only"
         title="Settings"
-        support="Everything you do is stored in this browser. Nothing is uploaded, so a backup file is the only way to move it."
+        support="Everything you do is stored in this browser."
       />
 
-      <Section title="Preferences" support="Tune your daily pace and revision behavior.">
+      {/* The support line said "Tune your daily pace and revision behavior" over five rows, two of
+          which are Dark mode and Notifications — neither pace nor revision. One flat stack of five
+          unrelated controls under a sentence describing three of them is the "grouped sections with
+          strong hierarchy" gap; it is now two named `level={3}` groups inside the one `<form>`, so
+          the outline is truthful and the page is scannable, with the submit path untouched. */}
+      <Section title="Preferences">
         {/* A real <form> ancestor (even with no onSubmit wired to it) matters here: Radix Select
             only renders its visually-hidden native <select> fallback — used for native form/
             autofill compatibility, and by this app's tests to drive perDay changes without needing
@@ -229,7 +238,8 @@ export default function SettingsPage() {
             it detects a form ancestor (or an explicit `form` prop). Save stays a plain button that
             calls handleSave() directly, so this onSubmit is just a safety net against an accidental
             native submit (e.g. Enter inside a future text field). */}
-        <form onSubmit={(e) => e.preventDefault()} className="flex flex-col gap-4">
+        <form onSubmit={(e) => e.preventDefault()} className="flex flex-col gap-8">
+          <Section level={3} title="Pace and revision">
           <SettingRows>
             <SettingRow
               label="Questions per day"
@@ -304,7 +314,11 @@ export default function SettingsPage() {
                 )}
               />
             </SettingRow>
+          </SettingRows>
+          </Section>
 
+          <Section level={3} title="This device">
+          <SettingRows>
             <SettingRow
               label="Dark mode"
               htmlFor="theme"
@@ -344,6 +358,7 @@ export default function SettingsPage() {
               />
             </SettingRow>
           </SettingRows>
+          </Section>
 
           <div className="flex justify-end">
             <Button type="button" onClick={handleSave} disabled={!isDirty}>
@@ -353,46 +368,55 @@ export default function SettingsPage() {
         </form>
       </Section>
 
+      {/* No `divider` on these sections: Page's own 32/40px step already marks the boundary, and a
+          hairline on top of it was the duplicate-separator problem — paying for one boundary
+          twice. */}
       <Section
         title="Practice intentions"
         support="When, then — pair a routine with a practice action. The app suggests the shape; you decide whether to use it."
-        divider
       >
         <IntentionsEditor />
       </Section>
 
       <Section
         title="Danger Zone"
-        support="Export a backup, restore from one, or wipe everything."
-        divider
+        support="Nothing is uploaded, so a backup file is the only way to move your data — export one, restore from one, or wipe everything."
       >
-        <SettingRows>
-          <SettingRow label="Export progress" description="Download a JSON backup of everything.">
-            <Button type="button" variant="outline" onClick={handleExport}>
-              Export
-            </Button>
-          </SettingRow>
+        {/* Behind a latch because these are rare, deliberate acts: a learner opens Settings to
+            adjust pace every week, and exports a backup a handful of times ever. The section
+            heading and its support stay visible, so the page still says what lives here — the
+            three rows only unfold when the visit is actually about them. */}
+        <Disclosure summary="Backup and reset" meta="3 actions">
+          <SettingRows>
+            <SettingRow label="Export progress" description="Download a JSON backup of everything.">
+              <Button type="button" variant="outline" onClick={handleExport}>
+                Export
+              </Button>
+            </SettingRow>
 
-          <SettingRow
-            label="Import progress"
-            description="Restore from a previously exported backup file."
-          >
-            <Input
-              type="file"
-              accept="application/json"
-              aria-label="Import backup file"
-              className="w-auto"
-              onChange={handleFileChange}
-            />
-          </SettingRow>
+            <SettingRow
+              label="Import progress"
+              description="Restore from a previously exported backup file."
+            >
+              <Input
+                type="file"
+                accept="application/json"
+                aria-label="Import backup file"
+                className="w-auto"
+                onChange={handleFileChange}
+              />
+            </SettingRow>
 
-          <SettingRow label="Reset progress" description="Erase all progress. This cannot be undone.">
-            <Button type="button" variant="destructive" onClick={() => setResetDialogOpen(true)}>
-              Reset Progress
-            </Button>
-          </SettingRow>
-        </SettingRows>
+            <SettingRow label="Reset progress" description="Erase all progress. This cannot be undone.">
+              <Button type="button" variant="destructive" onClick={() => setResetDialogOpen(true)}>
+                Reset Progress
+              </Button>
+            </SettingRow>
+          </SettingRows>
+        </Disclosure>
 
+        {/* Outside the Disclosure on purpose: an error must never depend on a latch being open to
+            be seen. */}
         {importError && (
           <p role="alert" className="text-sm text-destructive">
             {importError}

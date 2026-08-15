@@ -132,8 +132,15 @@ export function TodayTasks() {
       )}
 
       {/* Title first and full width, then the qualifiers: at 375px the old single wrapping row put
-          a 144px select beside a 40px number field and an Add button, and the title lost. */}
-      <form onSubmit={handleAdd} className="flex flex-col gap-2 sm:flex-row sm:items-center">
+          a 144px select beside a 40px number field and an Add button, and the title lost.
+          The `sm:` row variant this used to carry is gone, and its absence is the point. Tailwind
+          media queries are *viewport*-scoped; this form now lives in Today's context rail, which is
+          240px at 1024–1279px and 320px above that — so `sm:flex-row` (active from a 640px
+          viewport) laid a 144px select, a 64px estimate and a ~76px button side by side inside
+          240px and pushed the button 86px past the rail, which scrolled the whole document
+          sideways. A component that can be placed in a column narrower than the viewport cannot
+          take the viewport as a proxy for its own width. */}
+      <form onSubmit={handleAdd} className="flex flex-col gap-2">
         <Input
           value={title}
           onChange={(e) => setTitle(e.target.value)}
@@ -141,9 +148,9 @@ export function TodayTasks() {
           aria-label="New task title"
           className="min-w-0 flex-1"
         />
-        <div className="flex items-center gap-2">
+        <div className="flex min-w-0 items-center gap-2">
           <Select value={category} onValueChange={(v) => setCategory(v as TaskCategory)}>
-            <SelectTrigger aria-label="Task category" className="min-w-0 flex-1 sm:w-36 sm:flex-none">
+            <SelectTrigger aria-label="Task category" className="min-w-0 flex-1">
               <SelectValue />
             </SelectTrigger>
             <SelectContent>

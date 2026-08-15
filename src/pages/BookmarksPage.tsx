@@ -64,10 +64,14 @@ export default function BookmarksPage() {
 
   return (
     <Page>
+      {/* One purpose clause. The support's first sentence — "Questions you flagged to come back
+          to" — was the eyebrow's "N bookmarked questions" said again in the reading voice, and a
+          masthead that states a fact twice teaches the reader to skip it. What survives is the
+          only part the eyebrow doesn't carry: what to do with the list. */}
       <PageHeader
         eyebrow={`${count} bookmarked question${count === 1 ? '' : 's'}`}
         title="Bookmarks"
-        support="Questions you flagged to come back to. Narrow the list, then open one to work on it."
+        support="Narrow the list, then open one to work on it."
       />
 
       {count === 0 ? (

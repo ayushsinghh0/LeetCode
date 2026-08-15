@@ -11,7 +11,8 @@ import {
   XCircle,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { Eyebrow, Lead, Page } from '@/components/layout/Page';
+import { Disclosure, Eyebrow, Lead, Page } from '@/components/layout/Page';
+import { EmptyState } from '@/components/shared/EmptyState';
 import { DifficultyBadge } from '@/components/questions/DifficultyBadge';
 import { PatternChip } from '@/components/questions/PatternChip';
 import { NotesEditor } from '@/components/questions/NotesEditor';
@@ -169,19 +170,26 @@ export default function FocusPage() {
 
   return (
     // /focus has no AppShell, so it carries its own `main` landmark — otherwise the page has no
-    // landmark at all — and its own gutter, which is the shell's exactly (px-4 / md:px-8) so the
-    // column lines up with the other seventeen pages rather than starting at its own margin.
+    // landmark at all — and its own gutter, which is the shell's exactly (px-4 py-5 / md:px-8
+    // md:py-8) so the column lines up with the other seventeen pages rather than starting at its
+    // own margin. The vertical half of that claim used to be false — this was `py-6 md:py-10`
+    // against the shell's `py-5 md:py-8` — which is 4/8px of pure lead-in on the one page whose
+    // premise is that nothing stands between the learner and the problem.
     // `Page` then supplies the measure and the one section rhythm; this page does not set either.
-    <main className="mx-auto w-full max-w-6xl px-4 py-6 md:px-8 md:py-10">
+    <main className="mx-auto w-full max-w-6xl px-4 py-5 md:px-8 md:py-8">
+      {/* The exit control is chrome, not content — the one piece of the shell this shell-less page
+          still owes the learner. Inside `Page` it was a full section: a lone ghost button charged
+          the 32/40px section step against the lead below it, on the page whose whole premise is
+          that nothing stands between the learner and the problem. Out here it costs mb-4 and sits
+          at the shell's edge, where an exit belongs. */}
+      <div className="mb-4 flex justify-end">
+        <Button asChild variant="ghost">
+          <Link to="/today">
+            <X /> Exit
+          </Link>
+        </Button>
+      </div>
       <Page width="reading">
-        <div className="flex justify-end">
-          <Button asChild variant="ghost">
-            <Link to="/today">
-              <X /> Exit
-            </Link>
-          </Button>
-        </div>
-
         {smallDone ? (
           <SmallStartInterstitial onKeepGoing={() => setSearchParams({}, { replace: true })} />
         ) : item === null ? (
@@ -216,8 +224,11 @@ export default function FocusPage() {
 /**
  * Two ways for this screen to be empty, and they are not the same news.
  *
- * No plate on either: "nothing to do" is not a liftable surface, and boxing it drew a near
- * full-viewport outline around one icon and one sentence (DESIGN.md § Composition).
+ * Both render through the shared `EmptyState` — this function used to restate that register
+ * locally, at py-16 where the shared one sits at py-10, which is exactly how registers drift: the
+ * identical "nothing here" moment read taller on this page than on every other. `EmptyState` is
+ * unplated by design, which is the property the tests pin ("nothing to do" is not a liftable
+ * surface — DESIGN.md § Composition); this page's only job is to say *which* nothing it is.
  */
 function FocusEmpty({
   capacityMin,
@@ -228,25 +239,15 @@ function FocusEmpty({
 }) {
   if (shortestOverBudgetMin !== null) {
     return (
-      <div className="flex flex-col items-center gap-3 py-16 text-center text-muted-foreground">
-        <Hourglass className="h-7 w-7 text-muted-foreground/50" aria-hidden="true" />
-        <p className="font-serif text-base text-foreground">
-          Nothing here fits {formatMinutes(capacityMin)}.
-        </p>
-        <p className="max-w-prose text-sm">
-          The shortest thing queued for focus is ~{formatMinutes(shortestOverBudgetMin)}. Set a
-          longer window on Today, or come back when you have one.
-        </p>
-      </div>
+      <EmptyState
+        icon={Hourglass}
+        title={`Nothing here fits ${formatMinutes(capacityMin)}.`}
+        hint={`The shortest thing queued for focus is ~${formatMinutes(shortestOverBudgetMin)}. Set a longer window on Today, or come back when you have one.`}
+      />
     );
   }
 
-  return (
-    <div className="flex flex-col items-center gap-3 py-16 text-center text-muted-foreground">
-      <CheckCircle2 className="h-7 w-7 text-muted-foreground/50" aria-hidden="true" />
-      <p className="font-serif text-base text-foreground">All caught up — nothing queued for focus right now.</p>
-    </div>
-  );
+  return <EmptyState icon={CheckCircle2} title="All caught up — nothing queued for focus right now." />;
 }
 
 /**
@@ -260,7 +261,9 @@ function FocusEmpty({
  */
 function SmallStartInterstitial({ onKeepGoing }: { onKeepGoing: () => void }) {
   return (
-    <div className="flex flex-col items-center gap-3 py-16 text-center text-muted-foreground">
+    // `py-10`, matching `EmptyState`. The comment 36 lines above records removing exactly this
+    // `py-16` drift from `FocusEmpty` — and then this function, in the same file, kept it.
+    <div className="flex flex-col items-center gap-3 py-10 text-center text-muted-foreground">
       <p className="font-serif text-base text-foreground">That was the return.</p>
       <p className="max-w-prose text-sm">
         Continue if you want to — stopping here is also a finished visit.
@@ -318,7 +321,7 @@ function QuestionFocus({
         <Button asChild variant="outline" size="sm">
           <a href={question.url} target="_blank" rel="noopener noreferrer">
             <ExternalLink /> Open on LeetCode
-            {question.premium && <span className="ml-1 text-xs opacity-80">· Premium</span>}
+            {question.premium && <span className="ml-1 text-xs">· Premium</span>}
           </a>
         </Button>
       )}
@@ -359,11 +362,17 @@ function QuestionFocus({
         )}
       </div>
 
-      <div className="flex w-full flex-col gap-2 text-left">
-        <p className="text-sm font-medium">Notes</p>
+      {/* Notes behind a latch, not open on arrival. The always-open editor was ~292px of empty
+          textarea — 37% of the first viewport — on the one page whose premise is that nothing
+          stands between the learner and the problem, and writing is never the first move here.
+          The grading actions above stay exactly where they were; the editor is one click away and
+          unchanged once opened. `Disclosure` is a ruled row, not a plate, so it is legal inside
+          `Lead` (§ The plate rule). w-full/text-left undo the plate's centered stack for the one
+          child that is a document, not a headline. */}
+      <Disclosure summary="Notes" className="w-full text-left">
         {/* key: switching questions must reset the editor's form baseline */}
         <NotesEditor key={question.id} questionId={question.id} initialNotes={notes} />
-      </div>
+      </Disclosure>
     </Lead>
   );
 }
@@ -410,11 +419,12 @@ function CourseFocus({ week, day, notes }: { week: CourseWeek; day: CourseDay | 
         )}
       </div>
 
-      <div className="flex w-full flex-col gap-2 text-left">
-        <p className="text-sm font-medium">Notes</p>
+      {/* Same latch as QuestionFocus, for the same reason — the two variants share one shape on
+          purpose, so focus mode feels like one continuous session whichever track is up. */}
+      <Disclosure summary="Notes" className="w-full text-left">
         {/* key: switching weeks must reset the editor's form baseline */}
         <CourseNotesEditor key={week.id} weekId={week.id} initialNotes={notes} />
-      </div>
+      </Disclosure>
     </Lead>
   );
 }

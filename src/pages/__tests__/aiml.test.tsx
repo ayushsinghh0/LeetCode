@@ -16,11 +16,13 @@ afterEach(() => {
 });
 
 describe('AimlCoursePage', () => {
-  test('fresh store: masthead, the figure ledger and the projected finish', () => {
+  // V9: the four-figure ledger became one `Figures` line below the lead — the assertions are
+  // unchanged because they pin the *facts* (the counts, the date), not the arrangement.
+  test('fresh store: masthead, the figures line and the projected finish', () => {
     renderWithStore(<AimlCoursePage />);
 
     expect(screen.getByRole('heading', { name: 'AI & ML' })).toBeInTheDocument();
-    // The ledger replaced the four StatCards; each figure is now stated exactly once.
+    // Each figure is stated exactly once, now in the inline figures voice.
     expect(screen.getByText('0 / 52')).toBeInTheDocument();
     expect(screen.getByText('0 / 26')).toBeInTheDocument();
     // 52 sessions from 2026-07-30 → last one lands 2026-09-19.

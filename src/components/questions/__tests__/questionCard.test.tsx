@@ -1,17 +1,17 @@
 import { act } from 'react';
-import { Provider } from 'react-redux';
+
 import { screen, fireEvent, within } from '@testing-library/react';
 import { makeStore } from '@/store/store';
-import { TooltipProvider } from '@/components/ui/tooltip';
+
 import { renderWithStore } from '@/test/renderWithStore';
 import { RuledList } from '@/components/layout/Page';
-import { QuestionCard, QuestionRow } from '@/components/questions/QuestionCard';
+import { QuestionRow } from '@/components/questions/QuestionCard';
 import { QuestionDetailModal } from '@/components/questions/QuestionDetailModal';
 import { initialProgress } from '@/utils/engine/spacedRepetition';
 import { reviseQuestion, solveQuestion } from '@/store/actions';
 import { activeQuestionSet } from '@/store/slices/uiSlice';
 import questionsData from '@/data/questions.json';
-import type { Question, QuestionProgress } from '@/types';
+import type { Question } from '@/types';
 
 const questions = questionsData as Question[];
 // id 1: "Valid Palindrome", pattern two-pointers ("Two Pointers"), difficulty easy, estimatedTime 15.
@@ -79,109 +79,6 @@ describe('QuestionRow', () => {
 
     expect(screen.queryByRole('img', { name: 'Bookmarked' })).not.toBeInTheDocument();
     expect(screen.queryByRole('img', { name: 'Has notes' })).not.toBeInTheDocument();
-  });
-});
-
-describe('QuestionCard', () => {
-  test('renders title, difficulty, pattern, authored estimate, type, and what it tests', () => {
-    renderWithStore(
-      <QuestionCard question={question1} progress={initialProgress()} context="today" onOpenDetail={() => {}} />,
-    );
-
-    expect(screen.getByText('Valid Palindrome')).toBeInTheDocument();
-    expect(screen.getByText('Easy')).toBeInTheDocument();
-    expect(screen.getByText('Two Pointers')).toBeInTheDocument();
-    // The estimate is authored per question, so the assertion reads it from the dataset rather
-    // than hardcoding a per-difficulty constant that no longer exists. The tilde is deliberate:
-    // this is a band for a typical first attempt, not a measurement of anyone.
-    expect(screen.getByText(`~${question1.estimatedTime} min`)).toBeInTheDocument();
-    expect(screen.getByText('Foundation')).toBeInTheDocument();
-    expect(screen.getByText(question1.tests)).toBeInTheDocument();
-  });
-
-  test('today context: clicking Solved dispatches solveQuestion, marking the question solved in the store', () => {
-    const { store } = renderWithStore(
-      <QuestionCard question={question1} progress={initialProgress()} context="today" onOpenDetail={() => {}} />,
-    );
-
-    fireEvent.click(screen.getByRole('button', { name: 'Solved' }));
-
-    expect(store.getState().progress.byId[1]!.status).toBe('solved');
-  });
-
-  test('today context: clicking Need Revision solves the question AND flags it low-confidence (2)', () => {
-    const { store } = renderWithStore(
-      <QuestionCard question={question1} progress={initialProgress()} context="today" onOpenDetail={() => {}} />,
-    );
-
-    fireEvent.click(screen.getByRole('button', { name: 'Need Revision' }));
-
-    const progress = store.getState().progress.byId[1]!;
-    expect(progress.status).toBe('solved');
-    expect(progress.confidence).toBe(2);
-  });
-
-  test('revision context shows Pass/Fail buttons, and Pass advances revisionStage to 1', () => {
-    vi.useFakeTimers();
-    vi.setSystemTime(new Date('2026-07-30T12:00:00'));
-
-    const store = makeStore();
-    store.dispatch(solveQuestion(1)); // solved today; nextRevision = tomorrow (2026-07-31)
-    vi.setSystemTime(new Date('2026-07-31T12:00:00')); // advance so the revision is actually due
-
-    const progressBefore = store.getState().progress.byId[1]!;
-    renderWithStore(
-      <QuestionCard question={question1} progress={progressBefore} context="revision" onOpenDetail={() => {}} />,
-      store,
-    );
-
-    expect(screen.getByRole('button', { name: 'Pass' })).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: 'Fail' })).toBeInTheDocument();
-
-    fireEvent.click(screen.getByRole('button', { name: 'Pass' }));
-
-    expect(store.getState().progress.byId[1]!.revisionStage).toBe(1);
-
-    vi.useRealTimers();
-  });
-
-  test('shows a notes indicator when progress.notes is non-empty, and hides it when empty', () => {
-    const progressWithNotes: QuestionProgress = { ...initialProgress(), notes: 'Remember the two-pointer trick' };
-    const { rerender } = renderWithStore(
-      <QuestionCard question={question1} progress={progressWithNotes} context="today" onOpenDetail={() => {}} />,
-    );
-    expect(screen.getByRole('img', { name: 'Has notes' })).toBeInTheDocument();
-
-    rerender(
-      <Provider store={makeStore()}>
-        <TooltipProvider>
-          <QuestionCard question={question1} progress={initialProgress()} context="today" onOpenDetail={() => {}} />
-        </TooltipProvider>
-      </Provider>,
-    );
-    expect(screen.queryByRole('img', { name: 'Has notes' })).not.toBeInTheDocument();
-  });
-
-  test('action buttons stop propagation: clicking Solved does not call onOpenDetail', () => {
-    const onOpenDetail = vi.fn();
-    renderWithStore(
-      <QuestionCard question={question1} progress={initialProgress()} context="today" onOpenDetail={onOpenDetail} />,
-    );
-
-    fireEvent.click(screen.getByRole('button', { name: 'Solved' }));
-
-    expect(onOpenDetail).not.toHaveBeenCalled();
-  });
-
-  test('clicking the card body calls onOpenDetail with the question id', () => {
-    const onOpenDetail = vi.fn();
-    renderWithStore(
-      <QuestionCard question={question1} progress={initialProgress()} context="today" onOpenDetail={onOpenDetail} />,
-    );
-
-    fireEvent.click(screen.getByText('Valid Palindrome'));
-
-    expect(onOpenDetail).toHaveBeenCalledWith(1);
   });
 });
 

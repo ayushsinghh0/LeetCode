@@ -1,5 +1,5 @@
 import type { ReactNode } from 'react';
-import { motion } from 'framer-motion';
+import { motion, useReducedMotion } from 'framer-motion';
 
 export interface ProgressRingProps {
   value: number;
@@ -13,6 +13,12 @@ export interface ProgressRingProps {
 // stroke-dashoffset framer-motion animates from "empty" to the current value/max fraction.
 // `children` (e.g. a level number) render centered via an absolute overlay.
 export function ProgressRing({ value, max, size = 96, strokeWidth = 8, children }: ProgressRingProps) {
+  // `MotionConfig reducedMotion="user"` (App.tsx) suppresses only *transform* and *layout*
+  // animations, and index.css's reduced-motion block zeroes only CSS transitions. `strokeDashoffset`
+  // is an SVG attribute driven by JS, so it is covered by neither — this 600ms sweep ran at full
+  // length under `prefers-reduced-motion: reduce`. The sidebar's level ring mounts this on every
+  // route, which made it the most-repeated uncovered motion in the app.
+  const reduced = useReducedMotion();
   const radius = (size - strokeWidth) / 2;
   const circumference = 2 * Math.PI * radius;
   const pct = max > 0 ? Math.min(1, Math.max(0, value / max)) : 0;
@@ -39,9 +45,9 @@ export function ProgressRing({ value, max, size = 96, strokeWidth = 8, children 
           strokeWidth={strokeWidth}
           strokeLinecap="round"
           strokeDasharray={circumference}
-          initial={{ strokeDashoffset: circumference }}
+          initial={{ strokeDashoffset: reduced ? offset : circumference }}
           animate={{ strokeDashoffset: offset }}
-          transition={{ duration: 0.6, ease: [0.23, 1, 0.32, 1] }}
+          transition={{ duration: reduced ? 0 : 0.6, ease: [0.23, 1, 0.32, 1] }}
         />
       </svg>
       {children && <div className="absolute inset-0 flex items-center justify-center">{children}</div>}

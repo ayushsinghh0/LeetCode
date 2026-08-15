@@ -94,8 +94,7 @@ export default function DrillsPage() {
           hint="Drills draw from the problem-family catalog; it appears to be empty."
         />
       ) : finished ? (
-        <Section aria-label="Drill result">
-          <Lead className="flex flex-col gap-6">
+          <Lead aria-label="Drill result">
             <div className="flex flex-col gap-3">
               <Eyebrow>Result</Eyebrow>
               {/* The score is the point, so it wears the stat voice (DESIGN.md § Hierarchy) —
@@ -140,10 +139,9 @@ export default function DrillsPage() {
               </Button>
             </div>
           </Lead>
-        </Section>
       ) : item && question && family ? (
-        <Section aria-label="Drill question">
-          <Lead className="flex flex-col gap-6">
+        <>
+          <Lead aria-label="Drill question">
             <div className="flex flex-col gap-4">
               <div className="flex items-center justify-between gap-4 border-b border-border pb-3">
                 <Eyebrow>
@@ -224,44 +222,57 @@ export default function DrillsPage() {
                   : `Incorrect — the technique is ${patternById[item.pattern]?.name ?? item.pattern}.`}
             </p>
 
-            {picked !== null && (
-              <div className="flex flex-col gap-4">
-                <Rule />
-
-                <div className="flex flex-col gap-2">
-                  <p className="text-sm font-medium">
-                    {picked === item.pattern
-                      ? 'Recognized.'
-                      : `This one is ${patternById[item.pattern]?.name ?? item.pattern}.`}{' '}
-                    <span className="text-muted-foreground">{family.name}</span>
-                  </p>
-                  <p className="max-w-prose text-sm leading-relaxed text-muted-foreground">{family.idea}</p>
-                </div>
-
-                <ul className="flex flex-col gap-1.5 border-l-2 border-border pl-3.5">
-                  {family.signals.map((signal) => (
-                    <li key={signal} className="max-w-prose text-sm text-muted-foreground">
-                      {signal}
-                    </li>
-                  ))}
-                </ul>
-
-                <p className="max-w-prose text-sm leading-relaxed text-muted-foreground">
-                  <span className="font-medium text-foreground">Watch out:</span> {family.trap}
-                </p>
-
-                <div className="flex flex-wrap items-center gap-2">
-                  <Button variant="outline" onClick={() => dispatch(activeQuestionSet(question.id))}>
-                    Open question
-                  </Button>
-                  <Button onClick={next}>
-                    {index + 1 >= items.length ? 'Finish' : 'Next'} <ArrowRight />
-                  </Button>
-                </div>
-              </div>
-            )}
           </Lead>
-        </Section>
+
+          {/* The reveal is a SIBLING of the plate, not its tail. Inside it, the `Lead` grew from
+              ~310px to ~700px the instant the learner answered — the plate stopped being "the one
+              thing the page wants you to do" and became a border drawn around the entire page,
+              which is the defect ContestPage's own header comment records fixing there. This is
+              reading material: a verdict, the family's idea, its signals, its trap. Reading
+              material sits on the page ground.
+
+              The verdict is the section's `title`, so it is a real `<h2>` rather than the `<p>` it
+              was — it is the largest claim on screen after the question, and the page had no
+              heading for it. The action row stays at the foot: the whole value of a drill is the
+              explanation, and hoisting "Next" above it would invite skipping the only part that
+              teaches anything. */}
+          {picked !== null && (
+            <Section
+              divider
+              title={
+                <>
+                  {picked === item.pattern
+                    ? 'Recognized.'
+                    : `This one is ${patternById[item.pattern]?.name ?? item.pattern}.`}{' '}
+                  <span className="font-normal text-muted-foreground">{family.name}</span>
+                </>
+              }
+            >
+              <p className="max-w-prose text-sm leading-relaxed text-muted-foreground">{family.idea}</p>
+
+              <ul className="flex flex-col gap-1.5 border-l-2 border-border pl-3.5">
+                {family.signals.map((signal) => (
+                  <li key={signal} className="max-w-prose text-sm text-muted-foreground">
+                    {signal}
+                  </li>
+                ))}
+              </ul>
+
+              <p className="max-w-prose text-sm leading-relaxed text-muted-foreground">
+                <span className="font-medium text-foreground">Watch out:</span> {family.trap}
+              </p>
+
+              <div className="flex flex-wrap items-center gap-2">
+                <Button variant="outline" onClick={() => dispatch(activeQuestionSet(question.id))}>
+                  Open question
+                </Button>
+                <Button onClick={next}>
+                  {index + 1 >= items.length ? 'Finish' : 'Next'} <ArrowRight />
+                </Button>
+              </div>
+            </Section>
+          )}
+        </>
       ) : null}
     </Page>
   );

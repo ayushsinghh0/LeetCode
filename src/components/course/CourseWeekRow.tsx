@@ -110,14 +110,25 @@ export function CourseWeekRow({ week, progress, planned, isCurrent, onOpenNotes,
         </span>
       )}
 
+      {/* Three stacked lines became two. The dates and the week's deep links both describe this one
+          week, so they share a line — DESIGN.md § Related facts look like one fact — and the row
+          drops from 102px to ~82px. Across 26 syllabus rows that is ~520px, which is most of a
+          viewport recovered on the longest page in the app, bought by removing a line break rather
+          than by shrinking any text.
+
+          `/80` is gone from the meta: on the light theme `text-muted-foreground/80` computes to
+          3.75:1, under the 4.5:1 AA floor for this 12px text. `Page.tsx`'s `Ledger` retired the
+          same alpha for the same reason — the size step already carries the hierarchy. */}
       <div className="min-w-0 flex-1 space-y-1.5">
         <p className={cn('font-medium', done && 'text-muted-foreground')}>{week.title}</p>
-        <p className="figures text-xs text-muted-foreground/80">
-          {week.taughtOn && `taught ${monthDay(week.taughtOn)}`}
-          {week.taughtOn && (plannedLabel || clearedLabel) && ' · '}
-          {plannedLabel ?? clearedLabel}
-        </p>
-        <CourseResourceChips resources={week.resources} />
+        <div className="flex flex-wrap items-center gap-x-3 gap-y-1.5">
+          <p className="figures text-xs text-muted-foreground">
+            {week.taughtOn && `taught ${monthDay(week.taughtOn)}`}
+            {week.taughtOn && (plannedLabel || clearedLabel) && ' · '}
+            {plannedLabel ?? clearedLabel}
+          </p>
+          <CourseResourceChips resources={week.resources} />
+        </div>
       </div>
 
       <div className="flex shrink-0 flex-wrap items-center gap-1.5">

@@ -4,12 +4,23 @@ import { format, parseISO } from 'date-fns';
 import { Dices } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Progress } from '@/components/ui/progress';
-import { DailyGoalProgress } from '@/components/shared/DailyGoalProgress';
 import { Heatmap } from '@/components/shared/Heatmap';
+import { DifficultyBadge } from '@/components/questions/DifficultyBadge';
 import { StreakFlame } from '@/components/gamification/StreakFlame';
 import { XpBadge } from '@/components/gamification/XpBadge';
-import type { LedgerItem } from '@/components/layout/Page';
-import { Ledger, Meta, Page, PageHeader, RuledItem, RuledList, Section } from '@/components/layout/Page';
+import { NextActionCard } from '@/components/today/NextActionCard';
+import type { FigureItem, LedgerItem } from '@/components/layout/Page';
+import {
+  Figures,
+  Ledger,
+  Meta,
+  Page,
+  PageColumns,
+  PageHeader,
+  RuledItem,
+  RuledList,
+  Section,
+} from '@/components/layout/Page';
 import { patternById } from '@/data/patterns';
 import { reflectionForDate } from '@/data/reflections';
 import { useToday } from '@/hooks/useToday';
@@ -43,18 +54,32 @@ import { finishProjection } from '@/utils/engine/roadmap';
 import type { WorkItem } from '@/utils/engine/nextAction';
 
 /**
- * Dashboard — the overview, read as one document rather than a wall of plates.
+ * Dashboard — the command surface.
  *
- * The page has one purpose: where does the whole course stand today. It deliberately does not
- * compete with Today for "what do I do next" — Today owns that decision, and the masthead's one
- * action hands off to it. Everything here is the record: a figure band, then open sections for
- * progress, the queue, the weak spot, the other track, and the year of activity.
+ * It used to be a report: eight full-width bands of descending importance, stacked head to toe, so
+ * the first thing a learner saw on opening the app was a masthead, a poem and four figures, and
+ * the first thing they could *act on* began 818px down, in the smallest type register on the page.
+ * A page that answers "how are things going" but not "what do I do" hands the prioritising back to
+ * the person who opened it in order to avoid prioritising.
  *
- * Composition follows DESIGN.md § Composition: the ground is the surface, sections are separated
- * by space rather than by outlines, counted facts live in a `Ledger` instead of stat cards, and
- * gamification is context at the foot of the page rather than three objects above the fold. There
- * is no `Lead` plate, because a page whose job is "look at the state of things" has no single
- * action worth that much size.
+ * It now answers four questions, in this order and at this weight:
+ *
+ *   1. **What should I do?** — the `Lead`, and the only plate. It is `NextActionCard`, the exact
+ *      component Today uses, reading the exact list Today reads (`selectRankedWork`). This is not
+ *      a second recommender: CLAUDE.md's invariant is one *ranker*, and there is still one. What
+ *      changed is that the landing surface stopped refusing to show its answer.
+ *   2. **Why?** — the hero's own reason line, then the two items behind it.
+ *   3. **Where am I?** — one `Figures` line and a bar, in the main column under the work.
+ *   4. **What needs attention?** — the rail, top-first: the weakest pattern, then the record.
+ *
+ * Composition is `PageColumns`: work on the left, context on the right. Everything in the rail was
+ * previously a full-width band competing with the decision above it; none of it is gone, and none
+ * of it is a plate. The activity year sits below the grid at full width because it is 792px of
+ * reference data and a rail would make it scroll sideways.
+ *
+ * Deliberately absent: an overdue-debt counter. `revision.test.tsx` pins the rule that a due
+ * backlog is never promoted to a headline, and a red number on the landing page is that headline
+ * by another name. Attention is carried by the hero's reason, which already says what is at risk.
  */
 export default function DashboardPage() {
   const today = useToday();
@@ -83,7 +108,7 @@ export default function DashboardPage() {
   const courseDueReviews = useAppSelector((s) => selectCourseDueReviewIds(s, today));
   const todaysNew = useAppSelector(selectTodaysNewQuestions);
   const progressById = useAppSelector((s) => s.progress.byId);
-  // The same ranked list Today's hero and session plan read — see the "Up next" section below.
+  // The one ranked list. Today's hero, Today's session plan and this page's hero all read it.
   const ranked = useAppSelector((s) => selectRankedWork(s, today));
 
   const totalQuestions = questions.length;
@@ -109,8 +134,14 @@ export default function DashboardPage() {
   const weakestEntry = weakest[0] ?? null;
 
   // The revision figure is the *queue*, not the due set: on a weekly revision day it includes
-  // items pulled forward whose next review is still in the future. Today says "N revisions
-  // queued" for this same number, and the label here says the same word for the same reason.
+  // items pulled forward whose next review is still in the future.
+  //
+  // It is labelled "Reviews queued", NOT "Revisions queued", and the one word is the whole point.
+  // This number spans both ladders (questions + course weeks); Today's weekly banner says
+  // "N revisions queued" counting the question ladder alone. The two were rendering the identical
+  // phrase over two different totals, so on any weekly day with course work due, Today said 12 and
+  // Dashboard said 15 about what read as the same fact. The `sub` below already separates the two
+  // ladders; the label now stops claiming to be the same sentence Today prints.
   const queuedTotal = revisionQueueIds.length + courseDueReviews.length;
   const courseNextWeek = courseNext ? courseWeekById.get(courseNext.weekId) : undefined;
 
@@ -122,14 +153,21 @@ export default function DashboardPage() {
     [today, remaining, dayLogs, perDay, startDate],
   );
 
+  // Orientation, as one line rather than as a row of monuments. These three facts describe one
+  // thing — how far through the course you are — so they read as one sentence. The `Ledger` voice
+  // (1.75rem serif) is reserved for the rail's record, where the number genuinely is the point.
+  const standing: FigureItem[] = [
+    { value: `${solvedCount} / ${totalQuestions}`, label: 'solved' },
+    { value: `${completionPct}%`, label: 'complete' },
+    { value: remaining, label: 'to go' },
+  ];
+
+  // The record. Two counted facts that the learner checks rather than acts on, so they sit in the
+  // rail — and only two, because a third and fourth at the same weight is the stat-card wall
+  // wearing hairlines instead of borders.
   const ledgerItems: LedgerItem[] = [
     {
-      label: 'Solved',
-      value: `${solvedCount} / ${totalQuestions}`,
-      sub: `${completionPct}% · ${remaining} to go`,
-    },
-    {
-      label: 'Revisions queued',
+      label: 'Reviews queued',
       value: queuedTotal,
       sub:
         queuedTotal === 0
@@ -145,11 +183,6 @@ export default function DashboardPage() {
           },
         ]
       : []),
-    {
-      label: 'Productivity',
-      value: `${productivity} / 100`,
-      sub: 'last 14 days',
-    },
   ];
 
   function openWork(item: WorkItem) {
@@ -165,155 +198,182 @@ export default function DashboardPage() {
     dispatch(activeQuestionSet(question.id));
   }
 
+  // The hero takes ranked[0]; this is what is behind it. Two rows, not five — the point of a
+  // command surface is that the queue is visible, not that it is exhaustive. /today owns the
+  // full plan and /revision owns the full queue.
+  const behind = ranked.slice(1, 3);
+
   return (
-    <Page>
+    <Page width="wide">
+      {/* The date rides the eyebrow beside the day number, exactly as Today's masthead sets it.
+          It was the `support` line — a second register for one fact, in the slot reserved for
+          "what this page is for" — which cost 32px above the hero and made the two landing
+          surfaces open in two different shapes for no reason a reader could name. */}
       <PageHeader
-        eyebrow={`Day ${currentDay} of ${totalDays}`}
+        eyebrow={`${format(parseISO(today), 'EEEE, MMMM d')} · Day ${currentDay} of ${totalDays}`}
         title="Dashboard"
-        support={`${format(parseISO(today), 'EEEE, MMMM d, yyyy')}. Today carries the plan; this page keeps the record.`}
         action={
-          <Button asChild size="sm">
-            <Link to="/today">Go to Today</Link>
+          <Button asChild variant="outline" size="sm">
+            <Link to="/today">Open Today</Link>
           </Button>
         }
       />
 
-      {/* The epigraph. A rail, not a plate — one reflection is not a component. The corpus rule
-          (src/data/reflections.ts) is absolute: a quotation shows its verbatim text and its
-          attribution; an original note shows no attribution at all. One line per day, never more. */}
-      <figure className="max-w-prose border-l-2 border-border pl-4">
-        <blockquote className="font-serif italic text-muted-foreground">{reflection.text}</blockquote>
-        {reflection.attribution && (
-          <figcaption className="mt-1 text-xs text-muted-foreground">— {reflection.attribution}</figcaption>
-        )}
-      </figure>
-
-      <Ledger items={ledgerItems} columns={ledgerItems.length === 3 ? 3 : 4} />
-
-      <Section title="Progress">
+      <PageColumns railLabel="Standing and record" rail={<>
+        {/* Attention first. A pattern only appears here after repeated negative evidence, so its
+            presence is itself the signal — which is why it opens the rail rather than sitting
+            fifth in a stack of equally-weighted bands. */}
         <Section
-          level={3}
-          title="Roadmap"
+          title="Weakest pattern"
+          // States its basis as well as its threshold. The compressed version kept "repeated
+          // negative evidence" but dropped what the evidence *is*, which leaves the page naming a
+          // learner's weakest pattern without saying what measured it — the one claim on this
+          // surface that most needs its provenance attached.
+          support="Measured from recall, drills and pace — named only after repeated negative evidence."
           action={
-            <p className="figures text-xs text-muted-foreground">
-              {solvedCount} of {totalQuestions} solved · {completionPct}%
-            </p>
+            weakestEntry ? (
+              <Button asChild size="sm" variant="ghost">
+                <Link to={`/patterns/${weakestEntry.id}`}>Practise</Link>
+              </Button>
+            ) : undefined
           }
         >
-          {/* The semester arc as a quiet ruled bar — the contract's first-viewport progress. */}
+          {weakestEntry ? (
+            <div className="flex flex-col gap-1">
+              <p className="text-base font-medium">{weakestEntry.name}</p>
+              {/* The model's own because-clause, not a coverage figure. Low coverage is not
+                  weakness: an unstarted pattern is unmeasured, and saying otherwise sent learners
+                  to practise the thing they had simply not reached yet. */}
+              <p className="text-sm text-muted-foreground">{weakestEntry.summary}</p>
+            </div>
+          ) : (
+            <p className="text-sm text-muted-foreground">
+              Nothing has enough evidence against it yet. Recall failures, drill misses and slow
+              solves are what score a pattern here.
+            </p>
+          )}
+        </Section>
+
+        <Section title="The record">
+          <Ledger items={ledgerItems} columns={2} />
+          <Meta items={[<>Productivity <span className="figures">{productivity} / 100</span></>, 'last 14 days']} />
+        </Section>
+
+        <Section
+          title="AI/ML course"
+          action={
+            <Button asChild size="sm" variant="ghost">
+              <Link to="/aiml">Continue</Link>
+            </Button>
+          }
+        >
+          <Progress value={courseStats.pct} aria-label="AI/ML course completion" />
+          <Meta
+            items={[
+              <>
+                <span className="figures">
+                  {courseStats.sessionsDone} / {courseStats.sessionsTotal}
+                </span>{' '}
+                sessions
+              </>,
+              courseNextWeek && `Next: Week ${courseNextWeek.week} — ${courseNextWeek.title}`,
+              courseFinish && `Finish ${formatProjection(courseFinish, today)}`,
+              courseDueReviews.length > 0 &&
+                `${courseDueReviews.length} review${courseDueReviews.length === 1 ? '' : 's'} due`,
+              courseNext === null && 'Complete',
+            ]}
+          />
+        </Section>
+
+        {/* The epigraph. A rail, not a plate — one reflection is not a component. The corpus rule
+            (src/data/reflections.ts) is absolute: a quotation shows its verbatim text and its
+            attribution; an original note shows no attribution at all. One line per day, never
+            more. It closes the context column, which is where a marginal note belongs. */}
+        <figure className="border-l-2 border-border pl-4">
+          <blockquote className="font-serif italic text-muted-foreground">{reflection.text}</blockquote>
+          {reflection.attribution && (
+            <figcaption className="mt-1 text-xs text-muted-foreground">— {reflection.attribution}</figcaption>
+          )}
+        </figure>
+      </>}>
+        {/* The page's one plate, and the first thing in the reading order. */}
+        {ranked.length > 0 ? (
+          <NextActionCard ranked={ranked} />
+        ) : (
+          <p className="text-sm text-muted-foreground">
+            Today&apos;s plan is clear — nothing is queued.
+          </p>
+        )}
+
+        {behind.length > 0 && (
+          <Section
+            title="Behind it"
+            action={
+              <Button variant="ghost" size="sm" onClick={handleRandomQuestion}>
+                <Dices /> Random question
+              </Button>
+            }
+          >
+            <RuledList>
+              {behind.map((item) => (
+                <RuledItem key={item.id} padded={false}>
+                  {/* The row's own control carries the padding, so the hover and focus surfaces
+                      fill the row they appear to fill — and the tap target is the full 44px rather
+                      than the height of the text inside it. */}
+                  <button
+                    type="button"
+                    onClick={() => openWork(item)}
+                    className="flex w-full min-h-11 flex-col gap-0.5 py-2.5 text-left transition-colors duration-150 ease-swift hover:text-primary"
+                  >
+                    <span className="flex items-baseline gap-3">
+                      <span className="min-w-0 flex-1 truncate text-sm font-medium">{item.title}</span>
+                      <span className="figures shrink-0 text-xs text-muted-foreground">
+                        ~{formatMinutes(item.minutes)}
+                      </span>
+                    </span>
+                    <span className="text-xs text-muted-foreground">{item.why}</span>
+                  </button>
+                </RuledItem>
+              ))}
+            </RuledList>
+          </Section>
+        )}
+
+        {/* Where am I — one section, not a parent heading over two subsections over two bars.
+            The old shape spent ~150px of heading machinery to deliver 16px of data. */}
+        <Section title="Progress" aria-label="Progress">
+          <Figures items={standing} />
           <Progress value={completionPct} aria-label="Roadmap completion" />
           {roadmapComplete ? (
             <p className="text-sm font-medium">Roadmap complete — every question solved.</p>
           ) : currentQuestion && currentPattern ? (
-            // Pattern and difficulty describe one object — the question you are standing on — so
-            // they read as one line rather than as two chips.
+            // The roadmap position, which is not the same fact as the hero's pattern: the next
+            // best action is often a recall of something learned weeks ago, while this says where
+            // the course itself has got to.
             <Meta
               items={[
                 <>
                   You&apos;re in: <span className="text-foreground">{currentPattern.name}</span>
                 </>,
-                <span className="capitalize">{currentQuestion.difficulty}</span>,
+                // The difficulty inks, like everywhere else. This line printed the bare word with
+                // no difficulty token at all — the one place in the app where difficulty rendered
+                // as plain text. `bare` because it sits in a `Meta` line.
+                <DifficultyBadge difficulty={currentQuestion.difficulty} variant="bare" />,
               ]}
             />
           ) : null}
+          {/* `DailyGoalProgress` is deliberately NOT here. It is Today's frame — the same bar with
+              the same "N / M solved today" caption, from the same two selectors — and Today puts
+              it in its first 300px. Rendering it under Dashboard's roadmap-scale bar stacked two
+              progress bars 16px apart with one heading over both, which reads as one bar drawn
+              twice rather than as two different denominators. This section answers "how far
+              through the course am I"; the day is Today's question. */}
         </Section>
+      </PageColumns>
 
-        <Section level={3} title="Today">
-          <DailyGoalProgress solvedToday={solvedToday} perDay={perDay} />
-        </Section>
-      </Section>
-
-      {/* Reads the same ranked list Today's hero and session plan read. The Dashboard used to run
-          a second, category-level recommender, which could tell the learner to "practice your
-          weakest pattern" while Today told them to revise a specific question — two surfaces
-          disagreeing about the same decision. One ranker now. */}
-      <Section
-        title="Up next"
-        support="The top of the same queue Today works from."
-        action={
-          <Button variant="ghost" size="sm" onClick={handleRandomQuestion}>
-            <Dices /> Random question
-          </Button>
-        }
-      >
-        {ranked.length === 0 ? (
-          <p className="text-sm text-muted-foreground">Today&apos;s plan is clear.</p>
-        ) : (
-          <RuledList>
-            {ranked.slice(0, 3).map((item, index) => (
-              <RuledItem key={item.id} className="flex flex-col gap-1">
-                <div className="flex items-baseline gap-3">
-                  <span className="figures text-xs text-muted-foreground">{index + 1}</span>
-                  <button
-                    type="button"
-                    onClick={() => openWork(item)}
-                    className="min-w-0 flex-1 truncate text-left text-sm font-medium transition-colors duration-150 ease-swift hover:text-primary"
-                  >
-                    {item.title}
-                  </button>
-                  <span className="figures shrink-0 text-xs text-muted-foreground">
-                    ~{formatMinutes(item.minutes)}
-                  </span>
-                </div>
-                <p className="pl-6 text-xs text-muted-foreground">{item.why}</p>
-              </RuledItem>
-            ))}
-          </RuledList>
-        )}
-      </Section>
-
-      <Section
-        title="Weakest pattern"
-        support="Measured from recall, drills and pace — a pattern needs repeated negative evidence before it is named at all."
-        action={
-          weakestEntry ? (
-            <Button asChild size="sm" variant="ghost">
-              <Link to={`/patterns/${weakestEntry.id}`}>Practice this</Link>
-            </Button>
-          ) : undefined
-        }
-      >
-        {weakestEntry ? (
-          <div className="flex flex-col gap-1">
-            <p className="text-base font-medium">{weakestEntry.name}</p>
-            {/* The model's own because-clause, not a coverage figure. Low coverage is not
-                weakness: an unstarted pattern is unmeasured, and saying otherwise sent learners
-                to practise the thing they had simply not reached yet. */}
-            <p className="max-w-prose text-sm text-muted-foreground">{weakestEntry.summary}</p>
-          </div>
-        ) : (
-          <p className="text-sm text-muted-foreground">
-            Nothing has enough evidence against it yet. Recall failures, drill misses and slow
-            solves are what score a pattern here.
-          </p>
-        )}
-      </Section>
-
-      <Section
-        title="AI/ML course"
-        action={
-          <Button asChild size="sm" variant="ghost">
-            <Link to="/aiml">Continue</Link>
-          </Button>
-        }
-      >
-        <Progress value={courseStats.pct} aria-label="AI/ML course completion" />
-        <Meta
-          items={[
-            <span className="figures">
-              {courseStats.sessionsDone} / {courseStats.sessionsTotal} sessions
-            </span>,
-            courseNextWeek && `Next: Week ${courseNextWeek.week} — ${courseNextWeek.title}`,
-            courseFinish && `Finish ${formatProjection(courseFinish, today)}`,
-            courseDueReviews.length > 0 &&
-              `${courseDueReviews.length} review${courseDueReviews.length === 1 ? '' : 's'} due`,
-            courseNext === null && 'Complete',
-          ]}
-        />
-      </Section>
-
-      {/* Gamification is context, not the lead: one quiet line under the year of activity it
-          actually describes, rather than three competing objects in the first screenful. */}
+      {/* Full width, below the grid, and last. The year is 792px of reference data: in a rail it
+          would scroll sideways, and in the main column it would be the largest object on a page
+          whose largest object should be the decision. */}
       <Section
         divider
         title="Activity"
@@ -324,7 +384,7 @@ export default function DashboardPage() {
             <span className="inline-flex items-center gap-1.5">
               <StreakFlame current={streaks.current} /> day streak
             </span>,
-            <span className="figures">Longest {streaks.longest}</span>,
+            <>Longest <span className="figures">{streaks.longest}</span></>,
             <span>
               Level {levelInfo.level},{' '}
               <span className="figures">

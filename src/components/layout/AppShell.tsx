@@ -54,14 +54,28 @@ export function AppShell() {
 
   return (
     <div className="flex min-h-screen">
+      {/* Bypass block (WCAG 2.4.1, level A). Fifteen sidebar links precede the content on every
+          route, so a keyboard or switch user paid fifteen tab stops per navigation to reach the
+          page they had just opened. It is the first thing in the tab order, invisible until
+          focused, and then it renders as an ordinary plate above the sidebar's top edge. */}
+      <a
+        href="#content"
+        className="glass sr-only left-4 top-4 z-50 px-4 py-2.5 text-sm font-medium focus:not-sr-only focus:absolute focus:inline-flex focus:min-h-11 focus:items-center"
+      >
+        Skip to content
+      </a>
       <Sidebar />
-      <main className="min-w-0 flex-1">
+      <main id="content" className="min-w-0 flex-1">
         {/* pb-28 on phones: the bottom-nav clearance the design system specifies (DESIGN.md
             § Adding a New Surface #8). It was pb-36 to accommodate the floating pomodoro's
             permanent plate — 144px of dead page foot on every phone screen to make room for a
             timer that is idle almost all the time. The widget now collapses to a 40px ghost
             button when idle, and its glyph sits inside this reservation. Desktop has neither. */}
-        <div className="mx-auto w-full max-w-6xl px-4 py-6 pb-28 md:px-8 md:py-10 md:pb-10">
+        {/* `py-5 md:py-8` (was `py-6 md:py-10`). The shell's own top padding is pure lead-in — it
+            communicates nothing and is charged against the first viewport of every route, twice
+            over on desktop where the masthead already opens with an eyebrow. `pb-28` is untouched:
+            that one is the bottom-nav clearance and shrinking it would put the nav over content. */}
+        <div className="mx-auto w-full max-w-6xl px-4 py-5 pb-28 md:px-8 md:py-8 md:pb-10">
           {/* Boundary inside the shell: a page crash keeps the sidebar/nav alive so the user
               can still move to another route. App.tsx carries the outer backstop. */}
           <ErrorBoundary>

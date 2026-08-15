@@ -274,10 +274,13 @@ export default function CalendarPage() {
                   }${perfect ? ' — perfect day' : ''}`}
                   onClick={() => setSelectedDate(iso)}
                   className={cn(
-                    // Square at every width. The landscape variant above `sm` stretched one date
-                    // numeral and one 8px dot across 150×64 — tiny information in a large area,
-                    // and a shape nothing else in the product uses.
-                    'relative flex aspect-square flex-col items-center justify-center gap-1.5 rounded-md border border-transparent text-sm transition-colors duration-150 ease-swift',
+                    // A capped height, not a square. `aspect-square` tied the cell's height to
+                    // its width, and a seventh of this measure is ~130px — so every cell spent
+                    // ~130px of height on one date numeral and an 8px dot, the month ran past
+                    // 1000px, and the totals caption this section ends on fell below the fold.
+                    // 56/64px keeps the whole month and its caption in one viewport, and the
+                    // cell stays comfortably past the 44px target.
+                    'relative flex h-14 flex-col items-center justify-center gap-1.5 rounded-md border border-transparent text-sm transition-colors duration-150 ease-swift sm:h-16',
                     future ? 'cursor-not-allowed opacity-40' : 'hover:bg-muted',
                     isToday && 'border-primary',
                     perfect && 'ring-2 ring-primary',

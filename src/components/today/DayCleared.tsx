@@ -15,8 +15,9 @@ import { formatMinutes } from '@/utils/engine/planner';
  */
 export function DayCleared({ solvedToday, minutesToday }: { solvedToday: number; minutesToday: number }) {
   return (
-    <Lead>
-      <section className="flex flex-col gap-5" aria-label="Today is clear">
+    // Same collapse as NextActionCard: the plate names itself and owns the stack.
+    <Lead aria-label="Today is clear">
+      <>
         <div className="flex items-center gap-2 border-b border-border/70 pb-2">
           <CheckCircle2 className="h-4 w-4 shrink-0 text-easy" aria-hidden="true" />
           <p className="text-xs uppercase tracking-[0.14em] text-muted-foreground">Done for today</p>
@@ -56,7 +57,7 @@ export function DayCleared({ solvedToday, minutesToday }: { solvedToday: number;
             <Link to="/analytics">See what changed</Link>
           </Button>
         </div>
-      </section>
+      </>
     </Lead>
   );
 }

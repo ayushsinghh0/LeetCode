@@ -8,6 +8,7 @@ import { Button } from '@/components/ui/button';
 import { DifficultyBadge } from '@/components/questions/DifficultyBadge';
 import { EmptyState } from '@/components/shared/EmptyState';
 import {
+  Disclosure,
   Eyebrow,
   Lead,
   Meta,
@@ -161,7 +162,15 @@ export default function ContestPage() {
       <PageHeader
         eyebrow={format(parseISO(today), 'EEEE, MMMM d')}
         title="Contest"
-        support="Practice measures whether you can solve it. A contest measures whether you can solve it now, cold, with a clock running — which is the thing an interview actually tests."
+        // The premise is pre-start copy. Once a clock is running the learner knows what a contest
+        // is; leaving four lines explaining it above the working set cost the difference between
+        // one and three problem rows in the first viewport of a 375px phone. It returns verbatim
+        // the moment the sitting ends.
+        support={
+          running
+            ? undefined
+            : 'Practice measures whether you can solve it. A contest measures whether you can solve it now, cold, with a clock running — which is the thing an interview actually tests.'
+        }
         action={
           running ? (
             <Button onClick={() => dispatch(finishContest())}>
@@ -178,8 +187,7 @@ export default function ContestPage() {
           hint="Contests draw from problems you haven't solved or skipped, and there are none left."
         />
       ) : !running && !finished ? (
-        <Section aria-label="Start a contest">
-          <Lead className="flex flex-col gap-6">
+          <Lead aria-label="Start a contest">
             <div className="flex flex-col gap-3">
               <Eyebrow>Today's set</Eyebrow>
               <h2 className="text-xl font-semibold md:text-2xl">Four problems, one clock.</h2>
@@ -189,23 +197,30 @@ export default function ContestPage() {
                 schedule is the sum of the problems' own estimates with a little slack: tight, not
                 impossible.
               </p>
-              <p className="max-w-prose text-sm leading-relaxed text-muted-foreground">
-                Time counts only while a problem is on the clock, and you can move the clock
-                freely; once a problem is on it, it keeps counting until you pause it, tab away or
-                not. At the end there is no score and no rank — just an honest reading of each
-                problem, and the one pattern worth acting on when the set supports a claim at all.
-              </p>
-              {/* What the seed actually guarantees. The old line promised "reloading rebuilds the
-                  same set", which two mechanisms contradict: `buildContest` draws only from
-                  problems you have not solved, so solving one changes the pool the next draw
-                  reads, and the contest slice is deliberately not persisted, so a reload ends the
-                  sitting rather than restoring it. */}
-              <p className="max-w-prose text-sm leading-relaxed text-muted-foreground">
-                Seeded by today's date and drawn only from problems you haven't solved: start
-                another one later today and you get this same set — until you solve one of them,
-                which takes it out of the pool and changes the draw. Reloading mid-contest ends the
-                sitting rather than restoring it; a stopped clock is not a paused one.
-              </p>
+              {/* Two of the four paragraphs are rules rather than the pitch, and they moved behind
+                  a latch verbatim. Four paragraphs put "Start the contest" at 883px on a 375px
+                  phone — below an 812px fold, so the one thing this screen exists to offer had to
+                  be scrolled for. The opener above still says what the set is; the mechanics are
+                  one click away and stay in full. */}
+              <Disclosure summary="How the clock and the draw work">
+                <p className="max-w-prose text-sm leading-relaxed text-muted-foreground">
+                  Time counts only while a problem is on the clock, and you can move the clock
+                  freely; once a problem is on it, it keeps counting until you pause it, tab away or
+                  not. At the end there is no score and no rank — just an honest reading of each
+                  problem, and the one pattern worth acting on when the set supports a claim at all.
+                </p>
+                {/* What the seed actually guarantees. The old line promised "reloading rebuilds the
+                    same set", which two mechanisms contradict: `buildContest` draws only from
+                    problems you have not solved, so solving one changes the pool the next draw
+                    reads, and the contest slice is deliberately not persisted, so a reload ends the
+                    sitting rather than restoring it. */}
+                <p className="max-w-prose text-sm leading-relaxed text-muted-foreground">
+                  Seeded by today's date and drawn only from problems you haven't solved: start
+                  another one later today and you get this same set — until you solve one of them,
+                  which takes it out of the pool and changes the draw. Reloading mid-contest ends the
+                  sitting rather than restoring it; a stopped clock is not a paused one.
+                </p>
+              </Disclosure>
             </div>
             <div>
               <Button onClick={() => dispatch(startContest())}>
@@ -213,32 +228,47 @@ export default function ContestPage() {
               </Button>
             </div>
           </Lead>
-        </Section>
       ) : running ? (
         <>
-          <Section aria-label="Contest in progress">
-            {/* The lead is the clock and the count — the one thing the page is about while a
-                contest runs. The set itself lives in its own section below. */}
-            <Lead className="flex flex-wrap items-baseline justify-between gap-x-6 gap-y-2">
-              <div className="flex items-baseline gap-3">
-                <p className="figures font-serif text-[1.75rem] font-semibold leading-none tracking-tight">
-                  {elapsed} min
-                </p>
-                <p className="text-sm text-muted-foreground">
-                  of ~{contest.durationMin} scheduled{overTime && ' — over time'}
-                </p>
-              </div>
-              <Eyebrow>
-                {problems.filter((p) => contest.attempts[p.question.id]?.solved).length} of{' '}
-                {problems.length} solved
-              </Eyebrow>
-            </Lead>
-          </Section>
+          {/* The lead is the clock and the count — the one thing the page is about while a
+              contest runs. The set itself lives in its own section below.
 
-          <Section
-            title="The set"
-            support="Time counts only while a problem is on the clock. Once a problem is on it, the clock runs until you pause it — including while you work in another tab, which is where the solving actually happens. Pause it when you step away."
+              `sticky top-2`: the clock is one of the four elements the directive pre-authorises as
+              sticky, and it was measurably failing without it — on a 375px phone the first problem
+              row ends at 743px while the clock's bottom edge sat at 310px, so a learner actually
+              working the set could not see the timer the page exists to impose. `Lead` is `.glass`,
+              so it already carries an opaque card ground and needs no extra surface to pin. */}
+          <Lead
+            aria-label="Contest in progress"
+            className="sticky top-2 z-30 flex flex-wrap items-baseline justify-between gap-x-6 gap-y-2"
           >
+            <div className="flex items-baseline gap-3">
+              <p className="figures font-serif text-[1.75rem] font-semibold leading-none tracking-tight">
+                {elapsed} min
+              </p>
+              <p className="text-sm text-muted-foreground">
+                of ~{contest.durationMin} scheduled{overTime && ' — over time'}
+              </p>
+            </div>
+            <Eyebrow>
+              {problems.filter((p) => contest.attempts[p.question.id]?.solved).length} of{' '}
+              {problems.length} solved
+            </Eyebrow>
+          </Lead>
+
+          <Section title="The set">
+            {/* Verbatim, one latch down. As a `support` line this was 250 characters — five lines
+                at 375px — sitting between the clock and the first problem on the one screen where
+                vertical space is being spent by a running timer. It is a rule you read once and
+                then work under, not a caption you re-read every sitting. */}
+            <Disclosure summary="How the clock works">
+              <p className="max-w-prose text-sm leading-relaxed text-muted-foreground">
+                Time counts only while a problem is on the clock. Once a problem is on it, the clock
+                runs until you pause it — including while you work in another tab, which is where
+                the solving actually happens. Pause it when you step away.
+              </p>
+            </Disclosure>
+
             <RuledList aria-label="Contest problems" as="ol">
               {problems.map(({ question, order, targetMinutes }) => {
                 const attempt = contest.attempts[question.id];
@@ -359,8 +389,7 @@ export default function ContestPage() {
         </>
       ) : finished && analysis ? (
         <>
-          <Section aria-label="Contest verdict">
-            <Lead className="flex flex-col gap-6">
+            <Lead aria-label="Contest verdict">
               <div className="flex flex-col gap-3">
                 <Eyebrow>The verdict</Eyebrow>
                 <p className="font-serif text-[1.75rem] font-semibold leading-tight tracking-tight">
@@ -424,7 +453,6 @@ export default function ContestPage() {
                 </Button>
               </div>
             </Lead>
-          </Section>
 
           <Section
             title="How each problem read"
@@ -452,7 +480,10 @@ export default function ContestPage() {
                       <Button
                         variant="link"
                         size="sm"
-                        className="h-auto p-0"
+                        // `h-auto p-0` cancelled both `size="sm"`'s h-9 and its padding, leaving a
+                        // 16px-tall target — the smallest control in the app. `min-h-11` restores
+                        // the hit area without restoring the button chrome a link variant refuses.
+                        className="h-auto min-h-11 px-0 py-2"
                         onClick={() => dispatch(activeQuestionSet(reading.question.id))}
                       >
                         Take a calm second look

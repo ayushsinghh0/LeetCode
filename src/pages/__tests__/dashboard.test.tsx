@@ -29,9 +29,14 @@ describe('DashboardPage', () => {
   test('fresh store: shows "Day 1 of 68", "0 / 539", and today\'s reflection; hero renders', () => {
     renderWithStore(<DashboardPage />);
 
-    // The hero heading styles "of 68" in a nested span, so match on the element's full text.
+    // The masthead eyebrow carries the date beside the day number, in the register Today's
+    // masthead already uses — one fact, one register. It was a separate `support` line.
     expect(
-      screen.getByText((_, el) => el?.tagName === 'P' && el.textContent?.replace(/\s+/g, ' ').trim() === 'Day 1 of 68'),
+      screen.getByText(
+        (_, el) =>
+          el?.tagName === 'P' &&
+          el.textContent?.replace(/\s+/g, ' ').trim() === 'Thursday, July 30 · Day 1 of 68',
+      ),
     ).toBeInTheDocument();
     expect(screen.getByText('0 / 539')).toBeInTheDocument();
     // A fresh store has never been active, so daysAway is null — not a "return". Ordinary pool.
@@ -40,9 +45,12 @@ describe('DashboardPage', () => {
     if (reflection.attribution) {
       expect(screen.getByText(`— ${reflection.attribution}`)).toBeInTheDocument();
     }
-    // hero current-position line for day 1's first (unsolved) question, "Valid Palindrome" (two-pointers/easy)
+    // The page's hero is the same NextActionCard Today renders, reading the same ranked list.
+    expect(screen.getByRole('region', { name: 'Your next action' })).toBeInTheDocument();
+    // Roadmap-position line for day 1's first (unsolved) question — and on a fresh store the hero
+    // names the same pattern, so the pattern text legitimately appears more than once.
     expect(screen.getByText(/you're in/i)).toBeInTheDocument();
-    expect(screen.getByText('Two Pointers')).toBeInTheDocument();
+    expect(screen.getAllByText('Two Pointers').length).toBeGreaterThanOrEqual(1);
   });
 
   test('a genuine return draws the epigraph from the returning pool — same gate as ReturnNotice', () => {
@@ -65,7 +73,11 @@ describe('DashboardPage', () => {
     renderWithStore(<DashboardPage />, store);
 
     expect(
-      screen.getByText((_, el) => el?.tagName === 'P' && el.textContent?.replace(/\s+/g, ' ').trim() === 'Day 2 of 68'),
+      screen.getByText(
+        (_, el) =>
+          el?.tagName === 'P' &&
+          el.textContent?.replace(/\s+/g, ' ').trim() === 'Thursday, July 30 · Day 2 of 68',
+      ),
     ).toBeInTheDocument();
     expect(screen.getByText('8 / 539')).toBeInTheDocument();
   });
@@ -152,7 +164,11 @@ describe('DashboardPage', () => {
     const store = makeStore({ progress: { byId, dayLogs: {}, startDate: '2026-07-01' } });
     renderWithStore(<DashboardPage />, store);
 
-    expect(screen.getByText('Revisions queued')).toBeInTheDocument();
+    // "Reviews", not "Revisions": this figure spans both ladders, while Today's weekly banner
+    // says "N revisions queued" over the question ladder alone. Rendering the identical phrase
+    // for two different totals is the failure this label change fixes — the `sub` line below
+    // carries the split.
+    expect(screen.getByText('Reviews queued')).toBeInTheDocument();
     expect(screen.getByText('15 questions · 0 course')).toBeInTheDocument();
     expect(screen.queryByText('Revisions due')).not.toBeInTheDocument();
   });

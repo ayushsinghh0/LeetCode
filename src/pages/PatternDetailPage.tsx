@@ -3,7 +3,7 @@ import { Link, useParams } from 'react-router-dom';
 import { SearchX, Shapes } from 'lucide-react';
 import { iconByName } from '@/components/shared/iconMap';
 import { EmptyState } from '@/components/shared/EmptyState';
-import { Ledger, Meta, Page, PageHeader, RuledList, Section } from '@/components/layout/Page';
+import { Disclosure, Ledger, Meta, Page, PageColumns, PageHeader, RuledList, Section } from '@/components/layout/Page';
 import { DifficultyBadge } from '@/components/questions/DifficultyBadge';
 import { ConfidenceRating } from '@/components/questions/ConfidenceRating';
 import { QuestionRow } from '@/components/questions/QuestionCard';
@@ -103,6 +103,17 @@ export default function PatternDetailPage() {
     return bySubpattern.filter((s) => s.items.length > 0);
   }, [patternId, filtered]);
 
+  // The group the learner is standing in — the first with an unsolved question — opens by
+  // default; every other group is a 44px summary row. All groups open at once was the exact
+  // anti-pattern the composition pass exists to remove: 34 rows and six headings before the
+  // second sub-pattern's name was even visible.
+  const openSectionIndex = useMemo(() => {
+    const idx = sections.findIndex((s) =>
+      s.items.some((q) => (progressById[q.id]?.status ?? 'unsolved') !== 'solved'),
+    );
+    return idx === -1 ? 0 : idx;
+  }, [sections, progressById]);
+
   if (!patternId || !isPatternId(patternId)) {
     return (
       <Page width="reading">
@@ -170,121 +181,134 @@ export default function PatternDetailPage() {
         }
       />
 
-      <Section aria-label="Progress">
-        <Meta
-          items={[
-            // Borderless inside a Meta line: the counts and the difficulties describe one
-            // breakdown, and a bordered chip here would box one fact inside a line of plain text.
-            ...difficultyCounts.map(({ difficulty: d, count }) => (
-              <span key={d} className="inline-flex items-center gap-1.5">
-                <DifficultyBadge difficulty={d} variant="bare" />
-                <span className="figures">{count}</span>
-              </span>
-            )),
-            avgConfidence !== null && (
-              <span key="confidence" className="inline-flex items-center gap-2">
-                Avg. confidence
-                <ConfidenceRating value={avgConfidence} />
-              </span>
-            ),
-          ]}
-        />
+      {/* Work left, context right. The questions are what the learner came for, and they used to
+          begin ~500px down, under a stat block and a company section that only ever explain. On a
+          phone the DOM order keeps the same priority: questions first, record after. */}
+      <PageColumns
+        railLabel="Pattern context"
+        rail={
+          <>
+            <Section aria-label="Progress">
+              <Meta
+                items={[
+                  // Borderless inside a Meta line: the counts and the difficulties describe one
+                  // breakdown, and a bordered chip here would box one fact inside plain text.
+                  ...difficultyCounts.map(({ difficulty: d, count }) => (
+                    <span key={d} className="inline-flex items-center gap-1.5">
+                      <DifficultyBadge difficulty={d} variant="bare" />
+                      <span className="figures">{count}</span>
+                    </span>
+                  )),
+                  avgConfidence !== null && (
+                    <span key="confidence" className="inline-flex items-center gap-2">
+                      Avg. confidence
+                      <ConfidenceRating value={avgConfidence} />
+                    </span>
+                  ),
+                ]}
+              />
 
-        <Progress value={stat.pct} className="h-1.5" aria-label={`${meta.name} completion`} />
+              <Progress value={stat.pct} className="h-1.5" aria-label={`${meta.name} completion`} />
 
-        <Ledger
-          items={[
-            {
-              label: 'Solved',
-              value: `${stat.solved}/${stat.total}`,
-              sub: `${stat.pct}% · ${stat.remaining} remaining`,
-            },
-            { label: 'Mastered', value: stat.mastered },
-            { label: 'In revision', value: stat.inRevision },
-            // A pass rate is passes/attempts, so its resolution is 1/attempts: one failed recall
-            // renders "0%" in the stat voice, indistinguishable from 0% over forty attempts. The
-            // denominator is therefore never omitted, and below the reporting minimum the figure
-            // is a dash with the shortfall named — the posture engine/timeEstimate.ts and
-            // engine/insights.ts already hold everywhere else.
-            {
-              label: 'Pass rate',
-              value: passRateMeasured ? `${Math.round(passRate! * 100)}%` : '—',
-              sub:
-                reviews === 0
-                  ? 'no reviews yet'
-                  : passRateMeasured
-                    ? `over ${reviews} reviews`
-                    : `needs ${MIN_PASS_RATE_ATTEMPTS} reviews — you have ${reviews}`,
-            },
-          ]}
-        />
-      </Section>
+              <Ledger
+                columns={2}
+                items={[
+                  {
+                    label: 'Solved',
+                    value: `${stat.solved}/${stat.total}`,
+                    sub: `${stat.pct}% · ${stat.remaining} remaining`,
+                  },
+                  { label: 'Mastered', value: stat.mastered },
+                  { label: 'In revision', value: stat.inRevision },
+                  // A pass rate is passes/attempts, so its resolution is 1/attempts: one failed
+                  // recall renders "0%" in the stat voice, indistinguishable from 0% over forty
+                  // attempts. The denominator is therefore never omitted, and below the reporting
+                  // minimum the figure is a dash with the shortfall named — the posture
+                  // engine/timeEstimate.ts and engine/insights.ts already hold everywhere else.
+                  {
+                    label: 'Pass rate',
+                    value: passRateMeasured ? `${Math.round(passRate! * 100)}%` : '—',
+                    sub:
+                      reviews === 0
+                        ? 'no reviews yet'
+                        : passRateMeasured
+                          ? `over ${reviews} reviews`
+                          : `needs ${MIN_PASS_RATE_ATTEMPTS} reviews — you have ${reviews}`,
+                  },
+                ]}
+              />
+            </Section>
 
-      {/* Interview relevance, at the only level the evidence supports: which companies name
-          this topic in their own published prep guidance. Never a per-problem claim. */}
-      {namingCompanies.length > 0 && (
-        <Section
-          title="Named in company prep guidance"
-          support="These companies' own interview-prep pages list topics this pattern covers. That is a statement about the topic, not about any question below."
-          aria-label="Interview relevance"
-        >
-          <ul className="flex flex-wrap gap-2">
-            {namingCompanies.map((company) => (
-              <li key={company.id}>
-                <Link
-                  to={`/companies/${company.id}`}
-                  className="inline-flex rounded-sm border border-border px-2 py-1 text-xs transition-colors duration-150 ease-swift hover:border-primary/40 hover:text-primary"
-                >
-                  {company.name}
-                </Link>
-              </li>
-            ))}
-          </ul>
-        </Section>
-      )}
-
-      <Section
-        title="Questions"
-        support={`Showing ${filtered.length} of ${patternQuestions.length}.`}
+            {/* Interview relevance, at the only level the evidence supports: which companies name
+                this topic in their own published prep guidance. Never a per-problem claim. */}
+            {namingCompanies.length > 0 && (
+              <Section
+                title="Named in company prep guidance"
+                support="These companies' own interview-prep pages list topics this pattern covers. That is a statement about the topic, not about any question below."
+                aria-label="Interview relevance"
+              >
+                <ul className="flex flex-wrap gap-2">
+                  {namingCompanies.map((company) => (
+                    <li key={company.id}>
+                      <Link
+                        to={`/companies/${company.id}`}
+                        className="inline-flex rounded-sm border border-border px-2 py-1 text-xs transition-colors duration-150 ease-swift hover:border-primary/40 hover:text-primary"
+                      >
+                        {company.name}
+                      </Link>
+                    </li>
+                  ))}
+                </ul>
+              </Section>
+            )}
+          </>
+        }
       >
-        {/* The same filter row Bookmarks and the search palette use. This page used to roll its
-            own pair of Selects for the identical job, so two adjacent surfaces had two designs
-            for one control. Chips clear by re-clicking, which is why there is no "All" option. */}
-        <QuestionFilterRow
-          difficulty={difficulty}
-          onDifficultyChange={setDifficulty}
-          status={status}
-          onStatusChange={setStatus}
-          statusOptions={ALL_STATUS_OPTIONS}
-        />
-
-        {filtered.length === 0 ? (
-          <EmptyState icon={SearchX} title="No questions match these filters" />
-        ) : sections.length === 0 ? (
-          questionList(filtered, 'Questions')
-        ) : null}
-      </Section>
-
-      {/* Sub-pattern sections: the taxonomy layer that turns "20 stack problems" into "matching,
-          monotonic, parsing..." — recognition starts with the grouping. They are sections in
-          their own right, so they are siblings under `Page` and take the between-sections step
-          from it. They used to sit in a hand-rolled `gap-10` wrapper, which held them 40px apart
-          at every width while every other section on the page moved to 48px at md. `sections` is
-          derived from `filtered`, so it is already empty whenever the filters match nothing. */}
-      {sections.map(({ id, name, items }) => (
         <Section
-          key={id}
-          level={3}
-          title={
-            <>
-              {name} <span className="figures text-sm font-normal text-muted-foreground">· {items.length}</span>
-            </>
-          }
-          aria-label={name}
+          title="Questions"
+          support={`Showing ${filtered.length} of ${patternQuestions.length}.`}
         >
-          {questionList(items, `${name} questions`)}
+          {/* The same filter row Bookmarks and the search palette use. This page used to roll its
+              own pair of Selects for the identical job, so two adjacent surfaces had two designs
+              for one control. Chips clear by re-clicking, which is why there is no "All" option. */}
+          <QuestionFilterRow
+            difficulty={difficulty}
+            onDifficultyChange={setDifficulty}
+            status={status}
+            onStatusChange={setStatus}
+            statusOptions={ALL_STATUS_OPTIONS}
+          />
+
+          {filtered.length === 0 ? (
+            <EmptyState icon={SearchX} title="No questions match these filters" />
+          ) : sections.length === 0 ? (
+            questionList(filtered, 'Questions')
+          ) : (
+            /* Sub-pattern groups: the taxonomy layer that turns "20 stack problems" into
+               "matching, monotonic, parsing..." — recognition starts with the grouping. Each is
+               a disclosure row now, not an always-open section: the chapter list is legible in
+               one glance, and only the group the learner is standing in spends the vertical
+               space. `sections` derives from `filtered`, so it empties with the filters. */
+            <div className="flex flex-col border-t border-border">
+              {sections.map(({ id, name, items }, i) => {
+                const solvedIn = items.filter(
+                  (q) => (progressById[q.id]?.status ?? 'unsolved') === 'solved',
+                ).length;
+                return (
+                  <Disclosure
+                    key={id}
+                    defaultOpen={i === openSectionIndex}
+                    summary={<span className="font-medium">{name}</span>}
+                    meta={`${solvedIn}/${items.length}`}
+                  >
+                    {questionList(items, `${name} questions`)}
+                  </Disclosure>
+                );
+              })}
+            </div>
+          )}
         </Section>
-      ))}
+      </PageColumns>
     </Page>
   );
 }

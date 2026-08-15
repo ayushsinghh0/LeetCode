@@ -88,11 +88,19 @@
   .light body::before {
     opacity: 0.06;
   }
-  /* The reader's voice: slab-serif display for titles, tightened at size. */
+  /* The reader's voice: slab-serif display for titles, tightened at size.
+
+     Display leading lives here, once, and is genuinely tight. It used to be applied per-site as
+     `leading-tight` / `leading-snug`, which was worse than doing nothing: Tailwind's own
+     `text-4xl` ships a 40px line box and `leading-tight` computes to 36 x 1.25 = 45px, so every
+     page title was *taller* for wearing a class named tight. Sixteen headings across the app were
+     paying that. Besley is a large-x-height slab and sets comfortably at 1.15; the numbers below
+     are the first ones in this file that actually remove height from a heading. */
   h1, h2, h3 {
     @apply font-serif;
     letter-spacing: -0.015em;
     text-wrap: balance;
+    line-height: 1.15;
   }
   ::selection {
     background: hsl(var(--primary) / 0.28);

@@ -56,17 +56,24 @@ export function sortStats(
 
 interface PatternRowProps {
   stat: PatternStat;
+  /** Course-order chapter number — stable across re-sorts, which is what makes it an identity. */
+  index: number;
 }
 
 /**
- * One pattern, as a line in a contents page: its ink-marked icon, its name, one bar, one figure.
+ * One pattern, as a line in a contents page: its chapter number, its ink-marked icon, its name,
+ * one bar, one figure.
  *
  * This was a plate holding a four-column micro-table (solved / in revision / mastered /
  * remaining). Those four numbers are one progression, and at 375px each column got ~75px, so
  * "in revision" and "remaining" wrapped and the row rendered ragged. The progression is a bar
  * plus a fraction here; the breakdown lives on the pattern's own page, which has room for it.
+ *
+ * The numeral is the course position, not the current sort position — re-sorting by "weakest"
+ * shuffles the rows but chapter 14 stays chapter 14, which is exactly what tells the reader the
+ * list has been re-ordered.
  */
-function PatternRow({ stat }: PatternRowProps) {
+function PatternRow({ stat, index }: PatternRowProps) {
   const meta = patternById[stat.pattern];
   const Icon = iconByName(meta.icon, Shapes);
 
@@ -74,8 +81,11 @@ function PatternRow({ stat }: PatternRowProps) {
     <RuledItem className="py-0">
       <Link
         to={`/patterns/${meta.id}`}
-        className="-mx-2 flex items-center gap-3 rounded-md px-2 py-3.5 transition-colors duration-150 ease-swift hover:bg-muted/40 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
+        className="-mx-2 flex items-center gap-3 rounded-md px-2 py-3 transition-colors duration-150 ease-swift hover:bg-muted/40 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
       >
+        <span aria-hidden="true" className="figures w-5 shrink-0 text-right text-xs text-muted-foreground">
+          {index}
+        </span>
         <span
           className="flex h-9 w-9 shrink-0 items-center justify-center rounded-md"
           style={{ backgroundColor: `${meta.color}26`, color: meta.color }}
@@ -83,7 +93,7 @@ function PatternRow({ stat }: PatternRowProps) {
           <Icon className="h-5 w-5" aria-hidden="true" />
         </span>
 
-        <span className="flex min-w-0 flex-1 flex-col gap-2">
+        <span className="flex min-w-0 flex-1 flex-col gap-1.5">
           <span className="flex items-baseline justify-between gap-3">
             <span className="truncate font-medium">{meta.name}</span>
             <span className="figures shrink-0 text-xs text-muted-foreground">
@@ -134,7 +144,13 @@ export default function PatternsPage() {
 
       <RuledList>
         {sortedStats.map((stat) => (
-          <PatternRow key={stat.pattern} stat={stat} />
+          <PatternRow
+            key={stat.pattern}
+            stat={stat}
+            // `stats` is course-ordered (patternStats maps PATTERNS in order), so the course
+            // position is the pattern's index there, not its position after sorting.
+            index={stats.indexOf(stat) + 1}
+          />
         ))}
       </RuledList>
     </Page>

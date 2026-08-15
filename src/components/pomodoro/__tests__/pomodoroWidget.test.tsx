@@ -62,13 +62,26 @@ describe('PomodoroWidget — floating', () => {
 });
 
 describe('PomodoroWidget — inline', () => {
-  // On /focus the dial IS the page (that route is mounted outside AppShell, so this is the only
-  // copy there). It is exempt from the collapse.
-  test('keeps its dial and its clock while idle', () => {
+  // /focus used to exempt the inline variant from the idle collapse ("the dial IS the page"), but
+  // idle is where the timer spends nearly all its life, and idle meant a permanent 258px plate
+  // showing a 160px ring at 100% and the word "Ready" above the question the learner came to work
+  // on. Idle is now a quiet ruled row — clock, phase, start — still a role="timer" with the clock
+  // a screen reader needs. The dial returns the moment a phase counts.
+  test('idle is a quiet row: clock and phase stay readable, the dial does not render', () => {
     renderWithStore(<PomodoroWidget variant="inline" />);
 
-    expect(screen.getByRole('group', { name: 'Pomodoro timer' })).toBeInTheDocument();
+    expect(screen.queryByRole('group', { name: 'Pomodoro timer' })).not.toBeInTheDocument();
+    expect(screen.getByRole('timer', { name: 'Pomodoro: Ready, 25:00 remaining' })).toBeInTheDocument();
     expect(screen.getByText('25:00')).toBeInTheDocument();
     expect(screen.getByText('Ready')).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /start pomodoro/i })).toBeInTheDocument();
+  });
+
+  test('the dial returns the moment a phase counts', () => {
+    const store = makeStore();
+    store.dispatch(pomodoroPhaseSet({ phase: 'focus', endsAt: Date.now() + 25 * 60_000 }));
+    renderWithStore(<PomodoroWidget variant="inline" />, store);
+
+    expect(screen.getByRole('group', { name: 'Pomodoro timer' })).toBeInTheDocument();
   });
 });

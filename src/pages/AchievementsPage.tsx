@@ -3,7 +3,7 @@ import { format, parseISO } from 'date-fns';
 import { Award } from 'lucide-react';
 import { iconByName } from '@/components/shared/iconMap';
 import { Button } from '@/components/ui/button';
-import { Page, PageHeader, RuledItem, RuledList, Section } from '@/components/layout/Page';
+import { Page, PageColumns, PageHeader, RuledItem, RuledList, Section } from '@/components/layout/Page';
 import { useAppSelector } from '@/store/hooks';
 import { ACHIEVEMENTS, type AchievementDef } from '@/utils/engine/achievements';
 
@@ -96,8 +96,8 @@ function LockedRow({ def }: { def: AchievementDef }) {
  *
  * The page used to render all 59 defs as identical bordered tiles, five across, so the 58 things
  * you have not done shouted exactly as loudly as the one you have. It is now ordered by what the
- * reader actually came for: what you earned and when, as an open ruled list, then the remaining
- * catalogue as a quiet index of six groups that expands only when asked.
+ * reader actually came for: what you earned and when, as an open ruled list, with the remaining
+ * catalogue beside it as a quiet index of six groups that expands only when asked.
  */
 export default function AchievementsPage() {
   const unlocked = useAppSelector((state) => state.gamification.unlocked);
@@ -128,76 +128,87 @@ export default function AchievementsPage() {
         support="Milestones for solving, revising, holding a streak, and clearing course weeks. They are a record of the work — there is nothing to spend them on."
       />
 
-      <Section title="Earned">
-        {unlockedDefs.length === 0 ? (
-          <p className="max-w-prose text-sm text-muted-foreground">
-            Nothing yet. Solving a single question earns the first one today.
-          </p>
-        ) : (
-          <RuledList>
-            {unlockedDefs.map((def) => (
-              <UnlockedRow key={def.id} def={def} date={unlocked[def.id]!} />
-            ))}
-          </RuledList>
-        )}
-      </Section>
-
-      <Section
-        title="Still locked"
-        support={
-          lockedTotal === 0
-            ? 'Every milestone in the roadmap is earned.'
-            : `${lockedTotal} left, grouped by what earns them.`
-        }
-        action={
-          lockedTotal > 0 && (
-            <Button
-              type="button"
-              variant="ghost"
-              size="sm"
-              aria-expanded={showLocked}
-              aria-controls={LOCKED_LIST_ID}
-              onClick={() => setShowLocked((open) => !open)}
-            >
-              {showLocked ? 'Hide list' : 'Show list'}
-            </Button>
-          )
+      {/* Record left, catalogue right. Stacked, the locked index — six group headings and their
+          tallies — crossed the fold once the earned list held even a handful of rows, and it was
+          costing that height as pure context: nothing in it can be acted on, it only says what
+          remains. Its rows are a short name and a quiet description, naturally narrow, so the
+          rail width costs them nothing. DOM order keeps Earned first below `lg`, where the
+          columns restack — the fallback reads exactly as the page always did. */}
+      <PageColumns
+        railLabel="Still locked"
+        rail={
+          <Section
+            title="Still locked"
+            support={
+              lockedTotal === 0
+                ? 'Every milestone in the roadmap is earned.'
+                : `${lockedTotal} left, grouped by what earns them.`
+            }
+            action={
+              lockedTotal > 0 && (
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="sm"
+                  aria-expanded={showLocked}
+                  aria-controls={LOCKED_LIST_ID}
+                  onClick={() => setShowLocked((open) => !open)}
+                >
+                  {showLocked ? 'Hide list' : 'Show list'}
+                </Button>
+              )
+            }
+          >
+            {/* One rule system, not three. The catalogue was a RuledList's hairlines around a
+                RuledItem's dividers around a per-group left border — three kinds of line for what is,
+                collapsed, six rows reading "Name … 3 / 9". The list keeps its hairlines; the group is
+                a real `Section level={3}` so the outline is truthful; and the locked items are held
+                together by indentation, which is all that grouping ever needed here. */}
+            <div id={LOCKED_LIST_ID}>
+              <RuledList>
+                {groups.map((group) => (
+                  <RuledItem key={group.name}>
+                    <Section
+                      level={3}
+                      title={group.name}
+                      action={
+                        <span className="figures text-xs text-muted-foreground">
+                          {group.items.length - group.locked.length} / {group.items.length}
+                        </span>
+                      }
+                    >
+                      {showLocked &&
+                        (group.locked.length === 0 ? (
+                          <p className="pl-6 text-sm text-muted-foreground">All earned.</p>
+                        ) : (
+                          <ul className="flex flex-col gap-2 pl-6">
+                            {group.locked.map((def) => (
+                              <LockedRow key={def.id} def={def} />
+                            ))}
+                          </ul>
+                        ))}
+                    </Section>
+                  </RuledItem>
+                ))}
+              </RuledList>
+            </div>
+          </Section>
         }
       >
-        {/* One rule system, not three. The catalogue was a RuledList's hairlines around a
-            RuledItem's dividers around a per-group left border — three kinds of line for what is,
-            collapsed, six rows reading "Name … 3 / 9". The list keeps its hairlines; the group is
-            a real `Section level={3}` so the outline is truthful; and the locked items are held
-            together by indentation, which is all that grouping ever needed here. */}
-        <div id={LOCKED_LIST_ID}>
-          <RuledList>
-            {groups.map((group) => (
-              <RuledItem key={group.name}>
-                <Section
-                  level={3}
-                  title={group.name}
-                  action={
-                    <span className="figures text-xs text-muted-foreground">
-                      {group.items.length - group.locked.length} / {group.items.length}
-                    </span>
-                  }
-                >
-                  {showLocked &&
-                    (group.locked.length === 0 ? (
-                      <p className="pl-6 text-sm text-muted-foreground">All earned.</p>
-                    ) : (
-                      <ul className="flex flex-col gap-2 pl-6">
-                        {group.locked.map((def) => (
-                          <LockedRow key={def.id} def={def} />
-                        ))}
-                      </ul>
-                    ))}
-                </Section>
-              </RuledItem>
-            ))}
-          </RuledList>
-        </div>
-      </Section>
+        <Section title="Earned">
+          {unlockedDefs.length === 0 ? (
+            <p className="max-w-prose text-sm text-muted-foreground">
+              Nothing yet. Solving a single question earns the first one today.
+            </p>
+          ) : (
+            <RuledList>
+              {unlockedDefs.map((def) => (
+                <UnlockedRow key={def.id} def={def} date={unlocked[def.id]!} />
+              ))}
+            </RuledList>
+          )}
+        </Section>
+      </PageColumns>
     </Page>
   );
 }

@@ -8,13 +8,15 @@ import { Textarea } from '@/components/ui/textarea';
 import { EmptyState } from '@/components/shared/EmptyState';
 import {
   Page,
+  PageColumns,
   PageHeader,
   Section,
   Lead,
   Rule,
   RuledList,
   RuledItem,
-  Ledger,
+  Figures,
+  Disclosure,
   Meta,
   Eyebrow,
 } from '@/components/layout/Page';
@@ -59,6 +61,12 @@ import type { Question } from '@/types';
  * engine composes the best use of it. Everything else on this page is subordinate to that: the
  * overdue count is never the headline, and work that does not fit is described as waiting rather
  * than as owed. See engine/session.ts for how depth, load and the session arc are chosen.
+ *
+ * Composition: masthead, then `PageColumns`. The session — empty, previewing, running or finished
+ * — is the main column; the ladder's context (the due total, the last journal line, the forecast,
+ * the mastered record) is the rail, because none of it is ever the decision. Before the split
+ * those were full-width bands trailing the session, so the calmest sentence on the page — "the
+ * ladder does not penalise a late review" — sat furthest from the learner it was written for.
  */
 export default function RevisionPage() {
   const today = useToday();
@@ -162,148 +170,192 @@ export default function RevisionPage() {
   }
 
   return (
-    <Page>
+    <Page width="wide">
       <PageHeader
         eyebrow={format(parseISO(today), 'EEEE, MMMM d')}
         title="Revision"
         support="Tell it how long you have. It works out what is worth doing in that time — and what can wait."
       />
 
-      {session.activities.length === 0 ? (
-        <EmptyState
-          icon={Check}
-          title={shortfall > 0 ? "This budget can't hold what's due" : 'Nothing to revise right now'}
-          hint={
-            !revisionEnabled
-              ? 'Spaced revision is switched off in Settings, so the ladder is not scheduling reviews.'
-              : shortfall > 0
-                ? // Work IS due — it just does not fit the chosen length. Saying "nothing to
-                  // revise" here would be the page contradicting its own footer one line below.
-                  'Give it more time above and the session will fill. Nothing is lost in the meantime — a late review costs nothing on the ladder.'
-                : 'Future you says thanks. Solve something new and it will come back around the ladder.'
-          }
-        />
-      ) : finished ? (
-        <SessionComplete
-          session={session}
-          doneIds={doneIds}
-          grades={grades}
-          onRestart={() => dispatch(clearRevisionSession())}
-        />
-      ) : running ? (
-        <SessionRun
-          session={session}
-          doneIds={doneIds}
-          grades={grades}
-          progress={progress}
-          reviewedToday={reviewedToday}
-          onToggle={(id, done) =>
-            dispatch(done ? uncompleteSessionActivity(id) : completeSessionActivity(id))
-          }
-          onGrade={gradeActivity}
-          onOpen={openActivity}
-          onReflect={(activityId, line) => {
-            // Capture the closing line to the journal, then mark the activity done — one gesture.
-            dispatch(writeJournal(line));
-            dispatch(completeSessionActivity(activityId));
-          }}
-          journalLine={journal[today] ?? ''}
-          onFinish={() => dispatch(finishRevisionSession())}
-          onAbandon={() => dispatch(clearRevisionSession())}
-        />
-      ) : (
-        <SessionPreview
-          session={session}
-          budgetMin={budgetMin}
-          lastJournalLine={lastJournalLine}
-          onBudget={(min) => dispatch(setDailyCapacity(min))}
-          onStart={() => dispatch(startRevisionSession())}
-        />
-      )}
+      {/* The session is the work; everything else on this page only explains, forecasts or
+          reassures — which is exactly the split PageColumns encodes. Priority runs left-to-right
+          before it runs top-to-bottom: the due total and the reassurance about lateness now sit
+          beside the session that provoked them instead of a full page-scroll below it. */}
+      <PageColumns
+        railLabel="Ladder context"
+        rail={
+          <>
+            {/* Said wherever the learner is in the flow: with the setting off, the ladder
+                schedules nothing, so an absence of due reviews here is a choice they made rather
+                than a claim that their recall is safe. Today applies the same gate — the two must
+                never disagree. */}
+            {!revisionEnabled && (
+              <p className="text-sm text-muted-foreground">
+                Spaced revision is switched off in Settings, so the ladder is not scheduling reviews.
+                Anything here is recognition and transfer practice, not recall that came due.
+              </p>
+            )}
 
-      {/* Everything below is reference, deliberately quieter than the session above it. */}
-      {upcoming.length > 0 && (
-        <Section
-          title="Coming up"
-          support="What the ladder has scheduled next. Nothing here needs doing today."
-          divider
-        >
-          <RuledList>
-            {upcoming.map((day) => (
-              <RuledItem key={day.date} className="flex items-baseline justify-between gap-4">
-                <span className="text-sm">{format(parseISO(day.date), 'EEEE, MMM d')}</span>
-                <span className="figures text-sm text-muted-foreground">
-                  {day.count} {day.count === 1 ? 'review' : 'reviews'}
-                </span>
-              </RuledItem>
-            ))}
-          </RuledList>
-        </Section>
-      )}
+            {revisionEnabled && dueCount > 0 && !finished && (
+              <p className="text-sm text-muted-foreground">
+                {dueCount} {dueCount === 1 ? 'item is' : 'items are'} due in total
+                {shortfall > 0 &&
+                  ` — ${shortfall} of them ${shortfall === 1 ? 'is' : 'are'} not in this session`}
+                . The ladder does not penalise a late review — anything the session leaves is simply
+                waiting, not lost.
+              </p>
+            )}
 
-      {(masteredQuestions.length > 0 || retainedWeeks.length > 0) && (
-        <Section
-          title="Mastered"
-          support="Cleared the full 1/3/7/15/30 ladder. These no longer come back."
-          action={
-            <Button variant="ghost" size="sm" onClick={() => setShowMastered((v) => !v)} aria-expanded={showMastered}>
-              {showMastered ? 'Hide' : 'Show'} list
-            </Button>
-          }
-        >
-          <p className="figures text-sm text-muted-foreground">
-            {masteredQuestions.length} {masteredQuestions.length === 1 ? 'question' : 'questions'}
-            {retainedWeeks.length > 0 && ` · ${retainedWeeks.length} course ${retainedWeeks.length === 1 ? 'week' : 'weeks'}`}
-          </p>
-          {showMastered && (
-            <RuledList>
-              {masteredQuestions.map((question) => (
-                <RuledItem key={question.id} padded={false}>
-                  <button
-                    type="button"
-                    className="w-full px-1 py-3 text-left text-sm transition-colors duration-150 ease-swift hover:bg-muted"
-                    onClick={() => dispatch(activeQuestionSet(question.id))}
-                  >
-                    {question.title}
-                  </button>
-                </RuledItem>
-              ))}
-              {retainedWeeks.map((week) => (
-                <RuledItem key={week.id} padded={false}>
-                  <Link
-                    to="/aiml"
-                    className="flex w-full items-center gap-2 px-1 py-3 text-sm transition-colors duration-150 ease-swift hover:bg-muted"
-                  >
-                    <GraduationCap className="h-3.5 w-3.5 text-muted-foreground" aria-hidden="true" />
-                    Week {week.week} — {week.title}
-                  </Link>
-                </RuledItem>
-              ))}
-            </RuledList>
-          )}
-        </Section>
-      )}
+            {/* The last thing the learner closed a session with — read back as a quiet marginal
+                note, not a plate. It closes the reflection loop the closing activity opens: what
+                you noted last time is what you carry into this session. It is context about the
+                session rather than part of it, which is why it lives in the rail and not inside
+                the preview's lead. */}
+            {lastJournalLine !== null && (
+              <p className="max-w-prose border-l-2 border-border pl-3 text-sm text-muted-foreground">
+                <span className="text-foreground">Last time you noted:</span> {lastJournalLine}
+              </p>
+            )}
 
-      {/* Said wherever the learner is in the flow: with the setting off, the ladder schedules
-          nothing, so an absence of due reviews here is a choice they made rather than a claim
-          that their recall is safe. Today applies the same gate — the two must never disagree. */}
-      {!revisionEnabled && (
-        <p className="text-sm text-muted-foreground">
-          Spaced revision is switched off in Settings, so the ladder is not scheduling reviews.
-          Anything here is recognition and transfer practice, not recall that came due.
-        </p>
-      )}
+            {upcoming.length > 0 && (
+              <Section
+                title="Coming up"
+                support="What the ladder has scheduled next. Nothing here needs doing today."
+              >
+                <RuledList>
+                  {upcoming.slice(0, UPCOMING_OPEN).map((day) => (
+                    <ForecastRow key={day.date} day={day} />
+                  ))}
+                </RuledList>
+                {/* A week of forecast is reference depth the rail does not owe the first glance:
+                    the next few days answer "is tomorrow heavy?", and the rest waits behind a
+                    latch that states how much it holds. Moved, never dropped. */}
+                {upcoming.length > UPCOMING_OPEN && (
+                  <Disclosure summary="Later" meta={String(upcoming.length - UPCOMING_OPEN)}>
+                    <RuledList className="border-y-0">
+                      {upcoming.slice(UPCOMING_OPEN).map((day) => (
+                        <ForecastRow key={day.date} day={day} />
+                      ))}
+                    </RuledList>
+                  </Disclosure>
+                )}
+              </Section>
+            )}
 
-      {revisionEnabled && dueCount > 0 && !finished && (
-        <p className="text-sm text-muted-foreground">
-          {dueCount} {dueCount === 1 ? 'item is' : 'items are'} due in total
-          {shortfall > 0 &&
-            ` — ${shortfall} of them ${shortfall === 1 ? 'is' : 'are'} not in this session`}
-          . The ladder does not penalise a late review — anything the session leaves is simply
-          waiting, not lost.
-        </p>
-      )}
+            {(masteredQuestions.length > 0 || retainedWeeks.length > 0) && (
+              <Section
+                title="Mastered"
+                support="Cleared the full 1/3/7/15/30 ladder. These no longer come back."
+                action={
+                  <Button variant="ghost" size="sm" onClick={() => setShowMastered((v) => !v)} aria-expanded={showMastered}>
+                    {showMastered ? 'Hide' : 'Show'} list
+                  </Button>
+                }
+              >
+                <p className="figures text-sm text-muted-foreground">
+                  {masteredQuestions.length} {masteredQuestions.length === 1 ? 'question' : 'questions'}
+                  {retainedWeeks.length > 0 && ` · ${retainedWeeks.length} course ${retainedWeeks.length === 1 ? 'week' : 'weeks'}`}
+                </p>
+                {showMastered && (
+                  <RuledList>
+                    {masteredQuestions.map((question) => (
+                      <RuledItem key={question.id} padded={false}>
+                        <button
+                          type="button"
+                          className="w-full px-1 py-3 text-left text-sm transition-colors duration-150 ease-swift hover:bg-muted"
+                          onClick={() => dispatch(activeQuestionSet(question.id))}
+                        >
+                          {question.title}
+                        </button>
+                      </RuledItem>
+                    ))}
+                    {retainedWeeks.map((week) => (
+                      <RuledItem key={week.id} padded={false}>
+                        <Link
+                          to="/aiml"
+                          className="flex w-full items-center gap-2 px-1 py-3 text-sm transition-colors duration-150 ease-swift hover:bg-muted"
+                        >
+                          <GraduationCap className="h-3.5 w-3.5 text-muted-foreground" aria-hidden="true" />
+                          Week {week.week} — {week.title}
+                        </Link>
+                      </RuledItem>
+                    ))}
+                  </RuledList>
+                )}
+              </Section>
+            )}
+          </>
+        }
+      >
+        {session.activities.length === 0 ? (
+          <EmptyState
+            icon={Check}
+            title={shortfall > 0 ? "This budget can't hold what's due" : 'Nothing to revise right now'}
+            hint={
+              !revisionEnabled
+                ? 'Spaced revision is switched off in Settings, so the ladder is not scheduling reviews.'
+                : shortfall > 0
+                  ? // Work IS due — it just does not fit the chosen length. Saying "nothing to
+                    // revise" here would be the page contradicting its own rail beside it.
+                    'Give it more time above and the session will fill. Nothing is lost in the meantime — a late review costs nothing on the ladder.'
+                  : 'Future you says thanks. Solve something new and it will come back around the ladder.'
+            }
+          />
+        ) : finished ? (
+          <SessionComplete
+            session={session}
+            doneIds={doneIds}
+            grades={grades}
+            onRestart={() => dispatch(clearRevisionSession())}
+          />
+        ) : running ? (
+          <SessionRun
+            session={session}
+            doneIds={doneIds}
+            grades={grades}
+            progress={progress}
+            reviewedToday={reviewedToday}
+            onToggle={(id, done) =>
+              dispatch(done ? uncompleteSessionActivity(id) : completeSessionActivity(id))
+            }
+            onGrade={gradeActivity}
+            onOpen={openActivity}
+            onReflect={(activityId, line) => {
+              // Capture the closing line to the journal, then mark the activity done — one gesture.
+              dispatch(writeJournal(line));
+              dispatch(completeSessionActivity(activityId));
+            }}
+            journalLine={journal[today] ?? ''}
+            onFinish={() => dispatch(finishRevisionSession())}
+            onAbandon={() => dispatch(clearRevisionSession())}
+          />
+        ) : (
+          <SessionPreview
+            session={session}
+            budgetMin={budgetMin}
+            onBudget={(min) => dispatch(setDailyCapacity(min))}
+            onStart={() => dispatch(startRevisionSession())}
+          />
+        )}
+      </PageColumns>
     </Page>
+  );
+}
+
+/* ------------------------------------------------------------------------------------------- */
+
+// The forecast shows this many days in the open; the rest of the week waits behind "Later".
+const UPCOMING_OPEN = 3;
+
+/** One forecast day: a date and how many reviews the ladder has landed on it. */
+function ForecastRow({ day }: { day: { date: string; count: number } }) {
+  return (
+    <RuledItem className="flex items-baseline justify-between gap-4">
+      <span className="text-sm">{format(parseISO(day.date), 'EEEE, MMM d')}</span>
+      <span className="figures text-sm text-muted-foreground">
+        {day.count} {day.count === 1 ? 'review' : 'reviews'}
+      </span>
+    </RuledItem>
   );
 }
 
@@ -312,13 +364,11 @@ export default function RevisionPage() {
 function SessionPreview({
   session,
   budgetMin,
-  lastJournalLine,
   onBudget,
   onStart,
 }: {
   session: ReturnType<typeof selectRevisionSession>;
   budgetMin: number;
-  lastJournalLine: string | null;
   onBudget: (min: number) => void;
   onStart: () => void;
 }) {
@@ -377,48 +427,49 @@ function SessionPreview({
 
   return (
     <div className="flex flex-col gap-6">
-      <fieldset className="flex flex-col gap-2">
-        <legend className="text-xs font-medium tracking-wide text-muted-foreground">
-          How long have you got?
-        </legend>
-        {/* A radiogroup, not six independent toggles — the same correction Today's capacity chips
-            already carry (components/today/SessionPlan.tsx). `aria-pressed` announced six
-            switches, five of them "not pressed", for a control where exactly one option is ever
-            true. Same idiom, same ink fill, same written capacity: one time budget, not two. */}
-        <div
-          className="flex flex-wrap gap-2"
-          role="radiogroup"
-          aria-label="How long have you got?"
-          onKeyDown={onChipKeyDown}
-        >
-          {SESSION_BUDGETS.map((min, i) => {
-            const active = min === budgetMin;
-            return (
-              <button
-                key={min}
-                type="button"
-                role="radio"
-                aria-checked={active}
-                tabIndex={i === focusIndex ? 0 : -1}
-                ref={(node) => {
-                  chipRefs.current[i] = node;
-                }}
-                onClick={() => onBudget(min)}
-                className={cn(
-                  'figures inline-flex min-h-[44px] items-center justify-center rounded-sm border px-3 text-xs transition-colors duration-150 ease-swift',
-                  active
-                    ? 'border-primary bg-primary text-primary-foreground'
-                    : 'border-border text-muted-foreground hover:border-primary/40 hover:text-foreground',
-                )}
-              >
-                {formatMinutes(min)}
-              </button>
-            );
-          })}
-        </div>
-      </fieldset>
+      {/* A radiogroup, not six independent toggles — the same correction Today's capacity chips
+          already carry (components/today/SessionPlan.tsx). `aria-pressed` announced six
+          switches, five of them "not pressed", for a control where exactly one option is ever
+          true. Same idiom, same ink fill, same written capacity: one time budget, not two.
 
-      <Lead className="flex flex-col gap-6">
+          The `<fieldset>`/`<legend>` pair is gone, exactly as it is in SessionPlan: the legend
+          restated the masthead's own support line ("Tell it how long you have…") one block below
+          it, and `aria-label` on the radiogroup already names the control for anyone who cannot
+          see where it sits. Two sentences and two containers to introduce six chips was the
+          densest stack of redundancy on the page. */}
+      <div
+        className="flex flex-wrap gap-2"
+        role="radiogroup"
+        aria-label="How long have you got?"
+        onKeyDown={onChipKeyDown}
+      >
+        {SESSION_BUDGETS.map((min, i) => {
+          const active = min === budgetMin;
+          return (
+            <button
+              key={min}
+              type="button"
+              role="radio"
+              aria-checked={active}
+              tabIndex={i === focusIndex ? 0 : -1}
+              ref={(node) => {
+                chipRefs.current[i] = node;
+              }}
+              onClick={() => onBudget(min)}
+              className={cn(
+                'figures inline-flex min-h-[44px] items-center justify-center rounded-sm border px-3 text-xs transition-colors duration-150 ease-swift',
+                active
+                  ? 'border-primary bg-primary text-primary-foreground'
+                  : 'border-border text-muted-foreground hover:border-primary/40 hover:text-foreground',
+              )}
+            >
+              {formatMinutes(min)}
+            </button>
+          );
+        })}
+      </div>
+
+      <Lead>
         <div className="flex flex-col gap-1">
           <Eyebrow>{formatMinutes(session.budgetMin)} session</Eyebrow>
           <h2 className="text-2xl font-semibold">{session.shape.label}</h2>
@@ -427,16 +478,26 @@ function SessionPreview({
 
         <Rule />
 
-        <Ledger
-          columns={3}
+        {/* Two counted facts as one line, not two 1.75rem monuments. On the preview the numbers
+            orient — "what will this cost me?" — they are not the reading the surface exists to
+            deliver, and `Figures` is the voice for orientation (see Page.tsx: `Figures` for
+            "where am I", `Ledger` for "what does the record say"). */}
+        <Figures
           items={[
-            { label: 'Activities', value: session.activities.length },
-            { label: 'Planned', value: formatMinutes(session.totalMinutes) },
-            {
-              label: 'Focus',
-              value: focusNames.length > 0 ? focusNames.length : '—',
-              sub: focusNames.length > 0 ? focusNames.join(' · ') : 'mixed',
-            },
+            { value: session.activities.length, label: 'Activities' },
+            { value: formatMinutes(session.totalMinutes), label: 'Planned' },
+          ]}
+        />
+
+        {/* The focus patterns by name. The Ledger cell this replaces led with a count and demoted
+            the names to a sub-line — but the names are the information, and the count is legible
+            from reading them. "Mixed" keeps meaning what it did: no single pattern dominates. */}
+        <Meta
+          items={[
+            <span key="focus">
+              <span className="text-foreground">Focus:</span>{' '}
+              {focusNames.length > 0 ? focusNames.join(' · ') : 'mixed'}
+            </span>,
           ]}
         />
 
@@ -446,20 +507,10 @@ function SessionPreview({
           </p>
         )}
 
-        {/* The last thing the learner closed a session with — read back as a quiet marginal note,
-            not a plate. It closes the reflection loop the closing activity opens: what you noted
-            last time is what you carry into this session. */}
-        {lastJournalLine !== null && (
-          <p className="max-w-prose border-l-2 border-border pl-3 text-sm text-muted-foreground">
-            <span className="text-foreground">Last time you noted:</span> {lastJournalLine}
-          </p>
-        )}
-
         <div className="flex flex-wrap items-center gap-3">
+          {/* No estimate beside the button: the same number already reads as "Planned" three
+              lines up, and a figure stated twice invites the reader to hunt for the difference. */}
           <Button onClick={onStart}>Start session</Button>
-          <span className="figures text-xs text-muted-foreground">
-            ~{formatMinutes(session.totalMinutes)}
-          </span>
         </div>
       </Lead>
     </div>
@@ -548,7 +599,7 @@ function SessionRun({
                 />
                 <p className="font-medium">{activity.title}</p>
                 <p className="max-w-prose text-sm text-muted-foreground">{activity.prompt}</p>
-                <p className="max-w-prose text-xs text-muted-foreground/80">{activity.why}</p>
+                <p className="max-w-prose text-xs text-muted-foreground">{activity.why}</p>
                 <ReflectRow
                   done={done.has(activity.id)}
                   initialLine={journalLine}
@@ -585,7 +636,7 @@ function SessionRun({
                     {activity.title}
                   </p>
                   <p className="max-w-prose text-sm text-muted-foreground">{activity.prompt}</p>
-                  <p className="max-w-prose text-xs text-muted-foreground/80">{activity.why}</p>
+                  <p className="max-w-prose text-xs text-muted-foreground">{activity.why}</p>
                 </div>
                 <div className="flex shrink-0 flex-col items-end gap-2">
                   {/* A revision activity is graded here, not merely ticked. Ticking records that
@@ -735,7 +786,7 @@ function SessionComplete({
   const nextUp = session.activities.find((a) => !doneIds.includes(a.id)) ?? session.deferred[0]?.question;
 
   return (
-    <Lead className="flex flex-col gap-6">
+    <Lead>
       <div className="flex flex-col gap-1">
         <Eyebrow>Session complete</Eyebrow>
         <h2 className="text-2xl font-semibold">
@@ -750,7 +801,11 @@ function SessionComplete({
 
       {held.length > 0 && (
         <div className="flex flex-col gap-1.5">
-          <p className="text-xs font-medium tracking-wide text-muted-foreground">Held</p>
+          {/* `Eyebrow`, not a hand-rolled label: these three headings were the inline
+              re-declaration Page.tsx's Eyebrow exists to end — body face, bespoke tracking, no
+              `.figures` — so they rendered in a different voice from the "Session complete"
+              eyebrow a few lines above them on the same plate. One register, one definition. */}
+          <Eyebrow>Held</Eyebrow>
           <p className="text-sm">{held.map((a) => a.title).join(', ')}</p>
         </div>
       )}

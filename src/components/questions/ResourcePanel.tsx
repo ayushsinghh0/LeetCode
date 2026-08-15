@@ -62,7 +62,7 @@ export function ResourcePanel({ question, groups }: { question: Question; groups
             <Button asChild size="sm" className="self-start">
               <a href={question.url} target="_blank" rel="noopener noreferrer">
                 <ExternalLink /> Solve on LeetCode
-                {question.premium && <span className="ml-1 text-xs opacity-80">· Premium</span>}
+                {question.premium && <span className="ml-1 text-xs">· Premium</span>}
               </a>
             </Button>
           </>

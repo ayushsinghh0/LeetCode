@@ -1,4 +1,5 @@
-import { useEffect, useMemo, useRef, useState, type KeyboardEvent, type ReactNode } from 'react';
+import { useEffect, useMemo, useState } from 'react';
+import { ChipRadioRow } from '@/components/shared/ChipRadioRow';
 import { format, parseISO } from 'date-fns';
 import {
   ArrowRight,
@@ -21,7 +22,9 @@ import { EmptyState } from '@/components/shared/EmptyState';
 import {
   Page,
   PageHeader,
+  PagePair,
   Section,
+  Disclosure,
   Lead,
   Rule,
   RuledList,
@@ -80,7 +83,6 @@ import {
   type RevealId,
   type SelfAssessmentValue,
 } from '@/utils/engine/interview';
-import { cn } from '@/utils/cn';
 import type { Question } from '@/types';
 
 const questions = questionsData as Question[];
@@ -88,14 +90,6 @@ const questions = questionsData as Question[];
 /** Stable empty reference — a fresh `[]` from a selector re-renders on every store change. */
 const NO_DRAWS: InterviewDraw[] = [];
 const questionById = new Map(questions.map((q) => [q.id, q]));
-
-// The capacity-chip idiom (DESIGN.md § Capacity chips): small bordered toggles, ink fill for the
-// one that is active. Reused here for the stage self-report and the self-assessment scale, both
-// of which are "exactly one of these is true" rows.
-const CHIP_CLASS =
-  'inline-flex min-h-[44px] items-center justify-center rounded-sm border px-3 text-xs transition-colors duration-150 ease-swift';
-const CHIP_ON = 'border-primary bg-primary text-primary-foreground';
-const CHIP_OFF = 'border-border text-muted-foreground hover:border-primary/40 hover:text-foreground';
 
 const DIFFICULTY_WORD = { easy: 'Easy', medium: 'Medium', hard: 'Hard' } as const;
 
@@ -462,117 +456,122 @@ export default function InterviewPage() {
           />
         ) : (
           <>
-            <Section aria-label="The problem on offer">
-              <Lead className="flex flex-col gap-6">
-                <div className="flex flex-col gap-3">
-                  <Eyebrow>Your problem</Eyebrow>
-                  <h2 className="text-xl font-semibold md:text-2xl">{proposed.title}</h2>
-                  <Meta
-                    items={[
-                      <DifficultyBadge difficulty={proposed.difficulty} />,
-                      <span className="figures">~{proposed.estimatedTime} min recommended</span>,
-                      proposed.url && (
-                        <a
-                          href={proposed.url}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="inline-flex items-center gap-1.5 underline-offset-2 transition-colors duration-150 ease-swift hover:text-foreground hover:underline"
-                        >
-                          <ExternalLink className="h-4 w-4 shrink-0" aria-hidden="true" />
-                          Read the statement
-                        </a>
-                      ),
-                    ]}
-                  />
+            <Lead aria-label="The problem on offer">
+              <div className="flex flex-col gap-3">
+                <Eyebrow>Your problem</Eyebrow>
+                <h2 className="text-xl font-semibold md:text-2xl">{proposed.title}</h2>
+                <Meta
+                  items={[
+                    <DifficultyBadge difficulty={proposed.difficulty} />,
+                    <span className="figures">~{proposed.estimatedTime} min recommended</span>,
+                    proposed.url && (
+                      <a
+                        href={proposed.url}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="inline-flex items-center gap-1.5 underline-offset-2 transition-colors duration-150 ease-swift hover:text-foreground hover:underline"
+                      >
+                        <ExternalLink className="h-4 w-4 shrink-0" aria-hidden="true" />
+                        Read the statement
+                      </a>
+                    ),
+                  ]}
+                />
+                <p className="max-w-prose text-sm leading-relaxed text-muted-foreground">
+                  That is deliberately everything you get. No pattern, no hints, no capability
+                  sentence, no bounds &mdash; each one unlocks at the stage that earns it.
+                </p>
+              </div>
+
+              <Rule />
+
+              {/* Asked before the attempt and never shown back during it: a prediction the
+                  learner can see while working is a target they answer to, and this exists to
+                  measure calibration rather than to set one. Optional, and skipping it costs
+                  nothing — an expectation nobody offered is recorded as absent, not as a 3. */}
+              <div className="flex flex-col gap-3">
+                <div className="flex flex-col gap-1">
+                  <p className="text-sm font-medium">How do you expect this to go?</p>
                   <p className="max-w-prose text-sm leading-relaxed text-muted-foreground">
-                    That is deliberately everything you get. No pattern, no hints, no capability
-                    sentence, no bounds &mdash; each one unlocks at the stage that earns it.
+                    Optional, and only ever compared with your own read afterwards. Knowing how
+                    well you can call it is worth as much as the sitting.
                   </p>
                 </div>
+                <ChipRadioRow
+                  label="Expectation before starting"
+                  options={SELF_ASSESSMENT_SCALE}
+                  value={expectation ?? undefined}
+                  onSelect={(value) =>
+                    setExpectation(isSelfAssessmentValue(value) ? value : null)
+                  }
+                  chipClassName="figures min-w-[44px]"
+                  className="items-center"
+                  before={<span className="text-xs text-muted-foreground">Rough</span>}
+                  after={<span className="text-xs text-muted-foreground">Comfortable</span>}
+                />
+              </div>
 
-                <Rule />
-
-                {/* Asked before the attempt and never shown back during it: a prediction the
-                    learner can see while working is a target they answer to, and this exists to
-                    measure calibration rather than to set one. Optional, and skipping it costs
-                    nothing — an expectation nobody offered is recorded as absent, not as a 3. */}
-                <div className="flex flex-col gap-3">
-                  <div className="flex flex-col gap-1">
-                    <p className="text-sm font-medium">How do you expect this to go?</p>
-                    <p className="max-w-prose text-sm leading-relaxed text-muted-foreground">
-                      Optional, and only ever compared with your own read afterwards. Knowing how
-                      well you can call it is worth as much as the sitting.
-                    </p>
-                  </div>
-                  <ChipRadioRow
-                    label="Expectation before starting"
-                    options={SELF_ASSESSMENT_SCALE}
-                    value={expectation ?? undefined}
-                    onSelect={(value) =>
-                      setExpectation(isSelfAssessmentValue(value) ? value : null)
-                    }
-                    chipClassName="figures min-w-[44px]"
-                    className="items-center"
-                    before={<span className="text-xs text-muted-foreground">Rough</span>}
-                    after={<span className="text-xs text-muted-foreground">Comfortable</span>}
+              {/* The company scope. Names the company, never a pattern: a target maps to seven
+                  to twelve of them, so this narrows the draw without saying what is coming. */}
+              {targetCompany && (
+                <label className="flex max-w-prose items-start gap-2.5 text-sm text-muted-foreground">
+                  <input
+                    type="checkbox"
+                    checked={companyScope}
+                    onChange={(event) => setCompanyScope(event.target.checked)}
+                    className="mt-0.5 h-4 w-4 shrink-0 accent-primary"
                   />
-                </div>
+                  <span>
+                    Draw from the topics {targetCompany.name}&apos;s own prep page names. That is
+                    the whole of what targeting them can do — nobody publishes the problems they
+                    ask.
+                  </span>
+                </label>
+              )}
 
-                {/* The company scope. Names the company, never a pattern: a target maps to seven
-                    to twelve of them, so this narrows the draw without saying what is coming. */}
-                {targetCompany && (
-                  <label className="flex max-w-prose items-start gap-2.5 text-sm text-muted-foreground">
-                    <input
-                      type="checkbox"
-                      checked={companyScope}
-                      onChange={(event) => setCompanyScope(event.target.checked)}
-                      className="mt-0.5 h-4 w-4 shrink-0 accent-primary"
-                    />
-                    <span>
-                      Draw from the topics {targetCompany.name}&apos;s own prep page names. That is
-                      the whole of what targeting them can do — nobody publishes the problems they
-                      ask.
-                    </span>
-                  </label>
-                )}
-
-                <div className="flex flex-wrap items-center gap-2">
-                  <Button onClick={() => begin(proposed.id)}>
-                    Begin interview <ArrowRight />
-                  </Button>
-                  <Button variant="outline" onClick={() => setRerolls((r) => r + 1)}>
-                    <Shuffle /> Different problem
-                  </Button>
-                </div>
-              </Lead>
-            </Section>
+              <div className="flex flex-wrap items-center gap-2">
+                <Button onClick={() => begin(proposed.id)}>
+                  Begin interview <ArrowRight />
+                </Button>
+                <Button variant="outline" onClick={() => setRerolls((r) => r + 1)}>
+                  <Shuffle /> Different problem
+                </Button>
+              </div>
+            </Lead>
 
             <Section
               title="How it runs"
               support="Ten stages, in the order an interview actually takes them. Each one names what it unlocks."
             >
-              <RuledList as="ol">
-                {STAGES.map((s, i) => (
-                  <RuledItem key={s.id}>
-                    <div className="flex gap-4">
-                      <span className="figures w-5 shrink-0 pt-0.5 text-xs text-muted-foreground">
-                        {i + 1}
-                      </span>
-                      <div className="flex flex-col gap-1">
-                        <p className="text-sm font-medium">{s.label}</p>
-                        <p className="max-w-prose text-sm leading-relaxed text-muted-foreground">
-                          {s.prompt}
-                        </p>
-                        {s.reveals.length > 0 && (
-                          <p className="text-xs text-muted-foreground/80">
-                            Unlocks: {s.reveals.map((r) => revealById[r].label).join(' · ')}
+              {/* The full ten-stage explainer is ~850px of static text, identical on every visit:
+                  worth reading once, and standing between the learner and the Begin button every
+                  time after. The heading and its promise stay pinned — the shape of the thing is
+                  part of the offer — while the list itself waits behind the latch for the visit
+                  that actually wants to reread it. */}
+              <Disclosure summary="The ten stages" meta={String(STAGES.length)}>
+                <RuledList as="ol">
+                  {STAGES.map((s, i) => (
+                    <RuledItem key={s.id}>
+                      <div className="flex gap-4">
+                        <span className="figures w-5 shrink-0 pt-0.5 text-xs text-muted-foreground">
+                          {i + 1}
+                        </span>
+                        <div className="flex flex-col gap-1">
+                          <p className="text-sm font-medium">{s.label}</p>
+                          <p className="max-w-prose text-sm leading-relaxed text-muted-foreground">
+                            {s.prompt}
                           </p>
-                        )}
+                          {s.reveals.length > 0 && (
+                            <p className="text-xs text-muted-foreground">
+                              Unlocks: {s.reveals.map((r) => revealById[r].label).join(' · ')}
+                            </p>
+                          )}
+                        </div>
                       </div>
-                    </div>
-                  </RuledItem>
-                ))}
-              </RuledList>
+                    </RuledItem>
+                  ))}
+                </RuledList>
+              </Disclosure>
             </Section>
           </>
         )}
@@ -601,48 +600,58 @@ export default function InterviewPage() {
           action={statementLink}
         />
 
-        <Section aria-label="Your self-assessment">
-          <Lead className="flex flex-col gap-6">
-            <div className="flex flex-col gap-3">
-              <Eyebrow>Self-assessment</Eyebrow>
-              <h2 className="text-xl font-semibold md:text-2xl">How do you think that went?</h2>
-              {/* The honesty clause. Nothing in this app saw the attempt: there is no judge, no
-                  score and no verdict, and the copy has to say so plainly or the numbers will be
-                  read as one. */}
-              <p className="max-w-prose text-sm leading-relaxed text-muted-foreground">
-                This is your own read and nothing else. Nothing here saw your code or heard your
-                explanation, so there is no score, no grade and no verdict &mdash; the five numbers
-                exist so you can compare this sitting with your next one.
-              </p>
-              {/* The line above promised a comparison the app could not make until the sittings
-                  persisted. It can now, and it is stated as marginalia rather than as a finding:
-                  two sittings on two different problems are two data points, and a trend across
-                  five of them belongs on Analytics, not in the middle of a debrief. */}
-              {previous && (
-                <Meta
-                  items={[
-                    <span>
-                      Last sitting ·{' '}
-                      {questionById.get(previous.questionId)?.title ?? 'another problem'}
-                    </span>,
-                    <span>{format(parseISO(previous.date), 'd MMM')}</span>,
-                    <span>
-                      reached{' '}
-                      {(STAGES[previous.stageReached - 1] ?? STAGES[0]!).label.toLowerCase()}
-                    </span>,
-                    previous.hintsAvailable > 0 && (
-                      <span className="figures">
-                        {previous.hintsTaken} of {previous.hintsAvailable} hints
-                      </span>
-                    ),
-                  ]}
-                />
-              )}
-            </div>
+        <Lead aria-label="Your self-assessment">
+          <div className="flex flex-col gap-3">
+            <Eyebrow>Self-assessment</Eyebrow>
+            <h2 className="text-xl font-semibold md:text-2xl">How do you think that went?</h2>
+            {/* The honesty clause. Nothing in this app saw the attempt: there is no judge, no
+                score and no verdict, and the copy has to say so plainly or the numbers will be
+                read as one. */}
+            <p className="max-w-prose text-sm leading-relaxed text-muted-foreground">
+              This is your own read and nothing else. Nothing here saw your code or heard your
+              explanation, so there is no score, no grade and no verdict &mdash; the five numbers
+              exist so you can compare this sitting with your next one.
+            </p>
+            {/* The line above promised a comparison the app could not make until the sittings
+                persisted. It can now, and it is stated as marginalia rather than as a finding:
+                two sittings on two different problems are two data points, and a trend across
+                five of them belongs on Analytics, not in the middle of a debrief. */}
+            {previous && (
+              <Meta
+                items={[
+                  <span>
+                    Last sitting ·{' '}
+                    {questionById.get(previous.questionId)?.title ?? 'another problem'}
+                  </span>,
+                  <span>{format(parseISO(previous.date), 'd MMM')}</span>,
+                  <span>
+                    reached{' '}
+                    {(STAGES[previous.stageReached - 1] ?? STAGES[0]!).label.toLowerCase()}
+                  </span>,
+                  previous.hintsAvailable > 0 && (
+                    <span className="figures">
+                      {previous.hintsTaken} of {previous.hintsAvailable} hints
+                    </span>
+                  ),
+                ]}
+              />
+            )}
+          </div>
+        </Lead>
 
+        {/* The five prompts left the plate. Inside it they made a 1,000px `Lead` on desktop and
+            ~1,400px on a phone — the debrief's framing statement and five identical rated rows
+            carried at one weight, so the plate meant nothing. Five rows of the same shape are a
+            list, and the plate now holds only the one thing it is for: the claim that nothing here
+            judged the attempt. `RuledList` supplies the hairlines the per-item `<Rule />` was
+            drawing by hand, which is also how the row step stops being re-declared five times. */}
+        <Section
+          title="Rate the five"
+          support="Your own read, on the same five axes each sitting, so the next one has something to sit beside."
+        >
+          <RuledList>
             {SELF_ASSESSMENT.map((prompt) => (
-              <div key={prompt.id} className="flex flex-col gap-3">
-                <Rule />
+              <RuledItem key={prompt.id} className="flex flex-col gap-3">
                 <div className="flex flex-col gap-1">
                   <div className="flex flex-wrap items-baseline justify-between gap-x-4 gap-y-1">
                     <p className="text-sm font-medium">{prompt.label}</p>
@@ -666,59 +675,66 @@ export default function InterviewPage() {
                   before={<span className="text-xs text-muted-foreground">{prompt.low}</span>}
                   after={<span className="text-xs text-muted-foreground">{prompt.high}</span>}
                 />
-              </div>
+              </RuledItem>
             ))}
-          </Lead>
+          </RuledList>
         </Section>
 
-        <Section title="The sitting" support="What it cost, and how far it got.">
-          <Ledger
-            columns={3}
-            items={[
-              {
-                label: 'Time taken',
-                value: formatElapsed(interview.elapsedSec),
-                sub: `~${question.estimatedTime} min recommended`,
-              },
-              {
-                label: 'Stages reached',
-                value: `${index + 1} of ${STAGES.length}`,
-                sub: stage.label,
-              },
-              {
-                label: 'Hints taken',
-                // THIS sitting's rungs. Billing the all-time record to one attempt reported
-                // "3 of 3" for a sitting in which the learner took none, purely because they had
-                // opened the ladder on this problem some other day.
-                value: `${hintsTaken} of ${hints.length}`,
-                // Reported, never scored. Taking the ladder costs nothing here either.
-                sub:
-                  hints.length === 0
-                    ? 'No ladder for this one'
-                    : hintsTaken > 0
-                      ? `Through rung ${hintsTaken}`
-                      : interview.hintsAtStart > 0
-                        ? 'Untouched this sitting'
-                        : 'Ladder untouched',
-              },
-            ]}
-          />
-        </Section>
-
-        {ratedStages.length > 0 && (
-          <Section title="How the stages went" support="Your own call at the time, recorded as you went.">
-            <RuledList>
-              {ratedStages.map(([stageId, outcome]) => (
-                <RuledItem key={stageId}>
-                  <div className="flex flex-wrap items-baseline justify-between gap-x-4 gap-y-1">
-                    <p className="text-sm font-medium">{stageById[stageId].label}</p>
-                    <Eyebrow>{STAGE_OUTCOME_LABEL[outcome]}</Eyebrow>
-                  </div>
-                </RuledItem>
-              ))}
-            </RuledList>
+        {/* Two readings of the same sitting — what it cost in figures, and what the learner
+            called each stage at the time. They describe the same minutes, so at md+ they sit
+            beside each other instead of costing two screens; below md they stack in the order
+            they always did. When no stage was rated the pair simply has one member, and the
+            ledger holding half the measure is still wider than any of its three figures needs. */}
+        <PagePair>
+          <Section title="The sitting" support="What it cost, and how far it got.">
+            <Ledger
+              columns={3}
+              items={[
+                {
+                  label: 'Time taken',
+                  value: formatElapsed(interview.elapsedSec),
+                  sub: `~${question.estimatedTime} min recommended`,
+                },
+                {
+                  label: 'Stages reached',
+                  value: `${index + 1} of ${STAGES.length}`,
+                  sub: stage.label,
+                },
+                {
+                  label: 'Hints taken',
+                  // THIS sitting's rungs. Billing the all-time record to one attempt reported
+                  // "3 of 3" for a sitting in which the learner took none, purely because they had
+                  // opened the ladder on this problem some other day.
+                  value: `${hintsTaken} of ${hints.length}`,
+                  // Reported, never scored. Taking the ladder costs nothing here either.
+                  sub:
+                    hints.length === 0
+                      ? 'No ladder for this one'
+                      : hintsTaken > 0
+                        ? `Through rung ${hintsTaken}`
+                        : interview.hintsAtStart > 0
+                          ? 'Untouched this sitting'
+                          : 'Ladder untouched',
+                },
+              ]}
+            />
           </Section>
-        )}
+
+          {ratedStages.length > 0 && (
+            <Section title="How the stages went" support="Your own call at the time, recorded as you went.">
+              <RuledList>
+                {ratedStages.map(([stageId, outcome]) => (
+                  <RuledItem key={stageId}>
+                    <div className="flex flex-wrap items-baseline justify-between gap-x-4 gap-y-1">
+                      <p className="text-sm font-medium">{stageById[stageId].label}</p>
+                      <Eyebrow>{STAGE_OUTCOME_LABEL[outcome]}</Eyebrow>
+                    </div>
+                  </RuledItem>
+                ))}
+              </RuledList>
+            </Section>
+          )}
+        </PagePair>
 
         <Section
           title="The debrief"
@@ -743,14 +759,14 @@ export default function InterviewPage() {
               onChange={(event) => dispatch(reflectOnInterview(event.target.value))}
               rows={2}
             />
-          </div>
-        </Section>
-
-        <Section aria-label="Next">
-          <div className="flex flex-wrap items-center gap-2">
-            <Button onClick={() => dispatch(interviewCleared())}>
-              <RotateCcw /> Interview another problem
-            </Button>
+            {/* The way out lives at the end of the closing section rather than in a region of its
+                own: a lone button is not a section, and naming it one made the outline claim a
+                fourth act the debrief does not have. */}
+            <div className="flex flex-wrap items-center gap-2">
+              <Button onClick={() => dispatch(interviewCleared())}>
+                <RotateCcw /> Interview another problem
+              </Button>
+            </div>
           </div>
         </Section>
       </Page>
@@ -768,8 +784,7 @@ export default function InterviewPage() {
         action={statementLink}
       />
 
-      <Section aria-label="Current stage">
-        <Lead className="flex flex-col gap-6">
+        <Lead aria-label="Current stage">
           <div className="flex items-center justify-between gap-4 border-b border-border pb-3">
             <Eyebrow>
               Stage {index + 1} / {STAGES.length} &middot; {stage.label}
@@ -847,7 +862,6 @@ export default function InterviewPage() {
             </p>
           ) : null}
         </Lead>
-      </Section>
 
       <Section
         title="What you have unlocked"
@@ -859,107 +873,5 @@ export default function InterviewPage() {
   );
 }
 
-/* ------------------------------------------------------------------------------------------- */
-
-/**
- * A single-choice chip row — the capacity-chip radiogroup idiom (DESIGN.md § Capacity chips),
- * shared by the stage self-report and the five self-assessment scales. `aria-pressed` announced
- * N independent switches, all but one "not pressed", for a control where at most one option is
- * ever true; `role="radiogroup"`/`aria-checked` names the actual shape, and arrow-key selection
- * is the contract that role promises. Roving tabindex keeps the group to one tab stop — and with
- * nothing chosen yet (both rows start unanswered), the first chip stays tabbable, because a
- * radiogroup every one of whose radios is tabIndex -1 cannot be reached at all.
- */
-function ChipRadioRow<T extends string | number>({
-  label,
-  options,
-  value,
-  onSelect,
-  format,
-  chipClassName,
-  className,
-  before,
-  after,
-}: {
-  label: string;
-  options: readonly T[];
-  value: T | undefined;
-  onSelect: (option: T) => void;
-  /** Visible chip text; defaults to the option itself. */
-  format?: (option: T) => ReactNode;
-  chipClassName?: string;
-  className?: string;
-  /** Flanking non-interactive text (the scale's low/high anchors). */
-  before?: ReactNode;
-  after?: ReactNode;
-}) {
-  const chipRefs = useRef<(HTMLButtonElement | null)[]>([]);
-  const selectedIndex = options.findIndex((option) => option === value);
-  const focusIndex = selectedIndex === -1 ? 0 : selectedIndex;
-
-  function moveTo(index: number) {
-    const option = options[index];
-    if (option === undefined) return;
-    onSelect(option);
-    chipRefs.current[index]?.focus();
-  }
-
-  // Arrow keys move selection inside a radiogroup — a group that only responds to Tab and click
-  // is announcing one thing and behaving as another (same handler shape as RevisionPage's
-  // length chooser).
-  function onKeyDown(event: KeyboardEvent<HTMLDivElement>) {
-    const last = options.length - 1;
-    let next: number;
-    switch (event.key) {
-      case 'ArrowRight':
-      case 'ArrowDown':
-        next = selectedIndex === -1 ? 0 : (selectedIndex + 1) % options.length;
-        break;
-      case 'ArrowLeft':
-      case 'ArrowUp':
-        next = selectedIndex === -1 ? last : (selectedIndex + last) % options.length;
-        break;
-      case 'Home':
-        next = 0;
-        break;
-      case 'End':
-        next = last;
-        break;
-      default:
-        return;
-    }
-    event.preventDefault();
-    moveTo(next);
-  }
-
-  return (
-    <div
-      className={cn('flex flex-wrap gap-2', className)}
-      role="radiogroup"
-      aria-label={label}
-      onKeyDown={onKeyDown}
-    >
-      {before}
-      {options.map((option, i) => {
-        const active = option === value;
-        return (
-          <button
-            key={option}
-            type="button"
-            role="radio"
-            aria-checked={active}
-            tabIndex={i === focusIndex ? 0 : -1}
-            ref={(node) => {
-              chipRefs.current[i] = node;
-            }}
-            onClick={() => onSelect(option)}
-            className={cn(chipClassName, CHIP_CLASS, active ? CHIP_ON : CHIP_OFF)}
-          >
-            {format ? format(option) : option}
-          </button>
-        );
-      })}
-      {after}
-    </div>
-  );
-}
+/* `ChipRadioRow` now lives in components/shared — Today's capacity chips need the same control,
+   and the copy that stayed here was the only correct one of the three. */

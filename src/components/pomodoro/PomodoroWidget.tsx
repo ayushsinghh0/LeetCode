@@ -43,9 +43,18 @@ export function PomodoroWidget({ variant = 'floating' }: PomodoroWidgetProps) {
   // A timer that is not running has nothing to report, and a permanent plate reading "25:00 /
   // Ready" in the corner of all 18 pages is a plate that has not earned itself (DESIGN.md
   // § Composition). Idle collapses to the one thing it can offer — start — and the surface
-  // materialises only once a phase is actually counting. The inline variant on /focus is exempt:
-  // there the dial IS the page, so it stays whole in every phase.
+  // materialises only once a phase is actually counting.
   const collapsed = !isInline && phase === 'idle';
+  // The inline variant used to be exempt from that rule, on the reasoning that "on /focus the dial
+  // IS the page". Measured, it was not: idle is where this timer spends nearly all of its life, so
+  // /focus carried a permanent 258px plate — a quarter of the whole document — showing a 160px
+  // ring at 100% and the word "Ready", above a question the learner came there to work on. It now
+  // has a third state: a quiet row, still a `role="timer"` with the clock a screen reader needs,
+  // but no plate, no dial, and none of the two controls that are disabled at idle anyway. The
+  // full dial returns the moment a phase counts, which is the state it was designed for. (The row
+  // once drew its own `border-t` too — but it sits a full Page section gap below the lead, and a
+  // rule on top of that gap is paying for one boundary twice.)
+  const inlineIdle = isInline && phase === 'idle';
 
   return (
     <div
@@ -71,9 +80,30 @@ export function PomodoroWidget({ variant = 'floating' }: PomodoroWidgetProps) {
       </span>
 
       {collapsed ? (
-        <Button size="icon" variant="ghost" aria-label="Start pomodoro" onClick={start}>
+        // `outline`, not `ghost`. Ghost paints nothing until hover, so the idle widget was a bare
+        // play glyph floating directly over whatever page text sat beneath it — and at 1280 it
+        // overlaps the content column by ~8px on every route. "Quiet when idle" is not the same as
+        // "no surface": a hairline on the card ground is still the quietest persistent control in
+        // the app, and it is now legible against text instead of tangled in it.
+        <Button size="icon" variant="outline" aria-label="Start pomodoro" onClick={start}>
           <Play />
         </Button>
+      ) : inlineIdle ? (
+        <div className="flex w-full items-center justify-center gap-4">
+          <div
+            className="flex items-baseline gap-2"
+            role="timer"
+            aria-label={`Pomodoro: ${PHASE_LABEL[phase]}, ${formatClock(remainingSec)} remaining`}
+          >
+            <span className="figures text-base font-semibold leading-none">
+              {formatClock(remainingSec)}
+            </span>
+            <Eyebrow className="leading-none">{PHASE_LABEL[phase]}</Eyebrow>
+          </div>
+          <Button size="sm" variant="outline" onClick={start}>
+            <Play /> Start pomodoro
+          </Button>
+        </div>
       ) : (
         <div
           role="group"

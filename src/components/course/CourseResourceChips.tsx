@@ -41,7 +41,13 @@ export function CourseResourceChips({ resources }: { resources: CourseResource[]
             href={resource.url}
             target="_blank"
             rel="noreferrer"
-            className="inline-flex items-center gap-1 rounded border border-border px-1.5 py-0.5 text-xs font-medium text-muted-foreground transition-colors duration-150 ease-swift hover:border-primary/40 hover:text-foreground"
+            // `min-h-6` (24px) is the WCAG 2.5.8 AA floor for a pointer target. At `py-0.5` these
+            // chips computed to 22px — two pixels under it — and there are several on every one of
+            // the 31 syllabus rows, so it was the most-repeated undersized target in the app. 24px
+            // rather than 44px on purpose: these are inline deep-links inside a list row that
+            // already offers full-height controls, and 44px here would add ~20px back to every row
+            // the line above was merged to save.
+            className="inline-flex min-h-6 items-center gap-1 rounded border border-border px-1.5 py-0.5 text-xs font-medium text-muted-foreground transition-colors duration-150 ease-swift hover:border-primary/40 hover:text-foreground"
           >
             <Icon className="h-3 w-3 shrink-0" aria-hidden="true" />
             {resource.label}

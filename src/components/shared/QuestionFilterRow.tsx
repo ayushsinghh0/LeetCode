@@ -57,9 +57,14 @@ const GROUP_LABEL_CLASS = 'hidden text-xs font-medium tracking-wide text-muted-f
 // (RevisionPage): a small `rounded-sm` hairline toggle in the figure face, ink-filled when active.
 // These used to be full-size `Button size="sm"`s — up to seven h-9 bordered rectangles in a row,
 // which read as a toolbar of primary actions rather than as filters on the list beneath them.
+// `min-h-11` + `inline-flex items-center`: at `py-1` on `text-xs` these computed to 26px, and they
+// are the primary control on /bookmarks and the pattern pages — the row you actually operate to
+// find anything. The capacity and session-length chips they are the sibling of already carry
+// `min-h-[44px]` for the same reason; this row was the one that did not. The visual chip is
+// unchanged (the padding still sets its drawn size); only the hit area grows.
 const CHIP_CLASS =
-  'figures rounded-sm border px-2.5 py-1 text-xs transition-colors duration-150 ease-swift ' +
-  'focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring';
+  'figures inline-flex min-h-11 items-center rounded-sm border px-2.5 py-1 text-xs ' +
+  'transition-colors duration-150 ease-swift focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring';
 const CHIP_ACTIVE = 'border-primary bg-primary text-primary-foreground';
 const CHIP_IDLE = 'border-border text-muted-foreground hover:border-primary/40 hover:text-foreground';
 

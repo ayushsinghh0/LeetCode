@@ -114,7 +114,9 @@ Canonical source is src/index.css: raw HSL triplets consumed as `hsl(var(--token
 
 ## Layout
 
-One centered content column: `max-w-6xl` (72rem), `px-4 py-6 pb-28` on mobile (bottom-nav clearance) and `md:px-8 md:py-10` on desktop (AppShell.tsx). Pages stack sections at `space-y-6` (24px); plates sit in `gap-4` (16px) grids, `gap-6` inside the hero plate. Spacing is the stock Tailwind 4px scale — no custom steps. Sidebar on desktop, bottom nav on phones (see PRODUCT.md). Density is calm: one plate per concern, hairline `.rule` dividers inside a plate instead of nested cards.
+One centered content column: `max-w-6xl` (72rem), `px-4 py-5 pb-28` on mobile (bottom-nav clearance) and `md:px-8 md:py-8` on desktop (AppShell.tsx). Spacing is the stock Tailwind 4px scale — no custom steps. Sidebar on desktop, bottom nav on phones (see PRODUCT.md). Density is calm: one plate per concern, hairline `.rule` dividers inside a plate instead of nested cards.
+
+**The section rhythm is defined once, in § Composition → The rhythm, and `Page.tsx` is its implementation.** This paragraph used to restate it as `space-y-6` with `gap-6` inside the hero plate; both numbers were stale, and a page built from this paragraph would have disagreed with every page built from the vocabulary. Read the table below, not this line.
 
 ## Composition
 
@@ -166,11 +168,15 @@ Three vertical steps, and no others:
 
 | Step | Value | Where |
 |---|---|---|
-| Between sections | `gap-10 md:gap-12` | `Page` supplies it — pages do not set their own |
+| Between sections | `gap-8 md:gap-10` | `Page` supplies it — pages do not set their own |
 | Heading → content, and inside a group | `gap-4` | `Section` supplies it |
 | Between sibling rows | `gap-2`, or `0` with a hairline | lists |
 
+The section step is 32/40px, a clean 4 : 2 : 1 series against the other two rungs. It renders ~138 times across the eighteen pages, which makes it the single highest-leverage number in the app — do not change it to match a stale doc, and do not re-invent a fourth rung (`gap-3`, `gap-5`, `gap-6`) locally. `Lead` owns its interior stack at `gap-4`; every call site that passed its own `gap-6` had invented a fourth section-scale rung on the one surface where vertical space is most expensive.
+
 Plate padding is `p-6 md:p-8` (Lead), `p-5` (Plate), `p-3.5` (row). There is no `p-2`, `p-3`, `p-8` standalone, or `p-10`.
+
+**The progress bar has a three-step scale, not one height.** `h-2` (8px) standalone, `h-1.5` in a rail, `h-1` in a list row. § Progress describes the standalone bar; the two smaller steps exist because 8px × 28 pattern rows is 224px of bar on a contents page. Do not normalise them upward.
 
 ### The type ladder
 
@@ -218,7 +224,9 @@ Shared 0–4 ink ramp: `bg-muted/40`, `bg-primary/25`, `/45`, `/70`, `bg-primary
 Series come from CHART_COLORS (`--chart-1`/`--chart-2`); grid `--border`, axes `--muted-foreground`, surfaces `--card`. Pass/fail encodings wear STATUS_COLORS (`--easy`/`--hard`), never the categorical pair. Date axes tick weekly (interval 6). Always use ChartTooltip and renderChartLegend.
 
 ### Next-action plate (src/components/today/NextActionCard.tsx) — the lead
-The day's one recommendation, and the only plate on Today with `p-6`. Structure is fixed: a ruled xs uppercase eyebrow (`Next · <kind>`) with the estimate right-aligned in `.figures`, then the item title at `text-xl md:text-2xl`, then the reason as `text-sm text-muted-foreground` capped at `max-w-prose`, then chips, then one `default` button. Everything else on the page is `p-5` and quieter — the size difference *is* the hierarchy, so don't promote a sibling plate to match it.
+The day's one recommendation, and the only plate on Today (`Lead`, `p-6 md:p-8`). Structure is fixed: an xs uppercase eyebrow (`Next · <kind>`) with the estimate right-aligned in `.figures`, then the item title at `text-2xl`, then the reason as `text-sm text-muted-foreground` capped at `max-w-prose`, then a `Meta` line of **bare** chips, then one `default` button. Everything else on the page is `p-5` and quieter — the size difference *is* the hierarchy, so don't promote a sibling plate to match it.
+
+Two details that were previously specified wrongly here, and both were real defects in the code that followed this text. The eyebrow row carries **no** hairline: `Lead` already supplies `gap-4` between its children, so a `border-b` paid twice for one boundary. And the chips are **bare**, on a `Meta` line — § Related facts look like one fact is explicit that the bordered variant is never used in a row, and this line said "then chips" while the plate rendered two tinted rectangles describing the object its own `<h2>` had just named.
 
 ### Capacity chips (src/components/today/SessionPlan.tsx) — the commitment row
 Small `rounded-sm` bordered toggles in `.figures`; the active chip is a solid ink fill with `text-primary-foreground`. The only place in the app where several ink fills sit adjacent — permitted because exactly one is ever active. Never render them as pills or a segmented control.
@@ -233,7 +241,7 @@ The course-reader annotation: a hairline left rule, quiet muted text, no backgro
 
 ### Revision session (src/pages/RevisionPage.tsx) — the three states
 
-One surface, three states: **preview** (length chips → shape name, a 3-column `Ledger` of activities/planned/focus, a "Why these:" line, one `Start session` button) carries the page's one `Lead`; **run** is an open `Section` — shape name as its title, minutes-and-activities progress as its `action`, then the `Progress` bar and the activities as a `RuledList`, never as cards — because a progress bar already draws its own boundary and wrapping it in a `p-6 md:p-8` plate makes a very wide, very short box holding one bar; and **complete** (what was worked through, then held / needs-another-pass) reads **the sitting's own grades**, not the day's — the summary says "Session complete", so counting reviews graded from Today that morning would report five outcomes for a sitting that held two. The length chips reuse the capacity-chip idiom exactly; they write the same `settings.dailyCapacityMin`.
+One surface, three states: **preview** (length chips → shape name, a `Figures` line of activities/planned plus a `Meta` focus line, a "Why these:" line, one `Start session` button) carries the page's one `Lead`; **run** is an open `Section` — shape name as its title, minutes-and-activities progress as its `action`, then the `Progress` bar and the activities as a `RuledList`, never as cards — because a progress bar already draws its own boundary and wrapping it in a `p-6 md:p-8` plate makes a very wide, very short box holding one bar; and **complete** (what was worked through, then held / needs-another-pass) reads **the sitting's own grades**, not the day's — the summary says "Session complete", so counting reviews graded from Today that morning would report five outcomes for a sitting that held two. The length chips reuse the capacity-chip idiom exactly; they write the same `settings.dailyCapacityMin`.
 
 An item already graded today renders "Reviewed today · next review …" instead of grade buttons. The `reviseQuestion` thunk refuses a second grade on the same date, so offering the control anyway meant a button that recorded a grade in the UI while the ladder, the XP and the day log all ignored it.
 

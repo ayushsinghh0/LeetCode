@@ -1,8 +1,8 @@
-import { useEffect, useRef, useState } from 'react';
+import { useState } from 'react';
 import { AnimatePresence, motion, useReducedMotion } from 'framer-motion';
 import { CheckCircle2, Circle, Sparkles } from 'lucide-react';
 import { DifficultyBadge } from '@/components/questions/DifficultyBadge';
-import { Meta, Page, PageHeader, RuledItem, RuledList } from '@/components/layout/Page';
+import { Disclosure, Meta, Page, PageHeader, RuledItem, RuledList } from '@/components/layout/Page';
 import { Progress } from '@/components/ui/progress';
 import { patternById } from '@/data/patterns';
 import { useAppDispatch, useAppSelector } from '@/store/hooks';
@@ -83,7 +83,6 @@ interface RoadmapRowProps {
   progressById: Record<number, QuestionProgress>;
   onToggle: (day: number) => void;
   onOpenQuestion: (id: number) => void;
-  rowRef?: (el: HTMLDivElement | null) => void;
 }
 
 /**
@@ -103,8 +102,8 @@ function RoadmapRow({
   progressById,
   onToggle,
   onOpenQuestion,
-  rowRef,
 }: RoadmapRowProps) {
+  const reducedMotion = useReducedMotion();
   const solvedCount = slice.filter((q) => (progressById[q.id]?.status ?? 'unsolved') === 'solved').length;
   const isComplete = slice.length > 0 && solvedCount === slice.length;
   const progressPct = slice.length > 0 ? (solvedCount / slice.length) * 100 : 0;
@@ -129,7 +128,7 @@ function RoadmapRow({
           <StatusNode day={day} isComplete={isComplete} isCurrentDay={isCurrentDay} />
         </div>
 
-        <div ref={rowRef} className="min-w-0 flex-1 py-4">
+        <div className="min-w-0 flex-1 py-4">
           <button
             type="button"
             onClick={() => onToggle(day)}
@@ -162,40 +161,45 @@ function RoadmapRow({
                 initial={{ height: 0, opacity: 0 }}
                 animate={{ height: 'auto', opacity: 1 }}
                 exit={{ height: 0, opacity: 0 }}
-                transition={{ duration: 0.2 }}
+                // `height`/`opacity` are neither transforms nor layout, so `MotionConfig
+                // reducedMotion="user"` does not suppress them and index.css's CSS-only zeroing
+                // cannot reach a JS-driven animation. This file already gates its pulse on
+                // `useReducedMotion` for exactly this reason; the expand was missed.
+                transition={{ duration: reducedMotion ? 0 : 0.2 }}
                 className="overflow-hidden"
               >
-                <ul className="mt-3 flex flex-col divide-y divide-border/70 border-t border-border/70">
+                {/* Was a hand-rolled copy of `RuledList` — `divide-y divide-border/70 border-t
+                    border-border/70`, a second divider tone invented locally — wrapping a
+                    `div role="button"` with a hand-written Enter/Space handler. A real `<button>`
+                    brings both keys, the focus ring and the tab stop for free, and `min-h-11`
+                    lifts the row from 38px to the 44px target the rest of the product keeps. */}
+                <RuledList className="mt-3 border-y-0 border-t">
                   {slice.map((question) => {
                     const solved = (progressById[question.id]?.status ?? 'unsolved') === 'solved';
                     return (
-                      <li key={question.id}>
-                        <div
-                          role="button"
-                          tabIndex={0}
+                      <RuledItem key={question.id} padded={false}>
+                        <button
+                          type="button"
                           onClick={() => onOpenQuestion(question.id)}
-                          onKeyDown={(e) => {
-                            if (e.key === 'Enter' || e.key === ' ') {
-                              e.preventDefault();
-                              onOpenQuestion(question.id);
-                            }
-                          }}
-                          className="-mx-2 flex cursor-pointer items-center justify-between gap-3 rounded-sm px-2 py-2 transition-colors duration-150 ease-swift hover:bg-muted/50 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
+                          className="-mx-2 flex min-h-11 w-full items-center justify-between gap-3 rounded-sm px-2 py-2 text-left transition-colors duration-150 ease-swift hover:bg-muted/50 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
                         >
                           <span className="flex min-w-0 items-center gap-2 text-sm">
                             {solved ? (
                               <CheckCircle2 className="h-4 w-4 shrink-0 text-easy" aria-hidden="true" />
                             ) : (
-                              <Circle className="h-4 w-4 shrink-0 text-muted-foreground/50" aria-hidden="true" />
+                              <Circle className="h-4 w-4 shrink-0 text-muted-foreground" aria-hidden="true" />
                             )}
                             <span className="truncate">{question.title}</span>
                           </span>
-                          <DifficultyBadge difficulty={question.difficulty} />
-                        </div>
-                      </li>
+                          {/* `bare`: DESIGN.md § Related facts — the bordered chip is for a badge
+                              standing alone as an object, never one sitting in a row. It is also a
+                              `<div>`, which is invalid inside a `<button>`. */}
+                          <DifficultyBadge difficulty={question.difficulty} variant="bare" />
+                        </button>
+                      </RuledItem>
                     );
                   })}
-                </ul>
+                </RuledList>
               </motion.div>
             )}
           </AnimatePresence>
@@ -216,7 +220,6 @@ export default function RoadmapPage() {
   const progressById = useAppSelector((state) => state.progress.byId);
 
   const [expandedDay, setExpandedDay] = useState<number | null>(null);
-  const currentRowRef = useRef<HTMLDivElement | null>(null);
 
   function toggleDay(day: number) {
     setExpandedDay((prev) => (prev === day ? null : day));
@@ -226,45 +229,85 @@ export default function RoadmapPage() {
     dispatch(activeQuestionSet(id));
   }
 
-  // Auto-scroll the current day into view on mount. jsdom does not implement
-  // HTMLElement.scrollIntoView, so it's guarded with optional chaining rather than relying on a
-  // test-setup polyfill — the guard also makes the component robust in any environment where
-  // scrollIntoView is unavailable.
-  useEffect(() => {
-    currentRowRef.current?.scrollIntoView?.({ block: 'center' });
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  // The mount-time scrollIntoView (and its ref plumbing) is gone with the week grouping. It
+  // existed because the current day could sit 6,000px down a 68-row document; with the other
+  // weeks collapsed, the open week begins at most ~10 summary rows below the masthead, and
+  // auto-scrolling past the masthead to centre an element that is already on screen was the
+  // louder disorientation.
 
-  const days = Array.from({ length: totalDays }, (_, i) => i + 1);
+  // Weeks are the course's own rhythm (day % 7 === 0 is the weekly revision day), so they are the
+  // honest grouping unit — and the recomposition the page needed. Sixty-eight day rows at ~110px
+  // was a 7,400px document to scroll no matter where you stood in it; ten week rows with only the
+  // current one open is ~1,100px, and every other week is one tap away rather than gone. Only the
+  // week the learner is standing in opens by default.
+  const weeks: number[][] = [];
+  for (let d = 1; d <= totalDays; d += 7) {
+    weeks.push(Array.from({ length: Math.min(7, totalDays - d + 1) }, (_, i) => d + i));
+  }
+  const currentWeekIndex = Math.floor((currentDay - 1) / 7);
 
   return (
     <Page>
       <PageHeader
         eyebrow={`Day ${currentDay} of ${totalDays}`}
         title="Roadmap"
-        support={`${questions.length} questions across ${totalDays} days, in course order. Open a day to see its questions.`}
+        support={`${questions.length} questions across ${totalDays} days, in course order. Open a week, then a day.`}
       />
 
-      <RuledList>
-        {days.map((day) => {
-          const slice = daySlice(questions, day, perDay);
-          const isCurrentDay = day === currentDay;
+      {/* Disclosures rule themselves (each carries border-b), so the stack needs only its opening
+          rule; the inner RuledList drops border-y for the same reason — the week's own boundaries
+          already exist, and paying for a boundary twice is the duplicate-separator problem. */}
+      <div className="flex flex-col border-t border-border">
+        {weeks.map((weekDays, wi) => {
+          const firstDay = weekDays[0]!;
+          const lastDay = weekDays[weekDays.length - 1]!;
+          const slices = weekDays.map((day) => daySlice(questions, day, perDay));
+          let solvedInWeek = 0;
+          let totalInWeek = 0;
+          for (const slice of slices) {
+            totalInWeek += slice.length;
+            solvedInWeek += slice.filter(
+              (q) => (progressById[q.id]?.status ?? 'unsolved') === 'solved',
+            ).length;
+          }
           return (
-            <RoadmapRow
-              key={day}
-              day={day}
-              slice={slice}
-              isCurrentDay={isCurrentDay}
-              isLast={day === totalDays}
-              isExpanded={expandedDay === day}
-              progressById={progressById}
-              onToggle={toggleDay}
-              onOpenQuestion={openQuestion}
-              rowRef={isCurrentDay ? (el) => { currentRowRef.current = el; } : undefined}
-            />
+            <Disclosure
+              key={firstDay}
+              defaultOpen={wi === currentWeekIndex}
+              summary={
+                <span className="flex items-baseline gap-3">
+                  <span className="font-semibold">Week {wi + 1}</span>
+                  <span className="text-xs text-muted-foreground">
+                    days {firstDay}–{lastDay}
+                  </span>
+                </span>
+              }
+              meta={`${solvedInWeek}/${totalInWeek}`}
+            >
+              <RuledList className="border-y-0">
+                {weekDays.map((day, di) => {
+                  const isCurrentDay = day === currentDay;
+                  return (
+                    <RoadmapRow
+                      key={day}
+                      day={day}
+                      slice={slices[di]!}
+                      isCurrentDay={isCurrentDay}
+                      // The timeline is continuous within its week; the line stops at the week's
+                      // last marker instead of trailing into the disclosure's padding.
+                      isLast={day === lastDay}
+                      isExpanded={expandedDay === day}
+                      progressById={progressById}
+                      onToggle={toggleDay}
+                      onOpenQuestion={openQuestion}
+                    />
+                  );
+                })}
+              </RuledList>
+            </Disclosure>
           );
         })}
-      </RuledList>
+      </div>
     </Page>
   );
 }

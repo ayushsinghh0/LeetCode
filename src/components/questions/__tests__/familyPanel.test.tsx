@@ -30,7 +30,21 @@ afterEach(() => {
   vi.useRealTimers();
 });
 
-const openLadder = () => fireEvent.click(screen.getByRole('button', { name: /the problem ladder/i }));
+// The three rungs are the shared `Disclosure` (native `<details>`/`<summary>`), so they are
+// addressed as summaries rather than as buttons: `<summary>` carries no `button` role.
+//
+// Closed content stays in the DOM — that is what `<details>` does, and jsdom applies no UA
+// stylesheet to hide it — so "not yet revealed" is asserted against the disclosure's `open` state,
+// which is the actual mechanism, rather than against element absence, which only ever worked
+// because the previous local implementation unmounted its children.
+const rung = (name: RegExp): HTMLElement => {
+  const summary = screen.getAllByText(name).map((el) => el.closest('summary')).find(Boolean);
+  if (!summary) throw new Error(`no disclosure summary matching ${name}`);
+  return summary as HTMLElement;
+};
+const isOpen = (name: RegExp): boolean => rung(name).closest('details')!.hasAttribute('open');
+const openRung = (name: RegExp) => fireEvent.click(rung(name));
+const openLadder = () => openRung(/the problem ladder/i);
 
 describe('FamilyPanel', () => {
   test('states how far through the idea the learner is, without opening the ladder', () => {
@@ -59,21 +73,24 @@ describe('FamilyPanel', () => {
     expect(screen.getByText('Same idea: Converging pointers')).toBeInTheDocument();
     expect(screen.getByText(/discard one side/)).toBeInTheDocument();
 
-    // Progressive disclosure: the mini-course does not arrive all at once.
-    expect(screen.queryByText(/Pairs in sorted or symmetric input/)).not.toBeInTheDocument();
-    expect(screen.queryByText(/silently breaks the discard argument/)).not.toBeInTheDocument();
-    expect(screen.queryByRole('button', { name: /Valid Palindrome/ })).not.toBeInTheDocument();
+    // Progressive disclosure: the mini-course does not arrive all at once. All three rungs start
+    // shut, so none of their content is revealed.
+    expect(isOpen(/recognition cues/i)).toBe(false);
+    expect(isOpen(/the common trap/i)).toBe(false);
+    expect(isOpen(/the problem ladder/i)).toBe(false);
   });
 
   test('recognition cues open on request (recall before explanation), and the trap is its own step', () => {
     renderWithStore(<FamilyPanel family={family} currentQuestionId={1} />);
 
-    fireEvent.click(screen.getByRole('button', { name: /recognition cues/i }));
+    openRung(/recognition cues/i);
+    expect(isOpen(/recognition cues/i)).toBe(true);
     expect(screen.getByText(/Pairs in sorted or symmetric input/)).toBeInTheDocument();
     // The trap is a separate rung of the same course — revealing the cues does not spend it.
-    expect(screen.queryByText(/silently breaks the discard argument/)).not.toBeInTheDocument();
+    expect(isOpen(/the common trap/i)).toBe(false);
 
-    fireEvent.click(screen.getByRole('button', { name: /the common trap/i }));
+    openRung(/the common trap/i);
+    expect(isOpen(/the common trap/i)).toBe(true);
     expect(screen.getByText(/silently breaks the discard argument/)).toBeInTheDocument();
   });
 

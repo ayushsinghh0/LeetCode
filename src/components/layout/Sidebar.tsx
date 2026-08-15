@@ -20,7 +20,12 @@ export function Sidebar() {
   // which still centres the 40px level ring and gives every nav row a 44px-wide hit target
   // instead of 40px.
   return (
-    <aside className="hidden shrink-0 flex-col gap-4 border-r border-border p-3.5 md:flex md:w-[4.5rem] lg:w-60">
+    // `lg:w-52` (208px), down from `w-60` (240px). At exactly 1024px the rail jumps from 73px to
+    // its full width, so a page's content box *narrows* by 167px the moment the viewport gets one
+    // pixel wider — the worst number in the layout, and the reason a 1024 laptop had less room to
+    // read in than a 1023 one. 208px still fits the longest label ("Achievements", ~90px) beside
+    // its icon with room to spare, and hands 32px back to every screen at or above 1024.
+    <aside className="hidden shrink-0 flex-col gap-4 border-r border-border p-3.5 md:flex md:w-[4.5rem] lg:w-52">
       {/* The wordmark has 28px of usable width in the 72px icon rail (w-[4.5rem] − p-3.5 − px-2),
           which rendered "DSA Roadmap" as "D…". Below lg it keeps its accessible name and gives up
           its pixels; the rail's identity is the ink-marked active tab, not a clipped title. */}

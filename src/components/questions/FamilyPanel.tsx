@@ -1,9 +1,8 @@
-import { useState, type ReactNode } from 'react';
-import { ChevronDown, Lightbulb } from 'lucide-react';
+import { Lightbulb } from 'lucide-react';
 import questionsData from '@/data/questions.json';
 import { FAMILY_ROLE_LABEL, FAMILY_ROLE_ORDER } from '@/data/curriculum';
 import { DifficultyBadge } from '@/components/questions/DifficultyBadge';
-import { Eyebrow } from '@/components/layout/Page';
+import { Disclosure, Eyebrow } from '@/components/layout/Page';
 import { useAppDispatch, useAppSelector } from '@/store/hooks';
 import { activeQuestionSet } from '@/store/slices/uiSlice';
 import { cn } from '@/utils/cn';
@@ -41,45 +40,15 @@ const ROLE_MEANING: Record<FamilyRole, string> = {
   stretch: 'The idea pushed until it needs one more observation on top.',
 };
 
-type Step = 'signals' | 'trap' | 'ladder';
-
-function Disclosure({
-  label,
-  open,
-  onToggle,
-  children,
-}: {
-  label: string;
-  open: boolean;
-  onToggle: () => void;
-  children: ReactNode;
-}) {
-  return (
-    <div className="flex flex-col">
-      <button
-        type="button"
-        className="flex w-full items-center gap-2 py-2.5 text-left text-sm text-muted-foreground transition-colors duration-150 ease-swift hover:text-foreground"
-        aria-expanded={open}
-        onClick={onToggle}
-      >
-        <ChevronDown
-          className={cn('h-4 w-4 shrink-0 transition-transform duration-150 ease-swift', open && 'rotate-180')}
-          aria-hidden="true"
-        />
-        {label}
-      </button>
-      {open && <div className="pb-3 pl-6">{children}</div>}
-    </div>
-  );
-}
+// The local `Disclosure` that used to live here is gone. It shadowed the one exported from
+// `Page.tsx` — same name, two feet away in the same dialog, but a ChevronDown/rotate-180 instead of
+// a ChevronRight/rotate-90, a `useState` map instead of native `<details>`, and a `py-2.5` summary
+// that computed to 40px against the shared component's `min-h-11`. Two components with one name and
+// three differences is exactly the drift `Eyebrow` was extracted to end.
 
 export function FamilyPanel({ family, currentQuestionId }: { family: ProblemFamily; currentQuestionId: number }) {
   const dispatch = useAppDispatch();
   const byId = useAppSelector((s) => s.progress.byId);
-  const [open, setOpen] = useState<Record<Step, boolean>>({ signals: false, trap: false, ladder: false });
-
-  const toggle = (step: Step) => () => setOpen((o) => ({ ...o, [step]: !o[step] }));
-
   const members = [...family.members].sort(
     (a, b) => FAMILY_ROLE_ORDER.indexOf(a.role) - FAMILY_ROLE_ORDER.indexOf(b.role),
   );
@@ -104,8 +73,9 @@ export function FamilyPanel({ family, currentQuestionId }: { family: ProblemFami
         </p>
       </div>
 
-      <div className="flex flex-col divide-y divide-border border-y border-border">
-        <Disclosure label="Recognition cues" open={open.signals} onToggle={toggle('signals')}>
+      {/* No wrapper rules: the shared `Disclosure` draws its own `border-b`. */}
+      <div className="flex flex-col border-t border-border">
+        <Disclosure summary="Recognition cues">
           <ul className="space-y-1.5">
             {family.signals.map((signal) => (
               <li key={signal} className="flex items-start gap-2 text-sm text-muted-foreground">
@@ -116,15 +86,11 @@ export function FamilyPanel({ family, currentQuestionId }: { family: ProblemFami
           </ul>
         </Disclosure>
 
-        <Disclosure label="The common trap" open={open.trap} onToggle={toggle('trap')}>
+        <Disclosure summary="The common trap">
           <p className="max-w-prose text-sm leading-relaxed text-muted-foreground">{family.trap}</p>
         </Disclosure>
 
-        <Disclosure
-          label={`The problem ladder · ${members.length} problems`}
-          open={open.ladder}
-          onToggle={toggle('ladder')}
-        >
+        <Disclosure summary="The problem ladder" meta={`${members.length} problems`}>
           <div className="flex flex-col gap-4">
             {FAMILY_ROLE_ORDER.map((role) => {
               const inRole = members.filter((m) => m.role === role && questionById.has(m.questionId));
@@ -145,7 +111,7 @@ export function FamilyPanel({ family, currentQuestionId }: { family: ProblemFami
                             disabled={isCurrent}
                             onClick={() => dispatch(activeQuestionSet(questionId))}
                             className={cn(
-                              'flex w-full items-center gap-2 rounded-md px-2 py-1.5 text-left text-sm transition-colors duration-150 ease-swift',
+                              'flex min-h-11 w-full items-center gap-2 rounded-md px-2 py-1.5 text-left text-sm transition-colors duration-150 ease-swift',
                               isCurrent ? 'bg-muted' : 'hover:bg-muted',
                             )}
                             aria-current={isCurrent ? 'true' : undefined}
@@ -158,7 +124,7 @@ export function FamilyPanel({ family, currentQuestionId }: { family: ProblemFami
                             >
                               {q.title}
                             </span>
-                            <DifficultyBadge difficulty={q.difficulty} />
+                            <DifficultyBadge difficulty={q.difficulty} variant="bare" />
                           </button>
                         </li>
                       );

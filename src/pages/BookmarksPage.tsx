@@ -90,7 +90,7 @@ export default function BookmarksPage() {
         <ScreenBody>
           <section
             aria-label="Bookmarked questions"
-            className="flex flex-col gap-4 md:min-h-0 md:flex-1"
+            className="flex flex-col gap-4 lg:min-h-0 lg:flex-1"
           >
           <QuestionFilterRow
             difficulty={difficulty}

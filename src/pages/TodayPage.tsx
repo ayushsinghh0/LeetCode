@@ -92,7 +92,7 @@ export default function TodayPage() {
         {/* The work column. The hero is fixed-size; the plan is the one thing here that grows with
             the day, so it takes the leftover height in a `Panel` and scrolls inside itself. That is
             the sanctioned single content panel — the screen around it never moves. */}
-        <div className="flex min-w-0 flex-col gap-4 md:min-h-0 md:flex-1">
+        <div className="flex min-w-0 flex-col gap-4 lg:min-h-0 lg:flex-1">
           {/* Day-level framing, above the hero because it reframes the whole day rather than
               accompanying it. Both are rare and both are quiet. */}
           {isWeeklyDay && <WeeklyRevisionBanner count={revisionIds.length} />}
@@ -115,7 +115,7 @@ export default function TodayPage() {
             in the DOM, so below `lg` — and for every screen reader — the work still comes first. */}
         <aside
           aria-label="Today's context"
-          className="flex min-w-0 flex-col gap-4 md:min-h-0 md:overflow-y-auto md:overscroll-contain"
+          className="flex min-w-0 flex-col gap-4 lg:min-h-0 lg:overflow-y-auto lg:overscroll-contain"
         >
           {/* The learner's own routines — a reminder, never a headline. In the rail it is beside
               the day rather than above the recommendation, which is where a reminder belongs. */}

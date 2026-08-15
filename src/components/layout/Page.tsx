@@ -83,7 +83,7 @@ export function Page({ children, width = 'default', className }: PageProps) {
  *
  * `Page` composes a document: it stacks sections downward and the reader travels through them.
  * That was the right model while the shell let the document grow. It no longer does — `AppShell`
- * is a fixed 100dvh row above `md` — so a surface built to stack simply overflows into `main`'s
+ * is a fixed 100dvh row above `lg` — so a surface built to stack simply overflows into `main`'s
  * scroll and the application becomes a webpage again inside its own frame.
  *
  * `Screen` inverts the relationship. It takes a definite height from the shell and *divides* it:
@@ -96,12 +96,15 @@ export function Page({ children, width = 'default', className }: PageProps) {
  * and the whole contract silently fails. If a screen is scrolling when it should not be, look for
  * the level that is missing it before looking at the content.
  *
- * Below `md` this is deliberately an ordinary column: a phone has no room to be an application
- * viewport, and the brief keeps an intentional document scroll there.
+ * Below `lg` this is deliberately an ordinary column, matching the shell's own breakpoint: a phone
+ * or a small tablet has no room to be an application viewport, and the brief keeps an intentional
+ * document scroll there. The height lock and the two-column bodies MUST share a breakpoint — when
+ * they did not, the band between them collapsed the work column to ~96px and painted it over the
+ * rail.
  */
 export function Screen({ children, className }: { children: ReactNode; className?: string }) {
   return (
-    <div className={cn('flex flex-col gap-5 md:h-full md:min-h-0 md:gap-4', className)}>
+    <div className={cn('flex flex-col gap-5 lg:h-full lg:min-h-0 lg:gap-4', className)}>
       {children}
     </div>
   );
@@ -163,7 +166,7 @@ export function ScreenBody({
   return (
     <div
       className={cn(
-        'flex flex-col gap-5 md:min-h-0 md:flex-1 md:gap-4',
+        'flex flex-col gap-5 lg:min-h-0 lg:flex-1 lg:gap-4',
         // `grid-rows-[minmax(0,1fr)]` is as load-bearing as `min-h-0` and fails the same way.
         // A grid's implicit rows are `auto`, which sizes to content — so a body with a definite
         // height still gave its children a content-sized row, every `min-h-0` below resolved
@@ -196,7 +199,7 @@ export function Panel({ children, className }: { children: ReactNode; className?
     // absolutely-positioned descendants when it is their containing block. Without it an `sr-only`
     // span inside a panel escapes to the initial containing block and silently re-extends the
     // document.
-    <div className={cn('relative flex flex-col md:min-h-0 md:flex-1 md:overflow-y-auto md:overscroll-contain', className)}>
+    <div className={cn('relative flex flex-col lg:min-h-0 lg:flex-1 lg:overflow-y-auto lg:overscroll-contain', className)}>
       {children}
     </div>
   );

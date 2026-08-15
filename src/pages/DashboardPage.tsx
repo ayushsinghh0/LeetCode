@@ -220,7 +220,7 @@ export default function DashboardPage() {
         {/* The work column. `Panel` because the plan behind the hero is the one thing here that can
             legitimately grow — everything else is fixed-size — so it takes the leftover height and
             scrolls inside itself rather than pushing the screen past the shell. */}
-        <div className="flex min-w-0 flex-col gap-4 md:min-h-0 md:flex-1">
+        <div className="flex min-w-0 flex-col gap-4 lg:min-h-0 lg:flex-1">
         {/* The page's one plate, and the first thing in the reading order. */}
         {ranked.length > 0 ? (
           <NextActionCard ranked={ranked} />
@@ -299,7 +299,7 @@ export default function DashboardPage() {
         {/* The context rail. Everything in it is a reading, not a decision; on a laptop it sits
             beside the work instead of below it, and below `lg` it stacks after — main is first in
             the DOM, so a phone and a screen reader both still get the work first. */}
-        <aside aria-label="Standing and record" className="flex min-w-0 flex-col gap-4 md:min-h-0 md:overflow-y-auto md:overscroll-contain">
+        <aside aria-label="Standing and record" className="flex min-w-0 flex-col gap-4 lg:min-h-0 lg:overflow-y-auto lg:overscroll-contain">
         {/* Attention first. A pattern only appears here after repeated negative evidence, so its
             presence is itself the signal — which is why it opens the rail rather than sitting
             fifth in a stack of equally-weighted bands. */}

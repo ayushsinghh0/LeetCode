@@ -191,10 +191,10 @@ export default function AimlCoursePage() {
             are simply not all on screen at once. A tab is the brief's answer for exactly this
             shape: sibling bodies of material, one of which you are in. The selected list scrolls
             inside its own `Panel`, so the sprint above it never moves. */}
-        <div className="flex min-w-0 flex-col gap-4 md:min-h-0 md:flex-1">
+        <div className="flex min-w-0 flex-col gap-4 lg:min-h-0 lg:flex-1">
           {upNext}
 
-          <Tabs defaultValue="syllabus" className="flex flex-col gap-3 md:min-h-0 md:flex-1">
+          <Tabs defaultValue="syllabus" className="flex flex-col gap-3 lg:min-h-0 lg:flex-1">
             <TabsList>
               <TabsTrigger value="syllabus">Syllabus</TabsTrigger>
               <TabsTrigger value="implement">Implement</TabsTrigger>
@@ -204,8 +204,9 @@ export default function AimlCoursePage() {
 
             {/* Every tab body is a `Panel`: `min-h-0` plus its own scroll, so a 26-row syllabus and
                 a 4-row extras list produce the same screen height. */}
-            <TabsContent value="syllabus" className="md:flex md:min-h-0 md:flex-1 md:flex-col">
+            <TabsContent value="syllabus" className="lg:min-h-0 lg:flex-1 lg:flex-col lg:data-[state=active]:flex">
               <Panel>
+                <h2 className="sr-only">Syllabus</h2>
                 {/* Cleared weeks stay behind their own latch inside the tab. A week you finished in
                     March is archive even within the syllabus, and this way the list shrinks as the
                     learner progresses instead of growing. */}
@@ -241,8 +242,9 @@ export default function AimlCoursePage() {
               </Panel>
             </TabsContent>
 
-            <TabsContent value="implement" className="md:flex md:min-h-0 md:flex-1 md:flex-col">
+            <TabsContent value="implement" className="lg:min-h-0 lg:flex-1 lg:flex-col lg:data-[state=active]:flex">
               <Panel>
+                <h2 className="sr-only">Implement it from scratch</h2>
                 <Meta
                   className="text-xs"
                   items={[
@@ -270,8 +272,9 @@ export default function AimlCoursePage() {
               </Panel>
             </TabsContent>
 
-            <TabsContent value="ship" className="md:flex md:min-h-0 md:flex-1 md:flex-col">
+            <TabsContent value="ship" className="lg:min-h-0 lg:flex-1 lg:flex-col lg:data-[state=active]:flex">
               <Panel>
+                <h2 className="sr-only">Ship something measurable</h2>
                 <Meta
                   className="text-xs"
                   items={[
@@ -293,8 +296,9 @@ export default function AimlCoursePage() {
               </Panel>
             </TabsContent>
 
-            <TabsContent value="extras" className="md:flex md:min-h-0 md:flex-1 md:flex-col">
+            <TabsContent value="extras" className="lg:min-h-0 lg:flex-1 lg:flex-col lg:data-[state=active]:flex">
               <Panel>
+                <h2 className="sr-only">Extra sessions</h2>
                 <RuledList>
                   {EXTRA_WEEKS.map((week) => (
                     <CourseWeekRow
@@ -319,7 +323,7 @@ export default function AimlCoursePage() {
             have scheduled, which is context for the sprint, not a third catalogue. */}
         <aside
           aria-label="Course standing"
-          className="flex min-w-0 flex-col gap-4 md:min-h-0 md:overflow-y-auto md:overscroll-contain"
+          className="flex min-w-0 flex-col gap-4 lg:min-h-0 lg:overflow-y-auto lg:overscroll-contain"
         >
           <Section aria-label="Course progress">
             <Progress value={stats.pct} aria-label="Course completion" />

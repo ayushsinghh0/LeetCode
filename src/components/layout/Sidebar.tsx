@@ -47,12 +47,17 @@ export function Sidebar() {
     // pixel wider — the worst number in the layout, and the reason a 1024 laptop had less room to
     // read in than a 1023 one. 208px still fits the longest label ("Achievements", ~90px) beside
     // its icon with room to spare, and hands 32px back to every screen at or above 1024.
-    // `h-full min-h-0` makes this a true application rail. It was a flex child of a `min-h-screen`
-    // row, so it stretched to the height of the *document* — on /aiml that was a 4,300px column
-    // whose nav scrolled off the top and whose level ring sat 3,500px below the fold. Now the row
-    // is exactly one viewport, so the rail is exactly one viewport: stationary while a screen
-    // scrolls beside it, identical on every route, its active mark always in the same place.
-    <aside className="hidden shrink-0 flex-col gap-3 border-r border-border p-3 md:flex md:h-full md:min-h-0 md:w-[4.5rem] lg:w-52">
+    // `lg:h-full lg:min-h-0` makes this a true application rail. It was a flex child of a
+    // `min-h-screen` row, so it stretched to the height of the *document* — on /aiml that was a
+    // 4,300px column whose nav scrolled off the top and whose level ring sat 3,500px below the
+    // fold. Above `lg` the row is exactly one viewport, so the rail is exactly one viewport:
+    // stationary while a screen scrolls beside it, identical on every route, its active mark
+    // always in the same place.
+    //
+    // The lock is `lg`, not `md`, and matches the shell's. Between 768 and 1023 the shell is an
+    // ordinary scrolling document (the two-column screen bodies only exist from `lg`), so a rail
+    // pinned to the viewport there would have floated beside a page that scrolls past it.
+    <aside className="hidden shrink-0 flex-col gap-3 border-r border-border p-3 md:flex md:w-[4.5rem] lg:h-full lg:min-h-0 lg:w-52">
       {/* The wordmark has 28px of usable width in the 72px icon rail (w-[4.5rem] − p-3.5 − px-2),
           which rendered "DSA Roadmap" as "D…". Below lg it keeps its accessible name and gives up
           its pixels; the rail's identity is the ink-marked active tab, not a clipped title. */}

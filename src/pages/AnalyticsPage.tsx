@@ -161,10 +161,10 @@ export default function AnalyticsPage() {
             nothing was removed; they are siblings, exactly one of which you are reading, which
             is what a tab is for. The lead reading stays above the strip because it is the
             answer — the tabs are where you go to check it. */}
-        <div className="flex min-w-0 flex-col gap-4 md:min-h-0 md:flex-1">
+        <div className="flex min-w-0 flex-col gap-4 lg:min-h-0 lg:flex-1">
           <InsightLead insight={insights[0] ?? null} />
 
-          <Tabs defaultValue="next" className="flex flex-col gap-3 md:min-h-0 md:flex-1">
+          <Tabs defaultValue="next" className="flex flex-col gap-3 lg:min-h-0 lg:flex-1">
             <TabsList>
               <TabsTrigger value="next">What next</TabsTrigger>
               <TabsTrigger value="findings">Findings</TabsTrigger>
@@ -174,7 +174,7 @@ export default function AnalyticsPage() {
               <TabsTrigger value="unfamiliar">Unfamiliar</TabsTrigger>
             </TabsList>
 
-            <TabsContent value="next" className="md:flex md:min-h-0 md:flex-1 md:flex-col">
+            <TabsContent value="next" className="lg:min-h-0 lg:flex-1 lg:flex-col lg:data-[state=active]:flex">
               <Panel>
             <Section
               title="What should I do next?"
@@ -241,7 +241,7 @@ export default function AnalyticsPage() {
               </Panel>
             </TabsContent>
 
-            <TabsContent value="findings" className="md:flex md:min-h-0 md:flex-1 md:flex-col">
+            <TabsContent value="findings" className="lg:min-h-0 lg:flex-1 lg:flex-col lg:data-[state=active]:flex">
               <Panel>
                 {/* The findings that follow the lead. They used to sit open above every figure
                     on the screen; capped at three there and latched beyond that, they are now a
@@ -255,7 +255,7 @@ export default function AnalyticsPage() {
               </Panel>
             </TabsContent>
 
-            <TabsContent value="showing-up" className="md:flex md:min-h-0 md:flex-1 md:flex-col">
+            <TabsContent value="showing-up" className="lg:min-h-0 lg:flex-1 lg:flex-col lg:data-[state=active]:flex">
               <Panel>
             <Section
               title="Am I showing up?"
@@ -317,7 +317,7 @@ export default function AnalyticsPage() {
               </Panel>
             </TabsContent>
 
-            <TabsContent value="faster" className="md:flex md:min-h-0 md:flex-1 md:flex-col">
+            <TabsContent value="faster" className="lg:min-h-0 lg:flex-1 lg:flex-col lg:data-[state=active]:flex">
               <Panel>
             <Section
               title="Am I getting faster?"
@@ -365,7 +365,7 @@ export default function AnalyticsPage() {
               </Panel>
             </TabsContent>
 
-            <TabsContent value="accurate" className="md:flex md:min-h-0 md:flex-1 md:flex-col">
+            <TabsContent value="accurate" className="lg:min-h-0 lg:flex-1 lg:flex-col lg:data-[state=active]:flex">
               <Panel>
             <Section
               title="Am I getting more accurate?"
@@ -464,7 +464,7 @@ export default function AnalyticsPage() {
               </Panel>
             </TabsContent>
 
-            <TabsContent value="unfamiliar" className="md:flex md:min-h-0 md:flex-1 md:flex-col">
+            <TabsContent value="unfamiliar" className="lg:min-h-0 lg:flex-1 lg:flex-col lg:data-[state=active]:flex">
               <Panel>
             <Section
               title="Can I solve unfamiliar problems?"
@@ -514,9 +514,10 @@ export default function AnalyticsPage() {
 
         {/* The other track is context on a screen about the roadmap, not a sixth question, so it
             rides the rail beside the tabs rather than standing under them. */}
+        {/* No `aria-label`: the section inside is already titled "The ML track", and labelling the
+            landmark with the same words announces it twice. */}
         <aside
-          aria-label="The ML track"
-          className="flex min-w-0 flex-col gap-4 md:min-h-0 md:overflow-y-auto md:overscroll-contain"
+          className="flex min-w-0 flex-col gap-4 lg:min-h-0 lg:overflow-y-auto lg:overscroll-contain"
         >
         <Section
           title="The ML track"

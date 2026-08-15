@@ -54,13 +54,22 @@ export function AppShell() {
 
   // THE APPLICATION SHELL.
   //
-  // `md:h-[100dvh] md:overflow-hidden` is the whole V10 change, and it is deliberately scoped to
-  // `md` and up. Above that breakpoint the root box is exactly one viewport tall and clips, so the
-  // document can never grow — `documentElement.scrollHeight === innerHeight`, the body never
-  // scrolls, and the rail beside it stops being a flex child that stretches to a 4,000px document
-  // and scrolls away with it. Below `md` the constraint is simply absent (`min-h-dvh`), because a
-  // phone has no room to be an application viewport and the directive says so: mobile keeps an
-  // intentional document scroll.
+  // `lg:h-[100dvh] lg:overflow-hidden` is the whole V10 change, and the breakpoint is `lg` (1024)
+  // rather than `md` (768) for a reason that cost a real defect to learn. Above it the root box is
+  // exactly one viewport tall and clips, so the document can never grow —
+  // `documentElement.scrollHeight === innerHeight`, the body never scrolls, and the rail beside it
+  // stops being a flex child that stretches to a 4,000px document and scrolls away with it.
+  //
+  // It was `md` first, and the two-column screen bodies start at `lg`. Between 768 and 1023 that
+  // left a height-locked column stack: the work div was `flex-1` with basis 0 while the context
+  // `<aside>` was content-sized, so the aside took everything, the work column collapsed to ~96px,
+  // and its overflow — being `visible` — painted *over* the rail instead of clipping. The hero's
+  // primary button was not clickable at 900px, and every metric still read zero, because content
+  // that overflows visibly overflows nothing. Lock the height at the same breakpoint as the
+  // columns, or the band between them is neither a document nor a screen.
+  //
+  // Below `lg` the constraint is simply absent (`min-h-dvh`): mobile and small tablets keep an
+  // honest document scroll, which the brief sanctions for surfaces too small to be a viewport.
   //
   // This is done here rather than as `html, body { overflow: hidden }` in index.css for one
   // reason: /focus is routed OUTSIDE AppShell (App.tsx) and owns its own `main`, and a global
@@ -70,7 +79,7 @@ export function AppShell() {
   // There is exactly ONE scroll container below this: `<main>`. Not the sidebar's nav (that gets
   // its own only when it overflows), not a panel inside a panel. § NO NESTED SCROLL HELL.
   return (
-    <div className="flex min-h-dvh md:h-[100dvh] md:overflow-hidden">
+    <div className="flex min-h-dvh lg:h-[100dvh] lg:overflow-hidden">
       {/* Bypass block (WCAG 2.4.1, level A). Fifteen sidebar links precede the content on every
           route, so a keyboard or switch user paid fifteen tab stops per navigation to reach the
           page they had just opened. It is the first thing in the tab order, invisible until
@@ -92,7 +101,7 @@ export function AppShell() {
           - `min-h-0` is load-bearing: a flex child defaults to `min-height:auto`, which refuses to
             shrink below its content, so without it the main column would push the 100dvh row taller
             and hand the scroll straight back to the document.
-          - `md:overflow-y-auto`: screens built to fit produce no scrollbar at all (which is the
+          - `lg:overflow-y-auto`: screens built to fit produce no scrollbar at all (which is the
             zero-scroll contract); a genuine detail view scrolls HERE, inside the shell, with the
             rail and the header staying put. That is the "application shell + one intentional
             content panel" allowance, and nothing nested is permitted a second one.
@@ -109,7 +118,7 @@ export function AppShell() {
         // static offset *below* the clipped viewport, and extended
         // `documentElement.scrollHeight` — 1208px on /today, from ten 1px spans. The body reported
         // 800px and looked correct; the document scrolled anyway.
-        className="relative min-w-0 flex-1 focus:outline-none md:min-h-0 md:overflow-y-auto md:overscroll-contain"
+        className="relative min-w-0 flex-1 focus:outline-none lg:min-h-0 lg:overflow-y-auto lg:overscroll-contain"
       >
         {/* pb-28 on phones: the bottom-nav clearance the design system specifies (DESIGN.md
             § Adding a New Surface #8). It was pb-36 to accommodate the floating pomodoro's
@@ -117,13 +126,13 @@ export function AppShell() {
             timer that is idle almost all the time. The widget now collapses to a 40px ghost
             button when idle, and its glyph sits inside this reservation. Desktop has neither.
 
-            `md:h-full` hands the viewport height down to the page: a `Screen` needs a definite
+            `lg:h-full` hands the viewport height down to the page: a `Screen` needs a definite
             height to divide into a header and a flexing body, and `h-full` only resolves because
             `main` itself now has a definite height. `max-w-6xl` is gone at `md` and up — the
             directive is explicit that a 1280px laptop must not render a narrow column beside dead
             space, and the measure now belongs to each screen's own columns rather than to a cap on
             the whole application. */}
-        <div className="mx-auto w-full max-w-6xl px-4 py-5 pb-28 md:h-full md:max-w-none md:px-6 md:py-5 md:pb-5 lg:px-8">
+        <div className="mx-auto w-full max-w-6xl px-4 py-5 pb-28 md:px-6 md:py-5 md:pb-5 lg:h-full lg:max-w-none lg:px-8">
           {/* Boundary inside the shell: a page crash keeps the sidebar/nav alive so the user
               can still move to another route. App.tsx carries the outer backstop. */}
           <ErrorBoundary>

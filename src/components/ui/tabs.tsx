@@ -35,6 +35,18 @@ const TabsTrigger = React.forwardRef<
 ));
 TabsTrigger.displayName = TabsPrimitive.Trigger.displayName;
 
+/**
+ * A tab body.
+ *
+ * **If you need this to be a flex container, write `data-[state=active]:flex`, never a bare
+ * `flex`.** Radix keeps every previously-opened panel mounted and marks the inactive ones with the
+ * `hidden` attribute. `[hidden] { display: none }` is a UA-origin rule, so any author-origin
+ * `display` — including Tailwind's `flex` or `md:flex` — beats it and the panel stays laid out.
+ * Every panel then remains a flex item of the same parent and they split the height N ways: on
+ * /analytics that made the DEFAULT panel a 22px slit at 1280×800 and a zero-height box at 125%
+ * zoom, while the shell's own overflow metric still read 0 — because a zero-height panel overflows
+ * nothing. It also leaves the empty inactive panels in the tab order as phantom focus stops.
+ */
 const TabsContent = React.forwardRef<
   React.ElementRef<typeof TabsPrimitive.Content>,
   React.ComponentPropsWithoutRef<typeof TabsPrimitive.Content>

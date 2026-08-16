@@ -117,7 +117,7 @@ function RoadmapRow({
         {/* The rail spans the full height of every row so the timeline reads as one continuous
             line rather than 68 segments; the marker punches through it, and on the final day it
             stops at the marker instead of trailing off the end of the course. */}
-        <div className="relative flex w-9 shrink-0 justify-center pt-3.5">
+        <div className="relative flex w-9 shrink-0 justify-center pt-2">
           <div
             aria-hidden="true"
             className={cn(
@@ -128,27 +128,31 @@ function RoadmapRow({
           <StatusNode day={day} isComplete={isComplete} isCurrentDay={isCurrentDay} />
         </div>
 
-        <div className="min-w-0 flex-1 py-4">
+        <div className="min-w-0 flex-1 py-2.5">
+          {/* One line, not three. "Day 25", its patterns, its difficulty mix and its count all
+              describe the same day, and stacking them as three bands made every row ~100px —
+              700px per open week, on a viewport that may be 590px tall (1080p at 150% scaling).
+              The meta wraps under the day number at phone widths, where a taller row is the
+              sanctioned trade; from `md` up the whole reading is one baseline plus the bar. */}
           <button
             type="button"
             onClick={() => onToggle(day)}
             aria-expanded={isExpanded}
             aria-controls={`roadmap-day-${day}-questions`}
-            className="-mx-2 flex w-full flex-col gap-2 rounded-md px-2 py-1 text-left transition-colors duration-150 ease-swift hover:bg-muted/40 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
+            className="-mx-2 flex w-full flex-col gap-1.5 rounded-md px-2 py-1 text-left transition-colors duration-150 ease-swift hover:bg-muted/40 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
           >
             <div className="flex items-baseline justify-between gap-3">
-              <span className="flex items-center gap-2">
-                <span className="font-semibold">Day {day}</span>
-                {weekly && <Sparkles className="h-4 w-4 text-primary" aria-label="Weekly revision day" role="img" />}
+              <span className="flex min-w-0 flex-wrap items-baseline gap-x-3 gap-y-0.5">
+                <span className="flex items-center gap-2 font-semibold">
+                  Day {day}
+                  {weekly && <Sparkles className="h-4 w-4 text-primary" aria-label="Weekly revision day" role="img" />}
+                </span>
+                <Meta className="text-xs" items={[patterns || null, difficulty || null]} />
               </span>
               <span className="figures shrink-0 text-xs text-muted-foreground">
                 {solvedCount}/{slice.length}
               </span>
             </div>
-
-            {/* Patterns and difficulty mix describe one thing — the day — so they read as one
-                line, not as two near-identical stacked paragraphs. */}
-            <Meta className="text-xs" items={[patterns || null, difficulty || null]} />
 
             <Progress value={progressPct} className="h-1" aria-label={`Day ${day} progress`} />
           </button>

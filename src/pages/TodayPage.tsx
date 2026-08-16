@@ -71,10 +71,12 @@ export default function TodayPage() {
 
   return (
     <Screen>
+      {/* No support line: the title, the eyebrow and the goal bar below already say everything it
+          said, and on a 590px-tall viewport (1080p at 150% scaling) every masthead line is a plan
+          row the learner has to scroll to instead. */}
       <ScreenHeader
         eyebrow={`${format(parseISO(today), 'EEEE, MMMM d')} · Day ${currentDay} of ${totalDays}`}
         title="Today"
-        support="One next action, sized to the time you have."
         action={
           <Button asChild variant="outline" size="sm">
             <Link to="/focus">Focus mode</Link>
@@ -85,8 +87,9 @@ export default function TodayPage() {
       {/* The day's own progress, directly under the masthead. It used to be the fifth block —
           1.7 viewports down — on the one page whose job is to report the day. A bar and its
           caption need no heading and no plate: "3 / 8 solved today" is its own label, and the bar
-          already draws the only edge the block needs. */}
-      <DailyGoalProgress solvedToday={solvedToday} perDay={perDay} />
+          already draws the only edge the block needs. `dense` puts caption and bar on one line —
+          the stacked pair spent 36px restating what one row states. */}
+      <DailyGoalProgress solvedToday={solvedToday} perDay={perDay} dense />
 
       <ScreenBody cols="main-rail">
         {/* The work column: the hero, then the plan flowing at its natural height under it.

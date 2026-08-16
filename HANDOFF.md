@@ -31,6 +31,19 @@ Deliberately NOT done, with reasons stated in the session record: no multi-hue s
 group headers (work/shelf ruling exists; three more rows don't fit 590px), no greeting microcopy
 (PRODUCT.md locks plain copy).
 
+## V12.1 — Fit by composition (same day)
+
+The user reported the remaining vertical scroll on Today/Roadmap. The V10 lesson forbids height
+locks, so the answer is density (DESIGN.md § Fit by composition): Today 1017→800px of content at
+1280×590 (support line dropped, `DailyGoalProgress dense` one-row variant, capacity chips moved
+into the plan Section's `action` slot at a fixed `w-[21rem]`, plan rows `lg:min-h-9`, plans past
+6 items fold behind an in-list "Show N more · ~Xm" row — `VISIBLE_ROWS` in SessionPlan.tsx);
+Roadmap 1341→1075 (day rows read on one baseline — Day N + Meta inline + count — `py-2.5`, rail
+`pt-2` keeps the node aligned); Patterns 1859→1523 (rows `py-2`, 32px icon plates). Today now
+fits a 1280×800 laptop with zero scroll; at 590 the whole decision layer (masthead, goal bar,
+hero, chips, first plan rows / current roadmap day) sits in viewport 1 and only depth scrolls.
+All copy the tests assert was preserved; no test changed.
+
 V11 retires V10's load-bearing idea while keeping its shell. The user's real machine (1080p at
 150% scaling ≈ 1280×590 CSS) crushed V10's fixed-height panels into clipped scroll boxes with
 loud Windows scrollbars on nearly every route. The contract is now: **the shell still locks at

@@ -81,19 +81,21 @@ function PatternRow({ stat, index }: PatternRowProps) {
     <RuledItem className="py-0">
       <Link
         to={`/patterns/${meta.id}`}
-        className="-mx-2 flex items-center gap-3 rounded-md px-2 py-3 transition-colors duration-150 ease-swift hover:bg-muted/40 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
+        // py-2 + a 32px icon plate: 28 rows at the old 62px were 1,730px of contents page —
+        // 12px per row buys a third of that back without touching what the row says.
+        className="-mx-2 flex items-center gap-3 rounded-md px-2 py-2 transition-colors duration-150 ease-swift hover:bg-muted/40 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
       >
         <span aria-hidden="true" className="figures w-5 shrink-0 text-right text-xs text-muted-foreground">
           {index}
         </span>
         <span
-          className="flex h-9 w-9 shrink-0 items-center justify-center rounded-md"
+          className="flex h-8 w-8 shrink-0 items-center justify-center rounded-md"
           style={{ backgroundColor: `${meta.color}26`, color: meta.color }}
         >
-          <Icon className="h-5 w-5" aria-hidden="true" />
+          <Icon className="h-4 w-4" aria-hidden="true" />
         </span>
 
-        <span className="flex min-w-0 flex-1 flex-col gap-1.5">
+        <span className="flex min-w-0 flex-1 flex-col gap-1">
           <span className="flex items-baseline justify-between gap-3">
             <span className="truncate font-medium">{meta.name}</span>
             <span className="figures shrink-0 text-xs text-muted-foreground">

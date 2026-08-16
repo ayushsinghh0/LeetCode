@@ -2,6 +2,7 @@ import { Link } from 'react-router-dom';
 import { CheckCircle2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Lead } from '@/components/layout/Page';
+import { Ornament } from '@/components/shared/Ornament';
 import { formatMinutes } from '@/utils/engine/planner';
 
 /**
@@ -22,9 +23,14 @@ export function DayCleared({ solvedToday, minutesToday }: { solvedToday: number;
             supplies `gap-4` between its children, so the hairline paid twice for one boundary.
             These two are the same slot on the same page in mutually exclusive branches — fixing one
             and not the other is how a `border-border/70` that exists nowhere else survives. */}
-        <div className="flex items-center gap-2">
-          <CheckCircle2 className="h-4 w-4 shrink-0 text-easy" aria-hidden="true" />
-          <p className="text-xs uppercase tracking-[0.14em] text-muted-foreground">Done for today</p>
+        <div className="flex items-center justify-between gap-2">
+          <div className="flex items-center gap-2">
+            <CheckCircle2 className="h-4 w-4 shrink-0 text-easy" aria-hidden="true" />
+            <p className="text-xs uppercase tracking-[0.14em] text-muted-foreground">Done for today</p>
+          </div>
+          {/* The sprig — the reader's chapter-end device, on the one state that IS a chapter end.
+              Decorative hairline ink; carries nothing a screen reader needs. */}
+          <Ornament kind="sprig" className="h-5 w-5 text-muted-foreground/60" />
         </div>
 
         <div className="flex flex-col gap-2">

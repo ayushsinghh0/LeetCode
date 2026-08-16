@@ -252,6 +252,9 @@ The register is factual throughout. An activity states its depth, its cost, its 
 ### Hint ladder (src/components/questions/HintLadder.tsx) — the escalation rail
 Each revealed rung is a `border-l-2 border-primary/40 pl-3` block with an xs uppercase label. Revealed rungs stack; exactly one button offers the next. The ink rail is the one accent — no badges, no counters, no cost indicator of any kind.
 
+### Marginalia (src/components/shared/Ornament.tsx) — the engraved ornaments
+Three tiny line engravings in the mid-century-textbook tradition — `sprig` (growth), `fleuron` (the printer's leaf), `star` (the printer's asterisk) — drawn as `currentColor` hairline strokes, no fill, always `aria-hidden`. They mark the product's few *reflective* moments the way a well-set book closes a chapter with a small device: the Dashboard epigraph (fleuron), "Done for today" and "Session complete" (sprig), the earned achievements shelf (star). The discipline: one per surface at most, only on reflective moments, never beside data or controls, and always in a quiet text token (`text-muted-foreground/60`) — an ornament never introduces a hue and never carries meaning. A motif on every plate is wallpaper; four placements is the budget, and a fifth must displace one.
+
 ### Motion
 - **150ms `ease-swift`** (`cubic-bezier(0.23,1,0.32,1)`, = `--ease-out`): every interactive state — buttons, tabs, hover lifts (−2px cards, −4px pattern tiles), page transitions.
 - **300ms ceiling** for all other UI (toasts 0.3s, pomodoro ring 300ms).
@@ -259,6 +262,8 @@ Each revealed rung is a `border-l-2 border-primary/40 pl-3` block with an xs upp
 - `ease-travel` (`cubic-bezier(0.77,0,0.175,1)`, = `--ease-in-out`) exists for large travel; use sparingly.
 - `MotionConfig reducedMotion="user"` wraps the app (App.tsx) and index.css zeroes all animation under `prefers-reduced-motion` — never bypass either.
 - Tailwind `hoverOnlyWhenSupported` is on: hover styles never stick on touch.
+- **Celebrations wear the app's inks.** canvas-confetti bursts use the palette in useCelebration.ts (fountain blue, its lighter stroke, ochre/sage/clay, ivory) with `disableForReducedMotion: true` — the library must check the media query itself, since the global reduced-motion CSS cannot reach a canvas. Never revert to the stock rainbow.
+- **A completion tick settles in; un-completing snaps.** The task toggle's check pops through a small spring inside `AnimatePresence initial={false}` — already-done rows never animate on mount, and reopening has no exit animation, because un-completing is not a moment.
 
 ### Fossil classes (naming ≠ rendering)
 Three class names survive from the previous violet/cyan glass identity but render editorially now: `.glass` is a **solid paper plate** (card bg, hairline, warm shadow — no blur), `.text-gradient` is **solid serif foreground**, `.bg-accent-gradient` is a **solid ink fill**. They are kept to avoid mass renames. New code should read them as "plate", "display text", "ink fill" — and must never reintroduce actual glass or gradients through them.

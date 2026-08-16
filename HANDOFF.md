@@ -1,8 +1,35 @@
-# HANDOFF — V11 Flowing Application shipped (2026-08-16)
+# HANDOFF — V12 Marginalia & Moments shipped (2026-08-16)
 
-**State: V9 (Composed Interface), V10 (Zero-Scroll Application) and V11 (Flowing Application) are
-complete, committed on branch `v9-composed-interface`. NOT merged to main and NOT pushed** —
-V6–V8 all ended merged, so this branch is the outlier and needs a decision.
+**State: V9 (Composed Interface), V10 (Zero-Scroll Application), V11 (Flowing Application) and
+V12 (Marginalia & Moments) are complete, committed on branch `v9-composed-interface`. NOT merged
+to main and NOT pushed** — V6–V8 all ended merged, so this branch is the outlier and needs a
+decision.
+
+## What V12 added (the "make it feel alive" pass)
+
+A full audit against a fresh premium-polish brief found V9–V11 had already shipped its structural
+asks (probe re-verified: zero overflow across 16 routes × dark/light × 1280×590/390×780 under a
+~200-solve seeded state — seed generator pattern: build state through real thunks in a throwaway
+vitest file, dump `selectPersistedState`, inject via puppeteer `evaluateOnNewDocument`). What was
+genuinely missing was warmth, and it shipped as four small systems:
+
+- **Marginalia** (`src/components/shared/Ornament.tsx`, documented in DESIGN.md § Marginalia):
+  three hairline engravings — sprig / fleuron / printer's star — on exactly four reflective
+  moments (epigraph, Done for today, Session complete, Earned shelf). Budgeted: a fifth
+  placement must displace one.
+- **Celebrations wear the app's inks** (`useCelebration.ts`): confetti palette is now the
+  fountain-blue/ochre/sage/clay/ivory set with `disableForReducedMotion: true` (the global
+  reduced-motion CSS cannot reach a canvas). Tests assert call counts, not options — safe.
+- **The completion tick settles in** (`TodayTasks.tsx`): spring pop inside
+  `AnimatePresence initial={false}` so already-done rows never animate on mount and reopening
+  snaps (un-completing is not a moment).
+- **Register fix**: `SessionComplete`'s "Needs another pass" / "Next" labels were still the
+  hand-rolled eyebrow the "Held" comment claimed was fixed — all three are `Eyebrow` now.
+
+Deliberately NOT done, with reasons stated in the session record: no multi-hue semantic palette
+(the one-ink world is user-pinned; difficulty/pattern inks already carry color), no sidebar
+group headers (work/shelf ruling exists; three more rows don't fit 590px), no greeting microcopy
+(PRODUCT.md locks plain copy).
 
 V11 retires V10's load-bearing idea while keeping its shell. The user's real machine (1080p at
 150% scaling ≈ 1280×590 CSS) crushed V10's fixed-height panels into clipped scroll boxes with
@@ -15,7 +42,7 @@ read its "Findings worth keeping".
 ## Where things stand
 
 - **1175/1175 tests across 83 files. `npx tsc --noEmit` clean. `npm run build` clean**, app chunk
-  280.44 kB against the 301 kB budget (V10: 280.54).
+  280.60 kB against the 301 kB budget (V11: 280.44 — V12 cost 0.16 kB).
 - Probe-verified (real Chrome, all 15 routes × 5 viewports incl. 1280×590): zero document
   overflow, zero horizontal overflow, zero nested scrollers. The probe script pattern lives in
   the V11 design record.

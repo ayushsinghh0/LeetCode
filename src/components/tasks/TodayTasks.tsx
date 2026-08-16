@@ -1,4 +1,5 @@
 import { useState, type FormEvent } from 'react';
+import { AnimatePresence, motion } from 'framer-motion';
 import { ArrowRight, CheckCircle2, Circle, Plus, Trash2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -79,11 +80,27 @@ export function TodayTasks() {
                 onClick={() => dispatch(toggleTask(task.id))}
                 className="-ml-2 flex h-10 w-10 shrink-0 items-center justify-center rounded-md text-muted-foreground transition-colors duration-150 ease-swift hover:text-foreground"
               >
-                {task.done ? (
-                  <CheckCircle2 className="h-4 w-4 text-easy" aria-hidden="true" />
-                ) : (
-                  <Circle className="h-4 w-4" aria-hidden="true" />
-                )}
+                {/* The tick settles in rather than snapping — the small completion moment the
+                    row earns. `initial={false}` on the presence keeps a list of already-done
+                    tasks from popping on mount: only a toggle animates. No `exit`, so reopening
+                    swaps instantly (un-completing is not a moment). The scale half is suppressed
+                    by MotionConfig reducedMotion="user"; the opacity half is gentle enough to
+                    keep. */}
+                <AnimatePresence initial={false}>
+                  {task.done ? (
+                    <motion.span
+                      key="done"
+                      initial={{ scale: 0.4, opacity: 0 }}
+                      animate={{ scale: 1, opacity: 1 }}
+                      transition={{ type: 'spring', stiffness: 500, damping: 28 }}
+                      className="flex"
+                    >
+                      <CheckCircle2 className="h-4 w-4 text-easy" aria-hidden="true" />
+                    </motion.span>
+                  ) : (
+                    <Circle key="todo" className="h-4 w-4" aria-hidden="true" />
+                  )}
+                </AnimatePresence>
               </button>
 
               <div className="flex min-w-0 flex-1 flex-col gap-0.5">

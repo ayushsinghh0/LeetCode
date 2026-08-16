@@ -49,6 +49,25 @@ const FIREWORK_BURSTS = [
   { delay: 600, x: 0.5 },
 ] as const;
 
+// The burst wears the app's own inks — fountain blue, its lighter pen stroke, the ochre/sage/clay
+// difficulty inks, and ivory paper — instead of canvas-confetti's stock rainbow, which read as a
+// different product for the one second it was on screen. Hex because the library cannot read CSS
+// custom properties; values are the midpoints of the two themes' tokens, and both grounds carry
+// them fine (they were chosen to sit on both).
+const INK_CONFETTI = ['#5b89c0', '#7ba3d4', '#b98a33', '#6f934f', '#c26a56', '#e9e0d2'];
+
+const BURST_DEFAULTS: Parameters<ConfettiFn>[0] = {
+  colors: [...INK_CONFETTI],
+  // A drift of paper slips, not a casino: slightly fewer, slightly smaller, gone sooner.
+  particleCount: 90,
+  spread: 70,
+  scalar: 0.9,
+  ticks: 160,
+  // canvas-confetti checks the media query itself and skips the burst entirely — the celebration
+  // is decorative, and the global reduced-motion CSS cannot reach a canvas.
+  disableForReducedMotion: true,
+};
+
 /**
  * Subscribes to ui.celebration and plays the corresponding canvas-confetti animation:
  * 'confetti' = one burst, 'fireworks' = 3 staggered bursts. Mounted once in AppShell — every
@@ -82,11 +101,11 @@ export function useCelebration(): void {
     pendingTimers.current = [];
 
     if (celebration === 'confetti') {
-      fire({ particleCount: 120, spread: 70, origin: { y: 0.7 } });
+      fire({ ...BURST_DEFAULTS, origin: { y: 0.7 } });
     } else {
       for (const burst of FIREWORK_BURSTS) {
         const id = setTimeout(() => {
-          fire({ particleCount: 120, spread: 70, origin: { x: burst.x, y: 0.7 } });
+          fire({ ...BURST_DEFAULTS, origin: { x: burst.x, y: 0.7 } });
         }, burst.delay);
         pendingTimers.current.push(id);
       }

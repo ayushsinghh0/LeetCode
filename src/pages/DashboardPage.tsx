@@ -8,6 +8,7 @@ import { DifficultyBadge } from '@/components/questions/DifficultyBadge';
 import { StreakFlame } from '@/components/gamification/StreakFlame';
 import { XpBadge } from '@/components/gamification/XpBadge';
 import { NextActionCard } from '@/components/today/NextActionCard';
+import { Ornament } from '@/components/shared/Ornament';
 import type { FigureItem, LedgerItem } from '@/components/layout/Page';
 import {
   Figures,
@@ -405,6 +406,10 @@ export default function DashboardPage() {
             attribution; an original note shows no attribution at all. One line per day, never
             more. It closes the context column, which is where a marginal note belongs. */}
         <figure className="border-l-2 border-border pl-4">
+          {/* The printer's leaf. The epigraph is the product's one reflective surface, so it is
+              the one place the reader's marginalia vocabulary opens a block — hairline ink,
+              decorative only (see Ornament.tsx). */}
+          <Ornament kind="fleuron" className="mb-2 text-muted-foreground/60" />
           <blockquote className="font-serif italic text-muted-foreground">{reflection.text}</blockquote>
           {reflection.attribution && (
             <figcaption className="mt-1 text-xs text-muted-foreground">— {reflection.attribution}</figcaption>

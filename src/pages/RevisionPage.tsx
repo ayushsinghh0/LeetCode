@@ -6,6 +6,7 @@ import { Button } from '@/components/ui/button';
 import { Progress } from '@/components/ui/progress';
 import { Textarea } from '@/components/ui/textarea';
 import { EmptyState } from '@/components/shared/EmptyState';
+import { Ornament } from '@/components/shared/Ornament';
 import {
   PageColumns,
   Screen,
@@ -788,7 +789,12 @@ function SessionComplete({
   return (
     <Lead>
       <div className="flex flex-col gap-1">
-        <Eyebrow>Session complete</Eyebrow>
+        <div className="flex items-center justify-between gap-2">
+          <Eyebrow>Session complete</Eyebrow>
+          {/* The sprig marks a closed sitting the way DayCleared marks a closed day — the same
+              chapter-end device, decorative hairline ink only (Ornament.tsx). */}
+          <Ornament kind="sprig" className="h-5 w-5 text-muted-foreground/60" />
+        </div>
         <h2 className="text-2xl font-semibold">
           {formatMinutes(progress.doneMinutes)} of revision
         </h2>
@@ -816,7 +822,9 @@ function SessionComplete({
           closer — pushing further into a fail-heavy sitting is the thing NOT to recommend. */}
       {shaky.length > 0 && (
         <div className="flex flex-col gap-1.5">
-          <p className="text-xs font-medium tracking-wide text-muted-foreground">Needs another pass</p>
+          {/* `Eyebrow`, same as "Held" above — these three labels are one register, and two of
+              them were still the inline re-declaration the comment on "Held" says this fixes. */}
+          <Eyebrow>Needs another pass</Eyebrow>
           <p className="text-sm">{shaky.map((a) => a.title).join(', ')}</p>
           {shaky.length >= 2 && shaky.length > held.length ? (
             <p className="max-w-prose text-xs text-muted-foreground">
@@ -841,7 +849,7 @@ function SessionComplete({
 
       {nextUp && (
         <div className="flex flex-col gap-1.5">
-          <p className="text-xs font-medium tracking-wide text-muted-foreground">Next</p>
+          <Eyebrow>Next</Eyebrow>
           <p className="text-sm">{'title' in nextUp ? nextUp.title : ''}</p>
         </div>
       )}

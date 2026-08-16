@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { format, parseISO } from 'date-fns';
 import { Award } from 'lucide-react';
 import { iconByName } from '@/components/shared/iconMap';
+import { Ornament } from '@/components/shared/Ornament';
 import { Button } from '@/components/ui/button';
 import { Page, PageColumns, PageHeader, RuledItem, RuledList, Section } from '@/components/layout/Page';
 import { useAppSelector } from '@/store/hooks';
@@ -195,7 +196,9 @@ export default function AchievementsPage() {
           </Section>
         }
       >
-        <Section title="Earned">
+        {/* The star in the action slot is an ornament, not a control — the earned shelf is the
+            one ceremonial surface, and the device sits where a button would so it costs no row. */}
+        <Section title="Earned" action={<Ornament kind="star" className="h-5 w-5 text-muted-foreground/60" />}>
           {unlockedDefs.length === 0 ? (
             <p className="max-w-prose text-sm text-muted-foreground">
               Nothing yet. Solving a single question earns the first one today.

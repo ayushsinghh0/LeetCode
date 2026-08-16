@@ -1,7 +1,7 @@
 import { Link } from 'react-router-dom';
 import { format, parseISO } from 'date-fns';
 import { Button } from '@/components/ui/button';
-import { Panel, Screen, ScreenBody, ScreenHeader } from '@/components/layout/Page';
+import { Panel, Screen, ScreenHeader } from '@/components/layout/Page';
 import { DailyGoalProgress } from '@/components/shared/DailyGoalProgress';
 import { WeeklyRevisionBanner } from '@/components/shared/WeeklyRevisionBanner';
 import { TodayTasks } from '@/components/tasks/TodayTasks';
@@ -91,31 +91,39 @@ export default function TodayPage() {
           the stacked pair spent 36px restating what one row states. */}
       <DailyGoalProgress solvedToday={solvedToday} perDay={perDay} dense />
 
-      <ScreenBody cols="main-rail">
-        {/* The work column: the hero, then the plan flowing at its natural height under it.
-            `main` carries the scroll; nothing in here scrolls on its own. */}
+      {/* THE THREE ZONES. Below `lg`: one column, priority order. At `lg` (1024–1279): the
+          familiar two columns — hero and plan stacked left, rail right — via explicit grid
+          placement (the aside spans both rows). At `xl` (1280+): hero | plan | rail side by
+          side, because 1280×590 — a 150%-scaled 1080p display — has width to spend and no
+          height at all, and stacking the plan under the hero there meant the plan lived below
+          the fold on the one machine this app is used on daily. Same DOM order throughout:
+          work first, context last, for phones and screen readers alike. */}
+      <div className="flex flex-col gap-5 lg:grid lg:grid-cols-[minmax(0,1fr)_19rem] lg:items-start lg:gap-8 xl:grid-cols-[minmax(0,10fr)_minmax(0,8fr)_16rem]">
+        {/* Zone 1 — the decision: day-level framing, then the screen's one plate. */}
         <div className="flex min-w-0 flex-col gap-4">
-          {/* Day-level framing, above the hero because it reframes the whole day rather than
-              accompanying it. Both are rare and both are quiet. */}
           {isWeeklyDay && <WeeklyRevisionBanner count={revisionIds.length} />}
           {returning && <ReturnNotice daysAway={daysAway} plannedMinutes={plannedMinutes} />}
 
-          {/* The screen's one plate. */}
           {ranked.length > 0 ? (
             <NextActionCard ranked={ranked} />
           ) : (
             <DayCleared solvedToday={solvedToday} minutesToday={minutesToday} />
           )}
-
-          <Panel>
-            <SessionPlan ranked={ranked} />
-          </Panel>
         </div>
 
-        {/* The context rail: the other track, the learner's own tasks, their standing routines, a
-            company target. None of it is a decision, all of it accompanies the day. Main is first
-            in the DOM, so below `lg` — and for every screen reader — the work still comes first. */}
-        <aside aria-label="Today's context" className="flex min-w-0 flex-col gap-4">
+        {/* Zone 2 — the plan. `lg:col-start-1` keeps it under the hero in the two-column band;
+            at `xl` it releases to auto-placement and takes the middle track. */}
+        <Panel className="lg:col-start-1 xl:col-start-auto">
+          <SessionPlan ranked={ranked} />
+        </Panel>
+
+        {/* Zone 3 — the context rail: the other track, the learner's own tasks, their standing
+            routines, a company target. None of it is a decision, all of it accompanies the day.
+            At `lg` it spans both left-column rows; at `xl` it is simply the third track. */}
+        <aside
+          aria-label="Today's context"
+          className="flex min-w-0 flex-col gap-4 lg:col-start-2 lg:row-start-1 lg:row-span-2 xl:col-start-auto xl:row-start-auto xl:row-span-1"
+        >
           {/* The learner's own routines — a reminder, never a headline. In the rail it is beside
               the day rather than above the recommendation, which is where a reminder belongs. */}
           <PracticeIntentionsRail intentions={intentions} />
@@ -142,7 +150,7 @@ export default function TodayPage() {
             </p>
           )}
         </aside>
-      </ScreenBody>
+      </div>
     </Screen>
   );
 }

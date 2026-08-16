@@ -44,6 +44,19 @@ fits a 1280×800 laptop with zero scroll; at 590 the whole decision layer (masth
 hero, chips, first plan rows / current roadmap day) sits in viewport 1 and only depth scrolls.
 All copy the tests assert was preserved; no test changed.
 
+## V12.2 — The three zones (same day, after user screenshots)
+
+The user's own light-theme screenshots (fresh state, 1280×~590) still showed scroll on Today and
+Roadmap, with the rail nearly empty — height overflowing while a third of the width sat unused.
+DESIGN.md § "When density is not enough, spend the width" is the recorded rule. Today's body is
+now a page-local grid: three tracks at `xl` (hero | plan | 16rem rail), the old two-column band
+at `lg` via explicit `col-start`/`row-span` placement, one column below — DOM order (work, plan,
+context) untouched, so tests, phones and screen readers see the same page. Roadmap dropped its
+masthead support line and tightened day rows to `py-1.5`/`gap-1` (rail `pt-1`). Measured, both
+states (fresh + 200-solve seed) × {1280×590, 1024×700, 390×780}: **fresh Today at 1280×590 is
+590px — literally zero scroll**; seeded 705; Roadmap 983 with the entire open week + next week
+header inside viewport 1; zero horizontal overflow everywhere. 1175/1175 tests unchanged.
+
 V11 retires V10's load-bearing idea while keeping its shell. The user's real machine (1080p at
 150% scaling ≈ 1280×590 CSS) crushed V10's fixed-height panels into clipped scroll boxes with
 loud Windows scrollbars on nearly every route. The contract is now: **the shell still locks at

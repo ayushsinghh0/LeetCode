@@ -10,7 +10,6 @@ import {
   Figures,
   Ledger,
   Meta,
-  PagePair,
   Panel,
   Screen,
   ScreenBody,
@@ -113,7 +112,7 @@ function ScopeNote() {
 /* --------------------------------------------------------------------------------------------- */
 
 const ROW_LINK =
-  '-mx-2 flex flex-col gap-1 rounded-md px-2 py-3.5 transition-colors duration-150 ease-swift ' +
+  '-mx-2 flex flex-col gap-1 rounded-md px-2 py-2 transition-colors duration-150 ease-swift ' +
   'hover:bg-muted/40 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring';
 
 /** Name over its citation — which page is being quoted is the useful thing to know about a row. */
@@ -138,11 +137,9 @@ function CompanyList() {
 
   return (
     <Screen>
-      <ScreenHeader
-        eyebrow={`${COMPANIES.length} first-party sources`}
-        title="Interview relevance"
-        support="Grouped by how much each company's own guidance actually says."
-      />
+      {/* No support line — the Figures census below says the same thing in numbers, one row up
+          from where the sentence said it in words. */}
+      <ScreenHeader eyebrow={`${COMPANIES.length} first-party sources`} title="Interview relevance" />
 
       {/* The set's whole shape, before any scrolling: five pages say enough to map, one says the
           opposite of what prep folklore assumes, and most say almost nothing. Computed from the
@@ -174,13 +171,19 @@ function CompanyList() {
           The horizontal composition survives as `PagePair` on the two lists below, which is the
           better pairing anyway: "companies that name topics" and "companies that name only the
           area" are two halves of one census, where the scope note is not a half of anything. */}
-      <ScopeNote />
-      {/* The two halves of the census sit side by side and scroll together in one panel — a
-          searchable index, not a document. */}
+      {/* The census in three columns from `xl`: the scope note leads column one with the folded
+          area-only tier beneath it, the mapped tier takes column two, the avoids tier column
+          three. Explicit placements, because DOM order is reading order — scope note first, then
+          the tiers by how much they say — and phones must stack in exactly that order. Below `xl`
+          it is the two-up census it was. */}
       <ScreenBody>
         <Panel>
-        <PagePair>
+        <div className="flex flex-col gap-8 md:grid md:grid-cols-2 md:items-start md:gap-x-10 xl:grid-cols-3 xl:gap-8">
+        <div className="xl:col-start-1 xl:row-start-1">
+          <ScopeNote />
+        </div>
         <Section
+          className="xl:col-start-2 xl:row-start-1 xl:row-span-2"
           title="Companies that name specific topics"
           support="These prep pages list actual data structures and algorithms, which is enough to line up against your own coverage — and the only tier where this app maps anything to a pattern."
         >
@@ -197,6 +200,7 @@ function CompanyList() {
 
         {avoidsPuzzles.length > 0 && (
           <Section
+            className="xl:col-start-3 xl:row-start-1 xl:row-span-2"
             title="Companies that say they avoid puzzles"
             support="Their own engineering writing states they do not ask algorithm-puzzle questions. That is not a gap in the data — it is the most decision-changing thing on this page, so it is not filed under the companies that publish little."
           >
@@ -209,6 +213,7 @@ function CompanyList() {
         )}
 
         <Section
+          className="xl:col-start-1 xl:row-start-2"
           title="Companies that name the area only"
           support="Their pages confirm the coding interview exists and name data structures and algorithms as an area, but never say which ones. Most companies are here. They are listed so the absence is visible rather than filled in with guesswork."
         >
@@ -229,7 +234,7 @@ function CompanyList() {
             </RuledList>
           </Disclosure>
         </Section>
-        </PagePair>
+        </div>
         </Panel>
       </ScreenBody>
     </Screen>

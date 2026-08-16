@@ -11,10 +11,27 @@ const TOTAL_DAYS = 68; // ceil(539 / 8) — derived here for assertions, not har
 const day2Titles = questions.slice(8, 16).map((q) => q.title); // ids 9-16
 
 describe('RoadmapPage', () => {
-  test('renders all 68 day rows', () => {
+  // The weeks are a master–detail: a 10-tile radiogroup strip, with the chosen week's seven
+  // days as the detail. Every one of the 68 days is still reachable — through its week tile —
+  // but only the viewed week's rows are in the DOM, which is what lets the whole route fit a
+  // 590px viewport.
+  test('renders the 10 week tiles and the current week\'s 7 day rows', () => {
     renderWithStore(<RoadmapPage />);
 
-    expect(screen.queryAllByText(/^Day \d+$/)).toHaveLength(TOTAL_DAYS);
+    expect(screen.getAllByRole('radio')).toHaveLength(Math.ceil(TOTAL_DAYS / 7));
+    expect(screen.queryAllByText(/^Day \d+$/)).toHaveLength(7);
+    // Fresh store stands in week 1, and its tile announces that.
+    expect(screen.getByRole('radio', { name: /^Week 1,.*current week$/ })).toBeChecked();
+  });
+
+  test('selecting a week tile shows that week\'s days and drops the previous week\'s', () => {
+    renderWithStore(<RoadmapPage />);
+
+    fireEvent.click(screen.getByRole('radio', { name: /^Week 2\b/ }));
+
+    expect(screen.getByText('Day 8')).toBeInTheDocument();
+    expect(screen.getByText('Day 14')).toBeInTheDocument();
+    expect(screen.queryByText(/^Day 1$/)).not.toBeInTheDocument();
   });
 
   test('fresh store: Day 1 is marked as the current day', () => {

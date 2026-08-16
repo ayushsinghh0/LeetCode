@@ -17,7 +17,6 @@ import {
   RuledItem,
   RuledList,
   Screen,
-  ScreenBody,
   ScreenHeader,
   Section,
 } from '@/components/layout/Page';
@@ -217,9 +216,13 @@ export default function DashboardPage() {
         }
       />
 
-      <ScreenBody cols="main-rail">
-        {/* The work column: hero, the two behind it, then progress, flowing at natural height.
-            `main` carries the scroll. */}
+      {/* THE THREE ZONES — the same page-local grid as Today, for the same machine: at `xl`
+          (which includes a 150%-scaled 1080p display, 1280×~590) the decision, the readings
+          behind it, and the standing rail sit side by side instead of stacking past the fold.
+          `lg` keeps the familiar two-column band via explicit placement; below that, one
+          priority-ordered column. DOM order is reading order throughout. */}
+      <div className="flex flex-col gap-5 lg:grid lg:grid-cols-[minmax(0,1fr)_19rem] lg:items-start lg:gap-8 xl:grid-cols-[minmax(0,9fr)_minmax(0,9fr)_15rem]">
+        {/* Zone 1 — the decision and the course position under it. */}
         <div className="flex min-w-0 flex-col gap-4">
         {/* The page's one plate, and the first thing in the reading order. */}
         {ranked.length > 0 ? (
@@ -230,6 +233,31 @@ export default function DashboardPage() {
           </p>
         )}
 
+        {/* Where am I — one section, not a parent heading over two subsections over two bars. */}
+        <Section title="Progress" aria-label="Progress">
+          <Figures items={standing} />
+          <Progress value={completionPct} aria-label="Roadmap completion" />
+          {roadmapComplete ? (
+            <p className="text-sm font-medium">Roadmap complete — every question solved.</p>
+          ) : currentQuestion && currentPattern ? (
+            // The roadmap position, which is not the same fact as the hero's pattern: the next
+            // best action is often a recall of something learned weeks ago, while this says where
+            // the course itself has got to.
+            <Meta
+              items={[
+                <>
+                  You&apos;re in: <span className="text-foreground">{currentPattern.name}</span>
+                </>,
+                <DifficultyBadge difficulty={currentQuestion.difficulty} variant="bare" />,
+              ]}
+            />
+          ) : null}
+          {/* `DailyGoalProgress` is deliberately NOT here — it is Today's frame (see Today). */}
+        </Section>
+        </div>
+
+        {/* Zone 2 — the readings behind the decision: the queue, the weakness, the record. */}
+        <div className="flex min-w-0 flex-col gap-4 lg:col-start-1 xl:col-start-auto">
         {behind.length > 0 && (
           <Section
             title="Behind it"
@@ -264,45 +292,8 @@ export default function DashboardPage() {
           </Section>
         )}
 
-        {/* Where am I — one section, not a parent heading over two subsections over two bars.
-            The old shape spent ~150px of heading machinery to deliver 16px of data. */}
-        <Section title="Progress" aria-label="Progress">
-          <Figures items={standing} />
-          <Progress value={completionPct} aria-label="Roadmap completion" />
-          {roadmapComplete ? (
-            <p className="text-sm font-medium">Roadmap complete — every question solved.</p>
-          ) : currentQuestion && currentPattern ? (
-            // The roadmap position, which is not the same fact as the hero's pattern: the next
-            // best action is often a recall of something learned weeks ago, while this says where
-            // the course itself has got to.
-            <Meta
-              items={[
-                <>
-                  You&apos;re in: <span className="text-foreground">{currentPattern.name}</span>
-                </>,
-                // The difficulty inks, like everywhere else. This line printed the bare word with
-                // no difficulty token at all — the one place in the app where difficulty rendered
-                // as plain text. `bare` because it sits in a `Meta` line.
-                <DifficultyBadge difficulty={currentQuestion.difficulty} variant="bare" />,
-              ]}
-            />
-          ) : null}
-          {/* `DailyGoalProgress` is deliberately NOT here. It is Today's frame — the same bar with
-              the same "N / M solved today" caption, from the same two selectors — and Today puts
-              it in its first 300px. Rendering it under Dashboard's roadmap-scale bar stacked two
-              progress bars 16px apart with one heading over both, which reads as one bar drawn
-              twice rather than as two different denominators. This section answers "how far
-              through the course am I"; the day is Today's question. */}
-        </Section>
-        </div>
-
-        {/* The context rail. Everything in it is a reading, not a decision; on a laptop it sits
-            beside the work instead of below it, and below `lg` it stacks after — main is first in
-            the DOM, so a phone and a screen reader both still get the work first. */}
-        <aside aria-label="Standing and record" className="flex min-w-0 flex-col gap-4">
-        {/* Attention first. A pattern only appears here after repeated negative evidence, so its
-            presence is itself the signal — which is why it opens the rail rather than sitting
-            fifth in a stack of equally-weighted bands. */}
+        {/* Attention next. A pattern only appears here after repeated negative evidence, so its
+            presence is itself the signal. */}
         <Section
           title="Weakest pattern"
           // States its basis as well as its threshold. The compressed version kept "repeated
@@ -340,7 +331,15 @@ export default function DashboardPage() {
           <Ledger items={ledgerItems} columns={2} />
           <Meta items={[<>Productivity <span className="figures">{productivity} / 100</span></>, 'last 14 days']} />
         </Section>
+        </div>
 
+        {/* Zone 3 — the standing rail: the other track, activity, and the day's reflection. On
+            phones and for screen readers it still reads last; at `lg` it spans both left-column
+            rows; at `xl` it is the third track. */}
+        <aside
+          aria-label="Standing and record"
+          className="flex min-w-0 flex-col gap-4 lg:col-start-2 lg:row-start-1 lg:row-span-2 xl:col-start-auto xl:row-start-auto xl:row-span-1"
+        >
         <Section
           title="AI/ML course"
           action={
@@ -416,7 +415,7 @@ export default function DashboardPage() {
           )}
         </figure>
         </aside>
-      </ScreenBody>
+      </div>
     </Screen>
   );
 }

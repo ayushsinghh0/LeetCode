@@ -50,7 +50,7 @@ function Evidence({ lines }: { lines: string[] }) {
 export function InsightLead({ insight }: { insight: Insight | null }) {
   if (!insight) {
     return (
-      <Lead>
+      <Lead className="gap-3 p-5 md:p-6">
         <div className="flex flex-col gap-3">
           <Eyebrow>Primary finding</Eyebrow>
           <h2 className="text-xl font-semibold leading-snug md:text-2xl">Not enough history yet.</h2>
@@ -67,8 +67,8 @@ export function InsightLead({ insight }: { insight: Insight | null }) {
   const Icon = TONE_ICON[insight.tone];
 
   return (
-    <Lead>
-      <article className="flex flex-col gap-4">
+    <Lead className="gap-3 p-5 md:p-6">
+      <article className="flex flex-col gap-3">
         <div className="flex items-center gap-2">
           <Icon className={`h-4 w-4 shrink-0 ${TONE_CLASS[insight.tone]}`} aria-hidden="true" />
           <Eyebrow>Primary finding</Eyebrow>

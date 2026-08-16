@@ -1,4 +1,20 @@
-# HANDOFF — V12 Marginalia & Moments shipped (2026-08-16)
+# HANDOFF — V12.3 Projection Kit shipped (2026-08-16)
+
+## V12.3 — every page projected to fit (the latest pass)
+
+The user's mandate: no vertical scrolling anywhere at their 1280×~590 viewport, nothing removed,
+nothing rebuilt. DESIGN.md § "The projection kit" records the three moves (master–detail /
+multi-column ruled grid / the fold) and the learned width bound. Measured at 1280×590, fresh +
+200-solve seed: **fit both states** — Today(fresh)/Roadmap/Patterns/Drills/Contest/Bookmarks/
+Focus/AI-ML(fresh), Interview ~604. Near (≤100 over, decision layer fully in viewport 1):
+Dashboard 668–683, Today seeded 689, aiml seeded 627, Calendar 629, Revision seeded 628,
+Achievements fresh 630. Reference depth remains on Companies 750, Settings 796, Analytics
+801–1008, Achievements seeded 731 — all with their complete first-viewport answer. Zero
+horizontal overflow re-verified at 1024/768/390. Roadmap is now a week-tile master–detail
+(ChipRadioRow strip + two-column days; roadmap.test adapted — 7 day rows render, all 68 reachable
+via tiles); aiml.test's three catalogue assertions now click the fold first. 1176/1176 tests.
+
+# Previous: V12 Marginalia & Moments (2026-08-16)
 
 **State: V9 (Composed Interface), V10 (Zero-Scroll Application), V11 (Flowing Application) and
 V12 (Marginalia & Moments) are complete, committed on branch `v9-composed-interface`. NOT merged

@@ -2,7 +2,8 @@ import { useState } from 'react';
 import { AnimatePresence, motion, useReducedMotion } from 'framer-motion';
 import { CheckCircle2, Circle, Sparkles } from 'lucide-react';
 import { DifficultyBadge } from '@/components/questions/DifficultyBadge';
-import { Disclosure, Meta, Panel, RuledItem, RuledList, Screen, ScreenBody, ScreenHeader } from '@/components/layout/Page';
+import { Meta, Panel, RuledItem, RuledList, Screen, ScreenBody, ScreenHeader } from '@/components/layout/Page';
+import { ChipRadioRow } from '@/components/shared/ChipRadioRow';
 import { Progress } from '@/components/ui/progress';
 import { patternById } from '@/data/patterns';
 import { useAppDispatch, useAppSelector } from '@/store/hooks';
@@ -224,9 +225,19 @@ export default function RoadmapPage() {
   const progressById = useAppSelector((state) => state.progress.byId);
 
   const [expandedDay, setExpandedDay] = useState<number | null>(null);
+  // Which week the detail panel shows. Starts on the week the learner is standing in; browsing
+  // another week never moves the current-day marker, only the view.
+  const [viewWeekIndex, setViewWeekIndex] = useState(() => Math.floor((currentDay - 1) / 7));
 
   function toggleDay(day: number) {
     setExpandedDay((prev) => (prev === day ? null : day));
+  }
+
+  function viewWeek(wi: number) {
+    setViewWeekIndex(wi);
+    // An expansion belongs to the week it was made in; carrying it across a week switch would
+    // re-open a day the learner has stopped looking at.
+    setExpandedDay(null);
   }
 
   function openQuestion(id: number) {
@@ -250,6 +261,19 @@ export default function RoadmapPage() {
   }
   const currentWeekIndex = Math.floor((currentDay - 1) / 7);
 
+  const viewDays = weeks[viewWeekIndex] ?? weeks[currentWeekIndex] ?? weeks[0]!;
+  const viewSlices = viewDays.map((day) => daySlice(questions, day, perDay));
+  const weekTallies = weeks.map((weekDays) => {
+    let solved = 0;
+    let total = 0;
+    for (const day of weekDays) {
+      const slice = daySlice(questions, day, perDay);
+      total += slice.length;
+      solved += slice.filter((q) => (progressById[q.id]?.status ?? 'unsolved') === 'solved').length;
+    }
+    return { solved, total };
+  });
+
   return (
     <Screen>
       {/* No support line: "539 questions across 68 days, open a week, then a day" is what the
@@ -257,49 +281,69 @@ export default function RoadmapPage() {
           pushed the current week's later days below the fold. */}
       <ScreenHeader eyebrow={`Day ${currentDay} of ${totalDays}`} title="Roadmap" />
 
-      {/* Disclosures rule themselves (each carries border-b), so the stack needs only its opening
-          rule; the inner RuledList drops border-y for the same reason — the week's own boundaries
-          already exist, and paying for a boundary twice is the duplicate-separator problem. */}
+      {/* MASTER–DETAIL, not a 10-disclosure stack. Ten stacked week disclosures put the open
+          week's later days and every following week below a 590px fold — a long march down a
+          page that is two-thirds empty sideways. The weeks are now a two-row tile strip (the
+          capacity-chip radiogroup idiom — the one sanctioned place adjacent ink fills exist,
+          because exactly one is active), and the chosen week's seven days render in two ruled
+          columns beside each other. Fresh or mid-course, the whole route fits one ~590px
+          viewport; on phones the columns stack back into the familiar single timeline. */}
       <ScreenBody>
-        <Panel className="flex flex-col border-t border-border">
-        {weeks.map((weekDays, wi) => {
-          const firstDay = weekDays[0]!;
-          const lastDay = weekDays[weekDays.length - 1]!;
-          const slices = weekDays.map((day) => daySlice(questions, day, perDay));
-          let solvedInWeek = 0;
-          let totalInWeek = 0;
-          for (const slice of slices) {
-            totalInWeek += slice.length;
-            solvedInWeek += slice.filter(
-              (q) => (progressById[q.id]?.status ?? 'unsolved') === 'solved',
-            ).length;
-          }
-          return (
-            <Disclosure
-              key={firstDay}
-              defaultOpen={wi === currentWeekIndex}
-              summary={
-                <span className="flex items-baseline gap-3">
-                  <span className="font-semibold">Week {wi + 1}</span>
-                  <span className="text-xs text-muted-foreground">
-                    days {firstDay}–{lastDay}
+        <Panel className="flex flex-col gap-4">
+          <ChipRadioRow
+            label="Week"
+            options={weeks.map((_, wi) => wi)}
+            value={viewWeekIndex}
+            onSelect={viewWeek}
+            format={(wi) => {
+              const tally = weekTallies[wi]!;
+              return (
+                <span className="flex flex-col items-center gap-0.5 py-1.5">
+                  <span className="flex items-center gap-1.5 text-sm font-semibold">
+                    Week {wi + 1}
+                    {wi === currentWeekIndex && (
+                      <span
+                        aria-hidden="true"
+                        className={cn(
+                          'h-1.5 w-1.5 rounded-full',
+                          wi === viewWeekIndex ? 'bg-primary-foreground' : 'bg-primary',
+                        )}
+                      />
+                    )}
+                  </span>
+                  <span className="figures text-[11px] opacity-80">
+                    {tally.solved}/{tally.total}
                   </span>
                 </span>
-              }
-              meta={`${solvedInWeek}/${totalInWeek}`}
-            >
-              <RuledList className="border-y-0">
-                {weekDays.map((day, di) => {
-                  const isCurrentDay = day === currentDay;
+              );
+            }}
+            optionLabel={(wi) => {
+              const tally = weekTallies[wi]!;
+              const here = wi === currentWeekIndex ? ', current week' : '';
+              return `Week ${wi + 1}, days ${weeks[wi]![0]}–${weeks[wi]![weeks[wi]!.length - 1]}, ${tally.solved} of ${tally.total} solved${here}`;
+            }}
+            className="grid grid-cols-5 gap-1.5"
+            chipClassName="px-1"
+          />
+
+          {/* The chosen week: days 1–4 beside days 5–7 from `md` up (a syllabus page sets its
+              week in two columns; chronology reads down each column). One stacked timeline
+              below `md`. `items-start` so an expanded day grows only its own column. */}
+          <div className="border-t border-border md:grid md:grid-cols-2 md:items-start md:gap-x-10">
+            {[viewDays.slice(0, 4), viewDays.slice(4)].map((columnDays, ci) => (
+              // Stacked below `md`, the second list continues the first — its max-md border-t
+              // draws the one hairline the divide-y pair cannot draw across two lists.
+              <RuledList key={ci} className={cn('border-y-0', ci === 1 && 'max-md:border-t max-md:border-border')}>
+                {columnDays.map((day) => {
+                  const di = viewDays.indexOf(day);
                   return (
                     <RoadmapRow
                       key={day}
                       day={day}
-                      slice={slices[di]!}
-                      isCurrentDay={isCurrentDay}
-                      // The timeline is continuous within its week; the line stops at the week's
-                      // last marker instead of trailing into the disclosure's padding.
-                      isLast={day === lastDay}
+                      slice={viewSlices[di]!}
+                      isCurrentDay={day === currentDay}
+                      // The rail stops at each column's last marker instead of trailing off.
+                      isLast={day === columnDays[columnDays.length - 1]}
                       isExpanded={expandedDay === day}
                       progressById={progressById}
                       onToggle={toggleDay}
@@ -308,9 +352,8 @@ export default function RoadmapPage() {
                   );
                 })}
               </RuledList>
-            </Disclosure>
-          );
-        })}
+            ))}
+          </div>
         </Panel>
       </ScreenBody>
     </Screen>

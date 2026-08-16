@@ -280,7 +280,9 @@ export default function CalendarPage() {
                     // 1000px, and the totals caption this section ends on fell below the fold.
                     // 56/64px keeps the whole month and its caption in one viewport, and the
                     // cell stays comfortably past the 44px target.
-                    'relative flex h-14 flex-col items-center justify-center gap-1.5 rounded-md border border-transparent text-sm transition-colors duration-150 ease-swift sm:h-16',
+                    // h-11/h-12 (44/48px): still at the touch floor, and the two steps down from
+                    // 56/64 are what bring a 6-week month plus its totals inside a 590px viewport.
+                    'relative flex h-11 flex-col items-center justify-center gap-1 rounded-md border border-transparent text-sm transition-colors duration-150 ease-swift sm:h-12',
                     future ? 'cursor-not-allowed opacity-40' : 'hover:bg-muted',
                     isToday && 'border-primary',
                     perfect && 'ring-2 ring-primary',

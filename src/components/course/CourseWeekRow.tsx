@@ -92,7 +92,7 @@ export function CourseWeekRow({ week, progress, planned, isCurrent, onOpenNotes,
     <li
       aria-current={isCurrent ? 'step' : undefined}
       className={cn(
-        'flex flex-col gap-3 py-3.5 md:flex-row md:items-center',
+        'flex flex-col gap-3 py-2.5 md:flex-row md:items-center',
         isCurrent && 'bg-muted/40',
       )}
     >

@@ -1,5 +1,5 @@
 import { useMemo, useState } from 'react';
-import { Bookmark, SearchX } from 'lucide-react';
+import { Bookmark, ChevronRight, SearchX } from 'lucide-react';
 import { EmptyState } from '@/components/shared/EmptyState';
 import { Panel, RuledList, Screen, ScreenBody, ScreenHeader } from '@/components/layout/Page';
 import { QuestionRow } from '@/components/questions/QuestionCard';
@@ -31,6 +31,8 @@ export default function BookmarksPage() {
   const [difficulty, setDifficulty] = useState<DifficultyFilterValue>('all');
   const [status, setStatus] = useState<StatusFilterValue>('all');
   const [pattern, setPattern] = useState<PatternFilterValue>('all');
+  // The shelf's fold — resets with the filters untouched; a filter change keeps it open.
+  const [showAll, setShowAll] = useState(false);
 
   const bookmarkedQuestions = useMemo(
     () =>
@@ -107,7 +109,7 @@ export default function BookmarksPage() {
             // them was the "list becomes plates" defect DESIGN.md § The plate rule names.
             <Panel>
               <RuledList>
-                {filtered.map((q) => (
+                {(showAll || filtered.length <= 5 ? filtered : filtered.slice(0, 4)).map((q) => (
                   <QuestionRow
                     key={q.id}
                     question={q}
@@ -115,6 +117,20 @@ export default function BookmarksPage() {
                     onOpen={openQuestion}
                   />
                 ))}
+                {!showAll && filtered.length > 5 && (
+                  <li>
+                    {/* The shelf shows its first few; the full list is one tap, not 2,000px. */}
+                    <button
+                      type="button"
+                      aria-expanded={false}
+                      onClick={() => setShowAll(true)}
+                      className="flex min-h-11 w-full items-center gap-3 py-1.5 text-left text-sm text-muted-foreground transition-colors duration-150 ease-swift hover:text-primary lg:min-h-9"
+                    >
+                      <ChevronRight className="h-3.5 w-3.5 shrink-0" aria-hidden="true" />
+                      <span className="min-w-0 flex-1">Show all {filtered.length} bookmarks</span>
+                    </button>
+                  </li>
+                )}
               </RuledList>
             </Panel>
           )}

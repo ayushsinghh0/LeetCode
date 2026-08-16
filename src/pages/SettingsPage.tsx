@@ -73,8 +73,10 @@ interface SettingRowProps {
  */
 function SettingRow({ label, htmlFor, description, children }: SettingRowProps) {
   return (
-    <div className="flex flex-wrap items-center justify-between gap-x-6 gap-y-3 py-4">
-      <div className="flex min-w-0 flex-col gap-1.5">
+    <div className="flex flex-wrap items-center justify-between gap-x-6 gap-y-3 py-3">
+      {/* `flex-1 basis-60`: the text block yields room for the control beside it instead of
+          wrapping it under — in the two-column layout the old wrap made every row two bands. */}
+      <div className="flex min-w-0 flex-1 basis-60 flex-col gap-1.5">
         {htmlFor ? (
           <Label htmlFor={htmlFor}>{label}</Label>
         ) : (
@@ -231,9 +233,14 @@ export default function SettingsPage() {
           unrelated controls under a sentence describing three of them is the "grouped sections with
           strong hierarchy" gap; it is now two named `level={3}` groups inside the one `<form>`, so
           the outline is truthful and the page is scannable, with the submit path untouched. */}
+      {/* Two columns from `lg`: the preferences form left, the intentions and the data controls
+          right — a settings page is groups of unrelated controls, which is exactly the content
+          that loses nothing to sitting side by side, and stacked it ran double a 590px viewport.
+          Each column still caps at the reading measure; below `lg` it is the single column it
+          always was, in the same order. */}
       <ScreenBody>
-        <Panel className="max-w-[46rem]">
-      <Section title="Preferences">
+        <Panel className="gap-8 lg:grid lg:grid-cols-2 lg:items-start lg:gap-x-12 lg:gap-y-8">
+      <Section title="Preferences" className="max-w-[46rem] lg:row-span-2">
         {/* A real <form> ancestor (even with no onSubmit wired to it) matters here: Radix Select
             only renders its visually-hidden native <select> fallback — used for native form/
             autofill compatibility, and by this app's tests to drive perDay changes without needing
@@ -379,6 +386,7 @@ export default function SettingsPage() {
           hairline on top of it was the duplicate-separator problem — paying for one boundary
           twice. */}
       <Section
+        className="max-w-[46rem] lg:mt-0"
         title="Practice intentions"
         support="When, then — pair a routine with a practice action. The app suggests the shape; you decide whether to use it."
       >
@@ -386,6 +394,7 @@ export default function SettingsPage() {
       </Section>
 
       <Section
+        className="max-w-[46rem] lg:col-start-2"
         title="Danger Zone"
         support="Nothing is uploaded, so a backup file is the only way to move your data — export one, restore from one, or wipe everything."
       >

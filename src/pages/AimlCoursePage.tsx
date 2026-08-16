@@ -1,12 +1,12 @@
 import { useState } from 'react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { format, parseISO } from 'date-fns';
-import { ExternalLink, GraduationCap } from 'lucide-react';
+import { ChevronRight, ExternalLink, GraduationCap } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Progress } from '@/components/ui/progress';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog';
-import { Disclosure, Figures, Lead, Meta, Panel, RuledList, Screen, ScreenBody, ScreenHeader, Section } from '@/components/layout/Page';
+import { Disclosure, Figures, Lead, Meta, Panel, RuledList, Screen, ScreenHeader, Section } from '@/components/layout/Page';
 import { CourseResourceChips } from '@/components/course/CourseResourceChips';
 import { CourseNotesEditor } from '@/components/course/CourseNotesEditor';
 import { CourseRecallList } from '@/components/course/CourseRecallList';
@@ -67,6 +67,10 @@ export default function AimlCoursePage() {
 
   const [notesWeek, setNotesWeek] = useState<CourseWeek | null>(null);
   const [recallWeek, setRecallWeek] = useState<CourseWeek | null>(null);
+  // The syllabus fold — same idiom as Today's plan. The sprint is two days wide, so the nearest
+  // few modules are the working set; the rest of a 26-module catalogue is one tap away rather
+  // than 2,000px down.
+  const [showAllWeeks, setShowAllWeeks] = useState(false);
 
   const nextWeek = next ? courseWeekById.get(next.weekId) : undefined;
 
@@ -115,7 +119,7 @@ export default function AimlCoursePage() {
   // Bound to a name rather than written inline because the screen body places it between the
   // header and the tab strip, and a 50-line plate inlined there buries the composition it sits in.
   const upNext = (
-      <Lead aria-label="Up next">
+      <Lead aria-label="Up next" className="gap-3 p-5 md:p-6">
         {next && nextWeek ? (
           <>
             <div>
@@ -168,10 +172,11 @@ export default function AimlCoursePage() {
 
   return (
     <Screen>
+      {/* No support line — "one module every two days" is what the hero's own Day 1/Day 2 badge
+          and finish date already say, and on a ~590px viewport the sentence costs a syllabus row. */}
       <ScreenHeader
         eyebrow="100xDevs cohort · two-day sprints"
         title="AI & ML"
-        support="One module every two days — lecture, then practice."
         action={
           <Button asChild variant="outline">
             <a href={AIML_COURSE_URL} target="_blank" rel="noreferrer">
@@ -182,7 +187,10 @@ export default function AimlCoursePage() {
       />
 
 
-      <ScreenBody cols="main-rail">
+      {/* THE THREE ZONES — Today's page-local grid, for the same 1280×~590 machine: the sprint
+          plate, the material (tabs), and the standing rail side by side at `xl`; the familiar
+          two-column band at `lg`; one priority-ordered column below. DOM order never changes. */}
+      <div className="flex flex-col gap-5 lg:grid lg:grid-cols-[minmax(0,1fr)_19rem] lg:items-start lg:gap-8 xl:grid-cols-[minmax(0,2fr)_minmax(0,3fr)]">
         {/* The work column: the current sprint, then the material behind a tab strip.
 
             This screen was 4,300px — three complete catalogues (26 syllabus weeks, 11 tracks, 14
@@ -191,10 +199,14 @@ export default function AimlCoursePage() {
             are simply not all on screen at once. A tab is the brief's answer for exactly this
             shape: sibling bodies of material, one of which you are in. The selected list flows at
             its natural height; `main` carries the scroll. */}
-        <div className="flex min-w-0 flex-col gap-4">
+        <div className="contents">
           {upNext}
 
-          <Tabs defaultValue="syllabus" className="flex flex-col gap-3">
+          {/* At `xl` the syllabus takes the WIDE right track and spans both rows, with the
+              standing rail tucked under the hero on the left — a catalogue of two-line rows
+              needs its width more than a third column needs to exist (three tracks squeezed
+              every title into per-word wraps). At `lg` the tabs stay under the hero. */}
+          <Tabs defaultValue="syllabus" className="flex min-w-0 flex-col gap-3 lg:col-start-1 xl:col-start-2 xl:row-start-1 xl:row-span-2">
             <TabsList>
               <TabsTrigger value="syllabus">Syllabus</TabsTrigger>
               <TabsTrigger value="implement">Implement</TabsTrigger>
@@ -225,7 +237,7 @@ export default function AimlCoursePage() {
                   </Disclosure>
                 )}
                 <RuledList>
-                  {openWeeks.map((week) => (
+                  {(showAllWeeks || openWeeks.length <= 4 ? openWeeks : openWeeks.slice(0, 3)).map((week) => (
                     <CourseWeekRow
                       key={week.id}
                       week={week}
@@ -236,6 +248,22 @@ export default function AimlCoursePage() {
                       onOpenRecall={setRecallWeek}
                     />
                   ))}
+                  {!showAllWeeks && openWeeks.length > 4 && (
+                    <li>
+                      {/* One-way, like the plan's fold: nobody re-hides a syllabus mid-read. */}
+                      <button
+                        type="button"
+                        aria-expanded={false}
+                        onClick={() => setShowAllWeeks(true)}
+                        className="flex min-h-11 w-full items-center gap-3 py-1.5 text-left text-sm text-muted-foreground transition-colors duration-150 ease-swift hover:text-primary lg:min-h-9"
+                      >
+                        <ChevronRight className="h-3.5 w-3.5 shrink-0" aria-hidden="true" />
+                        <span className="min-w-0 flex-1">
+                          Show {openWeeks.length - 3} more modules
+                        </span>
+                      </button>
+                    </li>
+                  )}
                 </RuledList>
               </Panel>
             </TabsContent>
@@ -319,7 +347,10 @@ export default function AimlCoursePage() {
         {/* The rail: where the course stands, and what it is asking of you today. Both due lists
             live here rather than between the lesson and the material — they are work the ladders
             have scheduled, which is context for the sprint, not a third catalogue. */}
-        <aside aria-label="Course standing" className="flex min-w-0 flex-col gap-4">
+        <aside
+          aria-label="Course standing"
+          className="flex min-w-0 flex-col gap-4 lg:col-start-2 lg:row-start-1 lg:row-span-2 xl:col-start-1 xl:row-start-2 xl:row-span-1"
+        >
           <Section aria-label="Course progress">
             <Progress value={stats.pct} aria-label="Course completion" />
             <Figures
@@ -337,7 +368,7 @@ export default function AimlCoursePage() {
           {reviewsDue}
           {rebuildsDue}
         </aside>
-      </ScreenBody>
+      </div>
 
       <Dialog open={notesWeek !== null} onOpenChange={(open) => !open && setNotesWeek(null)}>
         {notesWeek && notesProgress && (

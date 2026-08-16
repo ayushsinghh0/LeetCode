@@ -122,6 +122,14 @@ One centered content column: `max-w-6xl` (72rem), `px-4 py-5 pb-28` on mobile (b
 
 **When density is not enough, spend the width (V12.2).** At 1280×590 the shell has ~1000px of content width and ~500px of height — so Today's body is three tracks at `xl` (`hero | plan | 16rem rail`, page-local grid in TodayPage.tsx), collapsing to the two-column main-rail band at `lg` via explicit `col-start`/`row-span` placement and to one priority-ordered column below. DOM order never changes: work, plan, context. The fresh Today screen renders in 590px with **zero** scroll at 1280×590. A page whose height overflows while a third of its width sits empty has not run out of room — it has run out of composition (this is `PageColumns`' rule, applied until the route fits).
 
+**The projection kit (V12.3).** Every long list owns one of three width-projections, chosen by what the list is — and nothing is ever removed, only re-arranged:
+
+- **Master–detail** for a sequence with one live position: Roadmap's ten weeks are a two-row tile strip (the capacity-chip radiogroup idiom; the current week's tile carries an ink dot) and the chosen week's seven days sit in two ruled columns. The whole route is one viewport in any state.
+- **Multi-column ruled grid** for an index scanned, not read: Patterns' 28 rows run 2-up from `md`, 3-up from `xl` (per-item `border-b`, since `divide-y` cannot rule a grid); Companies' three evidence tiers are three columns with the scope note leading column one. Reading order = DOM order = phone order, always.
+- **The fold** for a catalogue with a working set: the AI/ML syllabus shows the nearest 3 modules, Bookmarks its first 4, Achievements its newest 6, Today's plan its first 5 — each closing with an in-list "Show N more" row (ChevronRight + count, `min-h-11 lg:min-h-9`, one-way). A fold row is the LAST row of its own `RuledList`, never a separate control.
+
+Wide side-by-side zones (AI/ML: hero + standing rail stacked left, syllabus right and `row-span-2`; Interview: the offer beside the ten-stage explainer; Settings: the form beside intentions + data) follow the same placement discipline: explicit `col-start`/`row-start`/`row-span` per breakpoint so the single-column stack below `lg` is untouched. One learned bound: a two-line catalogue row (title + meta + chips + controls) needs ~570px of track — three tracks starved the AI/ML syllabus into per-word title wraps, and the fix was fewer, wider columns, not smaller text.
+
 **The section rhythm is defined once, in § Composition → The rhythm, and `Page.tsx` is its implementation.** This paragraph used to restate it as `space-y-6` with `gap-6` inside the hero plate; both numbers were stale, and a page built from this paragraph would have disagreed with every page built from the vocabulary. Read the table below, not this line.
 
 ## Composition

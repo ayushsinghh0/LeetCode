@@ -132,7 +132,9 @@ export function AppShell() {
             page still narrows further through `Page`'s own width prop where prose wants less. No
             `h-full` — height belongs to content now, and the generous `md:pb-12` is what lets the
             last block of a scrolled page breathe instead of kissing the viewport edge. */}
-        <div className="mx-auto w-full max-w-6xl px-4 py-5 pb-28 md:px-6 md:py-6 md:pb-12 lg:px-8">
+        {/* md:pb-8, down from pb-12: the last block still clears the viewport edge, and the 16px
+            difference is paid on every route of a ~590px viewport. */}
+        <div className="mx-auto w-full max-w-6xl px-4 py-5 pb-28 md:px-6 md:py-6 md:pb-8 lg:px-8">
           {/* Boundary inside the shell: a page crash keeps the sidebar/nav alive so the user
               can still move to another route. App.tsx carries the outer backstop. */}
           <ErrorBoundary>

@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { format, parseISO } from 'date-fns';
-import { Award } from 'lucide-react';
+import { Award, ChevronRight } from 'lucide-react';
 import { iconByName } from '@/components/shared/iconMap';
 import { Ornament } from '@/components/shared/Ornament';
 import { Button } from '@/components/ui/button';
@@ -110,6 +110,7 @@ export default function AchievementsPage() {
   const unlockedDefs = ACHIEVEMENTS.filter((def) => unlocked[def.id]).sort((a, b) =>
     unlocked[b.id]!.localeCompare(unlocked[a.id]!),
   );
+  const [showAllEarned, setShowAllEarned] = useState(false);
   // Counted off the rendered list, not off `unlocked`'s key count. A backup imported from an
   // older build carries ids this build no longer defines; counting keys claimed "Unlocked 14 /
   // 59" over 12 rows, and the number a page prints must be the number of things it shows.
@@ -205,9 +206,28 @@ export default function AchievementsPage() {
             </p>
           ) : (
             <RuledList>
-              {unlockedDefs.map((def) => (
-                <UnlockedRow key={def.id} def={def} date={unlocked[def.id]!} />
-              ))}
+              {(showAllEarned || unlockedDefs.length <= 7 ? unlockedDefs : unlockedDefs.slice(0, 6)).map(
+                (def) => (
+                  <UnlockedRow key={def.id} def={def} date={unlocked[def.id]!} />
+                ),
+              )}
+              {!showAllEarned && unlockedDefs.length > 7 && (
+                <li>
+                  {/* The shelf shows its newest ten; the full record is one tap, not 1,400px of
+                      identical rows. One-way, like every fold in the product. */}
+                  <button
+                    type="button"
+                    aria-expanded={false}
+                    onClick={() => setShowAllEarned(true)}
+                    className="flex min-h-11 w-full items-center gap-3 py-1.5 text-left text-sm text-muted-foreground transition-colors duration-150 ease-swift hover:text-primary lg:min-h-9"
+                  >
+                    <ChevronRight className="h-3.5 w-3.5 shrink-0" aria-hidden="true" />
+                    <span className="min-w-0 flex-1">
+                      Show all {unlockedDefs.length} earned
+                    </span>
+                  </button>
+                </li>
+              )}
             </RuledList>
           )}
         </Section>

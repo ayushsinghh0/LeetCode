@@ -455,7 +455,10 @@ export default function InterviewPage() {
             hint="Interview mode draws from the question catalog; it appears to be empty."
           />
         ) : (
-          <>
+          // The offer and the explainer side by side from `lg`: "How it runs" is context for a
+          // decision the plate on the left is asking for, and stacked it pushed the Begin button's
+          // page past a 590px viewport. DOM order keeps the offer first everywhere.
+          <div className="flex flex-col gap-5 lg:grid lg:grid-cols-[minmax(0,3fr)_minmax(0,2fr)] lg:items-start lg:gap-8">
             <Lead aria-label="The problem on offer">
               <div className="flex flex-col gap-3">
                 <Eyebrow>Your problem</Eyebrow>
@@ -573,7 +576,7 @@ export default function InterviewPage() {
                 </RuledList>
               </Disclosure>
             </Section>
-          </>
+          </div>
         )}
       </Screen>
     );

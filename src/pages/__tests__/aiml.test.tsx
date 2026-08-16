@@ -68,6 +68,10 @@ describe('AimlCoursePage', () => {
     renderWithStore(<AimlCoursePage />);
 
     const syllabus = openTab('Syllabus');
+    // The syllabus opens on the nearest modules and folds the rest ("Show N more modules") so
+    // the working set fits one viewport. The whole catalogue is still one tap away — which this
+    // test proves by taking that tap before asserting on all 26.
+    fireEvent.click(within(syllabus).getByRole('button', { name: /^Show \d+ more modules$/ }));
     for (const week of CORE_WEEKS) {
       expect(within(syllabus).getByText(week.title)).toBeInTheDocument();
     }
@@ -87,6 +91,7 @@ describe('AimlCoursePage', () => {
     renderWithStore(<AimlCoursePage />, store);
 
     const syllabus = openTab('Syllabus');
+    fireEvent.click(within(syllabus).getByRole('button', { name: /^Show \d+ more modules$/ }));
     expect(within(syllabus).queryByRole('button', { name: 'Mark Week 0 day 1 done' })).not.toBeInTheDocument();
     expect(within(syllabus).getAllByRole('button', { name: /^Mark Week \d+ day [12] done$/ })).toHaveLength(50);
   });
@@ -259,6 +264,7 @@ describe('AimlCoursePage', () => {
     const { store } = renderWithStore(<AimlCoursePage />);
 
     openTab('Syllabus');
+    fireEvent.click(screen.getByRole('button', { name: /^Show \d+ more modules$/ }));
     fireEvent.click(screen.getByRole('button', { name: 'Add notes for Week 3' }));
     const dialog = screen.getByRole('dialog');
     const textarea = within(dialog).getByLabelText('Notes');

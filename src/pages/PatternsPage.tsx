@@ -2,7 +2,7 @@ import { useMemo, useState } from 'react';
 import { Shapes } from 'lucide-react';
 import { iconByName } from '@/components/shared/iconMap';
 import { Link } from 'react-router-dom';
-import { Panel, RuledItem, RuledList, Screen, ScreenBody, ScreenHeader } from '@/components/layout/Page';
+import { Panel, RuledItem, Screen, ScreenBody, ScreenHeader } from '@/components/layout/Page';
 import { Progress } from '@/components/ui/progress';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { patternById } from '@/data/patterns';
@@ -83,7 +83,7 @@ function PatternRow({ stat, index }: PatternRowProps) {
         to={`/patterns/${meta.id}`}
         // py-2 + a 32px icon plate: 28 rows at the old 62px were 1,730px of contents page —
         // 12px per row buys a third of that back without touching what the row says.
-        className="-mx-2 flex items-center gap-3 rounded-md px-2 py-2 transition-colors duration-150 ease-swift hover:bg-muted/40 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
+        className="-mx-2 flex items-center gap-3 rounded-md px-2 py-1.5 transition-colors duration-150 ease-swift hover:bg-muted/40 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
       >
         <span aria-hidden="true" className="figures w-5 shrink-0 text-right text-xs text-muted-foreground">
           {index}
@@ -144,12 +144,13 @@ export default function PatternsPage() {
         }
       />
 
-      {/* The 28-row contents page scrolls inside its own panel rather than as a document: a
-          chapter index is exactly the "question list panel" the brief sanctions, and the sort
-          control above it stays put while you read down it. */}
+      {/* A contents page, set like one: 28 numbered rows in one column on phones, two from `md`,
+          three from `xl` — a numbered index reads left-to-right the way a book's directory does,
+          and the single-column version was 1,500px of page for a list whose viewport is ~590.
+          Per-row hairlines replace RuledList's divide-y, which cannot rule a multi-column grid. */}
       <ScreenBody>
         <Panel>
-          <RuledList>
+          <ul className="grid grid-cols-1 border-t border-border md:grid-cols-2 md:gap-x-8 xl:grid-cols-3 [&>li]:border-b [&>li]:border-border">
             {sortedStats.map((stat) => (
               <PatternRow
                 key={stat.pattern}
@@ -159,7 +160,7 @@ export default function PatternsPage() {
                 index={stats.indexOf(stat) + 1}
               />
             ))}
-          </RuledList>
+          </ul>
         </Panel>
       </ScreenBody>
     </Screen>

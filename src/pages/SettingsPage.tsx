@@ -73,7 +73,7 @@ interface SettingRowProps {
  */
 function SettingRow({ label, htmlFor, description, children }: SettingRowProps) {
   return (
-    <div className="flex flex-wrap items-center justify-between gap-x-6 gap-y-3 py-3">
+    <div className="flex flex-wrap items-center justify-between gap-x-6 gap-y-3 py-2.5">
       {/* `flex-1 basis-60`: the text block yields room for the control beside it instead of
           wrapping it under — in the two-column layout the old wrap made every row two bands. */}
       <div className="flex min-w-0 flex-1 basis-60 flex-col gap-1.5">
@@ -222,11 +222,9 @@ export default function SettingsPage() {
           whole page explaining one section's mechanics. That sentence lives with the backup
           controls now (Danger Zone); the masthead keeps only the fact that orients everything
           else on the page. */}
-      <ScreenHeader
-        eyebrow="This device only"
-        title="Settings"
-        support="Everything you do is stored in this browser."
-      />
+      {/* No support line — the eyebrow ("This device only") and the Danger Zone's own copy carry
+          the local-storage fact twice already. */}
+      <ScreenHeader eyebrow="This device only" title="Settings" />
 
       {/* The support line said "Tune your daily pace and revision behavior" over five rows, two of
           which are Dark mode and Notifications — neither pace nor revision. One flat stack of five
@@ -239,8 +237,10 @@ export default function SettingsPage() {
           Each column still caps at the reading measure; below `lg` it is the single column it
           always was, in the same order. */}
       <ScreenBody>
-        <Panel className="gap-8 lg:grid lg:grid-cols-2 lg:items-start lg:gap-x-12 lg:gap-y-8">
-      <Section title="Preferences" className="max-w-[46rem] lg:row-span-2">
+        <Panel className="gap-8 lg:grid lg:grid-cols-2 lg:items-start lg:gap-x-12 lg:gap-y-8 xl:grid-cols-3">
+      {/* No "Preferences" super-heading: its two groups name themselves, and the h2 cost a row
+          on every column of a page that must fit 590px. */}
+      <Section className="max-w-none lg:row-span-2 xl:col-span-2" aria-label="Preferences">
         {/* A real <form> ancestor (even with no onSubmit wired to it) matters here: Radix Select
             only renders its visually-hidden native <select> fallback — used for native form/
             autofill compatibility, and by this app's tests to drive perDay changes without needing
@@ -248,8 +248,13 @@ export default function SettingsPage() {
             it detects a form ancestor (or an explicit `form` prop). Save stays a plain button that
             calls handleSave() directly, so this onSubmit is just a safety net against an accidental
             native submit (e.g. Enter inside a future text field). */}
-        <form onSubmit={(e) => e.preventDefault()} className="flex flex-col gap-8">
-          <Section level={3} title="Pace and revision">
+        <form
+          onSubmit={(e) => e.preventDefault()}
+          // The two subsections side by side from `xl` (they are unrelated groups); Save spans
+          // both, right-aligned, as the form's shared last row.
+          className="flex flex-col gap-8 xl:grid xl:grid-cols-2 xl:items-start xl:gap-x-10 xl:gap-y-5"
+        >
+          <Section title="Pace and revision">
           <SettingRows>
             <SettingRow
               label="Questions per day"
@@ -327,7 +332,7 @@ export default function SettingsPage() {
           </SettingRows>
           </Section>
 
-          <Section level={3} title="This device">
+          <Section title="This device">
           <SettingRows>
             <SettingRow
               label="Dark mode"
@@ -374,7 +379,7 @@ export default function SettingsPage() {
               own bottom rule, so the footer draws none (a second line 16px below the first is the
               duplicate-separator problem) and instead pulls up under that rule with a negative
               margin, so the button reads as the form's last row rather than a floating control. */}
-          <div className="-mt-4 flex justify-end">
+          <div className="-mt-4 flex justify-end xl:col-span-2 xl:mt-0">
             <Button type="button" onClick={handleSave} disabled={!isDirty}>
               Save
             </Button>
@@ -386,7 +391,7 @@ export default function SettingsPage() {
           hairline on top of it was the duplicate-separator problem — paying for one boundary
           twice. */}
       <Section
-        className="max-w-[46rem] lg:mt-0"
+        className="max-w-[46rem] lg:mt-0 xl:col-start-3"
         title="Practice intentions"
         support="When, then — pair a routine with a practice action. The app suggests the shape; you decide whether to use it."
       >
@@ -394,7 +399,7 @@ export default function SettingsPage() {
       </Section>
 
       <Section
-        className="max-w-[46rem] lg:col-start-2"
+        className="max-w-[46rem] lg:col-start-2 xl:col-start-3"
         title="Danger Zone"
         support="Nothing is uploaded, so a backup file is the only way to move your data — export one, restore from one, or wipe everything."
       >

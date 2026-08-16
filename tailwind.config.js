@@ -5,6 +5,13 @@ export default {
   content: ['./index.html', './src/**/*.{ts,tsx}'],
   theme: {
     extend: {
+      // A HEIGHT breakpoint, the V11 lesson applied: the real deployment is 1080p at 150%
+      // Windows scaling (~590px of CSS height), and chrome that only fits above a height it
+      // cannot control is a layout bug. `short:` compresses fixed chrome (the sidebar) so it
+      // never grows a scrollbar there; content pages handle height by composition instead.
+      screens: {
+        short: { raw: '(max-height: 700px)' },
+      },
       colors: {
         border: 'hsl(var(--border))',
         input: 'hsl(var(--input))',

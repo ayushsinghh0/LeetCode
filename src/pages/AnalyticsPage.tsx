@@ -11,7 +11,6 @@ import {
   RuledItem,
   RuledList,
   Screen,
-  ScreenBody,
   ScreenHeader,
   Section,
 } from '@/components/layout/Page';
@@ -146,13 +145,14 @@ export default function AnalyticsPage() {
 
   return (
     <Screen>
-      <ScreenHeader
-        eyebrow="The record"
-        title="Analytics"
-        support="Five questions, in the order that decides what you do next."
-      />
+      {/* No support line — the tab strip below lists the five questions by name. */}
+      <ScreenHeader eyebrow="The record" title="Analytics" />
 
-      <ScreenBody cols="main-rail">
+      {/* The reading left with the ML-track context under it, the five questions wide on the
+          right — the aiml recipe, for the same reason: tabbed catalogues need their width, and
+          stacking the lead above them pushed every answer below a 590px fold. DOM order is
+          unchanged: lead, tabs, context. */}
+      <div className="flex flex-col gap-5 lg:grid lg:grid-cols-[minmax(0,1fr)_19rem] lg:items-start lg:gap-8 xl:grid-cols-[minmax(0,2fr)_minmax(0,3fr)]">
         {/* The reading, then the evidence behind it.
 
             This screen was 3,451px of stacked analysis — five question-titled sections plus an
@@ -161,10 +161,13 @@ export default function AnalyticsPage() {
             nothing was removed; they are siblings, exactly one of which you are reading, which
             is what a tab is for. The lead reading stays above the strip because it is the
             answer — the tabs are where you go to check it. */}
-        <div className="flex min-w-0 flex-col gap-4">
+        <div className="contents">
           <InsightLead insight={insights[0] ?? null} />
 
-          <Tabs defaultValue="next" className="flex flex-col gap-3">
+          <Tabs
+            defaultValue="next"
+            className="flex min-w-0 flex-col gap-3 lg:col-start-1 xl:col-start-2 xl:row-start-1 xl:row-span-2"
+          >
             <TabsList>
               <TabsTrigger value="next">What next</TabsTrigger>
               <TabsTrigger value="findings">Findings</TabsTrigger>
@@ -218,12 +221,15 @@ export default function AnalyticsPage() {
                   of masthead, the longest string on the page, met before any finding it produced. As a
                   footnote under the list it is what it always was: the working, for the reader who
                   wants to check it. */}
-              <p className="max-w-prose text-sm text-muted-foreground">
-                The signals: drill misses, failed recalls, your own ratings, unfinished attempts, time
-                against estimate, hint use, stalls under a contest clock, and whether an idea carried
-                into its next disguise. Recent evidence outweighs old, and nothing is scored on a
-                single observation.
-              </p>
+              {/* The working, one tap away: method prose read once, not 100px of every visit. */}
+              <Disclosure summary="The signals, in full">
+                <p className="max-w-prose text-sm text-muted-foreground">
+                  The signals: drill misses, failed recalls, your own ratings, unfinished attempts, time
+                  against estimate, hint use, stalls under a contest clock, and whether an idea carried
+                  into its next disguise. Recent evidence outweighs old, and nothing is scored on a
+                  single observation.
+                </p>
+              </Disclosure>
 
               <Section
                 level={3}
@@ -516,7 +522,7 @@ export default function AnalyticsPage() {
             rides the rail beside the tabs rather than standing under them. */}
         {/* No `aria-label`: the section inside is already titled "The ML track", and labelling the
             landmark with the same words announces it twice. */}
-        <aside className="flex min-w-0 flex-col gap-4">
+        <aside className="flex min-w-0 flex-col gap-4 lg:col-start-2 lg:row-start-1 lg:row-span-2 xl:col-start-1 xl:row-start-2 xl:row-span-1">
         <Section
           title="The ML track"
           support="Measured the same way as the roadmap: sessions completed is attendance, the review ladder is retention."
@@ -564,16 +570,20 @@ export default function AnalyticsPage() {
               ),
             ]}
           />
-          <p className="max-w-prose text-sm leading-relaxed text-muted-foreground">
-            {courseRetention.onLadder === 0
-              ? 'No week has been cleared yet, so there is nothing on the review ladder to measure. Attendance is the only number here until then.'
-              : courseRetention.neverReviewed > 0
-                ? `${courseRetention.neverReviewed} cleared ${plural(courseRetention.neverReviewed, 'week has', 'weeks have')} never been reviewed. Sessions completed is attendance; only the ladder says the material is still there.`
-                : 'Every cleared week has been through the ladder at least once, so the attendance figure above is backed by recall rather than standing on its own.'}
-          </p>
+          {/* The reading behind the figures, one tap away — same treatment as "The signals, in
+              full": method prose whose place is on demand, not on every visit's height budget. */}
+          <Disclosure summary="What these figures rest on">
+            <p className="max-w-prose text-sm leading-relaxed text-muted-foreground">
+              {courseRetention.onLadder === 0
+                ? 'No week has been cleared yet, so there is nothing on the review ladder to measure. Attendance is the only number here until then.'
+                : courseRetention.neverReviewed > 0
+                  ? `${courseRetention.neverReviewed} cleared ${plural(courseRetention.neverReviewed, 'week has', 'weeks have')} never been reviewed. Sessions completed is attendance; only the ladder says the material is still there.`
+                  : 'Every cleared week has been through the ladder at least once, so the attendance figure above is backed by recall rather than standing on its own.'}
+            </p>
+          </Disclosure>
         </Section>
         </aside>
-      </ScreenBody>
+      </div>
     </Screen>
   );
 }

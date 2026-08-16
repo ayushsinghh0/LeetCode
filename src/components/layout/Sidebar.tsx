@@ -25,7 +25,7 @@ import { StreakFlame } from '@/components/gamification/StreakFlame';
  */
 const navLinkClass = ({ isActive }: { isActive: boolean }) =>
   cn(
-    'flex min-h-9 items-center gap-3 rounded-md border-l-2 px-2.5 py-1.5 text-sm transition-colors duration-150 ease-swift',
+    'flex min-h-9 items-center gap-3 rounded-md border-l-2 px-2.5 py-1.5 text-sm transition-colors duration-150 ease-swift short:min-h-7 short:py-1',
     isActive
       ? 'border-primary bg-muted/50 font-semibold text-foreground'
       : 'border-transparent font-medium text-muted-foreground hover:bg-muted hover:text-foreground',
@@ -57,11 +57,14 @@ export function Sidebar() {
     // The lock is `lg`, not `md`, and matches the shell's. Between 768 and 1023 the shell is an
     // ordinary scrolling document (the two-column screen bodies only exist from `lg`), so a rail
     // pinned to the viewport there would have floated beside a page that scrolls past it.
-    <aside className="hidden shrink-0 flex-col gap-3 border-r border-border p-3 md:flex md:w-[4.5rem] lg:h-full lg:min-h-0 lg:w-52">
+    // `short:` (max-height 700px) compresses every fixed row so all fifteen destinations, the
+    // search control and the level block fit a 590px viewport WITHOUT the nav scrolling — the
+    // overflow-y-auto below stays only as the safety net for even shorter windows.
+    <aside className="hidden shrink-0 flex-col gap-3 border-r border-border p-3 md:flex md:w-[4.5rem] lg:h-full lg:min-h-0 lg:w-52 short:gap-2 short:p-2">
       {/* The wordmark has 28px of usable width in the 72px icon rail (w-[4.5rem] − p-3.5 − px-2),
           which rendered "DSA Roadmap" as "D…". Below lg it keeps its accessible name and gives up
           its pixels; the rail's identity is the ink-marked active tab, not a clipped title. */}
-      <div className="px-2 py-1 font-serif text-lg font-semibold tracking-tight">
+      <div className="px-2 py-1 font-serif text-lg font-semibold tracking-tight short:py-0.5 short:text-base">
         <span className="sr-only lg:not-sr-only lg:block lg:truncate">DSA Roadmap</span>
       </div>
 
@@ -69,7 +72,7 @@ export function Sidebar() {
         type="button"
         aria-label="Search and commands (Ctrl+K)"
         onClick={() => dispatch(searchOpenSet(true))}
-        className="flex min-h-10 items-center gap-3 rounded-md border border-border px-3 py-2 text-sm font-medium text-muted-foreground transition-colors duration-150 ease-swift hover:bg-muted hover:text-foreground"
+        className="flex min-h-10 items-center gap-3 rounded-md border border-border px-3 py-2 text-sm font-medium text-muted-foreground transition-colors duration-150 ease-swift hover:bg-muted hover:text-foreground short:min-h-8 short:py-1"
       >
         <Search className="h-4 w-4 shrink-0" aria-hidden="true" />
         <span className="hidden lg:inline">Search</span>
@@ -99,7 +102,7 @@ export function Sidebar() {
           `overscroll-contain` keeps a finished scroll here from chaining into `main`. */}
       <nav
         aria-label="Sidebar navigation"
-        className="scrollbar-quiet flex min-h-0 flex-1 flex-col gap-0.5 overflow-y-auto overscroll-contain"
+        className="scrollbar-quiet flex min-h-0 flex-1 flex-col gap-0.5 overflow-y-auto overscroll-contain short:gap-0"
       >
         {NAV_ITEMS.filter((item) => item.group === 'work').map(({ to, label, icon: Icon }) => (
           <NavLink key={to} to={to} end={to === '/'} className={navLinkClass}>
@@ -122,7 +125,7 @@ export function Sidebar() {
 
         {/* The shelf: two destinations you visit occasionally, ruled off rather than boxed, so the
             eye scanning the work list has a floor to stop at instead of fifteen equal rows. */}
-        <div className="mt-1 flex flex-col gap-0.5 border-t border-border pt-1">
+        <div className="mt-1 flex flex-col gap-0.5 border-t border-border pt-1 short:mt-0.5 short:gap-0 short:pt-0.5">
           {NAV_ITEMS.filter((item) => item.group === 'shelf').map(({ to, label, icon: Icon }) => (
             <NavLink key={to} to={to} className={navLinkClass}>
               {({ isActive }) => (
@@ -148,7 +151,7 @@ export function Sidebar() {
           document uses to rule off a block. */}
       {/* No horizontal padding below lg: the rail leaves 44px of content width and the ring is
           40px, so it centres with 2px either side. */}
-      <div className="flex items-center justify-center gap-2 border-t border-border pt-3 lg:justify-start lg:px-2">
+      <div className="flex items-center justify-center gap-2 border-t border-border pt-3 lg:justify-start lg:px-2 short:pt-2">
         <LevelRing level={levelInfo.level} intoLevel={levelInfo.intoLevel} needed={levelInfo.needed} size={40} />
         <span className="hidden lg:inline">
           <StreakFlame current={streaks.current} />

@@ -1,4 +1,18 @@
-# HANDOFF — V12.3 Projection Kit shipped (2026-08-16)
+# HANDOFF — V12.4 Analytics/Settings/rail fit shipped (2026-08-16)
+
+## V12.4 — the last three complaints
+
+Analytics went to the aiml recipe (lead + ML-track rail stacked left, the five question-tabs
+wide right, `row-span-2`; "The signals" and the ML-track method prose behind Disclosures):
+801→613 fresh / 758 seeded. Settings became three columns at `xl` (the form's two groups side
+by side inside a `col-span-2` Section, Save spanning both; the "Preferences" super-heading
+removed — its groups name themselves): 1206→613 fresh / 672 seeded. And tailwind.config gained
+the **`short:` screen** (`raw: '(max-height: 700px)'`) — the V11 height lesson as a variant —
+which compresses the sidebar's fixed rows (wordmark, search, nav `min-h-7`, level block) so all
+15 destinations + level ring fit a 590px viewport with **zero nav scrolling**; `overflow-y-auto`
+stays as the safety net for even shorter windows. 1176/1176 tests; app chunk 280.77 kB.
+
+# Previous: V12.3 Projection Kit (2026-08-16)
 
 ## V12.3 — every page projected to fit (the latest pass)
 

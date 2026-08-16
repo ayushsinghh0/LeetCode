@@ -30,10 +30,9 @@ via tiles); aiml.test's three catalogue assertions now click the fold first. 117
 
 # Previous: V12 Marginalia & Moments (2026-08-16)
 
-**State: V9 (Composed Interface), V10 (Zero-Scroll Application), V11 (Flowing Application) and
-V12 (Marginalia & Moments) are complete, committed on branch `v9-composed-interface`. NOT merged
-to main and NOT pushed** — V6–V8 all ended merged, so this branch is the outlier and needs a
-decision.
+**State: V9 through V12.4 are complete and MERGED to `main` (fast-forward from
+`v9-composed-interface`, 2026-08-16) and pushed** — the branch outlier is resolved; `main` is
+the current line again, as it was through V6–V8.
 
 ## What V12 added (the "make it feel alive" pass)
 

@@ -701,3 +701,82 @@ string-algorithm tags AICM genuinely has no pattern for.
 §10's three decisions are untouched and none blocks the remaining slices: the `leetcodeId`
 correction (10.1), XP for pool solves (10.2), and whether contest work appears on Today (10.3).
 Next is slice 4 — the `/contest-practice` surface — then slice 5, the §63 acceptance journey.
+
+---
+
+## 15. Slice 4 — implementation log (2026-08-20)
+
+### 15.1 What shipped
+
+**The `/contest-practice` route** — `ContestPracticePage.tsx`, lazy, the only kind of module
+allowed to import `@/data/contestLibrary`. Three-file route wiring per CLAUDE.md; the nav entry
+(`Contest Library`, `Library` icon, `mobile: 'more'`, `group: 'work'`) sits at the end of the
+rehearsal cluster, and `routes.test.tsx` picked up mount coverage automatically off `NAV_ITEMS`.
+
+**The sixteenth destination broke a shipped guarantee, and the fix is in this slice.** V12.4's
+"the rail never scrolls" was calibrated to fifteen rows: at `short:` (≤700px), 16 × 28px rows plus
+the rail's fixed chrome is ~602px against the 590px reference viewport. `Sidebar.tsx`'s `short:`
+rows are now 26px (`min-h-[26px]` + `py-0.5`), landing the rail at ~570px with the 24px WCAG 2.5.8
+floor still cleared. Static arithmetic only — see §15.4.
+
+**The page.** `Screen`/`ScreenHeader`/`Panel` composition, zero plates. Simple mode by default:
+one pattern `Select` (with per-pattern mapped counts) + the seven rating-band chips; everything
+else — difficulty, contest type, position (data-driven, so Q5 exists), topic, progress status,
+curriculum status, free-only, include-inferred, title search — behind one `Disclosure` whose meta
+shows "N active". Result count always visible; "Clear filters" only when a filter is active. Rows
+are `<details>` summaries in a `RuledList` (the Disclosure idiom at row density): id · title ·
+pattern (lg) · contest (md) · difficulty (always) · rating (sm, sr-labelled) · status, folding at
+50 rows with a +150 projection-kit fold row. The expanded detail carries the full §7.4 field list,
+the `CONTEST_RATING_NOTE` tooltip, sub-pattern display names, and the canonical slug-built
+"Open on LeetCode →" link.
+
+**Engine addition** — `contestStateFromQuestionProgress` in `engine/contestLibrary.ts`: the ONE
+translation of a curriculum record into contest-state shape, so the 207 bridged problems read
+through `progress.byId` identically here and in slice 6's revision pool. `attempts` is a floor
+(worked-on vs untouched), because the curriculum register never counted attempts.
+
+**Idiom consolidation** — `QuestionFilterRow`'s chip and group class constants are now exported
+and imported here, so the filter-chip idiom has one definition instead of a third hand-written
+copy. Filters are deliberately `aria-pressed` single-select-with-clear toggles, NOT `ChipRadioRow`
+(§7.1 named it loosely): a radiogroup promises a checked member, and a filter's resting state is
+"nothing constrained".
+
+### 15.2 Verification
+
+| Check | Result |
+|---|---|
+| Full suite | **87 files / 1,252 tests** (slice 3 baseline 1,239 + 9 page + 3 engine + 1 auto route) |
+| `tsc --noEmit` | clean |
+| Build | app chunk **290.23 kB** against the 301 kB budget; **`data-contests` fills at 343.72 kB** (the empty-chunk status line from the slice 0–3 handoff is retired); page chunk 13.68 kB |
+| Chunk isolation | `ZeroTrac` string grep: absent from the app chunk, present in the page chunk — the decoder rides the lazy route |
+| Design review | independent fresh-context reviewer: **fix-then-ship** (1 material, 6 minor) → all seven applied → verdict pass: **ship** |
+
+The material finding is worth recording: below `sm` the row hid official difficulty while showing
+the ZeroTrac rating — the estimate *instead of* the official signal, inverting §3.4 on exactly the
+phone-check-in surface PRODUCT.md makes first-class. Fixed by swapping which column yields.
+
+### 15.3 Decisions taken during implementation
+
+1. **Slice 4 is read-only.** No thunks, no Start button, no XP — the page browses, filters and
+   links out. §10.2 (XP for pool solves) therefore stays genuinely open rather than being decided
+   by accident, and the contest launch arrives with slice 5's journey.
+2. **Display order is rating ascending, slug tiebreak.** A filtered pool reads shallow end first —
+   the session arc's "opens achievably" principle — and the order is fully deterministic.
+3. **The fold, not virtualization.** 50 rows painted, +150 per fold click, whole-result count
+   always visible. Filters are the intended way in; scrolling 2,561 rows is not.
+4. **`?pattern=` is two-way.** The CTA preselects through it; choosing or clearing a pattern
+   writes it back (`replace: true`), because a stale param would resurrect a cleared filter on
+   the next reload. Unknown params are ignored rather than filtering to nothing.
+5. **The empty-state hint is verified, not guessed.** Each candidate loosening is re-run through
+   `filterContestProblems` before being suggested, so the page never recommends a widening that
+   would not help. Runs only when the result is already empty.
+6. **Topics live in the detail, not the summary row.** The §7.1 column list re-arranged, nothing
+   removed: a dense one-line row cannot carry a topic list at any honest width.
+
+### 15.4 Carried forward
+
+- **Browser QA did not run this session** — the Chrome extension was disconnected (OAuth account
+  mismatch). The 26px rail arithmetic, the row's breakpoint behaviour at 375/768/1280, and both
+  themes should be eyeballed at 1280×590 next session. The finish review was code-level and is
+  disclosed as such.
+- §10's three decisions remain open; 10.2 (XP) becomes pressing the moment slice 5 records solves.

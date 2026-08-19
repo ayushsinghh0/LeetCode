@@ -18,14 +18,20 @@ import { StreakFlame } from '@/components/gamification/StreakFlame';
  * of the same neutral used for hover, not a second accent. It is emphatically not the saturated
  * pill this idiom replaced; the ink budget still belongs to the page's primary action.
  *
- * `min-h-9` rather than `min-h-10`: the rail is height-capped now, and 4px × 15 rows is a row and
- * a half of headroom on a 720px laptop. The 44px pointer-target rule is a *content* rule — these
+ * `min-h-9` rather than `min-h-10`: the rail is height-capped now, and 4px × 16 rows is over a
+ * row of headroom on a 720px laptop. The 44px pointer-target rule is a *content* rule — these
  * are 36px navigation rows in a persistent rail, the same register as a menu bar, and they clear
  * WCAG 2.5.8's 24px floor with room to spare.
+ *
+ * The `short:` step is 26px (`min-h-[26px]` + `py-0.5`), not the 28px it was: V13's Contest
+ * Library made it sixteen destinations, and 16 × 28 plus the rail's fixed chrome is ~602px —
+ * 12px past the 590px reference viewport, which would have engaged the nav's safety-net
+ * scrollbar on exactly the display V12.4 promised it never scrolls on. 16 × 26 lands the rail
+ * at ~570px, and 26px still clears the 24px floor.
  */
 const navLinkClass = ({ isActive }: { isActive: boolean }) =>
   cn(
-    'flex min-h-9 items-center gap-3 rounded-md border-l-2 px-2.5 py-1.5 text-sm transition-colors duration-150 ease-swift short:min-h-7 short:py-1',
+    'flex min-h-9 items-center gap-3 rounded-md border-l-2 px-2.5 py-1.5 text-sm transition-colors duration-150 ease-swift short:min-h-[26px] short:py-0.5',
     isActive
       ? 'border-primary bg-muted/50 font-semibold text-foreground'
       : 'border-transparent font-medium text-muted-foreground hover:bg-muted hover:text-foreground',
@@ -57,7 +63,7 @@ export function Sidebar() {
     // The lock is `lg`, not `md`, and matches the shell's. Between 768 and 1023 the shell is an
     // ordinary scrolling document (the two-column screen bodies only exist from `lg`), so a rail
     // pinned to the viewport there would have floated beside a page that scrolls past it.
-    // `short:` (max-height 700px) compresses every fixed row so all fifteen destinations, the
+    // `short:` (max-height 700px) compresses every fixed row so all sixteen destinations, the
     // search control and the level block fit a 590px viewport WITHOUT the nav scrolling — the
     // overflow-y-auto below stays only as the safety net for even shorter windows.
     <aside className="hidden shrink-0 flex-col gap-3 border-r border-border p-3 md:flex md:w-[4.5rem] lg:h-full lg:min-h-0 lg:w-52 short:gap-2 short:p-2">

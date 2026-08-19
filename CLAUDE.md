@@ -5,7 +5,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 **Resuming prior work? Read `HANDOFF.md` first** — it records where the last session stopped,
 what is verified vs. pending, and the exact pick-up order. Design decisions behind in-flight
 feature work live in `docs/superpowers/specs/`; the **active** plan is
-`2026-08-19-contest-intelligence-design.md` (V13 — slices 0–3 shipped, 4–7 pending).
+`2026-08-19-contest-intelligence-design.md` (V13 — slices 0–4 shipped, 5–7 pending).
 
 ## Commands
 

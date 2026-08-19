@@ -1,23 +1,22 @@
-# HANDOFF — V13 Contest Intelligence, slices 0–3 shipped (2026-08-20)
+# HANDOFF — V13 Contest Intelligence, slices 0–4 shipped (2026-08-20)
 
 ## Read this first, then start
 
-**Branch: `v13-contest-intelligence`** (pushed to origin; `main` is at `43eecf4`, untouched).
-**State: the foundation is complete and green; NO user-facing surface exists yet.**
+**Branch: `v13-contest-intelligence`** (`main` is at `43eecf4`, untouched).
+**State: the foundation AND the first user-facing surface exist. `/contest-practice` ships; the
+§63 journey (CTA → filtered contest → evidence) does not yet.**
 
 If you are resuming and just want to keep building, the whole instruction is:
 
-> Continue V13 at slice 4. The plan is `docs/superpowers/specs/2026-08-19-contest-intelligence-design.md`
-> §7 (surfaces) and §9 (sequence); the measured baseline is §13 and the implementation log is §14.
-
-Nothing else needs re-deciding. Everything slices 4–7 need already exists as tested pure
-functions — slice 4 is wiring, not invention.
+> Continue V13 at slice 5. The plan is `docs/superpowers/specs/2026-08-19-contest-intelligence-design.md`
+> §7 (surfaces) and §9 (sequence); the implementation logs are §14 (slices 1–3) and §15 (slice 4).
+> The slice-5 groundwork notes below were verified against the code this session — start from them.
 
 ```powershell
 git checkout v13-contest-intelligence   # if not already on it
-npm test                                # expect 86 files / 1239 tests green
+npm test                                # expect 87 files / 1,252 tests green
 npx tsc --noEmit                        # expect clean
-npm run build                           # expect app chunk ~283.56 kB (budget 301)
+npm run build                           # expect app chunk ~290.23 kB (budget 301); data-contests 343.72 kB
 ```
 
 ---
@@ -26,127 +25,105 @@ npm run build                           # expect app chunk ~283.56 kB (budget 30
 
 | | |
 |---|---|
-| Tests | **86 files / 1,239 passing** (baseline was 1,176; V13 added 63) |
+| Tests | **87 files / 1,252 passing** (V13 so far: +76 over the 1,176 baseline) |
 | Type-check | clean |
-| Build | clean; app chunk **283.56 kB** against the 301 kB budget |
+| Build | clean; app chunk **290.23 kB** against the 301 kB budget; **`data-contests` now fills at 343.72 kB** (it was the empty-chunk status line of the last handoff; slice 4 retired it) |
 | `validate:data` | OK — `2561 rated problems, 2153 with a filterable AICM pattern, 207 bridged` |
-| Commits | `e34301e` (repo report), `5a0f3a5` (V13 slices 0–3) |
-
-**The build prints `Generated an empty chunk: "data-contests"`. That is correct and is the
-status line for this handoff** — the dataset is pinned and isolated, and nothing imports it yet
-because no UI consumes it. It stops being empty in slice 4.
+| Design review | slice 4 went through a fresh-context finish review: fix-then-ship (1 material, 6 minor) → all fixed → **ship** |
 
 ### Done
 
 | Slice | What landed |
 |---|---|
-| **0 Measurement** | ZeroTrac format, catalog coverage, curriculum overlap, encoding size. Results in design record §13. |
-| **1 Pipeline** | `fetch-zerotrac-ratings.mjs`, `fetch-leetcode-topics.mjs`, `generate-contest-library.mjs`, `data-contests` chunk, `validate:data` extension. One command: `npm run fetch:contest-data`. |
-| **2 Mapping table** | `scripts/data/contest-pattern-map.json` — 11 container tags, 16 ordered combinations, ~110 direct rules, explicit `_unmappableTags`. |
-| **3 Engine + store** | `engine/contestLibrary.ts`, generalized `selectContestSet` in `engine/contest.ts`, `contestLibrarySlice` (slug-keyed), serialize both ways. |
+| **0 Measurement** | ZeroTrac format, catalog coverage, curriculum overlap, encoding size. Design record §13. |
+| **1 Pipeline** | Fetchers + `generate-contest-library.mjs`, `data-contests` chunk, `validate:data` extension. |
+| **2 Mapping table** | `scripts/data/contest-pattern-map.json` — containers, ordered combinations, direct rules, `_unmappableTags`. |
+| **3 Engine + store** | `engine/contestLibrary.ts`, generalized `selectContestSet`, slug-keyed `contestLibrarySlice`, serializer. |
+| **4 The Library surface** | `/contest-practice`: simple mode (pattern Select + band chips), advanced filters behind one Disclosure, always-visible count, verified widening hint on empty, 50-row fold, `<details>` rows with full §7.4 detail + rating tooltip + canonical links, `?pattern=` two-way sync, both progress registers read through one lookup. Read-only on purpose — no thunks, no Start, no XP. Log: design record §15. |
 
-### Not started — this is the visible half
+### Not started
 
 | Slice | Work | Est. |
 |---|---|---|
-| **4** | `/contest-practice` route: filter bar, dense table, result count, empty state, problem detail | 1–1.5 d |
-| **5** | The §63 acceptance journey end to end (pattern CTA → preselected filter → contest → results → evidence) | 1 d |
+| **5** | The §63 journey end to end: pattern CTA → preselected filter → **Start contest** → filtered sitting on ContestPage → results → evidence banked | 1 d |
 | **6** | Revision mode selector + Contest Revision pool + band recommendation | 1 d |
 | **7** | Mixed-pattern contest, "Recreate contest", progression polish | 0.5–1 d |
 
-**~3.5–4.5 days remaining.**
-
-### Against the directive's §63 acceptance criteria: 6 of 20 pass
-
-Passing: 1 (pattern page exists), 16 (Standard Revision unchanged), 17 (Full Contest unchanged —
-its 62 tests pass unmodified), 18 (no runtime network), 19 (data validated), 20 (tests green).
-Everything from "user sees Practice Contest Problems" through "Contest Revision retrieves
-eligible problems" is slices 4–6.
-
 ---
 
-## What already exists to build slice 4 on
+## Slice 5 — groundwork verified this session (do not re-derive)
 
-Do not re-derive any of this. It is written, tested, and pure.
+The contest machinery was read end to end (`contestSlice.ts`, `ContestPage.tsx`,
+`engine/contest.ts`, the contest thunks in `actions.ts`, `contestsSlice.ts`, `serialize.ts`).
+These are the load-bearing facts:
 
-**`src/utils/engine/contestLibrary.ts`**
-
-| Export | Use |
-|---|---|
-| `filterContestProblems(pool, filter, progress?, today?)` | The ONE predicate. Every filter field optional; empty array = unconstrained. |
-| `isFilterActive(filter)` | Drives the "Clear filters" affordance. |
-| `buildContestIndex(pool)` | The ten indexes + `topicsByFrequency` for the filter's option list. Memoize per pool identity. |
-| `RATING_BANDS` / `ratingBand(n)` / `bandById(id)` | Bands as data. 200-point wide on purpose. |
-| `scoreRevisionCandidates(input)` | Ranked `{problem, score, reasons}` — reasons are render-ready. |
-| `selectionReason(problem, state, today, patternName?)` | "Why this problem?" strings. |
-| `recommendBand(evidence, current?)` | Conservative; `null` below `MIN_BAND_EVIDENCE`. |
-| `initialContestProgress` / `applyContestSolve` / `applyContestReview` / `applyContestAttempt` | Ladder appliers. |
-| `dueContestSlugs(bySlug, today)` | Due list from the slice alone — **needs no dataset**. |
-
-**`src/data/contestLibrary.ts`** — `CONTEST_PROBLEMS`, `contestProblemBySlug`,
-`contestProblemByCurriculumId` (the 207 bridge), `CONTEST_RATING_NOTE`,
-`CONTEST_LIBRARY_PROVENANCE`. **Import only from lazy route components.**
-
-**`src/store/slices/contestLibrarySlice.ts`** — `contestProblemAttempted`,
-`contestProblemSolved`, `contestProblemReviewed`. Per repo law these must be wrapped in thunks in
-`store/actions.ts` before any component dispatches them.
-
-**`engine/contest.ts`** — `selectContestSet(pool, plan, seed)` takes `ContestCandidate[]` and a
-`ContestPlan` (`shape` | `count`, `ratingRange`, `distinctPatterns`, `distinctContests`).
-
----
-
-## Slice 4 — concrete build order
-
-1. **Route** (3 files, per CLAUDE.md): lazy import + `<Route path="/contest-practice">` in
-   `src/App.tsx`; one entry in `src/components/layout/navItems.ts`
-   (`mobile: 'more'`, `group: 'work'`); `routes.test.tsx` then picks up mount coverage
-   automatically off `NAV_ITEMS`.
-2. **Page shell** from `Page.tsx` primitives only — `PageHeader`, `Section`, `RuledList`/
-   `RuledItem`, `Meta`, `Ledger`, `Disclosure`, `ChipRadioRow`. No new visual language, no
-   per-row colour, plate rule applies (one `Lead` maximum).
-3. **Simple mode by default** (directive §61): pattern → rating → Start. Advanced filters behind
-   a `Disclosure`. Always show the result count; keep the learner's filters on an empty result and
-   suggest widening.
-4. **Read the query string** so `?pattern=two-pointers` preselects — slice 5's CTA depends on it.
-5. **Show both signals** (`Medium · Contest rating 1648 · Weekly 462 · Q3`) with
-   `CONTEST_RATING_NOTE` as the tooltip. Render `Pattern mapping unavailable` for `unmapped`, and
-   label `heuristic` as inferred.
-6. **Confirm the chunk fills**: after this slice `data-contests` must appear at ~336 kB in the
-   build output and the app chunk must stay under 301 kB.
-
----
+1. **The live slice snapshots by curriculum id** (`questionIds: number[]`, `attempts` keyed by
+   id). Library problems are slug-identified and are NOT Questions, so slice 5 must widen the
+   unpersisted `contestSlice` with a discriminated per-problem identity
+   (`{kind:'curriculum', id} | {kind:'library', slug}`) — **never** stuff a frontendId into the
+   numeric channel: `solveContestProblem` dispatches `solveQuestion(questionId)`, and a library
+   frontendId ≤539 would silently write some other question's `progress.byId` row. The ID trap,
+   third appearance.
+2. **Snapshot display rows into the slice at start.** `ContestPage` must never import
+   `@/data/contestLibrary` (336 kB into the /contest chunk for Full-Contest users). The lazy
+   library page has the dataset in hand at Start time — snapshot title/url/difficulty/target/
+   mapped-patterns per problem into the `contestStarted` payload and let ContestPage render from
+   the slice. The slice is unpersisted, so widening costs no migration.
+3. **A bridged problem in a filtered contest keeps its curriculum identity** — solve routes to
+   `solveQuestion(curriculumQuestionId)` (ordinary XP/ledger/ladder); only contest-only problems
+   route to the (new) library solve thunk. One problem, one record.
+4. **The 62 contest tests must pass UNMODIFIED.** `analyzeContest`'s input can widen structurally
+   (a minimal `ContestQuestion` supertype that real `Question`s satisfy), but its behaviour,
+   `ContestProblem`'s shape as tests construct it, and Full Contest's thunk path may not move.
+5. **Library sittings bank pattern-level records only.** `ContestStallRecord.problems[].questionId`
+   is validated as a positive integer and read back by curriculum surfaces
+   (`stalledIdsFromRecord` → question ids) — a frontendId there would be misread as a curriculum
+   id. Omit `problems` for library sittings (the schema allows absence; readers yield nothing) and
+   let `stalledPatterns` carry the evidence, exact/strong mappings only, resolved at the lazy
+   page's call site before the thunk (CLAUDE.md's stated channel).
+6. **One sitting record per calendar date, first-write-wins** (`contestsSlice`). A library sitting
+   after a Full Contest the same day records nothing. Existing policy; do not fight it in slice 5.
+7. **The CTA** goes in `PatternDetailPage`'s `PageHeader` `action` slot (it is currently empty;
+   "At most one control"): outline Button asChild → `/contest-practice?pattern=${patternId}` —
+   the preselect side already works and is test-pinned.
+8. **XP decision (§10.2) becomes real the moment slice 5 records a library solve.** The design
+   record recommends ordinary XP; decide it consciously in slice 5, then check the level curve.
 
 ## Decisions still open (yours, none blocking)
 
-1. **`leetcodeId` correction.** Every stored one is LeetCode's *internal* id, not the displayed
-   number. URLs are unaffected. Fix = add `frontend_question_id` in `fetch-leetcode-catalog.mjs`
-   + regenerate, but it touches the locked 539 dataset, so it was left alone.
-2. **Do contest-library solves pay XP?** 2,561 problems × ~20 XP against a curriculum worth ~11k
-   recalibrates the level curve. Recommendation: pay ordinary XP, check the curve after slice 5.
-3. **Do contest-due items appear on Today?** Computable without the dataset. Recommendation: no,
-   not initially — the daily plan's finishability caps exist for a reason.
+1. **`leetcodeId` correction** (design record §10.1) — untouched.
+2. **XP for contest-library solves** (§10.2) — see groundwork note 8.
+3. **Contest-due items on Today** (§10.3) — recommendation stands: no, not initially.
 
 ---
 
 ## Rules that bit during V13 — do not relearn these
 
-- **⛔ Never join ZeroTrac to this repo on a number.** Its `ID` is LeetCode's *frontend* id;
-  `leetcode-catalog.json` stores the *internal* one. They differ for **2561/2561** records. Slug
-  only. A test guards it.
-- **The catalog has no topic tags** — `/api/problems/all/` does not serve them. Tags come from the
-  GraphQL `problemsetQuestionList` snapshot, which also supplies the frontend id as a second
-  agreeing source.
-- **A Q5 exists.** Weekly Contest 68 ran five problems, so the problem index is a number, not a
-  `Q1|Q2|Q3|Q4` union. The original spec assumed four and would have hard-failed ingestion.
+- **⛔ Never join ZeroTrac to this repo on a number.** Slug only; a test guards it. And the trap
+  generalizes: any numeric field crossing between the universes (`solveQuestion`, stall-record
+  `questionId`s) is a silent-corruption channel — see groundwork notes 1 and 5.
+- **The catalog has no topic tags**; tags come from the GraphQL snapshot, which also supplies the
+  frontend id as a second agreeing source.
+- **A Q5 exists** (Weekly Contest 68 ran five problems) — the library page's Position chips are
+  data-driven off the index for exactly this reason.
 - **Dictionary encoding is not optional** — 1,232.9 kB naive vs 336.5 kB encoded.
-- **`contestSlice` is unpersisted**, so widening its shape costs no migration. `contestsSlice`
-  *is* persisted and takes the optional-with-boundary-default treatment.
-- Generator warnings about titles differing from the curriculum (e.g. #144, #276, #358, #454) are
-  **expected** — LeetCode renamed those problems and the alias system already handles it. They are
-  warnings, not errors, and are how identity drift would first surface.
-- `npm run fetch:contest-data` hits the network; it is engineering-time only and must never be
-  invoked from tests or runtime.
+- **`contestSlice` is unpersisted** (widening is free); `contestsSlice` is persisted and takes
+  the optional-with-boundary-default treatment.
+- **A 16th nav destination broke "the rail never scrolls."** V12.4's guarantee was calibrated to
+  15 rows; slice 4 compressed `short:` nav rows 28px → 26px (`Sidebar.tsx`), landing the rail at
+  ~570px against the 590px reference viewport. Verified by arithmetic only — see QA note below.
+- Generator warnings about renamed titles (#144, #276, #358, #454) are **expected** — alias
+  system handles them; warnings, not errors.
+- `npm run fetch:contest-data` hits the network; engineering-time only, never tests or runtime.
+
+## QA debt from this session
+
+- **Browser QA did not run** — the Claude-in-Chrome extension was disconnected (OAuth token
+  belongs to a different claude.ai account; fix is `/logout` + `/login` with matching accounts,
+  or unset a stale `CLAUDE_CODE_OAUTH_TOKEN`). Next session with a browser: verify
+  `/contest-practice` at 1280×590 in both themes (row breakpoints at 375/768/1280, the fold, the
+  Disclosure), and confirm the 26px `short:` rail holds all sixteen destinations without
+  scrolling at 590px.
 
 ## Rules that bit during V6–V12 — still standing
 
@@ -164,8 +141,9 @@ Do not re-derive any of this. It is written, tested, and pure.
 - A "failed" background agent may have finished its work — `git status` before assuming loss.
 - `questionCard.test.tsx`'s markdown-preview timeout is a documented under-load flake; passes solo.
   A contended full run can produce ~3 timeout-shaped failures; a clean run is green.
-- Never edit source through PowerShell text replacement (mojibake); Edit tool only. Commit messages
-  via `git commit -F <file>`. PowerShell chains with `;`, not `&&`.
+- Never edit source through PowerShell text replacement (mojibake); Edit tool only (a Node `fs`
+  utf8 script is acceptable for mechanical whitespace shifts). Commit messages via
+  `git commit -F <file>`. PowerShell chains with `;`, not `&&`.
 - Hand-built `QuestionProgress` fixtures must carry every required field or `validatePersisted`
   quarantines the whole payload — build from `initialProgress()`.
 - Adding an import of `@/data/mlTracks`, `@/data/mlProjects`, `@/data/contestLibrary` or
@@ -178,7 +156,8 @@ Do not re-derive any of this. It is written, tested, and pure.
 - `Screen` collides with the DOM global `Screen` type — a missing import reads as "cannot be used
   as a JSX component".
 - jsdom does not hide closed `<details>` content and `<summary>` has no `button` role — assert the
-  `open` attribute (`familyPanel.test.tsx` is the worked example).
+  `open` attribute (`familyPanel.test.tsx` is the worked example; `contestPractice.test.tsx` now
+  follows it too). But `fireEvent.click` on a summary DOES toggle `open` in jsdom.
 - `text-muted-foreground/80` fails AA on the light theme; full-alpha `muted-foreground` is the
   floor for small text.
 
@@ -195,9 +174,10 @@ Do not re-derive any of this. It is written, tested, and pure.
 
 ## The law books
 
-`CLAUDE.md` (architecture law — now carries the contest-library section and its invariants),
+`CLAUDE.md` (architecture law — carries the contest-library section and its invariants),
 `PRODUCT.md` (locked product truth), `DESIGN.md` (visual system + the mandatory composition
 contract + § The scroll contract), `report.md` (a measured audit of the whole repo), and the
 design records under `docs/superpowers/specs/` — V6 practice engine, V7 adaptive mastery, V8
 performance engine, V9 composed interface, V10 zero-scroll (superseded by) V11 flowing
-application, and **V13 contest intelligence, which is the active plan**.
+application, and **V13 contest intelligence, which is the active plan** (§14–§15 are its
+implementation logs).

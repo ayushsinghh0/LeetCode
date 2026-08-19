@@ -17,6 +17,7 @@ import type {
   Difficulty,
   MappingConfidence,
   PatternId,
+  QuestionProgress,
   RatingBand,
 } from '@/types';
 import { diffDays } from '@/utils/dates';
@@ -72,6 +73,32 @@ export interface ContestProblemState {
 }
 
 export type ProgressLookup = (slug: string) => ContestProblemState | undefined;
+
+/**
+ * The bridged problems' read-through: a curriculum question's progress, in contest-state shape.
+ *
+ * The 207 problems that are both rated contest problems and curriculum questions keep their one
+ * record in `progress.byId` (one problem, one identity, never a second copy), so any surface
+ * filtering the library needs that record translated into `ContestProblemState`. This is the one
+ * translation, shared by the Library page and Contest Revision, because two ad-hoc mappings would
+ * eventually disagree about what "attempted" means for a bridged problem.
+ *
+ * `attempts` is a floor, not a count — the curriculum register never counted attempts, so the
+ * honest translation is "worked on at least once" (solved or in progress) versus "untouched".
+ */
+export function contestStateFromQuestionProgress(
+  qp: Pick<QuestionProgress, 'status' | 'revisionStage' | 'nextRevision' | 'completedAt'>,
+): ContestProblemState {
+  const solved = qp.status === 'solved';
+  return {
+    solved,
+    attempts: solved || qp.status === 'in_progress' ? 1 : 0,
+    lastAttemptedOn: qp.completedAt,
+    solvedOn: qp.completedAt,
+    revisionStage: qp.revisionStage,
+    nextRevision: qp.nextRevision,
+  };
+}
 
 /* ------------------------------------------------------------------------------------------- */
 /* Filtering — ONE predicate                                                                    */

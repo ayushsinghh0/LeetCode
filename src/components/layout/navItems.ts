@@ -9,6 +9,7 @@ import {
   Target,
   Speech,
   Swords,
+  Library,
   CalendarDays,
   BarChart3,
   Trophy,
@@ -54,6 +55,10 @@ export const NAV_ITEMS: NavItem[] = [
   // Contest closes the rehearsal cluster: Drills rehearse recognition, Interview rehearses the
   // ritual, Contest rehearses the clock. A timed sitting is a desk activity, hence 'more'.
   { to: '/contest', label: 'Contest', icon: Swords, mobile: 'more' , group: 'work' },
+  // The library is the pool the rehearsal cluster draws from: 2,561 rated contest problems,
+  // browsed and filtered at a desk — a second question universe beside the curriculum, never
+  // part of the daily plan.
+  { to: '/contest-practice', label: 'Contest Library', icon: Library, mobile: 'more' , group: 'work' },
   { to: '/calendar', label: 'Calendar', icon: CalendarDays, mobile: 'more' , group: 'work' },
   { to: '/analytics', label: 'Analytics', icon: BarChart3, mobile: 'more' , group: 'work' },
   { to: '/achievements', label: 'Achievements', icon: Trophy, mobile: 'more' , group: 'work' },

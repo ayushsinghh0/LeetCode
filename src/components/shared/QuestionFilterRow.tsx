@@ -48,10 +48,10 @@ export type QuestionFilterRowProps = QuestionFilterRowBaseProps & PatternFilterP
 // labelled `role="group"` (which the loose <span> next to the chips never was), so the heading is
 // announced whether or not it is painted, and it is aria-hidden when visible to avoid saying it
 // twice. The container plate, if any, belongs to the calling page.
-const GROUP_CLASS = 'flex flex-wrap items-center gap-1.5 sm:gap-2';
+export const GROUP_CLASS = 'flex flex-wrap items-center gap-1.5 sm:gap-2';
 // The register the app's other chip rows label themselves with (SessionPlan and RevisionPage's
 // "How long have you got?" legends) — quieter than the chips it introduces, which is the point.
-const GROUP_LABEL_CLASS = 'hidden text-xs font-medium tracking-wide text-muted-foreground sm:inline';
+export const GROUP_LABEL_CLASS = 'hidden text-xs font-medium tracking-wide text-muted-foreground sm:inline';
 
 // The app's chip idiom, shared with the capacity chips (SessionPlan) and the session-length chips
 // (RevisionPage): a small `rounded-sm` hairline toggle in the figure face, ink-filled when active.
@@ -67,11 +67,14 @@ const GROUP_LABEL_CLASS = 'hidden text-xs font-medium tracking-wide text-muted-f
 // accepted here because the row is a primary control rather than metadata; if a future surface
 // needs the 26px look with a 44px target, the answer is a padded pseudo-element
 // (`relative` + `after:absolute after:-inset-y-2`), not a smaller `min-h`.
-const CHIP_CLASS =
+// Exported (with the group classes above) so ContestPracticePage's filter groups are the SAME
+// idiom rather than a third hand-written copy — ChipRadioRow's docstring records how duplicated
+// chip idioms drift invisibly, and these classes were already the second declaration.
+export const CHIP_CLASS =
   'figures inline-flex min-h-11 items-center rounded-sm border px-2.5 py-1 text-xs ' +
   'transition-colors duration-150 ease-swift focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring';
-const CHIP_ACTIVE = 'border-primary bg-primary text-primary-foreground';
-const CHIP_IDLE = 'border-border text-muted-foreground hover:border-primary/40 hover:text-foreground';
+export const CHIP_ACTIVE = 'border-primary bg-primary text-primary-foreground';
+export const CHIP_IDLE = 'border-border text-muted-foreground hover:border-primary/40 hover:text-foreground';
 
 // Shared difficulty-chips + status-chips + optional pattern-select filter row, used by
 // SearchDialog, BookmarksPage and PatternDetailPage so a label/styling/behavior change only has

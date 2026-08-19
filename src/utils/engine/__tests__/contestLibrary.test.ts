@@ -7,6 +7,7 @@ import {
   applyContestSolve,
   bandById,
   buildContestIndex,
+  contestStateFromQuestionProgress,
   dueContestSlugs,
   filterContestProblems,
   initialContestProgress,
@@ -17,7 +18,7 @@ import {
   selectionReason,
 } from '@/utils/engine/contestLibrary';
 import { REVISION_INTERVALS } from '@/utils/engine/spacedRepetition';
-import type { ContestLibraryProblem, ContestProblemProgress } from '@/types';
+import type { ContestLibraryProblem, ContestProblemProgress, QuestionProgress } from '@/types';
 
 const TODAY = '2026-07-30';
 
@@ -330,5 +331,41 @@ describe('recommendBand — conservative or silent', () => {
   it('reports the sample size it rests on', () => {
     const reading = recommendBand({ solvedRatings: [1450, 1500, 1520], missedRatings: [1600] })!;
     expect(reading.sampleSize).toBe(4);
+  });
+});
+
+describe('contestStateFromQuestionProgress — the 207 bridge read-through', () => {
+  const qp = (over: Partial<QuestionProgress> = {}) => ({
+    status: 'unsolved' as QuestionProgress['status'],
+    revisionStage: 0,
+    nextRevision: null as string | null,
+    completedAt: null as string | null,
+    ...over,
+  });
+
+  it('translates a solved curriculum question into a solved contest state on the same ladder', () => {
+    const state = contestStateFromQuestionProgress(
+      qp({ status: 'solved', completedAt: '2026-07-20', revisionStage: 2, nextRevision: '2026-07-27' }),
+    );
+    expect(state.solved).toBe(true);
+    expect(state.solvedOn).toBe('2026-07-20');
+    expect(state.revisionStage).toBe(2);
+    expect(state.nextRevision).toBe('2026-07-27');
+  });
+
+  it('attempts is a floor: worked-on registers as attempted, untouched and skipped do not', () => {
+    expect(contestStateFromQuestionProgress(qp({ status: 'in_progress' })).attempts).toBe(1);
+    expect(contestStateFromQuestionProgress(qp({ status: 'solved' })).attempts).toBe(1);
+    expect(contestStateFromQuestionProgress(qp()).attempts).toBe(0);
+    expect(contestStateFromQuestionProgress(qp({ status: 'skipped' })).attempts).toBe(0);
+  });
+
+  it('feeds the one filter predicate: a due bridged problem matches the due chip', () => {
+    const state = contestStateFromQuestionProgress(
+      qp({ status: 'solved', completedAt: '2026-07-20', revisionStage: 1, nextRevision: TODAY }),
+    );
+    const bridged = problem({ slug: 'bridged', curriculumQuestionId: 12 });
+    const matches = filterContestProblems([bridged], { progress: ['due'] }, () => state, TODAY);
+    expect(matches.map((p) => p.slug)).toEqual(['bridged']);
   });
 });

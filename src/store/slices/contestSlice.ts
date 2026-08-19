@@ -1,5 +1,44 @@
 import { createSlice, type PayloadAction } from '@reduxjs/toolkit';
 import { progressReset, stateImported } from '@/store/sharedActions';
+import type { Difficulty, PatternId } from '@/types';
+
+/**
+ * One row of a FILTERED (contest-library-drawn) sitting, snapshotted at start (V13 slice 5).
+ *
+ * Why a snapshot and not ids: the run surface is `ContestPage`, which must never import
+ * `@/data/contestLibrary` — that would put the 336 kB dataset on the /contest chunk for every
+ * Full-Contest sitting. The lazy library page has the dataset in hand at Start time, so
+ * everything the run and verdict surfaces need travels in the payload. The slice is unpersisted,
+ * so the wider shape costs no migration.
+ *
+ * `id` is the slice-local numeric key the existing clock machinery runs on: the REAL curriculum
+ * id for a bridged row (one problem, one identity — its solve routes through `solveQuestion`),
+ * and a sitting-local NEGATIVE ordinal for a library-only row. Negative on purpose: LeetCode's
+ * frontend ids overlap the roadmap's 1–539, so a frontend id in this channel would eventually be
+ * mistaken for a curriculum question (the ID trap, again). A negative id can never collide, and
+ * `finishContest`'s persisted-record guard (`questionId >= 1`) drops it automatically.
+ */
+export interface FilteredContestProblem {
+  id: number;
+  kind: 'curriculum' | 'library';
+  /** The library identity — always present; the solve path for `kind: 'library'` keys on it. */
+  slug: string;
+  title: string;
+  url: string;
+  difficulty: Difficulty;
+  targetMinutes: number;
+  /** Confident (exact/strong) AICM patterns only. Empty for heuristic/unmapped problems. */
+  patterns: PatternId[];
+  /** "Weekly Contest 462 · Q3" — provenance shown on the row. Null when unknown. */
+  contestLabel: string | null;
+  contestRating: number;
+  /** The number LeetCode displays. Display only, never a join key. */
+  frontendId: number;
+  /** Paywalled on LeetCode. Shown on the run row so a timed sitting is never ambushed by it. */
+  premium: boolean;
+  /** Render-ready "Why this problem?" facts, computed at draw time (directive §45). */
+  reasons: string[];
+}
 
 /**
  * A contest in progress.
@@ -47,6 +86,12 @@ export interface ContestState {
   questionIds: number[];
   /** Parallel to `questionIds`: the authored estimate each problem is measured against. */
   targetMinutes: number[];
+  /**
+   * Present only for a filtered library-drawn sitting; null for Full Contest. When present it is
+   * parallel to `questionIds` (whose entries are these rows' `id`s), and every display fact the
+   * run surface needs lives here rather than in a dataset lookup.
+   */
+  libraryProblems: FilteredContestProblem[] | null;
   durationMin: number;
   startedAtMs: number | null;
   finishedAtMs: number | null;
@@ -60,6 +105,7 @@ const initialState: ContestState = {
   seed: null,
   questionIds: [],
   targetMinutes: [],
+  libraryProblems: null,
   durationMin: 0,
   startedAtMs: null,
   finishedAtMs: null,
@@ -96,12 +142,15 @@ const contestSlice = createSlice({
         targetMinutes: number[];
         durationMin: number;
         nowMs: number;
+        /** Filtered library sittings only; Full Contest omits it (V13 slice 5). */
+        libraryProblems?: FilteredContestProblem[];
       }>,
     ) {
       const { seed, questionIds, targetMinutes, durationMin, nowMs } = action.payload;
       state.seed = seed;
       state.questionIds = [...questionIds];
       state.targetMinutes = [...targetMinutes];
+      state.libraryProblems = action.payload.libraryProblems?.map((p) => ({ ...p })) ?? null;
       state.durationMin = durationMin;
       state.startedAtMs = nowMs;
       state.finishedAtMs = null;

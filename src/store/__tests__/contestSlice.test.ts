@@ -139,6 +139,9 @@ describe('contestSlice — boundaries', () => {
     seed: null,
     questionIds: [],
     targetMinutes: [],
+    // V13 slice 5 widened the state with the filtered-sitting snapshot; a Full Contest (and the
+    // cleared state) carries null. Fixture completion only — no assertion changed.
+    libraryProblems: null,
     durationMin: 0,
     startedAtMs: null,
     finishedAtMs: null,

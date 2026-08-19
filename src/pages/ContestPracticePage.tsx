@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from 'react';
-import { Link, useSearchParams } from 'react-router-dom';
+import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import { format, parseISO } from 'date-fns';
-import { ChevronRight, SearchX } from 'lucide-react';
+import { ChevronRight, Play, SearchX } from 'lucide-react';
 import {
   Disclosure,
   Meta,
@@ -32,21 +32,27 @@ import { PATTERNS, patternById } from '@/data/patterns';
 import { SUBPATTERNS } from '@/data/curriculum';
 import { CONTEST_PROBLEMS, CONTEST_RATING_NOTE } from '@/data/contestLibrary';
 import {
+  CONTEST_TARGET_MINUTES,
   RATING_BANDS,
   buildContestIndex,
   contestStateFromQuestionProgress,
   filterContestProblems,
   isFilterActive,
+  selectionReason,
   type ContestFilter,
   type ContestProblemState,
   type CurriculumStatus,
   type ProgressLookup,
   type ProgressStatus,
 } from '@/utils/engine/contestLibrary';
-import { useAppSelector } from '@/store/hooks';
+import { selectContestSet, type ContestCandidate } from '@/utils/engine/contest';
+import { startFilteredContest } from '@/store/actions';
+import type { FilteredContestProblem } from '@/store/slices/contestSlice';
+import questionsData from '@/data/questions.json';
+import { useAppDispatch, useAppSelector } from '@/store/hooks';
 import { useToday } from '@/hooks/useToday';
 import { cn } from '@/utils/cn';
-import type { ContestLibraryProblem, Difficulty, PatternId, PatternMeta } from '@/types';
+import type { ContestLibraryProblem, Difficulty, PatternId, PatternMeta, Question } from '@/types';
 
 /**
  * The Contest Library — the SECOND question universe (V13 §7.1), read-only in this slice.
@@ -93,6 +99,15 @@ const SUBPATTERN_NAME: Record<string, string> = Object.fromEntries(
 );
 
 const shortDate = (iso: string): string => format(parseISO(iso), 'MMM d');
+
+// Bridged rows are curriculum questions and keep their own authored estimate; only the 2,354
+// library-only problems fall back to the explicit per-difficulty constants.
+const questionEstimateById = new Map(
+  (questionsData as Question[]).map((q) => [q.id, q.estimatedTime]),
+);
+
+/** How many problems a filtered draw aims for — Full Contest's own set size. */
+const DRAW_COUNT = 4;
 
 /** UI filter state: one value per dimension, 'all' meaning unconstrained. */
 interface Filters {
@@ -391,6 +406,8 @@ const FOLD_STEP = 150;
 
 export default function ContestPracticePage() {
   const today = useToday();
+  const dispatch = useAppDispatch();
+  const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
   const urlPattern = asPatternId(searchParams.get('pattern'));
 
@@ -434,6 +451,10 @@ export default function ContestPracticePage() {
 
   const progressById = useAppSelector((s) => s.progress.byId);
   const contestBySlug = useAppSelector((s) => s.contestLibrary.bySlug);
+  // A live sitting is a commitment; the thunk refuses to stomp one, and the button says so here.
+  const contestRunning = useAppSelector(
+    (s) => s.contest.seed !== null && s.contest.finishedAtMs === null,
+  );
 
   // The two registers behind one lookup: a bridged problem reads through to its ONE curriculum
   // record (progress.byId), a contest-only problem to the slug-keyed slice. Never two copies.
@@ -482,12 +503,86 @@ export default function ContestPracticePage() {
     (filters.includeInferred ? 1 : 0) +
     (filters.search.trim() !== '' ? 1 : 0);
 
+  // The draw pool: exactly what the filters show, minus anything already solved in either
+  // register — a contest draws from problems you haven't solved, same premise as Full Contest.
+  const drawPool = useMemo(
+    () => matches.filter((p) => lookup(p.slug)?.solved !== true),
+    [matches, lookup],
+  );
+
+  // The §63 journey: filters → a seeded 4-problem timed set → ContestPage's clock. Seeded by the
+  // date AND the filter signature, so the same filters rebuild the same set today — until a solve
+  // removes a problem from the pool, exactly Full Contest's own seeding promise.
+  function startContestFromFilters() {
+    const candidates: ContestCandidate[] = drawPool.map((p) => ({
+      key: p.slug,
+      difficulty: p.officialDifficulty,
+      patterns: p.aicmPatterns,
+      targetMinutes:
+        (p.curriculumQuestionId !== null
+          ? questionEstimateById.get(p.curriculumQuestionId)
+          : undefined) ?? CONTEST_TARGET_MINUTES[p.officialDifficulty],
+      contestRating: p.contestRating,
+      contestSlug: p.contest.slug,
+    }));
+    const seed = `${today}|${JSON.stringify(engineFilter)}`;
+    const picked = selectContestSet(
+      candidates,
+      { count: DRAW_COUNT, distinctPatterns: true, distinctContests: true },
+      seed,
+    );
+    if (picked.length === 0) return;
+
+    const rows: FilteredContestProblem[] = picked.map((candidate, i) => {
+      const p = index.bySlug.get(candidate.key)!;
+      const primary = p.aicmPatterns[0];
+      return {
+        // Bridged rows keep their curriculum identity (one problem, one record); library-only
+        // rows get a sitting-local NEGATIVE key so nothing numeric can ever collide with the
+        // roadmap's id space (the ID trap).
+        id: p.curriculumQuestionId ?? -(i + 1),
+        kind: p.curriculumQuestionId !== null ? ('curriculum' as const) : ('library' as const),
+        slug: p.slug,
+        title: p.title,
+        url: p.url,
+        difficulty: p.officialDifficulty,
+        targetMinutes: candidate.targetMinutes,
+        patterns: p.aicmPatterns,
+        contestLabel:
+          p.contest.number !== null
+            ? `${p.contest.type === 'biweekly' ? 'Biweekly' : 'Weekly'} Contest ${p.contest.number} · Q${p.contest.index}`
+            : null,
+        contestRating: p.contestRating,
+        frontendId: p.frontendId,
+        premium: p.premium,
+        reasons: selectionReason(
+          p,
+          lookup(p.slug),
+          today,
+          primary ? patternById[primary].name : undefined,
+        ),
+      };
+    });
+
+    dispatch(startFilteredContest(rows, seed));
+    navigate('/contest');
+  }
+
   return (
     <Screen>
       <ScreenHeader
         eyebrow={`${NUM.format(CONTEST_PROBLEMS.length)} rated problems`}
         title="Contest Library"
-        support="A pool of rated contest problems to draw practice from — filter by pattern and rating."
+        support="A pool of rated contest problems to draw practice from — filter by pattern and rating, then start a timed set from what matches."
+        action={
+          <Button
+            onClick={startContestFromFilters}
+            disabled={drawPool.length === 0 || contestRunning}
+            title={contestRunning ? 'A contest is already running — finish it first.' : undefined}
+          >
+            <Play /> Start contest
+          </Button>
+        }
       />
 
       <ScreenBody>

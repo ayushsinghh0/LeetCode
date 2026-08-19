@@ -65,14 +65,12 @@ const CONTEST_RE = /^(weekly|biweekly)-contest-(\d+)$/;
 export const CONTEST_LIBRARY_PROVENANCE = encoded.provenance;
 
 /**
- * The sentence every surface showing a rating must be able to reach.
- *
- * ZeroTrac's number is an *estimate* derived from contest performance, not something LeetCode
- * publishes. The product's standing rule is that a claim carries its own basis, so the tooltip
- * lives beside the data rather than being retyped per surface.
+ * The sentence every surface showing a rating must be able to reach. ZeroTrac's number is an
+ * *estimate* derived from contest performance, not something LeetCode publishes; the claim
+ * carries its own basis. Defined in the ENGINE (dataset-free) so the contest run surface — which
+ * must never import this 336 kB chunk — can reach it too; re-exported here for convenience.
  */
-export const CONTEST_RATING_NOTE =
-  'Estimated contest difficulty from ZeroTrac. Useful for relative comparison; not an official LeetCode rating.';
+export { CONTEST_RATING_NOTE } from '@/utils/engine/contestLibrary';
 
 function decode(row: EncodedRow): ContestLibraryProblem {
   const contestSlug = encoded.dictionaries.contests[row[5]]!;

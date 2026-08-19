@@ -822,17 +822,42 @@ const selectContestState = (state: RootState) => state.contest;
  * against the static dataset. The slice, not `buildContest`, is the source of truth once a
  * contest starts — the same freezing rule as a revision session: solving a problem mid-sitting
  * must not reshuffle the set underneath the learner.
+ *
+ * A filtered library sitting (V13) carries its own snapshot rows instead: a bridged row still
+ * resolves to its real `Question` (so the authored teaching line reaches the verdict's reading),
+ * while a library-only row becomes a `ContestQuestionLike` built entirely from the snapshot —
+ * this file must never import `@/data/contestLibrary`, and with the snapshot it never needs to.
+ * `pattern` on that synthesized view is the primary confident mapping or honestly absent.
  */
 export const selectContestProblems = createSelector(
   [selectContestState],
-  (contest): ContestProblem[] =>
-    contest.questionIds.flatMap((id, i) => {
+  (contest): ContestProblem[] => {
+    if (contest.libraryProblems !== null) {
+      return contest.libraryProblems.map((row, i) => {
+        const question = row.kind === 'curriculum' ? questionById.get(row.id) : undefined;
+        return {
+          question:
+            question ??
+            {
+              id: row.id,
+              title: row.title,
+              difficulty: row.difficulty,
+              pattern: row.patterns[0],
+              url: row.url,
+            },
+          order: i + 1,
+          targetMinutes: row.targetMinutes,
+        };
+      });
+    }
+    return contest.questionIds.flatMap((id, i) => {
       const question = questionById.get(id);
       const targetMinutes = contest.targetMinutes[i];
       return question && targetMinutes !== undefined
         ? [{ question, order: i + 1, targetMinutes }]
         : [];
-    }),
+    });
+  },
 );
 
 /**

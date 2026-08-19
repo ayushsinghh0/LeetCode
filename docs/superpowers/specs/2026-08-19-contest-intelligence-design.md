@@ -780,3 +780,75 @@ phone-check-in surface PRODUCT.md makes first-class. Fixed by swapping which col
   themes should be eyeballed at 1280×590 next session. The finish review was code-level and is
   disclosed as such.
 - §10's three decisions remain open; 10.2 (XP) becomes pressing the moment slice 5 records solves.
+
+---
+
+## 16. Slice 5 — implementation log (2026-08-20)
+
+### 16.1 What shipped — the §63 journey, end to end
+
+**The CTA (§7.2).** `PatternDetailPage` gains its one `PageHeader` action: an outline
+`Practice contest problems` link to `/contest-practice?pattern=:id`, landing on slice 4's already-
+working preselect. Recommend, never gate.
+
+**The draw.** The library page's `ScreenHeader` action is **Start contest**: pool = the current
+matches minus anything solved in *either* register, seeded by `date|filter-signature` (same
+filters, same day → same set, until a solve changes the pool — Full Contest's own promise),
+composed by the one `selectContestSet` (`count 4`, distinct patterns and contests, no shape — the
+rating-driven mode). Bridged rows use their authored estimate; library-only rows use the new
+`CONTEST_TARGET_MINUTES` (14/28/48 — authored-band midpoints, planner-style explicit constants).
+
+**The sitting.** `contestSlice` (unpersisted, so widening was free) gains
+`libraryProblems: FilteredContestProblem[] | null` — a full display snapshot per row, built by the
+lazy page at draw time, so **`ContestPage` runs filtered sittings without ever importing the
+336 kB dataset** (chunk-verified). The numeric clock machinery is untouched: bridged rows keep
+their real curriculum id; library-only rows get a **sitting-local negative id** — the ID trap's
+third appearance, answered this time by making collision arithmetically impossible.
+
+**The engine widening.** `analyzeContest` now takes `ContestQuestionLike`, a structural supertype
+of `Question` with `pattern`/`tests` honestly optional: an unmapped stall is informative but
+claims no pattern, and a reading without an authored teaching line ends cleanly. **The
+pre-existing contest tests pass unmodified**, and the fresh-context reviewer verified by diff that
+Full Contest's paths are behaviourally identical (one hand-built state fixture gained the new
+null field; no assertion changed).
+
+**Solve routing — §10.2 decided.** A library-only solve enters the slug register
+(`contestProblemSolved`), pays the ordinary `SOLVE_XP[difficulty]` **once** (a re-solve records
+the attempt, pays nothing, never resets the ladder), and writes **no** day log and **no**
+daily-goal interaction — `DayLog.solvedIds` is a curriculum ledger and the plan's finishability
+caps are calibrated to it. A bridged row takes the full ordinary `solveQuestion` path: one
+problem, one record.
+
+**Evidence.** `finishContest` banks a filtered sitting **pattern-level only**: `stalledPatterns` =
+the union of the stalled rows' confident mappings, trimmed to `attempted` (the pattern list
+yields; the count is never inflated), and **no `problems` rows** — that `questionId` space is
+read back by curriculum surfaces, so a library number there would be the ID trap in persisted
+form. Stalled library rows leave slug-keyed *attempts*; an inconclusive sitting writes nothing
+anywhere (`analyzeContest` stays the single owner, test-pinned).
+
+### 16.2 Verification
+
+| Check | Result |
+|---|---|
+| Full suite | **90 files / 1,267 tests** (slice 4 baseline 1,252 + 4 engine + 8 store + 3 journey) |
+| `tsc --noEmit` | clean |
+| Build | app chunk **292.62 kB** against the 301 kB budget; `data-contests` 343.72 kB unchanged; ContestPage chunk 11.43 kB, **dataset-string-free** (grep-verified) |
+| Full Contest | pre-existing engine + page contest suites pass unmodified |
+| Design review | fresh-context reviewer: fix-then-ship (1 material, 3 minor) → all four applied |
+
+The material finding: `startFilteredContest` could silently stomp a live sitting. The thunk now
+refuses while a sitting runs (test-pinned) and the page's Start disables with a stated reason.
+The minors: `attempted` computed before the pattern trim (a stored count must never overstate the
+sitting); `CONTEST_RATING_NOTE` relocated to the dataset-free engine so the run surface's rating
+claim carries its basis (tooltip added); `premium` snapshotted and shown on the run row so a
+paywall never ambushes a timed sitting.
+
+### 16.3 Reviewer NOTEs deliberately not acted on (product calls, recorded)
+
+1. **Library solves don't mark the day active** — no streak/heatmap/day-log effect. True
+   consequence of the curriculum-only `DayLog`; `mlActivityByDate`'s derived-merge is the
+   established pattern if wanted. Revisit with slice 7 or after real usage.
+2. Run rows omit LeetCode topics (they live on the library surface) — deliberate snapshot leanness.
+3. ContestPage's pre-existing bordered DifficultyBadge inside a Meta line — V8 debt, out of scope.
+4. `selectionReason`'s raw-ISO `Last solved` branch is unreachable from the draw (solved problems
+   are excluded); format at point of use if a future surface makes it reachable.

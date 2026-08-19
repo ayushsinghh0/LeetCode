@@ -100,6 +100,30 @@ export function contestStateFromQuestionProgress(
   };
 }
 
+/**
+ * The sentence every surface showing a contest rating must be able to reach.
+ *
+ * It lives HERE, not in `@/data/contestLibrary`, because the run surface (`ContestPage`) shows
+ * ratings from the sitting's snapshot and is forbidden to import the 336 kB dataset — a basis
+ * sentence locked inside the data chunk would leave that surface's claim unexplainable. The data
+ * module re-exports it for its own importers.
+ */
+export const CONTEST_RATING_NOTE =
+  'Estimated contest difficulty from ZeroTrac. Useful for relative comparison; not an official LeetCode rating.';
+
+/**
+ * Target minutes for a contest-library problem with no authored estimate, keyed by official
+ * difficulty. Explicit constants in the `engine/planner.ts` discipline — the UI writes `~`
+ * before every figure built on these. The values are the midpoints of the authored curriculum
+ * bands (easy 8–20, medium 20–35, hard 35–60): honest defaults for 2,354 unauthored problems,
+ * never a claim about any one of them. A bridged problem uses its own authored estimate instead.
+ */
+export const CONTEST_TARGET_MINUTES: Record<Difficulty, number> = {
+  easy: 14,
+  medium: 28,
+  hard: 48,
+};
+
 /* ------------------------------------------------------------------------------------------- */
 /* Filtering — ONE predicate                                                                    */
 /* ------------------------------------------------------------------------------------------- */

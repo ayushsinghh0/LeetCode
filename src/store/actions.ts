@@ -41,7 +41,7 @@ import {
   taskToggled,
 } from '@/store/slices/tasksSlice';
 import { drillRecorded } from '@/store/slices/drillsSlice';
-import { buildContest } from '@/utils/engine/contest';
+import { buildContest, contestDurationMin } from '@/utils/engine/contest';
 import {
   contestCleared,
   contestFinished,
@@ -51,8 +51,14 @@ import {
   contestProblemSolved,
   contestStarted,
   contestWrongSubmitLogged,
+  type FilteredContestProblem,
 } from '@/store/slices/contestSlice';
 import { contestSittingRecorded } from '@/store/slices/contestsSlice';
+// Aliased: the live contest slice and the library register both name a solve `contestProblemSolved`.
+import {
+  contestProblemAttempted as libraryProblemAttempted,
+  contestProblemSolved as libraryProblemSolved,
+} from '@/store/slices/contestLibrarySlice';
 import {
   followUpOutcomeSet,
   interviewFinished,
@@ -869,6 +875,54 @@ export const startContest = (): AppThunk => (dispatch, getState) => {
   );
 };
 
+/**
+ * Start a FILTERED contest — a set drawn from the contest library by the lazy `/contest-practice`
+ * page (V13 slice 5). The page composes the set (it has the dataset and `selectContestSet` in
+ * hand); this thunk normalizes the payload it was handed and snapshots it into the live slice, so
+ * `ContestPage` can run the sitting without ever importing the 336 kB dataset.
+ *
+ * Normalization over trust (the `logDrillResult` discipline): malformed rows are dropped, ids
+ * must be unique non-zero integers — positive means "this IS curriculum question N" and routes
+ * real progress, so a library row asserting a positive id with the wrong kind is refused — and
+ * an empty draw starts nothing rather than starting a zero-problem sitting.
+ */
+export const startFilteredContest =
+  (problems: FilteredContestProblem[], seed: string): AppThunk =>
+  (dispatch, getState) => {
+    // A live sitting is a commitment — starting another would silently discard a running clock
+    // and its unbanked evidence. The page disables its Start while one runs; this is the
+    // mutation API's own refusal, so no future caller can stomp a sitting either.
+    const live = getState().contest;
+    if (live.seed !== null && live.finishedAtMs === null) return;
+
+    const seen = new Set<number>();
+    const rows = problems.filter((p) => {
+      if (!Number.isInteger(p.id) || p.id === 0 || seen.has(p.id)) return false;
+      if (p.kind === 'curriculum' ? p.id < 1 || !questionById.has(p.id) : p.id > 0) return false;
+      if (typeof p.slug !== 'string' || p.slug === '') return false;
+      seen.add(p.id);
+      return true;
+    });
+    if (rows.length === 0) return;
+
+    const normalized = rows.map((p) => ({
+      ...p,
+      targetMinutes: Math.max(1, Math.floor(p.targetMinutes) || 1),
+      patterns: p.patterns.filter((pat) => typeof pat === 'string' && (pat as string) !== ''),
+    }));
+
+    dispatch(
+      contestStarted({
+        seed,
+        questionIds: normalized.map((p) => p.id),
+        targetMinutes: normalized.map((p) => p.targetMinutes),
+        durationMin: contestDurationMin(normalized.map((p) => p.targetMinutes)),
+        libraryProblems: normalized,
+        nowMs: Date.now(),
+      }),
+    );
+  };
+
 export const focusContestProblem = (questionId: number): AppThunk => (dispatch) => {
   dispatch(contestProblemFocused({ questionId, nowMs: Date.now() }));
 };
@@ -888,13 +942,27 @@ export const setAsideContestProblem = (questionId: number): AppThunk => (dispatc
 };
 
 /**
- * Solving inside a contest is a real solve. It goes through the ordinary `solveQuestion` path so
- * XP, the day log, streaks and the revision ladder all see it exactly as they would any other —
- * a contest is a different way to practise, not a separate ledger.
+ * Solving inside a contest is a real solve. A curriculum problem — Full Contest's whole pool, and
+ * a filtered sitting's bridged rows — goes through the ordinary `solveQuestion` path so XP, the
+ * day log, streaks and the revision ladder all see it exactly as they would any other: a contest
+ * is a different way to practise, not a separate ledger.
+ *
+ * A library-only row routes to the slug-keyed register instead — NEVER to `solveQuestion`, whose
+ * numeric id space is the roadmap's (the ID trap) — entering the same 1/3/7/15/30 ladder there
+ * and paying the ordinary solve XP once, on the first solve (design record §6.4/§10.2). No day-
+ * log entry and no daily-goal interaction: `DayLog.solvedIds` is a curriculum ledger, and the
+ * daily plan's finishability caps are calibrated to it.
  */
 export const solveContestProblem = (questionId: number): AppThunk => (dispatch, getState) => {
   if (getState().contest.attempts[questionId]?.solved) return;
+  const row = getState().contest.libraryProblems?.find((p) => p.id === questionId);
   dispatch(contestProblemSolved({ questionId, nowMs: Date.now() }));
+  if (row && row.kind === 'library') {
+    const alreadySolved = getState().contestLibrary.bySlug[row.slug]?.solved === true;
+    dispatch(libraryProblemSolved({ slug: row.slug, date: todayISO() }));
+    if (!alreadySolved) dispatch(xpAdded(SOLVE_XP[row.difficulty]));
+    return;
+  }
   dispatch(solveQuestion(questionId));
 };
 
@@ -926,16 +994,54 @@ export const finishContest = (): AppThunk => (dispatch, getState) => {
 
   const safeTotal = Math.floor(analysis.total);
   if (!Number.isFinite(safeTotal) || safeTotal < 1) return;
-  const stalledPatterns = Array.from(
-    new Set(analysis.patternGaps.filter((p) => typeof p === 'string' && (p as string) !== '')),
-  ).slice(0, safeTotal);
-  // `attempted` must stay >= 1 (the validator's floor) and >= the number of stalls behind it.
-  const informative = analysis.readings.filter((r) => r.outcome !== 'untouched').length;
-  const attempted = Math.min(
-    Math.max(Math.floor(informative) || 0, stalledPatterns.length, 1),
-    safeTotal,
-  );
 
+  const date = todayISO();
+  const libraryRows = getState().contest.libraryProblems;
+
+  // A filtered sitting's stalls resolve to AICM patterns through the SNAPSHOT's confident
+  // mappings — the full set per stalled row, not just the primary the verdict headline names —
+  // and enter the one existing channel (design record §6.3: no ninth signal, no new weight).
+  // `analyzeContest` stays the single owner of which rows count as stalls: `stalledQuestionIds`
+  // is its answer, already empty for an inconclusive sitting.
+  //
+  // Full Contest's path is byte-identical to what it always did.
+  // `attempted` is computed FIRST and the pattern list is trimmed to it — never the reverse.
+  // A multi-pattern library stall could otherwise inflate `attempted` past the problems that
+  // were genuinely worked, and a stored count that overstates the sitting is fabricated
+  // evidence; trimming the pattern list instead fails toward silence. (`attempted >= 1` is the
+  // validator's floor, and a conclusive sitting always has at least one informative reading.)
+  const informative = analysis.readings.filter((r) => r.outcome !== 'untouched').length;
+  const attempted = Math.min(Math.max(Math.floor(informative) || 0, 1), safeTotal);
+  const stalledPatterns = (
+    libraryRows === null
+      ? Array.from(
+          new Set(analysis.patternGaps.filter((p) => typeof p === 'string' && (p as string) !== '')),
+        )
+      : Array.from(
+          new Set(
+            analysis.stalledQuestionIds
+              .flatMap((id) => libraryRows.find((r) => r.id === id)?.patterns ?? [])
+              .filter((p) => typeof p === 'string' && (p as string) !== ''),
+          ),
+        )
+  ).slice(0, attempted);
+
+  // Library-only rows that genuinely stalled leave an ATTEMPT in the slug-keyed register — the
+  // event the revision pool's "attempted before, never solved" scoring reads. Solves were
+  // recorded at solve time; bridged rows keep their curriculum record untouched here.
+  if (libraryRows !== null) {
+    for (const id of analysis.stalledQuestionIds) {
+      const row = libraryRows.find((r) => r.id === id);
+      if (row && row.kind === 'library') {
+        dispatch(libraryProblemAttempted({ slug: row.slug, date }));
+      }
+    }
+  }
+
+  // Per-problem rows are a CURRICULUM channel: `questionId` is read back by curriculum surfaces
+  // (`stalledIdsFromRecord` → the interview draw, the calm second look), so a library row's id
+  // must never enter it — the `>= 1` guard drops the sitting-local negative keys, and a filtered
+  // sitting therefore banks pattern-level evidence plus its bridged rows only.
   const problems = analysis.readings
     .filter((r) => Number.isInteger(r.question.id) && r.question.id >= 1)
     .slice(0, safeTotal)
@@ -948,7 +1054,7 @@ export const finishContest = (): AppThunk => (dispatch, getState) => {
 
   dispatch(
     contestSittingRecorded({
-      date: todayISO(),
+      date,
       stalledPatterns,
       attempted,
       total: safeTotal,

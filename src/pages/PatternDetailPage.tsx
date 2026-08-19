@@ -8,6 +8,7 @@ import { DifficultyBadge } from '@/components/questions/DifficultyBadge';
 import { ConfidenceRating } from '@/components/questions/ConfidenceRating';
 import { QuestionRow } from '@/components/questions/QuestionCard';
 import { ALL_STATUS_OPTIONS, QuestionFilterRow } from '@/components/shared/QuestionFilterRow';
+import { Button } from '@/components/ui/button';
 import { Progress } from '@/components/ui/progress';
 import { patternById } from '@/data/patterns';
 import { SUBPATTERNS } from '@/data/curriculum';
@@ -178,6 +179,14 @@ export default function PatternDetailPage() {
             </span>
             {meta.name}
           </span>
+        }
+        // The V13 journey's front door (directive §22–§23, §63): deep-link into the Contest
+        // Library with this pattern already applied. Recommend, never gate — it is an offer of
+        // more practice beside the curriculum, not a requirement in front of it.
+        action={
+          <Button asChild variant="outline">
+            <Link to={`/contest-practice?pattern=${patternId}`}>Practice contest problems</Link>
+          </Button>
         }
       />
 

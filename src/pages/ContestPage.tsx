@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { format, parseISO } from 'date-fns';
-import { CheckCircle2, ExternalLink, Flag, Pause, Play, Swords, XCircle } from 'lucide-react';
+import { CheckCircle2, ChevronRight, ExternalLink, Flag, Pause, Play, Swords, XCircle } from 'lucide-react';
 import questionsData from '@/data/questions.json';
 import { patternById } from '@/data/patterns';
 import { Button } from '@/components/ui/button';
@@ -19,6 +19,8 @@ import {
   RuledList,
   Section,
 } from '@/components/layout/Page';
+import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
+import { CONTEST_RATING_NOTE } from '@/utils/engine/contestLibrary';
 import { useAppDispatch, useAppSelector } from '@/store/hooks';
 import {
   selectContestAnalysis,
@@ -101,6 +103,14 @@ export default function ContestPage() {
 
   const running = contest.seed !== null && contest.finishedAtMs === null;
   const finished = analysis !== null;
+  // A filtered library sitting (started from /contest-practice) runs on this same page — same
+  // clock, same controls, same verdict. Everything the extra rendering needs travels in the
+  // slice's snapshot rows; this page must never import the contest-library dataset.
+  const libraryRows = contest.libraryProblems;
+  const rowBySliceId = useMemo(
+    () => new Map((libraryRows ?? []).map((row) => [row.id, row])),
+    [libraryRows],
+  );
   // Everything after the one named next step. `patternGaps[0]` is `next`, and it already has the
   // page's one recommendation attached to it.
   const otherGaps = analysis ? analysis.patternGaps.slice(1) : [];
@@ -292,6 +302,7 @@ export default function ContestPage() {
                 if (!attempt) return null;
                 const active = contest.activeQuestionId === question.id;
                 const spent = liveMinutes(question.id, attempt);
+                const libraryRow = rowBySliceId.get(question.id);
                 return (
                   <RuledItem key={question.id} className="flex flex-col gap-3 py-4">
                     <div className="flex flex-wrap items-start justify-between gap-x-6 gap-y-2">
@@ -303,6 +314,22 @@ export default function ContestPage() {
                         <Meta
                           items={[
                             <DifficultyBadge difficulty={question.difficulty} />,
+                            // Both signals, side by side, for a library-drawn row — the estimate
+                            // never replaces the official difficulty (types §3.4), and the claim
+                            // carries its basis (the note lives in the engine, dataset-free).
+                            libraryRow && (
+                              <Tooltip>
+                                <TooltipTrigger className="figures cursor-help underline decoration-dotted underline-offset-2">
+                                  Contest rating {libraryRow.contestRating}
+                                </TooltipTrigger>
+                                <TooltipContent className="max-w-72">{CONTEST_RATING_NOTE}</TooltipContent>
+                              </Tooltip>
+                            ),
+                            libraryRow?.contestLabel && (
+                              <span className="figures">{libraryRow.contestLabel}</span>
+                            ),
+                            // A paywalled problem announces itself before the clock does.
+                            libraryRow?.premium && 'Premium',
                             <span className="figures">~{targetMinutes} min target</span>,
                             question.url && (
                               <a
@@ -317,6 +344,22 @@ export default function ContestPage() {
                             ),
                           ]}
                         />
+                        {/* "Why this problem?" — facts computed at draw time, behind a latch
+                            (directive §45). Only filtered sittings carry reasons. */}
+                        {libraryRow && libraryRow.reasons.length > 0 && (
+                          <details className="group">
+                            <summary className="flex min-h-11 w-fit cursor-pointer list-none items-center gap-1.5 text-xs text-muted-foreground transition-colors duration-150 ease-swift marker:content-none hover:text-foreground lg:min-h-9 [&::-webkit-details-marker]:hidden">
+                              <ChevronRight
+                                aria-hidden="true"
+                                className="h-3.5 w-3.5 shrink-0 transition-transform duration-150 ease-swift group-open:rotate-90 motion-reduce:transition-none"
+                              />
+                              Why this problem?
+                            </summary>
+                            <p className="figures pl-5 text-xs text-muted-foreground">
+                              {libraryRow.reasons.join(' · ')}
+                            </p>
+                          </details>
+                        )}
                       </div>
                       {/* `shrink-0` used to sit here. It was survivable with three controls (352px,
                           inside a 375px viewport) and overflowed the moment an armed row grew to
@@ -492,21 +535,37 @@ export default function ContestPage() {
                       everything the sheet carries — hints, the family, the notes field. The
                       contest withheld all of that on purpose; the point of finishing is that it
                       stops being withheld. */}
-                  {analysis.stalledQuestionIds.includes(reading.question.id) && (
-                    <div>
-                      <Button
-                        variant="link"
-                        size="sm"
-                        // `h-auto p-0` cancelled both `size="sm"`'s h-9 and its padding, leaving a
-                        // 16px-tall target — the smallest control in the app. `min-h-11` restores
-                        // the hit area without restoring the button chrome a link variant refuses.
-                        className="h-auto min-h-11 px-0 py-2"
-                        onClick={() => dispatch(activeQuestionSet(reading.question.id))}
-                      >
-                        Take a calm second look
-                      </Button>
-                    </div>
-                  )}
+                  {analysis.stalledQuestionIds.includes(reading.question.id) &&
+                    (reading.question.id >= 1 ? (
+                      <div>
+                        <Button
+                          variant="link"
+                          size="sm"
+                          // `h-auto p-0` cancelled both `size="sm"`'s h-9 and its padding, leaving a
+                          // 16px-tall target — the smallest control in the app. `min-h-11` restores
+                          // the hit area without restoring the button chrome a link variant refuses.
+                          className="h-auto min-h-11 px-0 py-2"
+                          onClick={() => dispatch(activeQuestionSet(reading.question.id))}
+                        >
+                          Take a calm second look
+                        </Button>
+                      </div>
+                    ) : (
+                      // A library-only problem (sitting-local negative key) has no question sheet
+                      // to open — the calm second look happens where the problem lives.
+                      reading.question.url && (
+                        <div>
+                          <a
+                            href={reading.question.url}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="inline-flex min-h-11 items-center py-2 text-sm font-medium text-primary underline-offset-4 hover:underline"
+                          >
+                            Take a calm second look on LeetCode
+                          </a>
+                        </div>
+                      )
+                    ))}
                 </RuledItem>
               ))}
             </RuledList>

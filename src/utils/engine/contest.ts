@@ -34,8 +34,26 @@ import { hashSeed, mulberry32 } from '@/utils/engine/prng';
 /* Building a contest                                                                           */
 /* ------------------------------------------------------------------------------------------- */
 
+/**
+ * What the analysis actually needs to know about a problem — a structural supertype of `Question`
+ * (V13 slice 5). Every real `Question` satisfies it unchanged, which is what keeps the 62
+ * pre-existing contest tests passing unmodified; a contest-library problem satisfies it through a
+ * snapshot row, with two honest absences: `pattern` is optional because an unmapped problem has
+ * no AICM claim to make (a sentinel here would flow straight into `patternGaps` as an invented
+ * weakness), and `tests` is optional because library problems carry no authored teaching line.
+ */
+export interface ContestQuestionLike {
+  /** Curriculum id for the 539; a sitting-local negative key for library-only rows. */
+  id: number;
+  title: string;
+  difficulty: Difficulty;
+  pattern?: PatternId;
+  tests?: string;
+  url?: string;
+}
+
 export interface ContestProblem {
-  question: Question;
+  question: ContestQuestionLike;
   /** 1-based position in the set. */
   order: number;
   /** What a solver at pace should need — the question's own authored estimate. */
@@ -60,6 +78,11 @@ export const CONTEST_SHAPE: Difficulty[] = ['easy', 'medium', 'medium', 'hard'];
 
 /** Slack over the sum of estimates. A contest should be tight, not impossible. */
 const PACE_FACTOR = 1.1;
+
+/** The one duration rule, shared by Full Contest and filtered library sittings. */
+export function contestDurationMin(targetMinutes: readonly number[]): number {
+  return Math.round(targetMinutes.reduce((sum, t) => sum + t, 0) * PACE_FACTOR);
+}
 
 export interface ContestInput {
   /** Everything in the dataset. */
@@ -207,7 +230,7 @@ export function buildContest(input: ContestInput): Contest {
     return { question, order: i + 1, targetMinutes: question.estimatedTime };
   });
 
-  const durationMin = Math.round(problems.reduce((sum, p) => sum + p.targetMinutes, 0) * PACE_FACTOR);
+  const durationMin = contestDurationMin(problems.map((p) => p.targetMinutes));
 
   return { id: seed, shape, problems, durationMin };
 }
@@ -240,7 +263,7 @@ export type Outcome =
   | 'untouched';
 
 export interface ProblemReading {
-  question: Question;
+  question: ContestQuestionLike;
   outcome: Outcome;
   minutesSpent: number;
   targetMinutes: number;
@@ -303,12 +326,15 @@ function submitsNote(wrongSubmits: number): string {
 
 function readingFor(
   outcome: Outcome,
-  question: Question,
+  question: ContestQuestionLike,
   minutes: number,
   target: number,
   wrongSubmits: number,
 ): string {
   const submits = submitsNote(wrongSubmits);
+  // Library problems carry no authored teaching line; the reading simply ends earlier rather
+  // than trailing an empty clause. For the 539 this is byte-identical to what it always said.
+  const tests = question.tests ? ` ${question.tests}` : '';
   switch (outcome) {
     case 'clean':
       return `Solved in ${minutes} min against a ${target} min target.${submits}`;
@@ -317,12 +343,12 @@ function readingFor(
       // stated as an observation about time, not as a claim about what the learner was thinking.
       return `Solved, but it took ${minutes} min against a ${target} min target — the approach was there and the time went into getting it written.${submits}`;
     case 'stalled':
-      return `${minutes} min went in without a solution.${submits} ${question.tests}`;
+      return `${minutes} min went in without a solution.${submits}${tests}`;
     case 'set-aside':
       // Both halves are facts, and both belong: the learner put it down on purpose, and the
       // minutes before that still happened.
       return hasRealTime(minutes, target)
-        ? `Set aside after ${minutes} min to protect the clock — a deliberate call, and those minutes still went in without a solution.${submits} ${question.tests}`
+        ? `Set aside after ${minutes} min to protect the clock — a deliberate call, and those minutes still went in without a solution.${submits}${tests}`
         : `Set aside after ${minutes} min — not enough time in it to read anything into.${submits}`;
     case 'untouched':
       // Saying nothing is the correct output here, and it has to be said out loud, or the reader
@@ -381,9 +407,14 @@ export function analyzeContest(contest: Contest, attempts: ContestAttempt[]): Co
   // session that was abandoned.
   const inconclusive = informative.length < Math.ceil(contest.problems.length / 2);
 
+  // A stall on a problem with no AICM mapping is real evidence about the SITTING (it counts as
+  // informative, it appears in the readings) but produces no pattern claim — silence beats
+  // invented metadata, the same rule the mapping table itself follows.
   const patternGaps = inconclusive
     ? []
-    : Array.from(new Set(stalled.map((r) => r.question.pattern)));
+    : Array.from(
+        new Set(stalled.flatMap((r) => (r.question.pattern ? [r.question.pattern] : []))),
+      );
   const stalledQuestionIds = inconclusive ? [] : stalled.map((r) => r.question.id);
 
   // The count must describe THIS pattern, not the set: "2 problems stalled here" when one of the

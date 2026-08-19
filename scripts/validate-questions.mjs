@@ -325,6 +325,116 @@ for (const p of mlProjects) {
   }
 }
 
+// --- Contest library (V13) --------------------------------------------------------------
+// Validates the GENERATED artifact, independently of the generator that produced it. The split
+// matters: generate-contest-library.mjs validates its SOURCES and fails the ingest, while this
+// gate re-checks the committed output, so a hand-edit, a bad merge, or a stale artifact is caught
+// by a command anyone can run offline. Same relationship validate:data already has with
+// questions.json.
+const contestLibrary = JSON.parse(readFileSync(join(root, 'src', 'data', 'contestLibrary.json'), 'utf8'));
+const CL_DIFFICULTY = ['easy', 'medium', 'hard'];
+const CL_CONFIDENCE = ['unmapped', 'heuristic', 'strong', 'exact'];
+const CL_SLUG = /^[a-z0-9]+(-[a-z0-9]+)*$/;
+const CL_CONTEST = /^(weekly|biweekly)-contest-\d+$/;
+
+{
+  const d = contestLibrary.dictionaries ?? {};
+  if (!Array.isArray(contestLibrary.problems)) fail('contest library: `problems` is not an array');
+  if (contestLibrary.total !== contestLibrary.problems.length) {
+    fail(`contest library: total ${contestLibrary.total} disagrees with ${contestLibrary.problems.length} rows`);
+  }
+  for (const key of ['topics', 'contests', 'patterns', 'subpatterns']) {
+    if (!Array.isArray(d[key])) fail(`contest library: dictionary "${key}" missing`);
+  }
+  for (const key of ['ratingSource', 'metadataSource', 'generatedAt', 'ratingFetchedAt']) {
+    if (!stated(contestLibrary.provenance?.[key])) fail(`contest library: provenance.${key} is missing`);
+  }
+  // Nothing may present ZeroTrac's estimate as an official LeetCode figure.
+  if (!/not an official LeetCode rating/i.test(contestLibrary.provenance?.ratingNote ?? '')) {
+    fail('contest library: provenance.ratingNote must state that the rating is not official');
+  }
+  for (const p of d.patterns ?? []) {
+    if (!VALID_PATTERNS.has(p)) fail(`contest library: pattern dictionary holds unknown id "${p}"`);
+  }
+
+  const seenSlug = new Set();
+  const seenPosition = new Set();
+  const questionIds = new Set(questions.map((q) => q.id));
+  const questionSlugById = new Map(
+    questions.filter((q) => q.url).map((q) => [q.id, q.url.split('/problems/')[1].replace(/\//g, '')]),
+  );
+  let bridged = 0;
+  let filterable = 0;
+
+  for (const row of contestLibrary.problems ?? []) {
+    if (!Array.isArray(row) || row.length !== 14) {
+      fail(`contest library: malformed row (expected 14 columns, got ${row?.length})`);
+      continue;
+    }
+    const [slug, frontendId, title, diff, rating, contestIdx, index, topics, pats, inferred, subs, conf, premium, currId] = row;
+    const where = `contest library ${slug}`;
+
+    if (typeof slug !== 'string' || !CL_SLUG.test(slug)) fail(`${where}: malformed slug`);
+    if (seenSlug.has(slug)) fail(`${where}: duplicate slug`);
+    seenSlug.add(slug);
+    if (!Number.isInteger(frontendId) || frontendId <= 0) fail(`${where}: malformed frontend id`);
+    if (!stated(title)) fail(`${where}: missing title`);
+    if (CL_DIFFICULTY[diff] === undefined) fail(`${where}: invalid difficulty code ${diff}`);
+    if (!Number.isFinite(rating) || rating < 800 || rating > 4000) fail(`${where}: rating ${rating} out of range`);
+    if (!Number.isInteger(index) || index < 1 || index > 5) fail(`${where}: impossible problem index ${index}`);
+
+    const contestSlug = d.contests?.[contestIdx];
+    if (typeof contestSlug !== 'string' || !CL_CONTEST.test(contestSlug)) {
+      fail(`${where}: invalid contest slug "${contestSlug}"`);
+    } else {
+      const position = `${contestSlug}|${index}`;
+      if (seenPosition.has(position)) fail(`${where}: duplicate contest position ${position}`);
+      seenPosition.add(position);
+    }
+
+    for (const i of topics ?? []) if (d.topics?.[i] === undefined) fail(`${where}: topic index ${i} out of range`);
+    for (const i of subs ?? []) if (d.subpatterns?.[i] === undefined) fail(`${where}: subpattern index ${i} out of range`);
+    for (const i of [...(pats ?? []), ...(inferred ?? [])]) {
+      if (d.patterns?.[i] === undefined) fail(`${where}: pattern index ${i} out of range`);
+    }
+    if (CL_CONFIDENCE[conf] === undefined) fail(`${where}: invalid confidence code ${conf}`);
+    if (premium !== 0 && premium !== 1) fail(`${where}: premium must be 0 or 1`);
+
+    // The honesty invariants, restated here so they hold on the artifact and not merely in the
+    // generator that wrote it: unmapped claims nothing, heuristic never becomes filterable, and a
+    // pattern is never simultaneously confident and inferred.
+    const confidence = CL_CONFIDENCE[conf];
+    if (confidence === 'unmapped' && ((pats ?? []).length > 0 || (inferred ?? []).length > 0)) {
+      fail(`${where}: marked unmapped but carries patterns`);
+    }
+    if (confidence === 'heuristic' && (pats ?? []).length > 0) {
+      fail(`${where}: heuristic mappings must not enter the filterable set`);
+    }
+    if ((pats ?? []).length > 0 && !['exact', 'strong'].includes(confidence)) {
+      fail(`${where}: filterable patterns require exact or strong confidence`);
+    }
+    const confidentSet = new Set(pats ?? []);
+    for (const i of inferred ?? []) {
+      if (confidentSet.has(i)) fail(`${where}: pattern "${d.patterns[i]}" is both confident and inferred`);
+    }
+    if ((pats ?? []).length > 0) filterable++;
+
+    // The identity bridge must point at a real curriculum question, by matching slug — never by a
+    // number. ZeroTrac's id is LeetCode's frontend id; questions.json stores the internal one.
+    if (currId !== null) {
+      bridged++;
+      if (!questionIds.has(currId)) fail(`${where}: bridges to curriculum id ${currId}, which does not exist`);
+      else if (questionSlugById.get(currId) !== slug) {
+        fail(`${where}: bridges to curriculum #${currId}, whose slug is "${questionSlugById.get(currId)}"`);
+      }
+    } else if ((subs ?? []).length > 0) {
+      fail(`${where}: sub-patterns are only inheritable from a curriculum question`);
+    }
+  }
+
+  contestLibrary._stats = { bridged, filterable };
+}
+
 // --- Report ----------------------------------------------------------------------------
 const unresolved = questions.filter((q) => q.url === undefined);
 console.log(`questions: ${questions.length}, leetcode-linked: ${linked}, unresolved: ${unresolved.length}`);
@@ -345,6 +455,11 @@ console.log(
   `ml projects: ${mlProjects.length} across ${new Set(mlProjects.map((p) => p.tier)).size} tiers, ` +
     `${mlProjects.filter((p) => p.baseline.score !== null).length} baselines stated / ` +
     `${mlProjects.filter((p) => p.baseline.score === null).length} for the learner to establish`,
+);
+console.log(
+  `contest library: ${contestLibrary.total} rated problems, ` +
+    `${contestLibrary._stats.filterable} with a filterable AICM pattern, ` +
+    `${contestLibrary._stats.bridged} bridged to curriculum questions`,
 );
 if (unresolved.length > 0) {
   console.log('unresolved (declared not-on-leetcode in the generator):');

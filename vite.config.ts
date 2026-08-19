@@ -39,6 +39,17 @@ export default defineConfig({
             './src/data/mlProjects.json',
             './src/data/courseRecall.json',
           ],
+          // The contest library: 2,561 rated contest problems with their LeetCode topics and
+          // mapped AICM patterns. Dictionary-encoded by the generator because the naive object
+          // form measured 1,232.9 kB against this 336 kB — the difference between shippable and
+          // not, given the app chunk's ~20 kB of headroom.
+          //
+          // Its own chunk rather than an addition to data-curriculum for the data-ml reason: only
+          // the Contest Practice route reads it, so a learner who never opens contest practice
+          // never fetches it, and re-running the ingestion leaves the 539-question dataset valid
+          // in every cache. The store must reach contest problems through
+          // src/data/contestLibraryIndex.ts, never through this chunk.
+          'data-contests': ['./src/data/contestLibrary.json'],
         },
       },
     },

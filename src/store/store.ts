@@ -13,6 +13,7 @@ import interviewsReducer from '@/store/slices/interviewsSlice';
 import contestReducer from '@/store/slices/contestSlice';
 import contestsReducer from '@/store/slices/contestsSlice';
 import practiceReducer from '@/store/slices/practiceSlice';
+import contestLibraryReducer from '@/store/slices/contestLibrarySlice';
 import uiReducer from '@/store/slices/uiSlice';
 
 const rootReducer = combineReducers({
@@ -36,6 +37,10 @@ const rootReducer = combineReducers({
   contests: contestsReducer,
   // The V6 practice layer: authored intentions, the reflection journal, and the sitting ledger.
   practice: practiceReducer,
+  // The contest library's learner state, keyed by SLUG — a different id space from
+  // `progress.byId` (roadmap 1-539) which LeetCode's ids would otherwise collide with. Same
+  // split, same reason, as `ml` beside `course`.
+  contestLibrary: contestLibraryReducer,
   ui: uiReducer,
 });
 

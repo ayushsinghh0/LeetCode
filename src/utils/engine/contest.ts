@@ -70,45 +70,142 @@ export interface ContestInput {
   shape?: Difficulty[];
 }
 
+/* ------------------------------------------------------------------------------------------- */
+/* The generic selector                                                                         */
+/* ------------------------------------------------------------------------------------------- */
+
 /**
- * Compose a contest from problems the learner has not solved.
+ * One problem as the selector sees it — deliberately structural, so the same code composes a set
+ * from the 539 curriculum questions and from the 2,561-problem contest library without either
+ * universe knowing about the other (PRODUCT.md's two-universes rule).
+ *
+ * `key` is whatever the caller uses to identify a problem: `q:<id>` for a curriculum question,
+ * the slug for a contest-library problem. The selector treats it as opaque.
+ */
+export interface ContestCandidate {
+  key: string;
+  difficulty: Difficulty;
+  /** May hold several — a contest problem can honestly belong to more than one pattern. */
+  patterns: PatternId[];
+  targetMinutes: number;
+  /** ZeroTrac contest rating where one exists. Null for unrated curriculum questions. */
+  contestRating?: number | null;
+  /** Contest of origin, for the diversity rule. Null when the problem has no contest. */
+  contestSlug?: string | null;
+}
+
+export interface ContestPlan {
+  /** Difficulty ladder. Full Contest passes CONTEST_SHAPE; a rating-driven set omits it. */
+  shape?: Difficulty[];
+  /** How many problems when `shape` is absent. */
+  count?: number;
+  /** Inclusive rating window. Candidates outside it are not eligible. */
+  ratingRange?: { min: number; max: number };
+  /** Prefer a set spanning several patterns. On for every shipped mode. */
+  distinctPatterns?: boolean;
+  /**
+   * Prefer problems from different contests (§27). Off for "Recreate Contest", which is the one
+   * mode where taking all four from one sitting is the entire point.
+   */
+  distinctContests?: boolean;
+}
+
+const DEFAULT_COUNT = 4;
+
+/**
+ * Choose a set from `pool`, honouring the plan's shape and diversity rules.
+ *
+ * The algorithm is the one Full Contest has always used, lifted to candidates: walk the slots in
+ * order, prefer candidates that keep the set diverse, and fall back to relaxing diversity rather
+ * than shipping a short set — a three-problem contest because one difficulty ran dry is worse
+ * than one repeated pattern. Exactly one `random()` draw per filled slot, which is what keeps a
+ * given seed reproducing a given set.
+ */
+export function selectContestSet(
+  pool: readonly ContestCandidate[],
+  plan: ContestPlan,
+  seed: string,
+): ContestCandidate[] {
+  const random = mulberry32(hashSeed(seed));
+  const shape = plan.shape;
+  const slots = shape ? shape.length : (plan.count ?? DEFAULT_COUNT);
+
+  const inRange = (c: ContestCandidate): boolean =>
+    plan.ratingRange === undefined ||
+    (c.contestRating != null &&
+      c.contestRating >= plan.ratingRange.min &&
+      c.contestRating <= plan.ratingRange.max);
+
+  const eligible = pool.filter(inRange);
+  const usedPatterns = new Set<PatternId>();
+  const usedContests = new Set<string>();
+  const picked: ContestCandidate[] = [];
+  const taken = new Set<string>();
+
+  for (let slot = 0; slot < slots; slot++) {
+    const difficulty = shape?.[slot];
+    const atDifficulty = eligible.filter(
+      (c) => (difficulty === undefined || c.difficulty === difficulty) && !taken.has(c.key),
+    );
+    if (atDifficulty.length === 0) continue;
+
+    // Preference order, most constrained first. Each rung drops one diversity rule rather than
+    // dropping the slot — the set staying full matters more than it staying perfectly varied.
+    const freshPattern = (c: ContestCandidate) =>
+      plan.distinctPatterns !== true || !c.patterns.some((p) => usedPatterns.has(p));
+    const freshContest = (c: ContestCandidate) =>
+      plan.distinctContests !== true || c.contestSlug == null || !usedContests.has(c.contestSlug);
+
+    const both = atDifficulty.filter((c) => freshPattern(c) && freshContest(c));
+    const patternOnly = atDifficulty.filter(freshPattern);
+    const from = both.length > 0 ? both : patternOnly.length > 0 ? patternOnly : atDifficulty;
+
+    const pick = from[Math.floor(random() * from.length)]!;
+    for (const p of pick.patterns) usedPatterns.add(p);
+    if (pick.contestSlug != null) usedContests.add(pick.contestSlug);
+    taken.add(pick.key);
+    picked.push(pick);
+  }
+
+  return picked;
+}
+
+/**
+ * Compose a contest from curriculum problems the learner has not solved.
  *
  * Patterns are kept distinct across the set on purpose. Four sliding-window problems would
  * measure one thing four times, and the post-contest analysis would then have nothing to compare
  * — the whole diagnostic depends on the set spanning more than one technique.
+ *
+ * This is now a thin adapter over `selectContestSet`, and it must stay behaviourally identical:
+ * Full Contest is locked spec (PRODUCT.md), so the same seed must keep producing the same set.
+ * The contest engine's test file is the proof and was not modified when this was generalized.
  */
 export function buildContest(input: ContestInput): Contest {
   const { all, byId, seed } = input;
   const shape = input.shape ?? CONTEST_SHAPE;
-  const random = mulberry32(hashSeed(seed));
 
   const eligible = all.filter((q) => {
     const status = byId[q.id]?.status ?? 'unsolved';
     return status === 'unsolved' || status === 'in_progress';
   });
+  const byKey = new Map(eligible.map((q) => [String(q.id), q]));
 
-  const usedPatterns = new Set<PatternId>();
-  const problems: ContestProblem[] = [];
+  const picked = selectContestSet(
+    eligible.map((q) => ({
+      key: String(q.id),
+      difficulty: q.difficulty,
+      patterns: [q.pattern],
+      targetMinutes: q.estimatedTime,
+    })),
+    { shape, distinctPatterns: true },
+    seed,
+  );
 
-  for (const [i, difficulty] of shape.entries()) {
-    const pool = eligible.filter(
-      (q) =>
-        q.difficulty === difficulty &&
-        !usedPatterns.has(q.pattern) &&
-        !problems.some((p) => p.question.id === q.id),
-    );
-    // Fall back to repeating a pattern before giving up on the slot: a three-problem contest
-    // because the learner has solved most of one difficulty is worse than one repeated pattern.
-    const fallback = eligible.filter(
-      (q) => q.difficulty === difficulty && !problems.some((p) => p.question.id === q.id),
-    );
-    const from = pool.length > 0 ? pool : fallback;
-    if (from.length === 0) continue;
-
-    const pick = from[Math.floor(random() * from.length)]!;
-    usedPatterns.add(pick.pattern);
-    problems.push({ question: pick, order: i + 1, targetMinutes: pick.estimatedTime });
-  }
+  const problems: ContestProblem[] = picked.map((c, i) => {
+    const question = byKey.get(c.key)!;
+    return { question, order: i + 1, targetMinutes: question.estimatedTime };
+  });
 
   const durationMin = Math.round(problems.reduce((sum, p) => sum + p.targetMinutes, 0) * PACE_FACTOR);
 

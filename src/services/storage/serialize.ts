@@ -1,5 +1,6 @@
 import type {
   Confidence,
+  ContestProblemProgress,
   ContestProblemRecord,
   ContestStallRecord,
   CourseWeekProgress,
@@ -36,6 +37,7 @@ export function selectPersistedState(root: RootState): PersistedStateV1 {
   const mlTracks = root.ml.tracksById;
   const mlProjects = root.ml.projectsById;
   const practice = root.practice;
+  const contestLibraryBySlug = root.contestLibrary.bySlug;
   return {
     version: 1,
     progress: {
@@ -73,6 +75,12 @@ export function selectPersistedState(root: RootState): PersistedStateV1 {
             sittings: practice.sittings,
           },
         }
+      : {}),
+    // Same written-only-once-touched rule: a learner who never opened Contest Practice produces
+    // a payload byte-identical to a pre-V13 one. Note this persists only the learner's PROGRESS —
+    // the 2,561-problem library itself is generated static content and never enters localStorage.
+    ...(Object.keys(contestLibraryBySlug).length > 0
+      ? { contestLibrary: { bySlug: contestLibraryBySlug } }
       : {}),
   };
 }
@@ -615,6 +623,64 @@ export function validatePersisted(raw: unknown): PersistedStateV1 | null {
     practice = { intentions, journal, sittings };
   }
 
+  // `contestLibrary` is optional (absent before V13). Keys are LeetCode slugs and are checked
+  // only for being non-blank strings — deliberately, and for the reason the `missKind` and
+  // `action` fields above are lenient: a problem retired from the generated library must make its
+  // record inert, never quarantine the learner's entire state. A reader that cannot resolve a
+  // slug against the dataset simply shows nothing for it.
+  //
+  // The ladder fields ARE range-checked, because the write path can only ever produce 0..5 and a
+  // value outside that would mean a corrupt payload rather than an evolved one.
+  let contestLibrary: PersistedStateV1['contestLibrary'];
+  if ('contestLibrary' in raw && raw.contestLibrary !== undefined) {
+    const rawLibrary = raw.contestLibrary;
+    if (!isPlainObject(rawLibrary)) return null;
+    if (!isPlainObject(rawLibrary.bySlug)) return null;
+
+    const bySlug: Record<string, ContestProblemProgress> = {};
+    for (const [slug, entry] of Object.entries(rawLibrary.bySlug)) {
+      if (typeof slug !== 'string' || slug.trim() === '') return null;
+      if (!isPlainObject(entry)) return null;
+      const { solved, attempts, lastAttemptedOn, solvedOn, revisionStage, nextRevision, lastReviewed } =
+        entry;
+      if (typeof solved !== 'boolean') return null;
+      if (typeof attempts !== 'number' || !Number.isInteger(attempts) || attempts < 0) return null;
+      if (lastAttemptedOn !== null && !isIsoDate(lastAttemptedOn)) return null;
+      if (solvedOn !== null && !isIsoDate(solvedOn)) return null;
+      if (lastReviewed !== null && !isIsoDate(lastReviewed)) return null;
+      if (
+        typeof revisionStage !== 'number' ||
+        !Number.isInteger(revisionStage) ||
+        revisionStage < 0 ||
+        revisionStage > 5
+      ) {
+        return null;
+      }
+      if (nextRevision !== null && !isIsoDate(nextRevision)) return null;
+      if (!Array.isArray(entry.revisionHistory)) return null;
+
+      const revisionHistory: RevisionEvent[] = [];
+      for (const event of entry.revisionHistory) {
+        if (!isPlainObject(event)) return null;
+        if (!isIsoDate(event.date)) return null;
+        if (typeof event.passed !== 'boolean') return null;
+        revisionHistory.push({ date: event.date, passed: event.passed });
+      }
+
+      bySlug[slug] = {
+        solved,
+        attempts,
+        lastAttemptedOn: lastAttemptedOn as string | null,
+        solvedOn: solvedOn as string | null,
+        revisionStage,
+        nextRevision: nextRevision as string | null,
+        lastReviewed: lastReviewed as string | null,
+        revisionHistory,
+      };
+    }
+    contestLibrary = { bySlug };
+  }
+
   // `course` is optional (absent in pre-course payloads) — but when present it must be fully
   // well-formed, same reject-wholesale rule as every other section.
   let course: PersistedStateV1['course'];
@@ -719,6 +785,7 @@ export function validatePersisted(raw: unknown): PersistedStateV1 | null {
     ...(interviews ? { interviews } : {}),
     ...(ml ? { ml } : {}),
     ...(practice ? { practice } : {}),
+    ...(contestLibrary ? { contestLibrary } : {}),
   };
 }
 

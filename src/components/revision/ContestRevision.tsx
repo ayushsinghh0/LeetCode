@@ -19,6 +19,7 @@ import { CONTEST_PROBLEMS, contestProblemBySlug } from '@/data/contestLibrary';
 import {
   CONTEST_RATING_NOTE,
   MIN_BAND_EVIDENCE,
+  bandEvidenceFromRegister,
   contestStateFromQuestionProgress,
   recommendBand,
   scoreRevisionCandidates,
@@ -287,17 +288,16 @@ export default function ContestRevision({ mode }: { mode: ContestRevisionMode })
    * minimum and never advances more than one band.
    */
   const band = useMemo(() => {
-    const solved: { rating: number; on: string }[] = [];
-    const missed: number[] = [];
-    for (const [slug, p] of Object.entries(contestBySlug)) {
-      const problem = contestProblemBySlug.get(slug);
-      if (!problem) continue; // a retired slug is inert, never an error
-      if (p.solved) solved.push({ rating: problem.contestRating, on: p.solvedOn ?? '' });
-      else if (p.attempts > 0) missed.push(problem.contestRating);
-    }
-    solved.sort((a, b) => (a.on < b.on ? 1 : a.on > b.on ? -1 : 0)); // most recent first
-    const evidence = { solvedRatings: solved.map((s) => s.rating), missedRatings: missed };
-    return { reading: recommendBand(evidence), sampleSize: solved.length + missed.length };
+    // The one shared computation (engine/contestLibrary.ts) — the Library page reads the same
+    // register through the same function, so the two surfaces can never disagree about the band.
+    const evidence = bandEvidenceFromRegister(
+      contestBySlug,
+      (slug) => contestProblemBySlug.get(slug)?.contestRating,
+    );
+    return {
+      reading: recommendBand(evidence),
+      sampleSize: evidence.solvedRatings.length + evidence.missedRatings.length,
+    };
   }, [contestBySlug]);
 
   function grade(scored: ScoredProblem, passed: boolean) {

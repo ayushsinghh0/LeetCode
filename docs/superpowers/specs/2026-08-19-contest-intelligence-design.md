@@ -1030,3 +1030,93 @@ The setting is optional-with-boundary-default through **both** read paths (`load
 Two pre-existing tests were updated because the corrections changed what is true, and both are
 noted above rather than quietly rewritten: the ID-trap guard (inverted) and `importProgress
 replaces state wholesale` (the new setting's boundary default).
+
+---
+
+## 19. Slice 7 — implementation log (2026-08-20)
+
+The last slice: mixed-pattern contest, "Recreate contest", progression polish. As §17.5
+predicted, **no engine change to `selectContestSet` was required** — both new draws are plans over
+the selector that already existed. V13's taxonomy (§50) is complete.
+
+### 19.1 What shipped
+
+**The weak-areas contest** — a second header action on `/contest-practice`. Weak patterns resolve
+at the lazy page's call site via `selectPatternWeakness` (never in the store), the pool is the
+library filtered to those patterns (confident mappings only — an inferred pattern can never draw a
+problem into a weakness set), minus anything solved in either register. The plan is
+`{ count: 4, distinctPatterns: false, distinctContests: true }`: **`distinctPatterns: false` is
+the point** — this draw exists to concentrate on weakness, and forcing the set to span patterns
+would dilute the thing it is for. Contest diversity stays on. Seeded
+`` `${today}|weak|${weakPatterns.join(',')}` `` so the same evidence rebuilds the same set today.
+The button is disabled — never hidden — when weakness has nothing to say: the affordance stays
+discoverable while the claim it rests on fails toward silence (§17.4's rule, applied to a button).
+
+Per-problem "Why this problem?" names the actual selection reason: the weak pattern the problem
+carries (strongest-ranked first), then the one weakness model's own sentence. That sentence is now
+`WEAK_PATTERN_REASON`, exported from `engine/contestLibrary.ts` and used by both
+`scoreRevisionCandidates` and the draw — one wording for one claim, so two surfaces can never
+describe the same selection in different words.
+
+**Recreate contest** — a button in every library row's expanded detail. `index.byContest` resolves
+the contest's members, the plan is `{ count: members.length, distinctPatterns: false,
+distinctContests: false }` (taking every problem from one sitting is the entire point), and the
+picked set is sorted back to original Q-order before the sitting starts. Two deliberate calls:
+
+- **Solved rows are included.** A recreation is the whole contest, not the unsolved remainder of
+  one. Safe because both solve paths are idempotent — `solveQuestion` no-ops on an already-solved
+  curriculum question, and `applyContestSolve` counts an attempt without restarting the ladder or
+  paying XP twice. Nothing can be farmed.
+- **The count is the contest's own size**, measured before building: all 640 contests in the
+  library are complete (639 × Q1–Q4, one × Q1–Q5 — Weekly 68), so the button never produces a
+  partial set wearing the name, and Weekly 68's Q5 rides along rather than being capped at
+  `DRAW_COUNT`. A test pins the five-problem case.
+
+**The band reading on the Library page** — `recommendBand` over the slug register, rendered beside
+the Rating chips it informs: the statement (about the problems, never the learner — §31), the
+sample size in the sentence, and a one-tap "Filter to 1600–1799" that sets the band filter. The
+offer disappears once the filter already points there. Below the evidence minimum the page renders
+**nothing** — the Contest Revision rail is the surface that narrates progress toward the
+threshold, and two surfaces counting the learner toward the same number would be the figure stated
+twice.
+
+The evidence computation moved into the engine as `bandEvidenceFromRegister(bySlug, ratingFor)` —
+extracted from Contest Revision's inline version, now shared by both surfaces so they can never
+read different evidence from the same register. It keeps the register-only rule (bridged
+curriculum solves are done with the roadmap's guidance and no clock, so they say nothing about
+contest conditions), treats an unknown slug as inert, and returns solved ratings most recent
+first, the `BandEvidence` contract.
+
+### 19.2 The one extraction
+
+`startContestFromFilters` was the row builder to reuse, not to copy (§17.5). It is now three
+small pieces shared by all three entry points — `toCandidates` (pool → `ContestCandidate[]`),
+`toRows` (picked → `FilteredContestProblem[]`, the ONE place the negative-id rule lives, taking a
+`reasonsFor` callback so each draw states its own honest reason), and `startSitting` (empty-draw
+guard → `startFilteredContest` → navigate). The thunk's own live-sitting refusal is unchanged, and
+every new affordance is disabled while a contest runs.
+
+### 19.3 Verification
+
+| Gate | Result |
+|---|---|
+| `npm test` (serial) | **91 files / 1,306 passing** (+11: 3 engine, 8 page) |
+| `npx tsc --noEmit` | clean |
+| `npm run build` | clean; app chunk **296.09 kB** / 301 budget (+0.29 kB — the engine helper riding `selectors.ts`'s existing `engine/contestLibrary` import); `data-contests` 343.72 kB unchanged |
+| `npm run validate:data` | OK |
+| Dataset importers | still exactly `ContestDue`, `ContestPracticePage`, `ContestRevision` (grep over `dist/assets`) |
+| Contest Revision suite | passes **unmodified** after the band refactor — the §17 acceptance discipline |
+| Browser | **NOT DONE — outstanding debt.** The connected Chrome extension turned out to be paired to a browser on a different machine (public-IP check: 122.161.79.121 vs this machine's 49.47.132.233), so it could never reach a locally served build; the user chose to skip the pass rather than re-pair. Given §17.2 and §18.1's record — four of V13's five defects were browser-found — slice 7's surfaces (both draw buttons, the recreate flow landing on `/contest`, the band line at 375px, light-theme contrast of the new text) should get a browser pass before V13 is called closed. |
+
+### 19.4 Decisions taken during implementation
+
+1. **The weak-areas draw ignores the page filters.** It is scoped by evidence, not by the
+   controls; a filter-scoped weakness draw would let a learner accidentally narrow "what my
+   evidence says is weak" to "what my evidence says is weak among Q4s", which is a different and
+   unclaimed sentence. A test pins that the draw fires even while the filters show zero matches.
+2. **Recreation's reasons carry no weakness or filter claim** — the problem's first confident tag
+   as information, plus rating, contest · Q-index and status. The contest of origin is the
+   selection reason, and it is already in the sentence.
+3. **The band reading is silent below threshold on this page** rather than counting up ("2 of 4
+   outcomes so far") the way the Contest Revision rail does. The Library page is a filter surface;
+   the rail is the analytics surface. Same number, one place that narrates it.

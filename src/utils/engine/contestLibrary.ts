@@ -359,6 +359,13 @@ export interface ScoredProblem {
 }
 
 /**
+ * The one sentence that explains a weakness-driven pick. Exported because the weak-areas contest
+ * draw states the same reason at draw time — one wording for one claim, so two surfaces can never
+ * describe the same selection in different words.
+ */
+export const WEAK_PATTERN_REASON = 'In a pattern your recent evidence says is not holding';
+
+/**
  * Rank contest problems by how much practising them now is worth.
  *
  * The ordering principle mirrors the product's existing one: **retention outranks acquisition**. A
@@ -420,7 +427,7 @@ export function scoreRevisionCandidates(input: RevisionPoolInput): ScoredProblem
     if (weakIndex !== -1) {
       const rank = weakPatterns.indexOf(problem.aicmPatterns[weakIndex]!);
       score += Math.max(20 - rank * 4, 8);
-      reasons.push('In a pattern your recent evidence says is not holding');
+      reasons.push(WEAK_PATTERN_REASON);
     }
 
     // 5. Confidence in the classification. A problem we can only guess at is a worse
@@ -538,6 +545,35 @@ export function recommendBand(evidence: BandEvidence, current?: RatingBand): Ban
       : `You solved problems around the ${comfortable.label} band. Worth staying here for now.`;
 
   return { band, statement, sampleSize };
+}
+
+/**
+ * Band evidence from the SLUG register — contest problems practised as contest practice.
+ *
+ * One computation behind every band surface (Contest Revision's rail, the Library page), so two
+ * surfaces can never read different evidence out of the same register. Bridged curriculum solves
+ * never appear here by construction — the slug register only ever holds contest-only rows, and
+ * work done with the roadmap's guidance, its hints and no clock says nothing about the band a
+ * learner performs in under contest conditions.
+ *
+ * `ratingFor` resolves a slug to its contest rating; a slug it does not know (a retired problem)
+ * is inert, never an error. A never-attempted entry contributes nothing — absence of evidence is
+ * not a miss. Solved ratings come back most recent first, the `BandEvidence` contract.
+ */
+export function bandEvidenceFromRegister(
+  bySlug: Record<string, ContestProblemProgress>,
+  ratingFor: (slug: string) => number | undefined,
+): BandEvidence {
+  const solved: { rating: number; on: string }[] = [];
+  const missedRatings: number[] = [];
+  for (const [slug, p] of Object.entries(bySlug)) {
+    const rating = ratingFor(slug);
+    if (rating === undefined) continue;
+    if (p.solved) solved.push({ rating, on: p.solvedOn ?? '' });
+    else if (p.attempts > 0) missedRatings.push(rating);
+  }
+  solved.sort((a, b) => (a.on < b.on ? 1 : a.on > b.on ? -1 : 0));
+  return { solvedRatings: solved.map((s) => s.rating), missedRatings };
 }
 
 /* ------------------------------------------------------------------------------------------- */

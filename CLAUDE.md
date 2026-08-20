@@ -4,8 +4,10 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 **Resuming prior work? Read `HANDOFF.md` first** — it records where the last session stopped,
 what is verified vs. pending, and the exact pick-up order. Design decisions behind in-flight
-feature work live in `docs/superpowers/specs/`; the **active** plan is
-`2026-08-19-contest-intelligence-design.md` (V13 — slices 0–6 shipped, 7 pending).
+feature work live in `docs/superpowers/specs/`; V13
+(`2026-08-19-contest-intelligence-design.md`) is **complete — slices 0–7 shipped** (slice 7's
+browser pass is recorded debt); the next plan in the queue is
+`2026-08-20-revision-sheet-design.md`.
 
 ## Commands
 
@@ -68,7 +70,7 @@ The per-problem premise was re-tested on 2026-08-13 across 17 companies and fail
 
 **The reflection corpus** (`src/data/reflections.ts`, the Dashboard epigraph) has one absolute, test-enforced rule: a `quotation` renders verbatim from a source that was actually fetched and may legally be quoted (BDK grant, DN 16, or a fresh project translation of a public-domain Japanese original — the attribution states which), and an original `note` carries no attribution at all. Provenance and the licensing analysis live in `docs/superpowers/specs/2026-08-14-practice-engine-design.md`. Never add a line on the strength of an internet attribution — that is how the corpus this file replaced (`quotes.ts`, deleted) shipped two misattributions; `reflections.test.ts` bans the famous-name failure mode outright.
 
-### The contest library — a SECOND question universe (V13, slices 0–6 shipped)
+### The contest library — a SECOND question universe (V13, slices 0–7 shipped)
 
 `src/data/contestLibrary.json` is generated (`scripts/generate-contest-library.mjs`) from two committed snapshots: `scripts/data/zerotrac-ratings.json` (2,561 rated contest problems) and `scripts/data/leetcode-topics.json` (topic tags, which `leetcode-catalog.json` does **not** carry). Never hand-edit any of the three.
 
@@ -79,6 +81,20 @@ The per-problem premise was re-tested on 2026-08-13 across 17 companies and fail
 **LeetCode topics are NOT AICM patterns.** They are different classification systems and both are kept. The mapping lives in `scripts/data/contest-pattern-map.json` — hand-verified, auditable, and never inferred at build or run time — with three mechanisms applied in order: `containerTags` that never map alone (`Array` is on 1,649 of 2,561; `String` 625; `Math` 503), ordered `combinations` (DFS + `Binary Tree` → `tree-dfs`, DFS + `Matrix` → `graphs` + `matrices`), then single-tag `direct` rules. Confidence is per pattern: `exact` / `strong` are filterable and weakness-eligible; `heuristic` is shown as inferred and is **evidentially inert**; `unmapped` claims nothing at all and is a shipped, populated state (244 problems — 44 with no tags, 200 carrying only container or string-algorithm tags AICM has no pattern for). Silence beats invented metadata; `_unmappableTags` records what was considered and rejected so it does not read as forgotten.
 
 **The 207 bridge.** 207 of the 539 are themselves rated contest problems. They carry `curriculumQuestionId`, **inherit the hand-verified AICM pattern and sub-pattern already authored for them** rather than being re-classified from tags, and keep their progress in `progress.byId` — one problem, one identity, never a second copy. Sub-patterns exist *only* on bridged problems; no LeetCode tag is fine-grained enough to imply one.
+
+**Slice 7's three draws share one builder.** `/contest-practice` starts a sitting three ways —
+the filtered draw, the **weak-areas contest** (weak patterns resolved at the page call site via
+`selectPatternWeakness`, `distinctPatterns: false` on purpose: the draw exists to concentrate on
+weakness, and it ignores the page filters because it is scoped by evidence, not controls), and
+**Recreate contest** (`index.byContest` → the contest's own Q1–Q4/Q5 in original order,
+`distinctContests: false`, solved rows included — both solve paths are idempotent, so nothing can
+be farmed and recreation is never capped at the 4-problem draw size). All three route through the
+page's one `toRows` builder (the negative-id rule lives there and nowhere else) into
+`startFilteredContest`, which refuses while a sitting runs. `WEAK_PATTERN_REASON` and
+`bandEvidenceFromRegister` live in `engine/contestLibrary.ts` so the Library page and Contest
+Revision can never word the weakness claim differently or read different band evidence from the
+same register; the Library page's band reading is silent below threshold — the Contest Revision
+rail is the one surface that counts toward it.
 
 `src/data/contestLibrary.ts` is the only door to the dataset and decodes its dictionary-encoded form (1,232.9 kB naive → 336.5 kB encoded; `url`, contest type and number are derived at load, not stored). **`store/selectors.ts` and `store/actions.ts` must never import it** — the `mlTrackIndex.ts` trap, same silence. Nothing in the store needs dataset facts today: due counts come from `dueContestSlugs` over the slice alone, and pattern resolution for weakness happens at the lazy page's call site before the thunk. **Nor may a shared route import it**: `/revision` is a daily page, so Contest Revision (`components/revision/ContestRevision.tsx`) is `lazy()`-ed behind the mode chips and `RevisionPage` keeps only a type-only import. The permitted static importers are exactly `ContestPracticePage`, `ContestRevision` and `ContestDue` — check that with `grep -l 'from"./contestLibrary-*.js"' dist/assets/*.js` after `npm run build`, because a `__vite__mapDeps` entry naming the chunk is a dynamic-import dependency list, not an import.
 

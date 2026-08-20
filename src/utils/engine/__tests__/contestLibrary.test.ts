@@ -6,6 +6,7 @@ import {
   applyContestReview,
   applyContestSolve,
   bandById,
+  bandEvidenceFromRegister,
   buildContestIndex,
   contestStateFromQuestionProgress,
   dueContestSlugs,
@@ -331,6 +332,49 @@ describe('recommendBand — conservative or silent', () => {
   it('reports the sample size it rests on', () => {
     const reading = recommendBand({ solvedRatings: [1450, 1500, 1520], missedRatings: [1600] })!;
     expect(reading.sampleSize).toBe(4);
+  });
+});
+
+describe('bandEvidenceFromRegister — one computation behind every band surface', () => {
+  const entry = (over: Partial<ContestProblemProgress>): ContestProblemProgress => ({
+    ...initialContestProgress(),
+    ...over,
+  });
+  const ratings: Record<string, number> = { a: 1450, b: 1650, c: 1850 };
+  const ratingFor = (slug: string): number | undefined => ratings[slug];
+
+  it('splits the register into solved and missed ratings; a never-attempted entry says nothing', () => {
+    const evidence = bandEvidenceFromRegister(
+      {
+        a: entry({ solved: true, attempts: 1, solvedOn: '2026-07-01' }),
+        b: entry({ attempts: 2 }),
+        c: entry({}),
+      },
+      ratingFor,
+    );
+    expect(evidence.solvedRatings).toEqual([1450]);
+    expect(evidence.missedRatings).toEqual([1650]);
+  });
+
+  it('orders solved ratings most recent first — the BandEvidence contract', () => {
+    const evidence = bandEvidenceFromRegister(
+      {
+        a: entry({ solved: true, attempts: 1, solvedOn: '2026-07-01' }),
+        b: entry({ solved: true, attempts: 1, solvedOn: '2026-07-20' }),
+        c: entry({ solved: true, attempts: 1, solvedOn: '2026-07-10' }),
+      },
+      ratingFor,
+    );
+    expect(evidence.solvedRatings).toEqual([1650, 1850, 1450]);
+  });
+
+  it('a slug the resolver does not know is inert, never an error', () => {
+    const evidence = bandEvidenceFromRegister(
+      { retired: entry({ solved: true, attempts: 3, solvedOn: '2026-07-01' }) },
+      ratingFor,
+    );
+    expect(evidence.solvedRatings).toEqual([]);
+    expect(evidence.missedRatings).toEqual([]);
   });
 });
 

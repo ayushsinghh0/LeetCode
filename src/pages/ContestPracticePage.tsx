@@ -34,10 +34,13 @@ import { CONTEST_PROBLEMS, CONTEST_RATING_NOTE } from '@/data/contestLibrary';
 import {
   CONTEST_TARGET_MINUTES,
   RATING_BANDS,
+  WEAK_PATTERN_REASON,
+  bandEvidenceFromRegister,
   buildContestIndex,
   contestStateFromQuestionProgress,
   filterContestProblems,
   isFilterActive,
+  recommendBand,
   selectionReason,
   type ContestFilter,
   type ContestProblemState,
@@ -47,6 +50,7 @@ import {
 } from '@/utils/engine/contestLibrary';
 import { selectContestSet, type ContestCandidate } from '@/utils/engine/contest';
 import { startFilteredContest } from '@/store/actions';
+import { selectPatternWeakness } from '@/store/selectors';
 import type { FilteredContestProblem } from '@/store/slices/contestSlice';
 import questionsData from '@/data/questions.json';
 import { useAppDispatch, useAppSelector } from '@/store/hooks';
@@ -237,9 +241,12 @@ interface ProblemRowProps {
   problem: ContestLibraryProblem;
   state: ContestProblemState | undefined;
   today: string;
+  /** Sit this problem's contest of origin again, Q1 first — the whole contest, under the clock. */
+  onRecreate: () => void;
+  recreateDisabled: boolean;
 }
 
-function ProblemRow({ problem, state, today }: ProblemRowProps) {
+function ProblemRow({ problem, state, today, onRecreate, recreateDisabled }: ProblemRowProps) {
   const due = state !== undefined && state.nextRevision !== null && state.nextRevision <= today;
   const status =
     state === undefined ? null : due ? 'Due' : state.solved ? 'Solved' : state.attempts > 0 ? 'Attempted' : null;
@@ -386,14 +393,28 @@ function ProblemRow({ problem, state, today }: ProblemRowProps) {
             </p>
           )}
 
-          <a
-            href={problem.url}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="self-start text-sm font-medium text-primary hover:underline"
-          >
-            Open on LeetCode →
-          </a>
+          <div className="flex flex-wrap items-center gap-x-4 gap-y-2">
+            {/* Every contest in the library is complete (639 × Q1–Q4, one × Q1–Q5, measured
+                2026-08-20), so this is always the whole contest — never a partial set wearing
+                the name. */}
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={onRecreate}
+              disabled={recreateDisabled}
+              title={recreateDisabled ? 'A contest is already running — finish it first.' : undefined}
+            >
+              Recreate this contest
+            </Button>
+            <a
+              href={problem.url}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="text-sm font-medium text-primary hover:underline"
+            >
+              Open on LeetCode →
+            </a>
+          </div>
         </div>
       </details>
     </RuledItem>
@@ -514,11 +535,42 @@ export default function ContestPracticePage() {
     [matches, lookup],
   );
 
-  // The §63 journey: filters → a seeded 4-problem timed set → ContestPage's clock. Seeded by the
-  // date AND the filter signature, so the same filters rebuild the same set today — until a solve
-  // removes a problem from the pool, exactly Full Contest's own seeding promise.
-  function startContestFromFilters() {
-    const candidates: ContestCandidate[] = drawPool.map((p) => ({
+  // Weak patterns resolve HERE, at the lazy page's call site, never in the store — the one
+  // weakness model's output, head-of-list order preserved. Only confident (exact/strong)
+  // mappings may satisfy the `aicmPatterns` filter, so a problem can never land in the weak
+  // pool on the strength of a guess.
+  const weakness = useAppSelector((s) => selectPatternWeakness(s, today));
+  const weakPatterns = useMemo(() => weakness.map((w) => w.id), [weakness]);
+  const weakPool = useMemo(
+    () =>
+      weakPatterns.length === 0
+        ? []
+        : filterContestProblems(
+            CONTEST_PROBLEMS,
+            { aicmPatterns: weakPatterns },
+            lookup,
+            today,
+          ).filter((p) => lookup(p.slug)?.solved !== true),
+    [weakPatterns, lookup, today],
+  );
+
+  /**
+   * What the learner's own contest practice says about the band worth working in. The evidence is
+   * the slug register only — bridged curriculum solves are done with the roadmap's guidance and no
+   * clock, so they say nothing about contest conditions. Below `recommendBand`'s stated minimum
+   * this is null and the page simply says nothing; the Contest Revision rail is the surface that
+   * narrates progress toward the threshold.
+   */
+  const bandReading = useMemo(
+    () =>
+      recommendBand(
+        bandEvidenceFromRegister(contestBySlug, (slug) => index.bySlug.get(slug)?.contestRating),
+      ),
+    [contestBySlug, index],
+  );
+
+  const toCandidates = (pool: readonly ContestLibraryProblem[]): ContestCandidate[] =>
+    pool.map((p) => ({
       key: p.slug,
       difficulty: p.officialDifficulty,
       patterns: p.aicmPatterns,
@@ -529,31 +581,18 @@ export default function ContestPracticePage() {
       contestRating: p.contestRating,
       contestSlug: p.contest.slug,
     }));
-    const seed = `${today}|${JSON.stringify(engineFilter)}`;
-    const picked = selectContestSet(
-      candidates,
-      { count: DRAW_COUNT, distinctPatterns: true, distinctContests: true },
-      seed,
-    );
-    if (picked.length === 0) return;
 
-    const rows: FilteredContestProblem[] = picked.map((candidate, i) => {
+  // The ONE FilteredContestProblem mapping, shared by every entry point — the negative-id rule
+  // lives here and nowhere else. Bridged rows keep their curriculum identity (one problem, one
+  // record); library-only rows get a sitting-local NEGATIVE key so nothing numeric can ever
+  // collide with the roadmap's id space (the ID trap).
+  const toRows = (
+    picked: ContestCandidate[],
+    reasonsFor: (p: ContestLibraryProblem) => string[],
+  ): FilteredContestProblem[] =>
+    picked.map((candidate, i) => {
       const p = index.bySlug.get(candidate.key)!;
-      // The reason names the pattern the learner FILTERED BY, not the problem's first tag.
-      // "Minimum Operations to Make Binary Palindrome" carries
-      // ['bitwise-manipulation','modified-binary-search','two-pointers'], so a two-pointers draw
-      // was explaining itself with "Why this problem? Bitwise Manipulation" — a stated reason
-      // that had nothing to do with why the problem was selected. Falls back to the first tag
-      // when no pattern filter is set, or when the match came from an inferred pattern (which is
-      // evidentially inert and must never be named as a confident claim).
-      const primary =
-        filters.pattern !== 'all' && p.aicmPatterns.includes(filters.pattern)
-          ? filters.pattern
-          : p.aicmPatterns[0];
       return {
-        // Bridged rows keep their curriculum identity (one problem, one record); library-only
-        // rows get a sitting-local NEGATIVE key so nothing numeric can ever collide with the
-        // roadmap's id space (the ID trap).
         id: p.curriculumQuestionId ?? -(i + 1),
         kind: p.curriculumQuestionId !== null ? ('curriculum' as const) : ('library' as const),
         slug: p.slug,
@@ -569,17 +608,108 @@ export default function ContestPracticePage() {
         contestRating: p.contestRating,
         frontendId: p.frontendId,
         premium: p.premium,
-        reasons: selectionReason(
+        reasons: reasonsFor(p),
+      };
+    });
+
+  function startSitting(rows: FilteredContestProblem[], seed: string) {
+    if (rows.length === 0) return;
+    dispatch(startFilteredContest(rows, seed));
+    navigate('/contest');
+  }
+
+  // The §63 journey: filters → a seeded 4-problem timed set → ContestPage's clock. Seeded by the
+  // date AND the filter signature, so the same filters rebuild the same set today — until a solve
+  // removes a problem from the pool, exactly Full Contest's own seeding promise.
+  function startContestFromFilters() {
+    const seed = `${today}|${JSON.stringify(engineFilter)}`;
+    const picked = selectContestSet(
+      toCandidates(drawPool),
+      { count: DRAW_COUNT, distinctPatterns: true, distinctContests: true },
+      seed,
+    );
+    startSitting(
+      toRows(picked, (p) => {
+        // The reason names the pattern the learner FILTERED BY, not the problem's first tag.
+        // "Minimum Operations to Make Binary Palindrome" carries
+        // ['bitwise-manipulation','modified-binary-search','two-pointers'], so a two-pointers
+        // draw was explaining itself with "Why this problem? Bitwise Manipulation" — a stated
+        // reason that had nothing to do with why the problem was selected. Falls back to the
+        // first tag when no pattern filter is set, or when the match came from an inferred
+        // pattern (which is evidentially inert and must never be named as a confident claim).
+        const primary =
+          filters.pattern !== 'all' && p.aicmPatterns.includes(filters.pattern)
+            ? filters.pattern
+            : p.aicmPatterns[0];
+        return selectionReason(
           p,
           lookup(p.slug),
           today,
           primary ? patternById[primary].name : undefined,
-        ),
-      };
-    });
+        );
+      }),
+      seed,
+    );
+  }
 
-    dispatch(startFilteredContest(rows, seed));
-    navigate('/contest');
+  // The weak-areas contest (slice 7): a mixed-pattern set drawn from the patterns the one
+  // weakness model names. `distinctPatterns: false` on purpose — this draw exists to concentrate
+  // on weakness, and forcing the set to span patterns would dilute the very thing it is for.
+  // Contest diversity stays on: four problems from one afternoon is a different sitting.
+  function startWeakAreasContest() {
+    const seed = `${today}|weak|${weakPatterns.join(',')}`;
+    const picked = selectContestSet(
+      toCandidates(weakPool),
+      { count: DRAW_COUNT, distinctPatterns: false, distinctContests: true },
+      seed,
+    );
+    startSitting(
+      toRows(picked, (p) => {
+        // The stated reason is the actual selection reason: the weak pattern this problem
+        // carries (strongest-ranked first), then the one weakness model's own sentence.
+        const primary = weakPatterns.find((w) => p.aicmPatterns.includes(w)) ?? p.aicmPatterns[0];
+        const reasons = selectionReason(
+          p,
+          lookup(p.slug),
+          today,
+          primary ? patternById[primary].name : undefined,
+        );
+        reasons.splice(primary ? 1 : 0, 0, WEAK_PATTERN_REASON);
+        return reasons;
+      }),
+      seed,
+    );
+  }
+
+  // Recreate contest (slice 7): one contest's own problems, original Q-order, under the clock.
+  // Solved rows are INCLUDED — a recreation is the whole contest, not the unsolved remainder of
+  // one, and both solve paths are idempotent so nothing can be farmed. `distinctContests: false`
+  // because taking every problem from one sitting is the entire point; the count is the contest's
+  // own size, so Weekly 68's Q5 rides along rather than being capped at the draw size.
+  function recreateContest(contestSlug: string) {
+    const members = (index.byContest.get(contestSlug) ?? []).map(
+      (slug) => index.bySlug.get(slug)!,
+    );
+    const seed = `${today}|recreate|${contestSlug}`;
+    const picked = selectContestSet(
+      toCandidates(members),
+      { count: members.length, distinctPatterns: false, distinctContests: false },
+      seed,
+    );
+    picked.sort(
+      (a, b) => index.bySlug.get(a.key)!.contest.index - index.bySlug.get(b.key)!.contest.index,
+    );
+    startSitting(
+      toRows(picked, (p) =>
+        selectionReason(
+          p,
+          lookup(p.slug),
+          today,
+          p.aicmPatterns[0] ? patternById[p.aicmPatterns[0]].name : undefined,
+        ),
+      ),
+      seed,
+    );
   }
 
   return (
@@ -589,13 +719,32 @@ export default function ContestPracticePage() {
         title="Contest Library"
         support="A pool of rated contest problems to draw practice from — filter by pattern and rating, then start a timed set from what matches."
         action={
-          <Button
-            onClick={startContestFromFilters}
-            disabled={drawPool.length === 0 || contestRunning}
-            title={contestRunning ? 'A contest is already running — finish it first.' : undefined}
-          >
-            <Play /> Start contest
-          </Button>
+          <div className="flex flex-wrap items-center justify-end gap-2">
+            {/* A mixed-pattern draw from the one weakness model's output. Disabled — never
+                hidden — when weakness has nothing to say: the affordance stays discoverable
+                while the claim it rests on fails toward silence. */}
+            <Button
+              variant="outline"
+              onClick={startWeakAreasContest}
+              disabled={weakPool.length === 0 || contestRunning}
+              title={
+                contestRunning
+                  ? 'A contest is already running — finish it first.'
+                  : weakPatterns.length === 0
+                    ? 'Nothing yet says a pattern is not holding — recognition drills and graded reviews build that evidence.'
+                    : undefined
+              }
+            >
+              Weak-areas contest
+            </Button>
+            <Button
+              onClick={startContestFromFilters}
+              disabled={drawPool.length === 0 || contestRunning}
+              title={contestRunning ? 'A contest is already running — finish it first.' : undefined}
+            >
+              <Play /> Start contest
+            </Button>
+          </div>
         }
       />
 
@@ -637,6 +786,32 @@ export default function ContestPracticePage() {
                 format={(id) => BAND_LABEL[id] ?? id}
               />
             </div>
+
+            {/* The band reading (slice 7), beside the control it informs. A statement about the
+                PROBLEMS, never about the learner (§31), with its sample size in the sentence —
+                the timeEstimate.ts discipline. Below the evidence minimum it renders nothing;
+                the Contest Revision rail is where progress toward the threshold is narrated. */}
+            {bandReading && (
+              <p className="max-w-prose text-sm text-muted-foreground">
+                {bandReading.statement}{' '}
+                <span className="figures">
+                  From {bandReading.sampleSize} rated{' '}
+                  {bandReading.sampleSize === 1 ? 'outcome' : 'outcomes'}.
+                </span>
+                {filters.band !== bandReading.band.id && (
+                  <>
+                    {' '}
+                    <button
+                      type="button"
+                      onClick={() => set({ band: bandReading.band.id })}
+                      className="font-medium text-primary hover:underline"
+                    >
+                      Filter to {bandReading.band.label}
+                    </button>
+                  </>
+                )}
+              </p>
+            )}
 
             <Disclosure
               summary="More filters"
@@ -762,7 +937,14 @@ export default function ContestPracticePage() {
             ) : (
               <RuledList aria-label="Contest problems">
                 {visible.map((p) => (
-                  <ProblemRow key={p.slug} problem={p} state={lookup(p.slug)} today={today} />
+                  <ProblemRow
+                    key={p.slug}
+                    problem={p}
+                    state={lookup(p.slug)}
+                    today={today}
+                    onRecreate={() => recreateContest(p.contest.slug)}
+                    recreateDisabled={contestRunning}
+                  />
                 ))}
                 {hidden > 0 && (
                   <RuledItem padded={false}>

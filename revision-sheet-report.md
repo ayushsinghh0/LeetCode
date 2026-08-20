@@ -56,6 +56,52 @@ Of the 1,016 unique problems, **295** are on your 539 roadmap. Your rule —
 *revision must not repeat what the roadmap already covers* — is therefore satisfiable by
 construction, not by a filter you have to remember to apply.
 
+---
+
+## Coverage by topic — what you have, and what is missing
+
+The table every plan should start from: per topic, how many distinct LeetCode problems the
+sheet names, how many this repository already tracks, and how many would have to be added.
+
+> **The topic counts deliberately do not sum to 1,016.** A problem the sheet lists under two
+> topics is counted once in each, because for revision it genuinely belongs to both. The
+> **Total** row is the de-duplicated truth across the whole sheet, which is why it is smaller
+> than the column above it.
+
+| Topic | Unique problems | Already have | on roadmap | in library | **Need to add** | Have |
+|---|---:|---:|---:|---:|---:|---|
+| 2 Pointers | 39 | 34 | 17 | 17 | **5** | 87% |
+| Prefix Sum | 23 | 19 | 3 | 16 | **4** | 83% |
+| Matrix | 44 | 44 | 12 | 32 | 0 | 100% |
+| Hashing | 91 | 82 | 18 | 64 | **9** | 90% |
+| Sliding Window | 37 | 36 | 17 | 19 | **1** | 97% |
+| Linked List | 25 | 20 | 16 | 4 | **5** | 80% |
+| Stack | 56 | 48 | 18 | 30 | **8** | 86% |
+| Queue | 16 | 12 | 3 | 9 | **4** | 75% |
+| Binary Search | 80 | 69 | 29 | 40 | **11** | 86% |
+| Bit Manipulation | 39 | 28 | 9 | 19 | **11** | 72% |
+| Recursion & Backtracking | 35 | 26 | 17 | 9 | **9** | 74% |
+| Binary Tree | 36 | 20 | 14 | 6 | **16** | 56% |
+| Binary Search Tree | 26 | 14 | 4 | 10 | **12** | 54% |
+| Heap (Priority Queue) | 68 | 64 | 30 | 34 | **4** | 94% |
+| Tries | 30 | 26 | 12 | 14 | **4** | 87% |
+| Greedy | 54 | 49 | 11 | 38 | **5** | 91% |
+| Dynamic Programming Level 1 | 156 | 116 | 35 | 81 | **40** | 74% |
+| Graphs | 97 | 92 | 31 | 61 | **5** | 95% |
+| Combinatorics & Geometry | 28 | 24 | 11 | 13 | **4** | 86% |
+| Game Theory | 10 | 8 | 1 | 7 | **2** | 80% |
+| Dynamic Programming Level 2 | 49 | 40 | 5 | 35 | **9** | 82% |
+| String Matching Algos | 16 | 15 | 1 | 14 | **1** | 94% |
+| Advance algorithm | 17 | 13 | 1 | 12 | **4** | 76% |
+| *(sum of the column above — counts overlaps twice)* | *1072* | *899* | *315* | *584* | *173* | |
+| **Total, de-duplicated** | **1,016** | **857** | **295** | **562** | **159** | **84%** |
+
+**Where the gaps actually are.** 1 of the 23 topics needs **nothing added at all** (Matrix). The additions concentrate in a handful of topics: **Dynamic Programming Level 1** (40), **Binary Tree** (16), **Binary Search Tree** (12), **Binary Search** (11), **Bit Manipulation** (11).
+
+Read the `on roadmap` column as the one that matters for your no-repeat rule: those are the
+**295** problems a revision draw has to exclude by default, and the table shows exactly
+which topics that thins out most.
+
 ## Reading the tables
 
 | Column | Meaning |
@@ -1873,167 +1919,277 @@ construction, not by a filter you have to remember to apply.
 These are in neither the 539 nor the contest library. They are the only additions integration
 actually requires; everything else the sheet names, this repository already tracks.
 
-| # | Problem | Difficulty | Topic |
+**Grouped by topic**, because that is the order you would actually add them in. A problem the
+sheet lists under two topics appears under the first one here.
+
+### 2 Pointers — 5 to add
+
+| # | Problem | Difficulty | Sub-topic |
 |---:|---|---|---|
-| 1 | [Two Sum](https://leetcode.com/problems/two-sum/) | Easy | 2 Pointers |
-| 4 | [Median of Two Sorted Arrays](https://leetcode.com/problems/median-of-two-sorted-arrays/) | Hard | Binary Search |
-| 5 | [Longest Palindromic Substring](https://leetcode.com/problems/longest-palindromic-substring/) | Medium | Dynamic Programming Level 1 |
-| 11 | [Container With Most Water](https://leetcode.com/problems/container-with-most-water/) | Medium | 2 Pointers |
-| 16 | [3Sum Closest](https://leetcode.com/problems/3sum-closest/) | Medium | 2 Pointers |
-| 18 | [4Sum](https://leetcode.com/problems/4sum/) | Medium | 2 Pointers |
-| 21 | [Merge Two Sorted Lists](https://leetcode.com/problems/merge-two-sorted-lists/) | Easy | Linked List |
-| 29 | [Divide Two Integers](https://leetcode.com/problems/divide-two-integers/) | Medium | Bit Manipulation |
-| 40 | [Combination Sum II](https://leetcode.com/problems/combination-sum-ii/) | Medium | Recursion & Backtracking |
-| 42 | [Trapping Rain Water](https://leetcode.com/problems/trapping-rain-water/) | Hard | Stack |
-| 53 | [Maximum Subarray](https://leetcode.com/problems/maximum-subarray/) | Medium | Dynamic Programming Level 1 |
-| 60 | [Permutation Sequence](https://leetcode.com/problems/permutation-sequence/) | Hard | Recursion & Backtracking |
-| 62 | [Unique Paths](https://leetcode.com/problems/unique-paths/) | Medium | Dynamic Programming Level 1 |
-| 63 | [Unique Paths II](https://leetcode.com/problems/unique-paths-ii/) | Medium | Dynamic Programming Level 1 |
-| 67 | [Add Binary](https://leetcode.com/problems/add-binary/) | Easy | Bit Manipulation |
-| 74 | [Search a 2D Matrix](https://leetcode.com/problems/search-a-2d-matrix/) | Medium | Binary Search |
-| 84 | [Largest Rectangle in Histogram](https://leetcode.com/problems/largest-rectangle-in-histogram/) | Hard | Stack |
-| 89 | [Gray Code](https://leetcode.com/problems/gray-code/) | Medium | Bit Manipulation |
-| 94 | [Binary Tree Inorder Traversal](https://leetcode.com/problems/binary-tree-inorder-traversal/) | Easy | Binary Tree |
-| 96 | [Unique Binary Search Trees](https://leetcode.com/problems/unique-binary-search-trees/) | Medium | Binary Search Tree |
-| 99 | [Recover Binary Search Tree](https://leetcode.com/problems/recover-binary-search-tree/) | Medium | Binary Search Tree |
-| 100 | [Same Tree](https://leetcode.com/problems/same-tree/) | Easy | Binary Tree |
-| 106 | [Construct Binary Tree from Inorder and Postorder Traversal](https://leetcode.com/problems/construct-binary-tree-from-inorder-and-postorder-traversal/) | Medium | Binary Tree |
-| 107 | [Binary Tree Level Order Traversal II](https://leetcode.com/problems/binary-tree-level-order-traversal-ii/) | Medium | Binary Tree |
-| 109 | [Convert Sorted List to Binary Search Tree](https://leetcode.com/problems/convert-sorted-list-to-binary-search-tree/) | Medium | Binary Search Tree |
-| 110 | [Balanced Binary Tree](https://leetcode.com/problems/balanced-binary-tree/) | Easy | Binary Tree |
-| 111 | [Minimum Depth of Binary Tree](https://leetcode.com/problems/minimum-depth-of-binary-tree/) | Easy | Binary Tree |
-| 113 | [Path Sum II](https://leetcode.com/problems/path-sum-ii/) | Medium | Binary Tree |
-| 129 | [Sum Root to Leaf Numbers](https://leetcode.com/problems/sum-root-to-leaf-numbers/) | Medium | Binary Tree |
-| 130 | [Surrounded Regions](https://leetcode.com/problems/surrounded-regions/) | Medium | Graphs |
-| 132 | [Palindrome Partitioning II](https://leetcode.com/problems/palindrome-partitioning-ii/) | Hard | Dynamic Programming Level 1 |
-| 138 | [Copy List with Random Pointer](https://leetcode.com/problems/copy-list-with-random-pointer/) | Medium | Linked List |
-| 142 | [Linked List Cycle II](https://leetcode.com/problems/linked-list-cycle-ii/) | Medium | Linked List |
-| 145 | [Binary Tree Postorder Traversal](https://leetcode.com/problems/binary-tree-postorder-traversal/) | Easy | Binary Tree |
-| 148 | [Sort List](https://leetcode.com/problems/sort-list/) | Medium | Linked List |
-| 150 | [Evaluate Reverse Polish Notation](https://leetcode.com/problems/evaluate-reverse-polish-notation/) | Medium | Stack |
-| 153 | [Find Minimum in Rotated Sorted Array](https://leetcode.com/problems/find-minimum-in-rotated-sorted-array/) | Medium | Binary Search |
-| 169 | [Majority Element](https://leetcode.com/problems/majority-element/) | Easy | Hashing |
-| 173 | [Binary Search Tree Iterator](https://leetcode.com/problems/binary-search-tree-iterator/) | Medium | Binary Search Tree |
-| 188 | [Best Time to Buy and Sell Stock IV](https://leetcode.com/problems/best-time-to-buy-and-sell-stock-iv/) | Hard | Dynamic Programming Level 1 |
-| 191 | [Number of 1 Bits](https://leetcode.com/problems/number-of-1-bits/) | Easy | Bit Manipulation |
-| 198 | [House Robber](https://leetcode.com/problems/house-robber/) | Medium | Dynamic Programming Level 1 |
-| 201 | [Bitwise AND of Numbers Range](https://leetcode.com/problems/bitwise-and-of-numbers-range/) | Medium | Bit Manipulation |
-| 214 | [Shortest Palindrome](https://leetcode.com/problems/shortest-palindrome/) | Hard | String Matching Algos |
-| 216 | [Combination Sum III](https://leetcode.com/problems/combination-sum-iii/) | Medium | Recursion & Backtracking |
-| 217 | [Contains Duplicate](https://leetcode.com/problems/contains-duplicate/) | Easy | Hashing |
-| 222 | [Count Complete Tree Nodes](https://leetcode.com/problems/count-complete-tree-nodes/) | Medium | Binary Tree |
-| 225 | [Implement Stack using Queues](https://leetcode.com/problems/implement-stack-using-queues/) | Easy | Queue |
-| 229 | [Majority Element II](https://leetcode.com/problems/majority-element-ii/) | Medium | Hashing |
-| 233 | [Number of Digit One](https://leetcode.com/problems/number-of-digit-one/) | Hard | Dynamic Programming Level 2 |
-| 235 | [Lowest Common Ancestor of a Binary Search Tree](https://leetcode.com/problems/lowest-common-ancestor-of-a-binary-search-tree/) | Medium | Binary Search Tree |
+| 1 | [Two Sum](https://leetcode.com/problems/two-sum/) | Easy | Two Pointer on Arrays |
+| 11 | [Container With Most Water](https://leetcode.com/problems/container-with-most-water/) | Medium | Two Pointer on Arrays |
+| 16 | [3Sum Closest](https://leetcode.com/problems/3sum-closest/) | Medium | Two Pointer on Arrays |
+| 18 | [4Sum](https://leetcode.com/problems/4sum/) | Medium | Two Pointer on Arrays |
+| 557 | [Reverse Words in a String III](https://leetcode.com/problems/reverse-words-in-a-string-iii/) | Easy | Two Pointer on Strings |
+
+### Prefix Sum — 4 to add
+
+| # | Problem | Difficulty | Sub-topic |
+|---:|---|---|---|
 | 238 | [Product of Array Except Self](https://leetcode.com/problems/product-of-array-except-self/) | Medium | Prefix Sum |
-| 240 | [Search a 2D Matrix II](https://leetcode.com/problems/search-a-2d-matrix-ii/) | Medium | Binary Search |
-| 241 | [Different Ways to Add Parentheses](https://leetcode.com/problems/different-ways-to-add-parentheses/) | Medium | Recursion & Backtracking |
-| 260 | [Single Number III](https://leetcode.com/problems/single-number-iii/) | Medium | Bit Manipulation |
-| 264 | [Ugly Number II](https://leetcode.com/problems/ugly-number-ii/) | Medium | Heap (Priority Queue) |
-| 275 | [H-Index II](https://leetcode.com/problems/h-index-ii/) | Medium | Binary Search |
-| 300 | [Longest Increasing Subsequence](https://leetcode.com/problems/longest-increasing-subsequence/) | Medium | Dynamic Programming Level 1 |
 | 304 | [Range Sum Query 2D - Immutable](https://leetcode.com/problems/range-sum-query-2d-immutable/) | Medium | Prefix Sum |
-| 307 | [Range Sum Query - Mutable](https://leetcode.com/problems/range-sum-query-mutable/) | Medium | Advance algorithm |
-| 309 | [Best Time to Buy and Sell Stock with Cooldown](https://leetcode.com/problems/best-time-to-buy-and-sell-stock-with-cooldown/) | Medium | Dynamic Programming Level 1 |
-| 310 | [Minimum Height Trees](https://leetcode.com/problems/minimum-height-trees/) | Medium | Graphs |
-| 327 | [Count of Range Sum](https://leetcode.com/problems/count-of-range-sum/) | Hard | Advance algorithm |
-| 330 | [Patching Array](https://leetcode.com/problems/patching-array/) | Hard | Greedy |
-| 342 | [Power of Four](https://leetcode.com/problems/power-of-four/) | Easy | Bit Manipulation |
-| 357 | [Count Numbers with Unique Digits](https://leetcode.com/problems/count-numbers-with-unique-digits/) | Medium | Dynamic Programming Level 2 |
-| 363 | [Max Sum of Rectangle No Larger Than K](https://leetcode.com/problems/max-sum-of-rectangle-no-larger-than-k/) | Hard | Dynamic Programming Level 1 |
-| 368 | [Largest Divisible Subset](https://leetcode.com/problems/largest-divisible-subset/) | Medium | Dynamic Programming Level 1 |
-| 371 | [Sum of Two Integers](https://leetcode.com/problems/sum-of-two-integers/) | Medium | Bit Manipulation |
-| 374 | [Guess Number Higher or Lower](https://leetcode.com/problems/guess-number-higher-or-lower/) | Easy | Binary Search |
-| 375 | [Guess Number Higher or Lower II](https://leetcode.com/problems/guess-number-higher-or-lower-ii/) | Medium | Dynamic Programming Level 1 |
-| 376 | [Wiggle Subsequence](https://leetcode.com/problems/wiggle-subsequence/) | Medium | Greedy |
-| 377 | [Combination Sum IV](https://leetcode.com/problems/combination-sum-iv/) | Medium | Dynamic Programming Level 1 |
-| 382 | [Linked List Random Node](https://leetcode.com/problems/linked-list-random-node/) | Medium | Linked List |
-| 391 | [Perfect Rectangle](https://leetcode.com/problems/perfect-rectangle/) | Hard | Prefix Sum |
-| 393 | [UTF-8 Validation](https://leetcode.com/problems/utf-8-validation/) | Medium | Bit Manipulation |
-| 406 | [Queue Reconstruction by Height](https://leetcode.com/problems/queue-reconstruction-by-height/) | Medium | Greedy |
-| 407 | [Trapping Rain Water II](https://leetcode.com/problems/trapping-rain-water-ii/) | Hard | Heap (Priority Queue) |
-| 413 | [Arithmetic Slices](https://leetcode.com/problems/arithmetic-slices/) | Medium | Dynamic Programming Level 1 |
-| 419 | [Battleships in a Board](https://leetcode.com/problems/battleships-in-a-board/) | Medium | Graphs |
-| 421 | [Maximum XOR of Two Numbers in an Array](https://leetcode.com/problems/maximum-xor-of-two-numbers-in-an-array/) | Medium | Tries |
-| 423 | [Reconstruct Original Digits from English](https://leetcode.com/problems/reconstruct-original-digits-from-english/) | Medium | Hashing |
-| 435 | [Non-Overlapping Intervals](https://leetcode.com/problems/non-overlapping-intervals/) | Medium | Greedy |
-| 437 | [Path Sum III](https://leetcode.com/problems/path-sum-iii/) | Medium | Binary Tree |
-| 441 | [Arranging Coins](https://leetcode.com/problems/arranging-coins/) | Easy | Binary Search |
-| 442 | [Find All Duplicates in an Array](https://leetcode.com/problems/find-all-duplicates-in-an-array/) | Medium | Hashing |
-| 449 | [Serialize and Deserialize BST](https://leetcode.com/problems/serialize-and-deserialize-bst/) | Medium | Binary Search Tree |
-| 450 | [Delete Node in a BST](https://leetcode.com/problems/delete-node-in-a-bst/) | Medium | Binary Search Tree |
-| 451 | [Sort Characters by Frequency](https://leetcode.com/problems/sort-characters-by-frequency/) | Medium | Hashing |
-| 454 | [4Sum II](https://leetcode.com/problems/4sum-ii/) | Medium | Hashing |
-| 456 | [132 Pattern](https://leetcode.com/problems/132-pattern/) | Medium | Stack |
-| 464 | [Can I Win](https://leetcode.com/problems/can-i-win/) | Medium | Game Theory |
-| 467 | [Unique Substrings in Wraparound String](https://leetcode.com/problems/unique-substrings-in-wraparound-string/) | Medium | Dynamic Programming Level 1 |
-| 472 | [Concatenated Words](https://leetcode.com/problems/concatenated-words/) | Hard | Dynamic Programming Level 1 |
-| 474 | [Ones and Zeroes](https://leetcode.com/problems/ones-and-zeroes/) | Medium | Dynamic Programming Level 1 |
-| 475 | [Heaters](https://leetcode.com/problems/heaters/) | Medium | Binary Search |
-| 476 | [Number Complement](https://leetcode.com/problems/number-complement/) | Easy | Bit Manipulation |
-| 477 | [Total Hamming Distance](https://leetcode.com/problems/total-hamming-distance/) | Medium | Bit Manipulation |
-| 478 | [Generate Random Point in a Circle](https://leetcode.com/problems/generate-random-point-in-a-circle/) | Medium | Combinatorics & Geometry |
-| 486 | [Predict the Winner](https://leetcode.com/problems/predict-the-winner/) | Medium | Recursion & Backtracking |
-| 491 | [Non-Decreasing Subsequences](https://leetcode.com/problems/non-decreasing-subsequences/) | Medium | Recursion & Backtracking |
-| 494 | [Target Sum](https://leetcode.com/problems/target-sum/) | Medium | Recursion & Backtracking |
-| 501 | [Find Mode in Binary Search Tree](https://leetcode.com/problems/find-mode-in-binary-search-tree/) | Easy | Binary Search Tree |
-| 503 | [Next Greater Element II](https://leetcode.com/problems/next-greater-element-ii/) | Medium | Stack |
-| 506 | [Relative Ranks](https://leetcode.com/problems/relative-ranks/) | Easy | Heap (Priority Queue) |
-| 516 | [Longest Palindromic Subsequence](https://leetcode.com/problems/longest-palindromic-subsequence/) | Medium | Dynamic Programming Level 1 |
-| 517 | [Super Washing Machines](https://leetcode.com/problems/super-washing-machines/) | Hard | Greedy |
-| 518 | [Coin Change II](https://leetcode.com/problems/coin-change-ii/) | Medium | Dynamic Programming Level 1 |
-| 526 | [Beautiful Arrangement](https://leetcode.com/problems/beautiful-arrangement/) | Medium | Recursion & Backtracking |
-| 528 | [Random Pick with Weight](https://leetcode.com/problems/random-pick-with-weight/) | Medium | Binary Search |
-| 538 | [Convert BST to Greater Tree](https://leetcode.com/problems/convert-bst-to-greater-tree/) | Medium | Binary Search Tree |
-| 546 | [Remove Boxes](https://leetcode.com/problems/remove-boxes/) | Hard | Dynamic Programming Level 1 |
-| 547 | [Number of Provinces](https://leetcode.com/problems/number-of-provinces/) | Medium | Graphs |
-| 552 | [Student Attendance Record Leetcode](https://leetcode.com/problems/student-attendance-record-ii/) | Hard | Dynamic Programming Level 1 |
-| 554 | [Brick Wall](https://leetcode.com/problems/brick-wall/) | Medium | Hashing |
-| 557 | [Reverse Words in a String III](https://leetcode.com/problems/reverse-words-in-a-string-iii/) | Easy | 2 Pointers |
-| 559 | [Maximum Depth of N-ary Tree](https://leetcode.com/problems/maximum-depth-of-n-ary-tree/) | Easy | Binary Tree |
-| 572 | [Subtree of Another Tree](https://leetcode.com/problems/subtree-of-another-tree/) | Easy | Binary Tree |
-| 575 | [Distribute Candies](https://leetcode.com/problems/distribute-candies/) | Easy | Hashing |
-| 576 | [Out of Boundary Paths](https://leetcode.com/problems/out-of-boundary-paths/) | Medium | Dynamic Programming Level 1 |
-| 581 | [Shortest Unsorted Continuous Subarray](https://leetcode.com/problems/shortest-unsorted-continuous-subarray/) | Medium | Stack |
-| 583 | [Delete operation for two strings](https://leetcode.com/problems/delete-operation-for-two-strings/) | Medium | Dynamic Programming Level 1 |
-| 589 | [N-ary Tree Preorder Traversal](https://leetcode.com/problems/n-ary-tree-preorder-traversal/) | Easy | Binary Tree |
-| 590 | [N-ary Tree Postorder Traversal](https://leetcode.com/problems/n-ary-tree-postorder-traversal/) | Easy | Binary Tree |
-| 600 | [Non-negative Integers without Consecutive Ones](https://leetcode.com/problems/non-negative-integers-without-consecutive-ones/) | Hard | Dynamic Programming Level 2 |
-| 617 | [Merge Two Binary Trees](https://leetcode.com/problems/merge-two-binary-trees/) | Easy | Binary Tree |
-| 622 | [Design Circular Queue](https://leetcode.com/problems/design-circular-queue/) | Medium | Queue |
-| 629 | [K Inverse Pairs Array](https://leetcode.com/problems/k-inverse-pairs-array/) | Hard | Dynamic Programming Level 1 |
-| 638 | [Shopping Offers](https://leetcode.com/problems/shopping-offers/) | Medium | Dynamic Programming Level 1 |
-| 641 | [Design Circular Deque](https://leetcode.com/problems/design-circular-deque/) | Medium | Queue |
-| 646 | [Maximum Length of Pair Chain](https://leetcode.com/problems/maximum-length-of-pair-chain/) | Medium | Dynamic Programming Level 1 |
-| 649 | [Dota2 Senate](https://leetcode.com/problems/dota2-senate/) | Medium | Queue |
-| 650 | [2 Keys Keyboard](https://leetcode.com/problems/2-keys-keyboard/) | Medium | Dynamic Programming Level 1 |
-| 654 | [Maximum Binary Tree](https://leetcode.com/problems/maximum-binary-tree/) | Medium | Advance algorithm |
-| 664 | [Strange Printer](https://leetcode.com/problems/strange-printer/) | Hard | Dynamic Programming Level 1 |
-| 669 | [Trim a Binary Search Tree](https://leetcode.com/problems/trim-a-binary-search-tree/) | Medium | Binary Search Tree |
-| 676 | [Implement Magic Dictionary](https://leetcode.com/problems/implement-magic-dictionary/) | Medium | Tries |
-| 685 | [Redundant Connection II](https://leetcode.com/problems/redundant-connection-ii/) | Hard | Graphs |
-| 688 | [Knight Probability in Chessboard](https://leetcode.com/problems/knight-probability-in-chessboard/) | Medium | Dynamic Programming Level 2 |
-| 689 | [Maximum Sum of 3 Non-Overlapping Subarrays](https://leetcode.com/problems/maximum-sum-of-3-non-overlapping-subarrays/) | Hard | Sliding Window |
-| 691 | [Stickers to Spell Word](https://leetcode.com/problems/stickers-to-spell-word/) | Hard | Dynamic Programming Level 2 |
-| 698 | [Partition to K Equal Sum Subsets](https://leetcode.com/problems/partition-to-k-equal-sum-subsets/) | Medium | Dynamic Programming Level 2 |
-| 699 | [Falling Squares](https://leetcode.com/problems/falling-squares/) | Hard | Advance algorithm |
-| 700 | [Search in a Binary Search Tree](https://leetcode.com/problems/search-in-a-binary-search-tree/) | Easy | Binary Search Tree |
-| 701 | [Insert into a Binary Search Tree](https://leetcode.com/problems/insert-into-a-binary-search-tree/) | Medium | Binary Search Tree |
-| 712 | [Minimum ASCII Delete Sum for Two Strings](https://leetcode.com/problems/minimum-ascii-delete-sum-for-two-strings/) | Medium | Dynamic Programming Level 1 |
-| 714 | [Best Time to Buy and Sell Stock with Transaction Fee](https://leetcode.com/problems/best-time-to-buy-and-sell-stock-with-transaction-fee/) | Medium | Dynamic Programming Level 1 |
-| 718 | [Maximum Length of Repeated Subarray](https://leetcode.com/problems/maximum-length-of-repeated-subarray/) | Medium | Dynamic Programming Level 1 |
-| 720 | [Longest Word in Dictionary](https://leetcode.com/problems/longest-word-in-dictionary/) | Medium | Tries |
-| 726 | [Number of atoms](https://leetcode.com/problems/number-of-atoms/) | Hard | Stack |
-| 730 | [Count Different Palindromic Subsequences](https://leetcode.com/problems/count-different-palindromic-subsequences/) | Hard | Dynamic Programming Level 1 |
-| 731 | [My Calendar II](https://leetcode.com/problems/my-calendar-ii/) | Medium | Prefix Sum |
-| 735 | [Asteroid Collision](https://leetcode.com/problems/asteroid-collision/) | Medium | Stack |
-| 740 | [Delete and Earn](https://leetcode.com/problems/delete-and-earn/) | Medium | Dynamic Programming Level 1 |
-| 744 | [Find Smallest Letter Greater Than Target](https://leetcode.com/problems/find-smallest-letter-greater-than-target/) | Easy | Binary Search |
-| 745 | [Prefix and Suffix Search](https://leetcode.com/problems/prefix-and-suffix-search/) | Hard | Tries |
-| 1227 | [Airplane Seat Assignment Probability](https://leetcode.com/problems/airplane-seat-assignment-probability/) | Medium | Dynamic Programming Level 2 |
-| 1901 | [Find a Peak Element II](https://leetcode.com/problems/find-a-peak-element-ii/) | Medium | Binary Search |
-| 2505 | [Bitwise OR of All Subsequence Sums](https://leetcode.com/problems/bitwise-or-of-all-subsequence-sums/) | Medium | Combinatorics & Geometry |
+| 391 | [Perfect Rectangle](https://leetcode.com/problems/perfect-rectangle/) | Hard | Line Sweep |
+| 731 | [My Calendar II](https://leetcode.com/problems/my-calendar-ii/) | Medium | Line Sweep |
+
+### Hashing — 9 to add
+
+| # | Problem | Difficulty | Sub-topic |
+|---:|---|---|---|
+| 169 | [Majority Element](https://leetcode.com/problems/majority-element/) | Easy | Implementary Problems |
+| 217 | [Contains Duplicate](https://leetcode.com/problems/contains-duplicate/) | Easy | Implementary Problems |
+| 229 | [Majority Element II](https://leetcode.com/problems/majority-element-ii/) | Medium | Implementary Problems |
+| 423 | [Reconstruct Original Digits from English](https://leetcode.com/problems/reconstruct-original-digits-from-english/) | Medium | Implementary Problems |
+| 442 | [Find All Duplicates in an Array](https://leetcode.com/problems/find-all-duplicates-in-an-array/) | Medium | Implementary Problems |
+| 451 | [Sort Characters by Frequency](https://leetcode.com/problems/sort-characters-by-frequency/) | Medium | Implementary Problems |
+| 454 | [4Sum II](https://leetcode.com/problems/4sum-ii/) | Medium | Implementary Problems |
+| 554 | [Brick Wall](https://leetcode.com/problems/brick-wall/) | Medium | Implementary Problems |
+| 575 | [Distribute Candies](https://leetcode.com/problems/distribute-candies/) | Easy | Implementary Problems |
+
+### Sliding Window — 1 to add
+
+| # | Problem | Difficulty | Sub-topic |
+|---:|---|---|---|
+| 689 | [Maximum Sum of 3 Non-Overlapping Subarrays](https://leetcode.com/problems/maximum-sum-of-3-non-overlapping-subarrays/) | Hard | Fixed Size Sliding-Window |
+
+### Linked List — 5 to add
+
+| # | Problem | Difficulty | Sub-topic |
+|---:|---|---|---|
+| 21 | [Merge Two Sorted Lists](https://leetcode.com/problems/merge-two-sorted-lists/) | Easy | Linked List (Part 1) |
+| 138 | [Copy List with Random Pointer](https://leetcode.com/problems/copy-list-with-random-pointer/) | Medium | Linked List (Part 1) |
+| 142 | [Linked List Cycle II](https://leetcode.com/problems/linked-list-cycle-ii/) | Medium | Linked List (Part 1) |
+| 148 | [Sort List](https://leetcode.com/problems/sort-list/) | Medium | Linked List (Part 1) |
+| 382 | [Linked List Random Node](https://leetcode.com/problems/linked-list-random-node/) | Medium | Linked List (Part 1) |
+
+### Stack — 8 to add
+
+| # | Problem | Difficulty | Sub-topic |
+|---:|---|---|---|
+| 42 | [Trapping Rain Water](https://leetcode.com/problems/trapping-rain-water/) | Hard | Monotonic Stack |
+| 84 | [Largest Rectangle in Histogram](https://leetcode.com/problems/largest-rectangle-in-histogram/) | Hard | Monotonic Stack |
+| 150 | [Evaluate Reverse Polish Notation](https://leetcode.com/problems/evaluate-reverse-polish-notation/) | Medium | Advance Stack Problems |
+| 456 | [132 Pattern](https://leetcode.com/problems/132-pattern/) | Medium | Monotonic Stack |
+| 503 | [Next Greater Element II](https://leetcode.com/problems/next-greater-element-ii/) | Medium | Monotonic Stack |
+| 581 | [Shortest Unsorted Continuous Subarray](https://leetcode.com/problems/shortest-unsorted-continuous-subarray/) | Medium | Monotonic Stack |
+| 726 | [Number of atoms](https://leetcode.com/problems/number-of-atoms/) | Hard | Advance Stack Problems |
+| 735 | [Asteroid Collision](https://leetcode.com/problems/asteroid-collision/) | Medium | Advance Stack Problems |
+
+### Queue — 4 to add
+
+| # | Problem | Difficulty | Sub-topic |
+|---:|---|---|---|
+| 225 | [Implement Stack using Queues](https://leetcode.com/problems/implement-stack-using-queues/) | Easy | Implementation Problems |
+| 622 | [Design Circular Queue](https://leetcode.com/problems/design-circular-queue/) | Medium | Implementation Problems |
+| 641 | [Design Circular Deque](https://leetcode.com/problems/design-circular-deque/) | Medium | Doubly-Ended Queue |
+| 649 | [Dota2 Senate](https://leetcode.com/problems/dota2-senate/) | Medium | Singly-Ended Queue |
+
+### Binary Search — 11 to add
+
+| # | Problem | Difficulty | Sub-topic |
+|---:|---|---|---|
+| 4 | [Median of Two Sorted Arrays](https://leetcode.com/problems/median-of-two-sorted-arrays/) | Hard | Binary Search On Answer |
+| 74 | [Search a 2D Matrix](https://leetcode.com/problems/search-a-2d-matrix/) | Medium | Search on Matrix |
+| 153 | [Find Minimum in Rotated Sorted Array](https://leetcode.com/problems/find-minimum-in-rotated-sorted-array/) | Medium | Binary Search on Semi-Sorted Space |
+| 240 | [Search a 2D Matrix II](https://leetcode.com/problems/search-a-2d-matrix-ii/) | Medium | Search on Matrix |
+| 275 | [H-Index II](https://leetcode.com/problems/h-index-ii/) | Medium | Introductory Problems |
+| 374 | [Guess Number Higher or Lower](https://leetcode.com/problems/guess-number-higher-or-lower/) | Easy | Introductory Problems |
+| 441 | [Arranging Coins](https://leetcode.com/problems/arranging-coins/) | Easy | Upper Bound and Lower Bound |
+| 475 | [Heaters](https://leetcode.com/problems/heaters/) | Medium | Binary Search On Answer |
+| 528 | [Random Pick with Weight](https://leetcode.com/problems/random-pick-with-weight/) | Medium | Upper Bound and Lower Bound |
+| 744 | [Find Smallest Letter Greater Than Target](https://leetcode.com/problems/find-smallest-letter-greater-than-target/) | Easy | Upper Bound and Lower Bound |
+| 1901 | [Find a Peak Element II](https://leetcode.com/problems/find-a-peak-element-ii/) | Medium | Binary Search on Semi-Sorted Space |
+
+### Bit Manipulation — 11 to add
+
+| # | Problem | Difficulty | Sub-topic |
+|---:|---|---|---|
+| 29 | [Divide Two Integers](https://leetcode.com/problems/divide-two-integers/) | Medium | Basic Bit Concepts |
+| 67 | [Add Binary](https://leetcode.com/problems/add-binary/) | Easy | Basic Bit Concepts |
+| 89 | [Gray Code](https://leetcode.com/problems/gray-code/) | Medium | Bitwise XOR operator |
+| 191 | [Number of 1 Bits](https://leetcode.com/problems/number-of-1-bits/) | Easy | Basic Bit Concepts |
+| 201 | [Bitwise AND of Numbers Range](https://leetcode.com/problems/bitwise-and-of-numbers-range/) | Medium | Bitwise AND operator |
+| 260 | [Single Number III](https://leetcode.com/problems/single-number-iii/) | Medium | Bitwise XOR operator |
+| 342 | [Power of Four](https://leetcode.com/problems/power-of-four/) | Easy | Basic Bit Concepts |
+| 371 | [Sum of Two Integers](https://leetcode.com/problems/sum-of-two-integers/) | Medium | Bitwise XOR operator |
+| 393 | [UTF-8 Validation](https://leetcode.com/problems/utf-8-validation/) | Medium | Basic Bit Concepts |
+| 476 | [Number Complement](https://leetcode.com/problems/number-complement/) | Easy | Basic Bit Concepts |
+| 477 | [Total Hamming Distance](https://leetcode.com/problems/total-hamming-distance/) | Medium | Basic Bit Concepts |
+
+### Recursion & Backtracking — 8 to add
+
+| # | Problem | Difficulty | Sub-topic |
+|---:|---|---|---|
+| 40 | [Combination Sum II](https://leetcode.com/problems/combination-sum-ii/) | Medium | Combination Problems |
+| 60 | [Permutation Sequence](https://leetcode.com/problems/permutation-sequence/) | Hard | Recursion Problems |
+| 216 | [Combination Sum III](https://leetcode.com/problems/combination-sum-iii/) | Medium | Combination Problems |
+| 241 | [Different Ways to Add Parentheses](https://leetcode.com/problems/different-ways-to-add-parentheses/) | Medium | Recursion Problems |
+| 486 | [Predict the Winner](https://leetcode.com/problems/predict-the-winner/) | Medium | Recursion Problems |
+| 491 | [Non-Decreasing Subsequences](https://leetcode.com/problems/non-decreasing-subsequences/) | Medium | Subsets Problems |
+| 494 | [Target Sum](https://leetcode.com/problems/target-sum/) | Medium | Combination Problems |
+| 526 | [Beautiful Arrangement](https://leetcode.com/problems/beautiful-arrangement/) | Medium | Permutation Problems |
+
+### Binary Tree — 16 to add
+
+| # | Problem | Difficulty | Sub-topic |
+|---:|---|---|---|
+| 94 | [Binary Tree Inorder Traversal](https://leetcode.com/problems/binary-tree-inorder-traversal/) | Easy | Traversals |
+| 100 | [Same Tree](https://leetcode.com/problems/same-tree/) | Easy | Two tree Validation |
+| 106 | [Construct Binary Tree from Inorder and Postorder Traversal](https://leetcode.com/problems/construct-binary-tree-from-inorder-and-postorder-traversal/) | Medium | Construction of Tree |
+| 107 | [Binary Tree Level Order Traversal II](https://leetcode.com/problems/binary-tree-level-order-traversal-ii/) | Medium | Level Order Traversal |
+| 110 | [Balanced Binary Tree](https://leetcode.com/problems/balanced-binary-tree/) | Easy | Properties of trees |
+| 111 | [Minimum Depth of Binary Tree](https://leetcode.com/problems/minimum-depth-of-binary-tree/) | Easy | Properties of trees |
+| 113 | [Path Sum II](https://leetcode.com/problems/path-sum-ii/) | Medium | Binary Tree Path |
+| 129 | [Sum Root to Leaf Numbers](https://leetcode.com/problems/sum-root-to-leaf-numbers/) | Medium | Binary Tree Path |
+| 145 | [Binary Tree Postorder Traversal](https://leetcode.com/problems/binary-tree-postorder-traversal/) | Easy | Traversals |
+| 222 | [Count Complete Tree Nodes](https://leetcode.com/problems/count-complete-tree-nodes/) | Medium | Properties of trees |
+| 437 | [Path Sum III](https://leetcode.com/problems/path-sum-iii/) | Medium | Binary Tree Path |
+| 559 | [Maximum Depth of N-ary Tree](https://leetcode.com/problems/maximum-depth-of-n-ary-tree/) | Easy | N-ary Tree |
+| 572 | [Subtree of Another Tree](https://leetcode.com/problems/subtree-of-another-tree/) | Easy | Two tree Validation |
+| 589 | [N-ary Tree Preorder Traversal](https://leetcode.com/problems/n-ary-tree-preorder-traversal/) | Easy | N-ary Tree |
+| 590 | [N-ary Tree Postorder Traversal](https://leetcode.com/problems/n-ary-tree-postorder-traversal/) | Easy | N-ary Tree |
+| 617 | [Merge Two Binary Trees](https://leetcode.com/problems/merge-two-binary-trees/) | Easy | Two tree Validation |
+
+### Binary Search Tree — 12 to add
+
+| # | Problem | Difficulty | Sub-topic |
+|---:|---|---|---|
+| 96 | [Unique Binary Search Trees](https://leetcode.com/problems/unique-binary-search-trees/) | Medium | Validation and Property |
+| 99 | [Recover Binary Search Tree](https://leetcode.com/problems/recover-binary-search-tree/) | Medium | Validation and Property |
+| 109 | [Convert Sorted List to Binary Search Tree](https://leetcode.com/problems/convert-sorted-list-to-binary-search-tree/) | Medium | Construction of BST |
+| 173 | [Binary Search Tree Iterator](https://leetcode.com/problems/binary-search-tree-iterator/) | Medium | Validation and Property |
+| 235 | [Lowest Common Ancestor of a Binary Search Tree](https://leetcode.com/problems/lowest-common-ancestor-of-a-binary-search-tree/) | Medium | Validation and Property |
+| 449 | [Serialize and Deserialize BST](https://leetcode.com/problems/serialize-and-deserialize-bst/) | Medium | Construction of BST |
+| 450 | [Delete Node in a BST](https://leetcode.com/problems/delete-node-in-a-bst/) | Medium | Basic Operations |
+| 501 | [Find Mode in Binary Search Tree](https://leetcode.com/problems/find-mode-in-binary-search-tree/) | Easy | Validation and Property |
+| 538 | [Convert BST to Greater Tree](https://leetcode.com/problems/convert-bst-to-greater-tree/) | Medium | Construction of BST |
+| 669 | [Trim a Binary Search Tree](https://leetcode.com/problems/trim-a-binary-search-tree/) | Medium | Construction of BST |
+| 700 | [Search in a Binary Search Tree](https://leetcode.com/problems/search-in-a-binary-search-tree/) | Easy | Basic Operations |
+| 701 | [Insert into a Binary Search Tree](https://leetcode.com/problems/insert-into-a-binary-search-tree/) | Medium | Basic Operations |
+
+### Heap (Priority Queue) — 3 to add
+
+| # | Problem | Difficulty | Sub-topic |
+|---:|---|---|---|
+| 264 | [Ugly Number II](https://leetcode.com/problems/ugly-number-ii/) | Medium | Kth Pattern Problems |
+| 407 | [Trapping Rain Water II](https://leetcode.com/problems/trapping-rain-water-ii/) | Hard | Implementary Questions |
+| 506 | [Relative Ranks](https://leetcode.com/problems/relative-ranks/) | Easy | Implementary Questions |
+
+### Tries — 4 to add
+
+| # | Problem | Difficulty | Sub-topic |
+|---:|---|---|---|
+| 421 | [Maximum XOR of Two Numbers in an Array](https://leetcode.com/problems/maximum-xor-of-two-numbers-in-an-array/) | Medium | Trie with Bit Manipulation |
+| 676 | [Implement Magic Dictionary](https://leetcode.com/problems/implement-magic-dictionary/) | Medium | Trie involving String |
+| 720 | [Longest Word in Dictionary](https://leetcode.com/problems/longest-word-in-dictionary/) | Medium | Trie involving String |
+| 745 | [Prefix and Suffix Search](https://leetcode.com/problems/prefix-and-suffix-search/) | Hard | Trie involving String |
+
+### Greedy — 5 to add
+
+| # | Problem | Difficulty | Sub-topic |
+|---:|---|---|---|
+| 330 | [Patching Array](https://leetcode.com/problems/patching-array/) | Hard | Part I |
+| 376 | [Wiggle Subsequence](https://leetcode.com/problems/wiggle-subsequence/) | Medium | Part I |
+| 406 | [Queue Reconstruction by Height](https://leetcode.com/problems/queue-reconstruction-by-height/) | Medium | Part II |
+| 435 | [Non-Overlapping Intervals](https://leetcode.com/problems/non-overlapping-intervals/) | Medium | Part I |
+| 517 | [Super Washing Machines](https://leetcode.com/problems/super-washing-machines/) | Hard | Part I |
+
+### Dynamic Programming Level 1 — 33 to add
+
+| # | Problem | Difficulty | Sub-topic |
+|---:|---|---|---|
+| 5 | [Longest Palindromic Substring](https://leetcode.com/problems/longest-palindromic-substring/) | Medium | Longest Common Subsequence |
+| 53 | [Maximum Subarray](https://leetcode.com/problems/maximum-subarray/) | Medium | Kadane Algo |
+| 62 | [Unique Paths](https://leetcode.com/problems/unique-paths/) | Medium | DP On Grid |
+| 63 | [Unique Paths II](https://leetcode.com/problems/unique-paths-ii/) | Medium | DP On Grid |
+| 132 | [Palindrome Partitioning II](https://leetcode.com/problems/palindrome-partitioning-ii/) | Hard | Matrix Chain Multiplication |
+| 188 | [Best Time to Buy and Sell Stock IV](https://leetcode.com/problems/best-time-to-buy-and-sell-stock-iv/) | Hard | 2 Dimensional DP |
+| 198 | [House Robber](https://leetcode.com/problems/house-robber/) | Medium | Linear DP |
+| 300 | [Longest Increasing Subsequence](https://leetcode.com/problems/longest-increasing-subsequence/) | Medium | Longest Increasing Subsequence |
+| 309 | [Best Time to Buy and Sell Stock with Cooldown](https://leetcode.com/problems/best-time-to-buy-and-sell-stock-with-cooldown/) | Medium | 2 Dimensional DP |
+| 363 | [Max Sum of Rectangle No Larger Than K](https://leetcode.com/problems/max-sum-of-rectangle-no-larger-than-k/) | Hard | Cummulative Sum |
+| 368 | [Largest Divisible Subset](https://leetcode.com/problems/largest-divisible-subset/) | Medium | Longest Increasing Subsequence |
+| 375 | [Guess Number Higher or Lower II](https://leetcode.com/problems/guess-number-higher-or-lower-ii/) | Medium | Matrix Chain Multiplication |
+| 377 | [Combination Sum IV](https://leetcode.com/problems/combination-sum-iv/) | Medium | 2 Dimensional DP |
+| 413 | [Arithmetic Slices](https://leetcode.com/problems/arithmetic-slices/) | Medium | Linear DP |
+| 467 | [Unique Substrings in Wraparound String](https://leetcode.com/problems/unique-substrings-in-wraparound-string/) | Medium | DP on String |
+| 472 | [Concatenated Words](https://leetcode.com/problems/concatenated-words/) | Hard | DP on String |
+| 474 | [Ones and Zeroes](https://leetcode.com/problems/ones-and-zeroes/) | Medium | Knapsack DP |
+| 516 | [Longest Palindromic Subsequence](https://leetcode.com/problems/longest-palindromic-subsequence/) | Medium | Longest Common Subsequence |
+| 518 | [Coin Change II](https://leetcode.com/problems/coin-change-ii/) | Medium | 2 Dimensional DP |
+| 546 | [Remove Boxes](https://leetcode.com/problems/remove-boxes/) | Hard | Matrix Chain Multiplication |
+| 552 | [Student Attendance Record Leetcode](https://leetcode.com/problems/student-attendance-record-ii/) | Hard | 2 Dimensional DP |
+| 576 | [Out of Boundary Paths](https://leetcode.com/problems/out-of-boundary-paths/) | Medium | DP On Grid |
+| 583 | [Delete operation for two strings](https://leetcode.com/problems/delete-operation-for-two-strings/) | Medium | Longest Common Subsequence |
+| 629 | [K Inverse Pairs Array](https://leetcode.com/problems/k-inverse-pairs-array/) | Hard | 2 Dimensional DP |
+| 638 | [Shopping Offers](https://leetcode.com/problems/shopping-offers/) | Medium | Knapsack DP |
+| 646 | [Maximum Length of Pair Chain](https://leetcode.com/problems/maximum-length-of-pair-chain/) | Medium | Longest Increasing Subsequence |
+| 650 | [2 Keys Keyboard](https://leetcode.com/problems/2-keys-keyboard/) | Medium | Knapsack DP |
+| 664 | [Strange Printer](https://leetcode.com/problems/strange-printer/) | Hard | Matrix Chain Multiplication |
+| 712 | [Minimum ASCII Delete Sum for Two Strings](https://leetcode.com/problems/minimum-ascii-delete-sum-for-two-strings/) | Medium | DP on String |
+| 714 | [Best Time to Buy and Sell Stock with Transaction Fee](https://leetcode.com/problems/best-time-to-buy-and-sell-stock-with-transaction-fee/) | Medium | 2 Dimensional DP |
+| 718 | [Maximum Length of Repeated Subarray](https://leetcode.com/problems/maximum-length-of-repeated-subarray/) | Medium | Longest Common Subsequence |
+| 730 | [Count Different Palindromic Subsequences](https://leetcode.com/problems/count-different-palindromic-subsequences/) | Hard | DP on String |
+| 740 | [Delete and Earn](https://leetcode.com/problems/delete-and-earn/) | Medium | Linear DP |
+
+### Graphs — 5 to add
+
+| # | Problem | Difficulty | Sub-topic |
+|---:|---|---|---|
+| 130 | [Surrounded Regions](https://leetcode.com/problems/surrounded-regions/) | Medium | Multi Source BFS |
+| 310 | [Minimum Height Trees](https://leetcode.com/problems/minimum-height-trees/) | Medium | Topological Sort |
+| 419 | [Battleships in a Board](https://leetcode.com/problems/battleships-in-a-board/) | Medium | Flood Fill |
+| 547 | [Number of Provinces](https://leetcode.com/problems/number-of-provinces/) | Medium | DFS and BFS on Graphs |
+| 685 | [Redundant Connection II](https://leetcode.com/problems/redundant-connection-ii/) | Hard | Disjoint Set Union |
+
+### Combinatorics & Geometry — 2 to add
+
+| # | Problem | Difficulty | Sub-topic |
+|---:|---|---|---|
+| 478 | [Generate Random Point in a Circle](https://leetcode.com/problems/generate-random-point-in-a-circle/) | Medium | Circle |
+| 2505 | [Bitwise OR of All Subsequence Sums](https://leetcode.com/problems/bitwise-or-of-all-subsequence-sums/) | Medium | Combinatorics |
+
+### Game Theory — 1 to add
+
+| # | Problem | Difficulty | Sub-topic |
+|---:|---|---|---|
+| 464 | [Can I Win](https://leetcode.com/problems/can-i-win/) | Medium | Level II |
+
+### Dynamic Programming Level 2 — 7 to add
+
+| # | Problem | Difficulty | Sub-topic |
+|---:|---|---|---|
+| 233 | [Number of Digit One](https://leetcode.com/problems/number-of-digit-one/) | Hard | Digit DP |
+| 357 | [Count Numbers with Unique Digits](https://leetcode.com/problems/count-numbers-with-unique-digits/) | Medium | DP with Math |
+| 600 | [Non-negative Integers without Consecutive Ones](https://leetcode.com/problems/non-negative-integers-without-consecutive-ones/) | Hard | Digit DP |
+| 688 | [Knight Probability in Chessboard](https://leetcode.com/problems/knight-probability-in-chessboard/) | Medium | Dp with Probability |
+| 691 | [Stickers to Spell Word](https://leetcode.com/problems/stickers-to-spell-word/) | Hard | DP with Bitmask |
+| 698 | [Partition to K Equal Sum Subsets](https://leetcode.com/problems/partition-to-k-equal-sum-subsets/) | Medium | DP with Bitmask |
+| 1227 | [Airplane Seat Assignment Probability](https://leetcode.com/problems/airplane-seat-assignment-probability/) | Medium | Dp with Probability |
+
+### String Matching Algos — 1 to add
+
+| # | Problem | Difficulty | Sub-topic |
+|---:|---|---|---|
+| 214 | [Shortest Palindrome](https://leetcode.com/problems/shortest-palindrome/) | Hard | Implementary Problems |
+
+### Advance algorithm — 4 to add
+
+| # | Problem | Difficulty | Sub-topic |
+|---:|---|---|---|
+| 307 | [Range Sum Query - Mutable](https://leetcode.com/problems/range-sum-query-mutable/) | Medium | Segment Tree |
+| 327 | [Count of Range Sum](https://leetcode.com/problems/count-of-range-sum/) | Hard | Segment Tree |
+| 654 | [Maximum Binary Tree](https://leetcode.com/problems/maximum-binary-tree/) | Medium | Sparse Table |
+| 699 | [Falling Squares](https://leetcode.com/problems/falling-squares/) | Hard | Segment Tree |
 
 ## Appendix B — on the sheet, but not on LeetCode
 

@@ -95,6 +95,64 @@ w();
 
 /* --- Legend ---------------------------------------------------------------------------------- */
 
+/* --- Coverage by topic ------------------------------------------------------------------------ */
+
+w('---');
+w();
+w('## Coverage by topic — what you have, and what is missing');
+w();
+w('The table every plan should start from: per topic, how many distinct LeetCode problems the');
+w('sheet names, how many this repository already tracks, and how many would have to be added.');
+w();
+w('> **The topic counts deliberately do not sum to 1,016.** A problem the sheet lists under two');
+w('> topics is counted once in each, because for revision it genuinely belongs to both. The');
+w('> **Total** row is the de-duplicated truth across the whole sheet, which is why it is smaller');
+w('> than the column above it.');
+w();
+w('| Topic | Unique problems | Already have | on roadmap | in library | **Need to add** | Have |');
+w('|---|---:|---:|---:|---:|---:|---|');
+
+const pct = (a, b) => (b === 0 ? '—' : `${Math.round((a / b) * 100)}%`);
+const topicCoverage = [];
+for (const topic of topics) {
+  const seen = new Map();
+  for (const r of sheet) {
+    if (r.topic !== topic || r.status !== 'leetcode') continue;
+    if (!seen.has(r.slug)) seen.set(r.slug, r);
+  }
+  const rows = [...seen.values()];
+  const road = rows.filter((r) => r.inRoadmap !== null).length;
+  const libOnly = rows.filter((r) => r.inRoadmap === null && r.contestRating !== null).length;
+  const fresh = rows.filter((r) => membership(r) === 'new').length;
+  const have = rows.length - fresh;
+  topicCoverage.push({ topic, total: rows.length, have, road, libOnly, fresh });
+  w(
+    `| ${topic} | ${rows.length} | ${have} | ${road} | ${libOnly} | ${fresh === 0 ? '0' : `**${fresh}**`} | ${pct(have, rows.length)} |`,
+  );
+}
+const T = topicCoverage.reduce(
+  (a, t) => ({ total: a.total + t.total, have: a.have + t.have, road: a.road + t.road, libOnly: a.libOnly + t.libOnly, fresh: a.fresh + t.fresh }),
+  { total: 0, have: 0, road: 0, libOnly: 0, fresh: 0 },
+);
+w(`| *(sum of the column above — counts overlaps twice)* | *${T.total}* | *${T.have}* | *${T.road}* | *${T.libOnly}* | *${T.fresh}* | |`);
+w(
+  `| **Total, de-duplicated** | **${NUM.format(bySlug.size)}** | **${NUM.format(tally.both + tally.roadmap + tally.library)}** | **${NUM.format(summary.alreadyOnRoadmap)}** | **${tally.library}** | **${tally.new}** | **${pct(tally.both + tally.roadmap + tally.library, bySlug.size)}** |`,
+);
+w();
+
+const fullyCovered = topicCoverage.filter((t) => t.fresh === 0);
+const worst = [...topicCoverage].sort((a, b) => b.fresh - a.fresh).slice(0, 5);
+w('**Where the gaps actually are.** ' +
+  (fullyCovered.length > 0
+    ? `${fullyCovered.length} of the ${topics.length} topics ${fullyCovered.length === 1 ? 'needs' : 'need'} **nothing added at all** (${fullyCovered.map((t) => t.topic).join(', ')}). `
+    : '') +
+  `The additions concentrate in a handful of topics: ${worst.filter((t) => t.fresh > 0).map((t) => `**${t.topic}** (${t.fresh})`).join(', ')}.`);
+w();
+w('Read the `on roadmap` column as the one that matters for your no-repeat rule: those are the');
+w(`**${NUM.format(summary.alreadyOnRoadmap)}** problems a revision draw has to exclude by default, and the table shows exactly`);
+w('which topics that thins out most.');
+w();
+
 w('## Reading the tables');
 w();
 w('| Column | Meaning |');
@@ -166,12 +224,22 @@ w();
 w('These are in neither the 539 nor the contest library. They are the only additions integration');
 w('actually requires; everything else the sheet names, this repository already tracks.');
 w();
-w('| # | Problem | Difficulty | Topic |');
-w('|---:|---|---|---|');
-for (const r of [...bySlug.values()].filter((x) => membership(x) === 'new').sort((a, b) => a.frontendId - b.frontendId)) {
-  w(`| ${r.frontendId} | [${r.title}](${r.url}) | ${DIFF[r.officialDifficulty]} | ${r.topic} |`);
-}
+w('**Grouped by topic**, because that is the order you would actually add them in. A problem the');
+w('sheet lists under two topics appears under the first one here.');
 w();
+const newRows = [...bySlug.values()].filter((x) => membership(x) === 'new');
+for (const t of topicCoverage.filter((x) => x.fresh > 0)) {
+  const rows = newRows.filter((r) => r.topic === t.topic).sort((a, b) => a.frontendId - b.frontendId);
+  if (rows.length === 0) continue;
+  w(`### ${t.topic} — ${rows.length} to add`);
+  w();
+  w('| # | Problem | Difficulty | Sub-topic |');
+  w('|---:|---|---|---|');
+  for (const r of rows) {
+    w(`| ${r.frontendId} | [${r.title}](${r.url}) | ${DIFF[r.officialDifficulty]} | ${r.sub} |`);
+  }
+  w();
+}
 
 w('## Appendix B — on the sheet, but not on LeetCode');
 w();

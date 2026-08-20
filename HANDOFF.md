@@ -1,11 +1,17 @@
 # HANDOFF — V13 Contest Intelligence: ALL SLICES SHIPPED (2026-08-20)
 
-> **⚡ V14 IS IN FLIGHT (2026-08-20, branch `v14-revision-sheet`).** The topic-wise revision
-> sheet integration is being implemented from
-> **`docs/superpowers/plans/2026-08-20-revision-sheet-integration.md`** — that plan's progress
-> ledger and step checkboxes are the resume point, kept current as work lands. Read it FIRST;
-> everything below describes the V13 state it builds on. (Task 12 rewrites this file when V14
-> completes.)
+> **⚡ V14→V15 IS IN FLIGHT (2026-08-20, branch `v14-revision-sheet`), PAUSED CLEANLY.**
+> The governing document is the APPROVED master plan
+> **`docs/superpowers/plans/2026-08-20-master-plan-v15.md`** — 13 phases / 48 tasks: audit
+> (Part A), architecture + models (Part B), open questions (Part C), resume procedure
+> (Part D + the B16 phase ledger). Its Phase 1 absorbs the earlier V14 execution plan
+> (`2026-08-20-revision-sheet-integration.md`, still binding for step-level detail of
+> T1.1–T1.12, with the A5 amendments).
+> **State at pause:** groundwork committed (`5f36816` shared tag mapper + V14 plan;
+> `66ad94c` sheet dataset generator + `src/data/revisionSheet.json`). Baseline 1,306 tests
+> green. **Resume at Phase 0 T0.1** (re-run gates), then Phase 1 T1.1 (= V14 Task 2: types +
+> decoder + `data-sheet` chunk + dataset tests). Everything below describes the V13 state
+> this builds on.
 
 ## Read this first, then start
 

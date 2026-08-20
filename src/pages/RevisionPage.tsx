@@ -1,4 +1,4 @@
-import { useMemo, useRef, useState, type KeyboardEvent } from 'react';
+import { Suspense, lazy, useMemo, useRef, useState, type KeyboardEvent } from 'react';
 import { Link } from 'react-router-dom';
 import { format, parseISO } from 'date-fns';
 import { Check, GraduationCap, RotateCcw } from 'lucide-react';
@@ -7,6 +7,8 @@ import { Progress } from '@/components/ui/progress';
 import { Textarea } from '@/components/ui/textarea';
 import { EmptyState } from '@/components/shared/EmptyState';
 import { Ornament } from '@/components/shared/Ornament';
+import { ChipRadioRow } from '@/components/shared/ChipRadioRow';
+import type { ContestRevisionMode } from '@/components/revision/ContestRevision';
 import {
   PageColumns,
   Screen,
@@ -68,7 +70,33 @@ import type { Question } from '@/types';
  * the mastered record) is the rail, because none of it is ever the decision. Before the split
  * those were full-width bands trailing the session, so the calmest sentence on the page — "the
  * ladder does not penalise a late review" — sat furthest from the learner it was written for.
+ *
+ * V13 slice 6 adds a MODE, and it is additive by construction. Standard is the default and every
+ * line below the chips is what it always was — same flow, same `sessionSlice`, same copy. The
+ * contest modes live in their own component under their own top-level state, never inside
+ * `buildRevisionSession`, because a second pool folded into the one session composer would make
+ * every existing guarantee about that composer conditional.
  */
+/**
+ * Contest Revision is `lazy()`-ed, and that is a bundle decision rather than a code-splitting
+ * habit. It imports `@/data/contestLibrary` — 336 kB in its own `data-contests` chunk — and
+ * `/revision` is a route most learners open daily. A static import would put the second question
+ * universe's whole dataset on the morning path for everyone who never touches contest practice,
+ * with no error and no failing test. Behind the latch it is fetched the first time the mode is
+ * actually chosen. (The `import type` above is erased at build time and costs nothing.)
+ */
+const ContestRevision = lazy(() => import('@/components/revision/ContestRevision'));
+
+type RevisionMode = 'standard' | ContestRevisionMode;
+
+const MODES: RevisionMode[] = ['standard', 'contest', 'weak', 'pattern'];
+const MODE_LABEL: Record<RevisionMode, string> = {
+  standard: 'Standard',
+  contest: 'Contest',
+  weak: 'Weak areas',
+  pattern: 'Pattern',
+};
+
 export default function RevisionPage() {
   const today = useToday();
   const dispatch = useAppDispatch();
@@ -90,6 +118,7 @@ export default function RevisionPage() {
   }, [journal]);
 
   const [showMastered, setShowMastered] = useState(false);
+  const [mode, setMode] = useState<RevisionMode>('standard');
 
   const running = startedOn !== null && completedOn === null;
   const finished = completedOn !== null;
@@ -170,18 +199,50 @@ export default function RevisionPage() {
     dispatch(completeSessionActivity(activity.id, passed));
   }
 
+  // A standard session, once started, is a commitment: the plan is frozen precisely so nothing
+  // reshuffles underneath the sitting. Switching pools mid-session would be that reshuffle in its
+  // largest form, so the chips step aside until the session is finished or stopped — the same
+  // refusal `startFilteredContest` makes when a contest clock is already running.
+  const sessionLive = mode === 'standard' && (running || finished);
+
   return (
     <Screen>
       <ScreenHeader
         eyebrow={format(parseISO(today), 'EEEE, MMMM d')}
         title="Revision"
-        support="Tell it how long you have. It works out what is worth doing in that time — and what can wait."
+        support={
+          mode === 'standard'
+            ? 'Tell it how long you have. It works out what is worth doing in that time — and what can wait.'
+            : 'Rated contest problems, ranked by what is worth doing now. Separate from the roadmap and the daily plan.'
+        }
       />
 
-      {/* The session is the work; everything else on this page only explains, forecasts or
-          reassures — which is exactly the split PageColumns encodes. Priority runs left-to-right
-          before it runs top-to-bottom: the due total and the reassurance about lateness now sit
-          beside the session that provoked them instead of a full page-scroll below it. */}
+      {/* The one control that changes what this page is about, and the only thing above the work.
+          Standard leads because it is the default and the daily case; the three contest pools are
+          a different universe the learner opts into (PRODUCT: the two never merge). */}
+      {!sessionLive && (
+        <ChipRadioRow
+          label="Revision mode"
+          options={MODES}
+          value={mode}
+          onSelect={setMode}
+          format={(m) => MODE_LABEL[m]}
+        />
+      )}
+
+      {mode !== 'standard' ? (
+        // A dataset-sized chunk is being fetched on first switch; say so rather than showing an
+        // empty frame that reads as "there is nothing here".
+        <Suspense
+          fallback={<p className="text-sm text-muted-foreground">Loading the contest library…</p>}
+        >
+          <ContestRevision mode={mode} />
+        </Suspense>
+      ) : (
+      /* The session is the work; everything else on this page only explains, forecasts or
+         reassures — which is exactly the split PageColumns encodes. Priority runs left-to-right
+         before it runs top-to-bottom: the due total and the reassurance about lateness now sit
+         beside the session that provoked them instead of a full page-scroll below it. */
       <PageColumns
         railLabel="Ladder context"
         rail={
@@ -339,6 +400,7 @@ export default function RevisionPage() {
           />
         )}
       </PageColumns>
+      )}
     </Screen>
   );
 }

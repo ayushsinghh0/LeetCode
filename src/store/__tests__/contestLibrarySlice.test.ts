@@ -1,5 +1,6 @@
-import { describe, expect, it } from 'vitest';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 import { makeStore } from '@/store/store';
+import { reviseLibraryProblem } from '@/store/actions';
 import {
   contestProblemAttempted,
   contestProblemReviewed,
@@ -7,6 +8,7 @@ import {
 } from '@/store/slices/contestLibrarySlice';
 import { progressReset, stateImported } from '@/store/sharedActions';
 import { selectPersistedState, validatePersisted } from '@/services/storage/serialize';
+import { loadInitialState } from '@/services/storage/persistence';
 import { initialProgress } from '@/utils/engine/spacedRepetition';
 import type { PersistedStateV1 } from '@/types';
 
@@ -163,5 +165,123 @@ describe('contest library persistence', () => {
       },
     };
     expect(validatePersisted(JSON.parse(JSON.stringify(payload)))).toBeNull();
+  });
+});
+
+/**
+ * The thunk is the public mutation API (repo law: UI never dispatches slice actions), and it
+ * carries the guards the reducer deliberately does not: the once-per-day gate and the XP.
+ */
+describe('reviseLibraryProblem — the ladder guards live in the thunk', () => {
+  afterEach(() => {
+    vi.useRealTimers();
+  });
+
+  function at(iso: string) {
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date(`${iso}T12:00:00`));
+  }
+
+  it('pays revisionXp on a pass AND on a fail — the ladder is what a miss changes, not the reward', () => {
+    at('2026-07-31');
+    const store = makeStore();
+    store.dispatch(contestProblemSolved({ slug: SLUG, date: '2026-07-30' }));
+
+    store.dispatch(reviseLibraryProblem(SLUG, 'medium', false));
+    expect(store.getState().gamification.xp).toBe(10); // revisionXp('medium')
+    expect(store.getState().contestLibrary.bySlug[SLUG]!.revisionStage).toBe(0);
+    expect(store.getState().contestLibrary.bySlug[SLUG]!.nextRevision).toBe('2026-08-01');
+  });
+
+  it('takes one grade per calendar day', () => {
+    at('2026-07-31');
+    const store = makeStore();
+    store.dispatch(contestProblemSolved({ slug: SLUG, date: '2026-07-30' }));
+
+    store.dispatch(reviseLibraryProblem(SLUG, 'easy', true));
+    store.dispatch(reviseLibraryProblem(SLUG, 'easy', true));
+
+    // A second same-day grade would double-move the 1/3/7/15/30 ladder and double-pay the XP.
+    expect(store.getState().contestLibrary.bySlug[SLUG]!.revisionHistory).toHaveLength(1);
+    expect(store.getState().gamification.xp).toBe(5);
+  });
+
+  it('refuses a problem that was never solved, and one already mastered', () => {
+    at('2026-07-31');
+    const unsolved = makeStore();
+    unsolved.dispatch(contestProblemAttempted({ slug: SLUG, date: '2026-07-30' }));
+    unsolved.dispatch(reviseLibraryProblem(SLUG, 'hard', true));
+    expect(unsolved.getState().contestLibrary.bySlug[SLUG]!.revisionHistory).toEqual([]);
+    expect(unsolved.getState().gamification.xp).toBe(0);
+
+    // Mastered problems have left the ladder (nextRevision null); grading one would put it back.
+    const mastered = makeStore();
+    mastered.dispatch(contestProblemSolved({ slug: SLUG, date: '2026-01-01' }));
+    for (const date of ['2026-01-02', '2026-01-05', '2026-01-12', '2026-01-27', '2026-02-26']) {
+      mastered.dispatch(contestProblemReviewed({ slug: SLUG, date, passed: true }));
+    }
+    expect(mastered.getState().contestLibrary.bySlug[SLUG]!.revisionStage).toBe(5);
+    const xpBefore = mastered.getState().gamification.xp;
+    mastered.dispatch(reviseLibraryProblem(SLUG, 'hard', true));
+    expect(mastered.getState().contestLibrary.bySlug[SLUG]!.revisionHistory).toHaveLength(5);
+    expect(mastered.getState().gamification.xp).toBe(xpBefore);
+  });
+
+  it('writes no day log — DayLog is the curriculum ledger', () => {
+    at('2026-07-31');
+    const store = makeStore();
+    store.dispatch(contestProblemSolved({ slug: SLUG, date: '2026-07-30' }));
+    store.dispatch(reviseLibraryProblem(SLUG, 'medium', true));
+
+    expect(store.getState().progress.dayLogs['2026-07-31']).toBeUndefined();
+  });
+});
+
+/**
+ * THE BOOT PATH, which is not the import path — and the distinction cost this feature three
+ * slices of silent data loss.
+ *
+ * A persisted channel is read twice: `stateImported` restores a payload the learner uploaded, and
+ * `loadInitialState` maps localStorage into `makeStore`'s preloadedState on every page load.
+ * Between slices 3 and 6 the contest library was wired into the write path and into
+ * `stateImported` but NOT into `loadInitialState`, so every contest solve was saved correctly and
+ * then discarded the next time the app started. The tests above — the ones that look like the
+ * persistence tests — all exercise the import path and stayed green throughout.
+ */
+describe('contest library survives a reload, not just an import', () => {
+  it('maps the channel into preloaded state, and omits it when the payload predates V13', () => {
+    const payload = emptyPersisted();
+    payload.contestLibrary = {
+      bySlug: {
+        [SLUG]: {
+          solved: true,
+          attempts: 2,
+          lastAttemptedOn: '2026-07-30',
+          solvedOn: '2026-07-30',
+          revisionStage: 1,
+          nextRevision: '2026-08-02',
+          lastReviewed: '2026-07-31',
+          revisionHistory: [{ date: '2026-07-31', passed: true }],
+        },
+      },
+    };
+
+    const withLibrary = loadInitialState({ load: () => payload, save: () => {} });
+    expect(withLibrary?.contestLibrary?.bySlug[SLUG]?.nextRevision).toBe('2026-08-02');
+
+    // Absent in a pre-V13 payload: omit the key so the slice's own initialState applies.
+    const without = loadInitialState({ load: () => emptyPersisted(), save: () => {} });
+    expect(without).not.toHaveProperty('contestLibrary');
+  });
+
+  it('round-trips a solve through save and boot into a fresh store', () => {
+    const written = makeStore();
+    written.dispatch(contestProblemSolved({ slug: SLUG, date: '2026-07-30' }));
+    const payload = JSON.parse(JSON.stringify(selectPersistedState(written.getState())));
+
+    const booted = makeStore(loadInitialState({ load: () => validatePersisted(payload), save: () => {} }));
+    expect(booted.getState().contestLibrary.bySlug[SLUG]).toEqual(
+      written.getState().contestLibrary.bySlug[SLUG],
+    );
   });
 });

@@ -4,6 +4,9 @@ import { selectPersistedState } from '@/services/storage/serialize';
 import type { RootState } from '@/store/store';
 import { progressReset, stateImported } from '@/store/sharedActions';
 import { normalizeCourseWeekProgress } from '@/utils/engine/aimlCourse';
+// The ENGINE module, which is dataset-free by contract — importing `@/data/contestLibrary` here
+// would put 336 kB of contest problems on the boot path for every learner.
+import { normalizeContestProgress } from '@/utils/engine/contestLibrary';
 import { normalizeMlTrackProgress } from '@/utils/engine/mlTrack';
 import { normalizeQuestionProgress } from '@/utils/engine/spacedRepetition';
 
@@ -137,6 +140,27 @@ export function loadInitialState(adapter: StorageAdapter): Partial<RootState> | 
               ]),
             ),
             projectsById: persisted.ml.projectsById,
+          },
+        }
+      : {}),
+    // Absent before the V13 contest library — same omit-and-default rule, with the per-entry
+    // normalization the course and ml channels also do.
+    //
+    // This was MISSING between slices 3 and 6, and the shape of the bug is worth remembering: the
+    // write path was complete (`selectPersistedState` wrote it, `validatePersisted` accepted it,
+    // `stateImported` restored it) and the slice's own tests exercised the IMPORT path, so
+    // everything looked green while every contest-library solve was silently discarded on the next
+    // page load. A persisted channel has two read paths — boot and import — and only one of them
+    // runs in the tests that feel like persistence tests.
+    ...(persisted.contestLibrary
+      ? {
+          contestLibrary: {
+            bySlug: Object.fromEntries(
+              Object.entries(persisted.contestLibrary.bySlug).map(([slug, progress]) => [
+                slug,
+                normalizeContestProgress(progress),
+              ]),
+            ),
           },
         }
       : {}),

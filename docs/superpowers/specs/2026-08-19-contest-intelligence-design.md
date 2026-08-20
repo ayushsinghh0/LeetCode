@@ -852,3 +852,87 @@ paywall never ambushes a timed sitting.
 3. ContestPage's pre-existing bordered DifficultyBadge inside a Meta line — V8 debt, out of scope.
 4. `selectionReason`'s raw-ISO `Last solved` branch is unreachable from the draw (solved problems
    are excluded); format at point of use if a future surface makes it reachable.
+
+---
+
+## 17. Slice 6 — implementation log (2026-08-20)
+
+### 17.1 What shipped — Contest Revision, beside Standard and never inside it
+
+`/revision` gains a four-chip mode selector (**Standard · Contest · Weak areas · Pattern**) as the
+one control above the work. Standard is the default and is what it always was: the 30 tests in
+`revision.test.tsx` pass **unmodified**, which was the acceptance condition for this slice.
+
+- **`src/components/revision/ContestRevision.tsx` (new, `lazy()`-ed from `RevisionPage`).** The
+  latch is a bundle decision, not a habit: the component imports `@/data/contestLibrary`, and
+  `/revision` is a daily route. Build-verified — the only static importers of the data module are
+  `ContestPracticePage` and `ContestRevision`; `RevisionPage` carries the dataset only in its
+  `__vite__mapDeps` preload table, which is the dynamic-import dependency list, not an import.
+- **Three pools, one scorer.** Contest = the whole library; Weak areas = scoped to
+  `selectPatternWeakness`'s ids (resolved at the lazy page, so the store still never touches the
+  dataset); Pattern = one chosen pattern. All three call `scoreRevisionCandidates` — no second
+  ranking heuristic, and the rendered "why this" line is the scorer's own `reasons`, verbatim.
+- **The list is split in two, deliberately.** *Due now* is revision and takes a grade; *Worth
+  practising* is acquisition and links out. One list with grade buttons on some rows would read as
+  a single queue the learner is behind on — the debt notice the standard page was rebuilt to stop
+  being. "Start a timed set →" points at `/contest-practice` rather than re-implementing the draw.
+- **`reviseLibraryProblem(slug, difficulty, passed)`** (`store/actions.ts`) — solved-and-unmastered
+  only, one grade per calendar day, `revisionXp(difficulty)` on pass **and** fail, **no day log**
+  (same reasoning as `solveContestProblem`: `DayLog` is the curriculum's ledger and the weekly-clear
+  bonus is defined over the curriculum's queue). §10.2's "ordinary path" ruling, applied to reviews.
+- **Bridged problems never reach that thunk.** A grade on one of the 207 dispatches
+  `reviseQuestion(curriculumQuestionId)`. One problem, one identity, one record.
+- **The band reading** sits in the rail with its sample size, reads `contestLibrary.bySlug` **only**
+  (curriculum solves are done with guidance, hints and no clock — reading a contest band off them
+  would be reading performance off practice), and stays silent below `MIN_BAND_EVIDENCE`.
+
+### 17.2 Three defects found — one of them by the browser, in ten minutes
+
+1. **⛔ `loadInitialState` never mapped `contestLibrary`** (a slice-3 bug, live since then). The
+   write path was complete — `selectPersistedState` wrote it, `validatePersisted` accepted it,
+   `stateImported` restored it — and `contestLibrarySlice.test.ts` exercised the **import** path.
+   So every gate was green while every contest-library solve was silently discarded on the next
+   page load. **A persisted channel has two read paths, boot and import, and the tests that feel
+   like persistence tests only cover one.** Fixed, with a boot-path round-trip test.
+2. **The due list reshuffled under the learner.** Grading pushes the ladder date out, so the graded
+   row stopped being due and vanished, the count shrank, and the rows below jumped up — exactly
+   what `sessionSlice.frozen` exists to prevent for Standard. The due list is now frozen for the
+   sitting (membership *and* order), keyed by `date|mode|pattern` so changing pool composes a new
+   sitting while grading inside one never disturbs it.
+3. **`recommendBand` named a band as the step up from itself.** From the top band the clamp holds
+   `band` at `comfortable` while `step` is still 1, printing "You solved problems around the 2200+
+   band. 2200+ is the next step up." The wording now follows whether the band actually moved.
+
+Also found and fixed on the surface: a past-dated "Next review" line on due rows, and the same date
+printed twice on a graded row.
+
+### 17.3 Verification
+
+| Gate | Result |
+|---|---|
+| `npm test` | **91 files / 1,285 passing** (+18 over slice 5's 1,267) |
+| `npx tsc --noEmit` | clean |
+| `npm run build` | clean; app chunk **294.91 kB** / 301 budget (6.1 kB headroom); `data-contests` 343.72 kB unchanged; `ContestRevision` its own 8.84 kB chunk |
+| `npm run validate:data` | OK — unchanged |
+| Standard revision | **30 tests pass unmodified** |
+| Browser, 1280×590 | all four modes, light + dark, no console errors, no horizontal scroll, the 16-row rail still fits without scrolling |
+
+### 17.4 Decisions taken during implementation
+
+1. **Recording a *solve* stays out of Contest Revision.** The pool ranks unsolved problems, but the
+   only place a library solve is recorded is a timed sitting from `/contest-practice`. Adding a
+   bare "Solved it" button here would have been a second solve path with its own XP question, and
+   the honest alternative — link out, then start a timed set — costs nothing and duplicates nothing.
+2. **The mode chips hide while a Standard session runs.** A frozen plan is a commitment; switching
+   pools mid-sitting is that reshuffle in its largest form. Same refusal `startFilteredContest`
+   makes when a contest clock is already running.
+3. **Weak areas with no weakness evidence shows the whole library, and says so.** Fails toward
+   silence rather than naming a pattern the one weakness model has not named.
+
+### 17.5 Carried forward to slice 7
+
+- Mixed-pattern contest (`distinctPatterns: false` weak-areas draw) and "Recreate contest"
+  (`distinctContests: false` over `index.byContest`) — both on `/contest-practice`.
+- The open product call from §16.3: do library solves mark the day active? Still no.
+- App-chunk headroom is now **6.1 kB**. Slice 7 adds only to the lazy Contest Practice route, but
+  anything that touches `actions.ts` or `selectors.ts` should re-check `npm run build`.

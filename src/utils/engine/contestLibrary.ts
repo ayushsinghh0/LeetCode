@@ -528,8 +528,12 @@ export function recommendBand(evidence: BandEvidence, current?: RatingBand): Ban
   const step = solveRate >= 0.75 && sampleSize >= MIN_BAND_EVIDENCE ? 1 : 0;
   const band = RATING_BANDS[Math.min(RATING_BANDS.length - 1, comfortableIdx + step)]!;
 
+  // The wording follows whether the band ACTUALLY moved, not whether a step was intended. From
+  // the top band the clamp holds `band` at `comfortable`, and reading the intent instead produced
+  // "You solved problems around the 2200+ band. 2200+ is the next step up." — a sentence that
+  // names a band as the step up from itself.
   const statement =
-    step === 1
+    band.id !== comfortable.id
       ? `You solved problems around the ${comfortable.label} band. ${band.label} is the next step up.`
       : `You solved problems around the ${comfortable.label} band. Worth staying here for now.`;
 

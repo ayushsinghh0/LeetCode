@@ -2,7 +2,14 @@
 // because cross-slice writes (progress + gamification + ui) only happen safely here.
 import type { ThunkDispatch, UnknownAction } from '@reduxjs/toolkit';
 import questionsData from '@/data/questions.json';
-import type { Confidence, PersistedStateV1, Question, SettingsState, TaskCategory } from '@/types';
+import type {
+  Confidence,
+  Difficulty,
+  PersistedStateV1,
+  Question,
+  SettingsState,
+  TaskCategory,
+} from '@/types';
 import type { AppThunk, RootState } from '@/store/store';
 import { addDays, todayISO } from '@/utils/dates';
 import { DAILY_GOAL_BONUS, SOLVE_XP, WEEKLY_CLEAR_BONUS, revisionXp } from '@/utils/engine/xp';
@@ -57,6 +64,7 @@ import { contestSittingRecorded } from '@/store/slices/contestsSlice';
 // Aliased: the live contest slice and the library register both name a solve `contestProblemSolved`.
 import {
   contestProblemAttempted as libraryProblemAttempted,
+  contestProblemReviewed as libraryProblemReviewed,
   contestProblemSolved as libraryProblemSolved,
 } from '@/store/slices/contestLibrarySlice';
 import {
@@ -125,7 +133,7 @@ import {
   weeklyClearBonusMarked,
   xpAdded,
 } from '@/store/slices/gamificationSlice';
-import { isMastered } from '@/utils/engine/spacedRepetition';
+import { MASTERED_STAGE, isMastered } from '@/utils/engine/spacedRepetition';
 import { hintsFor, MAX_HINT_LEVEL } from '@/utils/engine/hints';
 import { celebrationShown, toastPushed } from '@/store/slices/uiSlice';
 import { progressReset, stateImported } from '@/store/sharedActions';
@@ -965,6 +973,41 @@ export const solveContestProblem = (questionId: number): AppThunk => (dispatch, 
   }
   dispatch(solveQuestion(questionId));
 };
+
+/**
+ * A graded review of a contest-library problem — Contest Revision's one write (V13 slice 6).
+ *
+ * The symmetry with `reviseQuestion` is deliberate and complete on the parts that are about the
+ * LADDER: only a solved, not-yet-mastered problem is reviewable, one grade per calendar day, and
+ * pass or fail both pay `revisionXp(difficulty)` because a review is worth the same whichever way
+ * recall went — the ladder, not the reward, is what a miss changes.
+ *
+ * Where it deliberately DIFFERS is the ledger, for exactly the reason `solveContestProblem`
+ * gives: `DayLog` is the curriculum's ledger, `selectRevisionQueueIds` counts the curriculum's
+ * queue, and the weekly-clear bonus is defined over that queue. A library review therefore writes
+ * no day log and can neither trigger nor block the weekly bonus. Library work is real work with
+ * its own register; it is not a second way to move the roadmap's numbers.
+ *
+ * A BRIDGED problem never reaches here. Its record lives in `progress.byId` (one problem, one
+ * identity), so the surface routes it to `reviseQuestion` — this thunk's guard would reject it
+ * anyway, since the slug register holds nothing for it.
+ */
+export const reviseLibraryProblem =
+  (slug: string, difficulty: Difficulty, passed: boolean): AppThunk =>
+  (dispatch, getState) => {
+    const before = getState().contestLibrary.bySlug[slug];
+    // Mirrors reviseQuestion's guard: never grade something unsolved (it would schedule a review
+    // of work that never happened) and never grade something already off the ladder.
+    if (!before || !before.solved || before.revisionStage >= MASTERED_STAGE) return;
+
+    const date = todayISO();
+    // One grade per problem per calendar day. Without this a stray double-dispatch double-moves
+    // the 1/3/7/15/30 ladder and double-pays the XP.
+    if (before.lastReviewed === date) return;
+
+    dispatch(libraryProblemReviewed({ slug, date, passed }));
+    dispatch(xpAdded(revisionXp(difficulty)));
+  };
 
 /**
  * The single line that closes the contest→weakness loop. Finishing stamps the sitting, then the

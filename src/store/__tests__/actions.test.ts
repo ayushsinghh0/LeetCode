@@ -240,8 +240,13 @@ test('importProgress replaces state wholesale', () => {
   expect(state.progress.byId).toEqual(fixture.progress.byId);
   expect(state.progress.dayLogs).toEqual(fixture.progress.dayLogs);
   expect(state.progress.startDate).toBe('2026-07-01');
-  // dailyCapacityMin is absent in the (pre-plan) fixture — the boundary defaults it to 180.
-  expect(state.settings).toEqual({ ...fixture.settings, dailyCapacityMin: 180 });
+  // dailyCapacityMin (pre-plan) and contestOnToday (pre-V13) are both absent in the fixture —
+  // the import boundary normalizes each to its default rather than letting it arrive undefined.
+  expect(state.settings).toEqual({
+    ...fixture.settings,
+    dailyCapacityMin: 180,
+    contestOnToday: true,
+  });
   // Optional bonus gates normalize to null at the import boundary.
   expect(state.gamification).toEqual({
     ...fixture.gamification,

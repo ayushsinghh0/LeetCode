@@ -1,6 +1,7 @@
 import questions from '@/data/questions.json';
 import { PATTERNS, patternById } from '@/data/patterns';
 import { FAMILIES, SUBPATTERNS, familyById } from '@/data/curriculum';
+import { CONTEST_PROBLEMS } from '@/data/contestLibrary';
 import type { Question } from '@/types';
 
 const qs = questions as Question[];
@@ -165,4 +166,45 @@ test('spot-pinned identities: well-known problems map to their canonical LeetCod
   expect(byTitle.get('Implement LRU Cache')?.leetcodeId).toBe(146);
   expect(byTitle.get('Set Matrix Zeros')?.url).toBe('https://leetcode.com/problems/set-matrix-zeroes/');
   expect(byTitle.get('Meeting Rooms II')?.premium).toBe(true);
+});
+
+/**
+ * ⛔ `leetcodeId` IS THE FRONTEND ID — the number LeetCode displays.
+ *
+ * It shipped as the INTERNAL `question_id` from the first generation until 2026-08-20, because
+ * the catalog snapshot carries only the internal one and the two agree for everything below
+ * roughly problem 1000. 237 of the 528 linked questions were wrong, and every existing spot-pin
+ * above happened to be an old problem where the two coincide — which is exactly why the bug
+ * survived a green suite for so long.
+ *
+ * These pins use problems where the two provably differ, so a regression cannot hide.
+ */
+test('leetcodeId is the number LeetCode shows, not the internal question_id', () => {
+  const byTitle = new Map(qs.map((q) => [q.title, q]));
+  // frontend / internal, measured against the committed catalog snapshot:
+  expect(byTitle.get('Minimum Number of Moves to Make Palindrome')?.leetcodeId).toBe(2193); // internal 1356
+  expect(byTitle.get('Count Subarrays With Fixed Bounds')?.leetcodeId).toBe(2444); // internal 2527
+  expect(byTitle.get('Lowest Common Ancestor of a Binary Tree III')?.leetcodeId).toBe(1650); // internal 1790
+});
+
+/**
+ * The two universes must agree about what "the LeetCode number" means.
+ *
+ * 207 of the 539 are also rated contest problems, and the contest library stores its own
+ * `frontendId` straight from the GraphQL snapshot. Cross-checking the curriculum's `leetcodeId`
+ * against it ties the two datasets to one definition — the guard that would have caught the
+ * internal-id bug on the day the contest library landed.
+ */
+test('bridged problems carry the same LeetCode number in both universes', () => {
+  const byId = new Map(qs.map((q) => [q.id, q]));
+  const bridged = CONTEST_PROBLEMS.filter((p) => p.curriculumQuestionId !== null);
+  expect(bridged.length).toBeGreaterThanOrEqual(200);
+
+  for (const p of bridged) {
+    const q = byId.get(p.curriculumQuestionId!);
+    expect(q, `curriculum question ${p.curriculumQuestionId} for ${p.slug}`).toBeDefined();
+    expect(q!.leetcodeId, `${q!.title} / ${p.slug}`).toBe(p.frontendId);
+    // And the slug — the only thing either universe may join on — must be the same problem.
+    expect(q!.url).toBe(p.url);
+  }
 });

@@ -266,7 +266,11 @@ function ProblemRow({ problem, state, today }: ProblemRowProps) {
             aria-hidden="true"
             className="h-4 w-4 shrink-0 text-muted-foreground transition-transform duration-150 ease-swift group-open:rotate-90 motion-reduce:transition-none"
           />
-          <span aria-hidden="true" className="figures w-12 shrink-0 text-right text-xs text-muted-foreground">
+          {/* The id yields below `sm`. Measured at 375px, the fixed id and status columns left the
+              title 111px — about twelve characters — on the one width where the title is the only
+              thing a reader has. It is `aria-hidden` scanning furniture, and the expanded detail
+              states it as `#1108`, so nothing is lost by dropping it on a phone. */}
+          <span aria-hidden="true" className="figures hidden w-12 shrink-0 text-right text-xs text-muted-foreground sm:inline">
             {problem.frontendId}
           </span>
           <span className="min-w-0 flex-1 truncate font-medium">{problem.title}</span>
@@ -535,7 +539,17 @@ export default function ContestPracticePage() {
 
     const rows: FilteredContestProblem[] = picked.map((candidate, i) => {
       const p = index.bySlug.get(candidate.key)!;
-      const primary = p.aicmPatterns[0];
+      // The reason names the pattern the learner FILTERED BY, not the problem's first tag.
+      // "Minimum Operations to Make Binary Palindrome" carries
+      // ['bitwise-manipulation','modified-binary-search','two-pointers'], so a two-pointers draw
+      // was explaining itself with "Why this problem? Bitwise Manipulation" — a stated reason
+      // that had nothing to do with why the problem was selected. Falls back to the first tag
+      // when no pattern filter is set, or when the match came from an inferred pattern (which is
+      // evidentially inert and must never be named as a confident claim).
+      const primary =
+        filters.pattern !== 'all' && p.aicmPatterns.includes(filters.pattern)
+          ? filters.pattern
+          : p.aicmPatterns[0];
       return {
         // Bridged rows keep their curriculum identity (one problem, one record); library-only
         // rows get a sitting-local NEGATIVE key so nothing numeric can ever collide with the

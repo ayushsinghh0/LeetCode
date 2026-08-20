@@ -8,7 +8,15 @@ import { fileURLToPath } from 'node:url';
 const root = join(dirname(fileURLToPath(import.meta.url)), '..');
 const questions = JSON.parse(readFileSync(join(root, 'src', 'data', 'questions.json'), 'utf8'));
 const catalog = JSON.parse(readFileSync(join(root, 'scripts', 'data', 'leetcode-catalog.json'), 'utf8'));
-const catalogById = new Map(catalog.problems.map((p) => [p.id, p]));
+const catalogBySlug = new Map(catalog.problems.map((p) => [p.slug, p]));
+// `leetcodeId` is the FRONTEND id — the number LeetCode displays — and the catalog snapshot does
+// not carry it. The topics snapshot does, so the identity check joins both on SLUG. This
+// validator previously resolved `leetcodeId` against the catalog's INTERNAL `question_id` and so
+// asserted the very mis-identification it was meant to catch.
+const topicsSnapshot = JSON.parse(
+  readFileSync(join(root, 'scripts', 'data', 'leetcode-topics.json'), 'utf8'),
+);
+const frontendIdBySlug = new Map(topicsSnapshot.problems.map((p) => [p.slug, p.frontendId]));
 
 // difficulty -> [min, max] authored estimate. Estimates are written per question, so the gate is
 // the band, plus a spread check below — a band collapsed to one value would pass a range test
@@ -108,13 +116,22 @@ for (const q of questions) {
   }
   seenLeetcodeIds.set(q.leetcodeId, q.id);
 
-  // The mapping must point at the exact catalog problem: id exists, and the slug in the URL
-  // is that problem's own slug (never a guessed or similar one).
-  const problem = catalogById.get(q.leetcodeId);
-  if (!problem) {
-    fail(`#${q.id}: leetcodeId ${q.leetcodeId} not in the catalog snapshot`);
-  } else if (q.url !== `https://leetcode.com/problems/${problem.slug}/`) {
-    fail(`#${q.id}: url slug does not match catalog slug "${problem.slug}" for leetcodeId ${q.leetcodeId}`);
+  // The mapping must point at the exact catalog problem, resolved by SLUG — the URL's slug is
+  // the identity, and it must be a slug the catalog actually contains (never a guessed or
+  // similar one). Then `leetcodeId` must be that same slug's FRONTEND id.
+  const slug = q.url.slice('https://leetcode.com/problems/'.length, -1);
+  if (!catalogBySlug.has(slug)) {
+    fail(`#${q.id}: url slug "${slug}" is not in the catalog snapshot`);
+    continue;
+  }
+  const frontendId = frontendIdBySlug.get(slug);
+  if (frontendId === undefined) {
+    fail(`#${q.id}: slug "${slug}" is in the catalog but not in the topics snapshot — the two have drifted`);
+  } else if (q.leetcodeId !== frontendId) {
+    // The ID trap: the internal question_id and the displayed frontend id diverge past ~1000, so
+    // a wrong value here is silent — the links still work, and only the number a learner would
+    // recognise is wrong.
+    fail(`#${q.id}: leetcodeId ${q.leetcodeId} is not the frontend id ${frontendId} for "${slug}"`);
   }
 }
 

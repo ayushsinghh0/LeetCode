@@ -1,3 +1,4 @@
+import { Suspense, lazy } from 'react';
 import { Link } from 'react-router-dom';
 import { format, parseISO } from 'date-fns';
 import { Button } from '@/components/ui/button';
@@ -22,6 +23,7 @@ import {
   selectRevisionQueueIds,
   selectTargetCompany,
   selectTargetCompanyCoverage,
+  selectDueContestSlugs,
   selectTodayLog,
   selectTotalDays,
 } from '@/store/selectors';
@@ -45,6 +47,13 @@ import { buildSession } from '@/utils/engine/nextAction';
  * There is still exactly one plate. The size difference between `Lead` and everything else *is*
  * the hierarchy, and moving blocks sideways does not license promoting any of them.
  */
+/**
+ * Lazy, and for the reason `ContestRevision` is: it imports `@/data/contestLibrary`, and Today is
+ * THE daily route. Nothing here loads it unless the setting is on and something is actually due —
+ * `selectDueContestSlugs` answers that from the slug register alone, with no dataset at all.
+ */
+const ContestDue = lazy(() => import('@/components/today/ContestDue'));
+
 export default function TodayPage() {
   const today = useToday();
 
@@ -60,6 +69,9 @@ export default function TodayPage() {
   const intentions = useAppSelector((s) => s.practice.intentions);
   const targetCompany = useAppSelector(selectTargetCompany);
   const targetCoverage = useAppSelector(selectTargetCompanyCoverage);
+  // Both dataset-free: the setting is a boolean, and the due slugs come from the slug register.
+  const contestOnToday = useAppSelector((s) => s.settings.contestOnToday ?? true);
+  const dueContestSlugs = useAppSelector((state) => selectDueContestSlugs(state, today));
 
   const solvedToday = todayLog ? todayLog.solvedIds.length : 0;
   const minutesToday = todayLog ? todayLog.focusMinutes : 0;
@@ -129,6 +141,15 @@ export default function TodayPage() {
           <PracticeIntentionsRail intentions={intentions} />
 
           <CourseTodayCard />
+
+          {/* The second question universe, in the rail and nowhere else. Never in `ranked`, never
+              in the day's counts — see ContestDue.tsx. No fallback: a rail block that is about to
+              appear should not first announce that it is loading. */}
+          {contestOnToday && dueContestSlugs.length > 0 && (
+            <Suspense fallback={null}>
+              <ContestDue slugs={dueContestSlugs} />
+            </Suspense>
+          )}
 
           <TodayTasks />
 

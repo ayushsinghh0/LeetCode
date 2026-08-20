@@ -936,3 +936,97 @@ printed twice on a graded row.
 - The open product call from §16.3: do library solves mark the day active? Still no.
 - App-chunk headroom is now **6.1 kB**. Slice 7 adds only to the lazy Contest Practice route, but
   anything that touches `actions.ts` or `selectors.ts` should re-check `npm run build`.
+
+---
+
+## 18. The outstanding items, closed (2026-08-20)
+
+Three things were carried as outstanding after slice 6. All three are now done; slice 7 is still
+the only remaining slice.
+
+### 18.1 Browser QA for slices 4–5 — two defects, one real
+
+Verified at 1280×590, 768 and 375, in both themes. `/contest-practice`: 2,561 count, 50-row fold
+("Show 150 more · 2,511 remaining"), the Disclosure with its active-count, the empty state keeping
+the learner's filters and naming the *verified* loosening ("Try a shorter search" when the search
+is what emptied it), Start disabled at zero results. Row breakpoints behave as designed — the
+pattern column yields at `lg`, contest label and rating at `md`/`sm`, official difficulty never
+(§3.4: beside, never instead). Light-theme contrast on the row measured **≥5.41:1** for every small
+text sample. The §63 journey ran end to end: CTA → `?pattern=two-pointers` preselected → 140
+matches → 4-problem sitting → solves routed correctly (library-only to the slug register with no
+day log; the bridged row to `progress.byId` + `dayLogs.solvedIds`) → verdict → a conclusive sitting
+banked with `stalledPatterns: []` and `problems` holding only the curriculum-resolvable row.
+
+Two defects found:
+
+1. **"Why this problem?" named the wrong pattern.** The draw passed `aicmPatterns[0]`, so
+   "Minimum Operations to Make Binary Palindrome" — which carries
+   `['bitwise-manipulation','modified-binary-search','two-pointers']` — explained its presence in
+   a **two-pointers** contest with *"Bitwise Manipulation"*. The stated reason had nothing to do
+   with why the problem was selected, which is the one thing this surface exists not to do. It now
+   names the filtered pattern when the problem confidently carries it. Contest Revision had the
+   same shape in Pattern mode and took the same fix via a `scopedPattern` prop — deliberately
+   unset in Weak-areas mode, where several patterns are in scope and no single one is "the reason".
+2. **The row title was crushed on a phone.** At 375px the fixed id and status columns left the
+   title 111px — about twelve characters — on the width where the title is all a reader has. The
+   id yields below `sm`; it is `aria-hidden` scanning furniture and the expanded detail states it.
+
+### 18.2 `leetcodeId` — the §10.1 correction, done offline
+
+`Question.leetcodeId` held LeetCode's INTERNAL `question_id`; **237 of 528** differed from the
+number LeetCode displays. The catalog snapshot does not carry the frontend id at all, but the
+topics snapshot does — so the fix needed **no network**: join catalog → topics on **slug**, the
+same rule the contest library lives by. Coverage is 528/528, and a miss is a build failure rather
+than a silent fallback (`resolveFrontendId` refuses to reach for `problem.id`).
+
+`validate-questions.mjs` had been resolving `leetcodeId` against the catalog's internal id — it was
+asserting the very mis-identification it existed to catch, and it failed loudly the moment the
+generator was corrected. It now checks the URL's slug against the catalog and the id against the
+topics snapshot's `frontendId`.
+
+The ID-trap regression test was **inverted rather than deleted**: it used to assert the two
+universes *disagreed* numerically (a true statement about a bug), and now asserts they agree on all
+207 bridged problems, with a second test naming the actual mistake — that the catalog's internal id
+must never be what `leetcodeId` holds. Note that `leetcodeId` is not rendered anywhere today, so
+this is a correctness fix with no visible effect; its value is that "LeetCode ID" now means one
+thing across the repo.
+
+### 18.3 The two open product calls, decided
+
+**Library work marks the day active — yes.** `contestLibraryActivityByDate` derives it from the
+slug register and merges through `selectOtherTrackActivityByDate`, exactly as the course and the ML
+tracks do. `DayLog` stays the curriculum's ledger and gains nothing; a solve stamps `solvedOn` and
+`lastAttemptedOn` together and is counted once; bridged problems are excluded because their record
+already reaches `DayLog` through `solveQuestion`. The reason is simple: a streak that breaks on an
+evening spent solving four rated contest problems is a streak that lies.
+
+**Contest reviews on Today — yes, behind `settings.contestOnToday` (default on).** The block lives
+in the **context rail**, and three constraints bound it:
+
+- It is **not in the plan.** `rankWork` never sees a library problem, the roadmap never does, and
+  the day's counts never move — the finishability caps are calibrated to the 539 and the two
+  universes do not merge. A test pins that the hero and the plan never name one.
+- It **does not grade.** Recording a verdict there would reintroduce §17.2's vanishing-row bug:
+  grading pushes the ladder date out, so the row would disappear as it was answered. Grading
+  belongs on a surface that freezes its list, and that surface is one link away.
+- It is **lazy and conditional.** `selectDueContestSlugs` answers "is anything due" from the slug
+  register with no dataset, so a learner with the setting off — or with nothing due — never fetches
+  the chunk. Build-verified: the dataset's only static importers are `ContestDue`,
+  `ContestPracticePage` and `ContestRevision`.
+
+The setting is optional-with-boundary-default through **both** read paths (`loadInitialState` and
+`stateImported`), with tests on each — the discipline §17.2 was written in blood for.
+
+### 18.4 Verification
+
+| Gate | Result |
+|---|---|
+| `npm test` | **91 files / 1,295 passing** (+10 over slice 6's 1,285) |
+| `npx tsc --noEmit` | clean |
+| `npm run build` | clean; app chunk **295.80 kB** / 301 budget (**5.2 kB headroom**); `data-contests` 343.72 kB unchanged; `ContestDue` its own 1.43 kB chunk |
+| `npm run validate:data` | OK — now checking `leetcodeId` against the frontend id |
+| Browser | `/contest-practice` at 1280/768/375 both themes; the §63 journey end to end; Today's block on, off via Settings, and persisting across a reload |
+
+Two pre-existing tests were updated because the corrections changed what is true, and both are
+noted above rather than quietly rewritten: the ID-trap guard (inverted) and `importProgress
+replaces state wholesale` (the new setting's boundary default).

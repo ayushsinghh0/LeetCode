@@ -8,6 +8,7 @@ const initialState: SettingsState = {
   theme: 'dark',
   notifications: false,
   dailyCapacityMin: 180, // the plan's default study budget — an evening block
+  contestOnToday: true,  // due contest reviews are shown on Today; the learner can switch it off
 };
 
 const settingsSlice = createSlice({
@@ -21,9 +22,14 @@ const settingsSlice = createSlice({
   extraReducers: (builder) => {
     // progressReset intentionally NOT handled here — settings survive a progress reset.
     builder.addCase(stateImported, (_state, action: PayloadAction<PersistedStateV1>) => {
-      // dailyCapacityMin is optional in persisted payloads (predates the daily plan) —
-      // boundary-normalize it in, same rule as the gamification bonus gates.
-      return { ...action.payload.settings, dailyCapacityMin: action.payload.settings.dailyCapacityMin ?? 180 };
+      // dailyCapacityMin and contestOnToday are optional in persisted payloads (they predate the
+      // daily plan and V13 respectively) — boundary-normalize them in, same rule as the
+      // gamification bonus gates.
+      return {
+        ...action.payload.settings,
+        dailyCapacityMin: action.payload.settings.dailyCapacityMin ?? 180,
+        contestOnToday: action.payload.settings.contestOnToday ?? true,
+      };
     });
   },
 });

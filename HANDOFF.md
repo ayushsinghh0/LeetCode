@@ -1,10 +1,11 @@
-# HANDOFF — V13 Contest Intelligence, PAUSED after slice 6 (2026-08-20)
+# HANDOFF — V13 Contest Intelligence, PAUSED before slice 7 (2026-08-20)
 
 ## Read this first, then start
 
 **Branch: `v13-contest-intelligence`** (pushed to origin; `main` is at `43eecf4`, untouched).
-**State: everything except slice 7 is done.** The §63 acceptance journey works end to end, and
-`/revision` now carries Contest Revision beside Standard. Work was deliberately paused here.
+**State: slice 7 is the only thing left, and nothing else is outstanding.** The §63 journey works
+end to end, `/revision` carries Contest Revision beside an untouched Standard, the slice-4/5 browser
+QA debt is cleared, and all four open decisions are decided and implemented. Paused deliberately.
 
 If you are resuming and just want to keep building, the whole instruction is:
 
@@ -15,9 +16,9 @@ If you are resuming and just want to keep building, the whole instruction is:
 
 ```powershell
 git checkout v13-contest-intelligence   # if not already on it
-npm test                                # expect 91 files / 1,285 tests green
+npm test                                # expect 91 files / 1,295 tests green
 npx tsc --noEmit                        # expect clean
-npm run build                           # expect app chunk ~294.91 kB (budget 301); data-contests 343.72 kB
+npm run build                           # expect app chunk ~295.80 kB (budget 301); data-contests 343.72 kB
 ```
 
 ---
@@ -26,15 +27,15 @@ npm run build                           # expect app chunk ~294.91 kB (budget 30
 
 | | |
 |---|---|
-| Tests | **91 files / 1,285 passing** (V13 so far: +109 over the 1,176 baseline) |
+| Tests | **91 files / 1,295 passing** (V13 so far: +119 over the 1,176 baseline) |
 | Type-check | clean |
-| Build | clean; app chunk **294.91 kB** / 301 kB budget (**6.1 kB headroom**); `data-contests` 343.72 kB; `ContestRevision` its own 8.84 kB lazy chunk |
-| `validate:data` | OK — `2561 rated problems, 2153 with a filterable AICM pattern, 207 bridged` |
-| Browser QA | **done for slice 6** at 1280×590, light + dark: all four revision modes, no console errors, no horizontal scroll, the 16-row rail still fits without scrolling. Slices 4–5 remain browser-unverified (below). |
+| Build | clean; app chunk **295.80 kB** / 301 kB budget (**5.2 kB headroom**); `data-contests` 343.72 kB; `ContestRevision` 8.97 kB and `ContestDue` 1.43 kB as their own lazy chunks |
+| `validate:data` | OK — and now checks `leetcodeId` against the FRONTEND id, not the catalog's internal one |
+| Browser QA | **done for slices 4, 5 and 6**, at 1280/768/375 in both themes — see design record §17.3 and §18.1. No QA debt outstanding. |
 | Standard revision | **30 tests pass unmodified** — the acceptance condition for slice 6 |
 | Full Contest | locked spec intact: the 62 pre-existing contest tests pass unmodified |
 
-### Done (design record §14–§17 hold the detail)
+### Done (design record §14–§18 hold the detail)
 
 | Slice | What landed |
 |---|---|
@@ -47,22 +48,27 @@ npm run build                           # expect app chunk ~294.91 kB (budget 30
 
 | Slice | Work | Est. | Where to look |
 |---|---|---|---|
-| **7** | Mixed-pattern contest (weak-areas draw via `selectPatternWeakness` at the page call site, `distinctPatterns: false`), "Recreate contest" (`distinctContests: false` over one contest's own Q1–Q4 — `index.byContest` already exists), progression polish (band recommendation on the library page; the day-active question). | 0.5–1 d | design record §7.4, §17.5 |
+| **7** | Mixed-pattern contest (weak-areas draw via `selectPatternWeakness` at the page call site, `distinctPatterns: false`), "Recreate contest" (`distinctContests: false` over one contest's own Q1–Q4 — `index.byContest` already exists), progression polish (band recommendation on the library page). | 0.5–1 d | design record §7.4, §17.5 |
 
-### Open decisions (none blocking; all recorded)
+### Open decisions — ALL FOUR ARE CLOSED (2026-08-20)
 
-1. **`leetcodeId` correction** (§10.1) — every stored `Question.leetcodeId` is LeetCode's INTERNAL
-   id. Untouched, unchanged recommendation: fix in the catalog fetcher as its own commit.
-2. **XP for library solves — DECIDED in slice 5** (§16.1): ordinary `SOLVE_XP` once, no day log.
-   **Library reviews — DECIDED in slice 6** (§17.1): `revisionXp(difficulty)` on pass and fail, no
-   day log. Follow-up: check the level curve after real usage.
-3. **Contest work on Today** (§10.3) — still no. Revisit after usage.
-4. **Do library solves mark the day active?** (§16.3) Currently they don't (no streak/heatmap).
-   `mlActivityByDate`'s derived-merge is the pattern if the product wants it. Product call.
+Nothing here is waiting on anyone. Kept as a record of what was decided and why (design record §18).
+
+1. **`leetcodeId`** (§10.1) — **DONE.** It is now the FRONTEND id, resolved by slug from the topics
+   snapshot; 237 of 528 were wrong. Offline, 528/528 coverage, build fails rather than falling back.
+2. **XP for library solves** (§16.1) — ordinary `SOLVE_XP` once, no day log. **Library reviews**
+   (§17.1) — `revisionXp(difficulty)` on pass and fail, no day log. Follow-up: check the level
+   curve after real usage; that is an observation, not an open question.
+3. **Contest work on Today** (§10.3) — **YES, behind `settings.contestOnToday` (default on)**, as a
+   rail block that is never in `rankWork`, never in the day's counts, and does not grade.
+4. **Do library solves mark the day active?** (§16.3) — **YES**, derived via
+   `contestLibraryActivityByDate` → `selectOtherTrackActivityByDate`. `DayLog` still gains nothing.
+
+The only thing left to watch is the XP curve after real usage.
 
 ---
 
-## The three defects slice 6 found — read these before writing anything similar
+## Five defects the browser found — read these before writing anything similar
 
 1. **⛔ `loadInitialState` never mapped `contestLibrary`.** A slice-3 bug, live for three slices.
    The write path was complete and `stateImported` restored it, so `contestLibrarySlice.test.ts`
@@ -77,8 +83,17 @@ npm run build                           # expect app chunk ~294.91 kB (budget 30
    `band` at `comfortable` while `step` is still 1). The wording now follows whether the band
    actually moved.
 
-The first two were found by **running the app in a browser**, not by the suite. That is the
-argument for doing the browser pass before calling a slice done.
+4. **"Why this problem?" named the wrong pattern.** The draw passed `aicmPatterns[0]`, so a
+   two-pointers contest explained a problem tagged
+   `['bitwise-manipulation','modified-binary-search','two-pointers']` with *"Bitwise
+   Manipulation"* — a stated reason unrelated to the actual selection. Both the draw and Contest
+   Revision's Pattern mode now name the scoped pattern.
+5. **The row title was crushed at 375px** (111px, ~12 characters) by fixed id and status columns.
+   The `aria-hidden` id column now yields below `sm`.
+
+Four of these five were found by **running the app in a browser**, not by the suite — including one
+that had been silently destroying saved data for three slices. Do the browser pass before calling a
+slice done.
 
 ## Slice 7 groundwork (verified against the code — do not re-derive)
 
@@ -101,8 +116,9 @@ argument for doing the browser pass before calling a slice done.
   2561/2561). Live sitting: library rows carry sitting-local NEGATIVE ids; a positive id in
   `contestSlice` MEANS "curriculum question N" and routes real progress. Persisted
   `ContestStallRecord.problems[].questionId` is curriculum-only — library sittings omit `problems`.
-- **The dataset's only permitted static importers are `ContestPracticePage` and `ContestRevision`.**
-  `ContestPage`, `store/selectors.ts`, `store/actions.ts` and `RevisionPage` must all stay clear.
+- **The dataset's only permitted static importers are `ContestPracticePage`, `ContestRevision` and
+  `ContestDue`.** `ContestPage`, `store/selectors.ts`, `store/actions.ts`, `RevisionPage` and
+  `TodayPage` must all stay clear — the last two reach their island through `lazy()`.
   Verify after a build: `grep -l 'from"./contestLibrary-*.js"' dist/assets/*.js`. A chunk name
   appearing in a `__vite__mapDeps` array is a dynamic-import dep list, not an import.
 - **A bridged problem is graded through `reviseQuestion`, never `reviseLibraryProblem`.** One
@@ -116,12 +132,10 @@ argument for doing the browser pass before calling a slice done.
   `npm run fetch:contest-data` is engineering-time only.
 - **16 nav rows @ `short:` = 26px each** (`Sidebar.tsx`); a 17th destination breaks 590px again.
 
-## QA debt (carry to next session)
+## QA debt
 
-- **Slices 4–5 are still browser-unverified.** Verify at 1280×590 in BOTH themes:
-  `/contest-practice` (row breakpoints 375/768/1280, the fold, the Disclosure, Start-disabled
-  states), the pattern-page CTA, and a filtered sitting on `/contest` (rating tooltip, Why-this-
-  problem latch, premium marker, library second-look link).
+**None.** Slices 4, 5 and 6 have all had a browser pass (design record §17.3, §18.1).
+
 - **Browser QA recipe that works** (the extension was broken last session; the in-app Browser pane
   is not): `preview_start {name:'dsa-roadmap-dev'}` → `resize_window 1280×590` → seed state by
   writing a `PersistedStateV1` to `localStorage['dsa-roadmap:v1']` and then **navigating with
@@ -145,7 +159,13 @@ argument for doing the browser pass before calling a slice done.
   awaits a query **deadlocks instead of failing**. Use `vi.useFakeTimers({ shouldAdvanceTime: true })`
   when a test both pins the date and awaits — see `contestRevision.test.tsx`.
 - A "failed" background agent may have finished its work — `git status` before assuming loss.
-- `questionCard.test.tsx` markdown-preview timeout is a documented under-load flake; passes solo.
+- **The suite is load-sensitive, and it is broader than one file.** Under full parallel execution
+  a small, *varying* set of async tests times out — `questionCard`'s markdown preview,
+  `routes.test.tsx`'s lazy mounts, `contestRevision`'s lazy boundary. Every one passes solo.
+  Confirm a green suite with `npx vitest run --no-file-parallelism` before believing a failure
+  (measured 2026-08-20: 91 files / 1,295 passing, 0 failed serially; 1–2 spurious failures per
+  parallel run). Give a new `findBy*` that crosses a `lazy()` boundary an explicit
+  `{ timeout: 5000 }` — a generous timeout, never a weakened assertion.
 - Never edit source via PowerShell text replacement (mojibake); Edit tool only (a Node/Python utf8
   script is fine for mechanical replacement). Commit messages via `git commit -F <file>`.
   PowerShell chains with `;`, not `&&`.
@@ -172,8 +192,8 @@ argument for doing the browser pass before calling a slice done.
 
 ## The law books
 
-`CLAUDE.md` (architecture law — the contest-library section reflects slices 0–6), `PRODUCT.md`
+`CLAUDE.md` (architecture law — the contest-library section reflects slices 0–6 plus §18), `PRODUCT.md`
 (locked product truth), `DESIGN.md` (visual system + mandatory composition contract),
 `report.md` (repo audit), and the design records under `docs/superpowers/specs/` — with
 **2026-08-19-contest-intelligence-design.md the active plan; §14/§15/§16/§17 are its
-implementation logs for slices 1–3 / 4 / 5 / 6.**
+implementation logs for slices 1–3 / 4 / 5 / 6, and §18 closes the outstanding items.**

@@ -83,14 +83,24 @@ interface RowProps {
   scored: ScoredProblem;
   state: ContestProblemState | undefined;
   today: string;
+  /**
+   * The pattern this pool is scoped to, when it is scoped to one. Named in preference to the
+   * problem's first tag: a problem carrying ['bitwise-manipulation','modified-binary-search',
+   * 'two-pointers'] is in a two-pointers pool because of its THIRD tag, and naming the first
+   * explains the row with something that had nothing to do with why it is here.
+   */
+  scopedPattern?: PatternId;
   /** Grade controls, or the sentence that replaces them. Absent on the practice list. */
   action?: ReactNode;
 }
 
-function CandidateRow({ scored, state, today, action }: RowProps) {
+function CandidateRow({ scored, state, today, scopedPattern, action }: RowProps) {
   const { problem, reasons } = scored;
   const label = contestLabel(problem);
-  const primary = problem.aicmPatterns[0];
+  const primary =
+    scopedPattern !== undefined && problem.aicmPatterns.includes(scopedPattern)
+      ? scopedPattern
+      : problem.aicmPatterns[0];
 
   return (
     <RuledItem className="flex flex-col gap-2">
@@ -188,6 +198,11 @@ export default function ContestRevision({ mode }: { mode: ContestRevisionMode })
     if (mode === 'weak') return weakPatterns.length === 0 ? undefined : { aicmPatterns: weakPatterns };
     return undefined;
   }, [mode, pattern, weakPatterns]);
+
+  // Pattern mode scopes to exactly one, so a row can be explained by it. Weak areas scopes to
+  // several, so there is no single pattern a row is "here for" — it stays unscoped rather than
+  // picking one of the weak patterns and implying that was the reason.
+  const scopedPattern = mode === 'pattern' && pattern !== '' ? pattern : undefined;
 
   const ranked = useMemo(
     () =>
@@ -417,6 +432,7 @@ export default function ContestRevision({ mode }: { mode: ContestRevisionMode })
                       scored={scored}
                       state={state}
                       today={today}
+                      scopedPattern={scopedPattern}
                       action={
                         gradedToday ? (
                           // The ladder takes one grade per calendar day, so there is no control to
@@ -477,6 +493,7 @@ export default function ContestRevision({ mode }: { mode: ContestRevisionMode })
                     scored={scored}
                     state={lookup(scored.problem.slug)}
                     today={today}
+                    scopedPattern={scopedPattern}
                   />
                 ))}
               </RuledList>

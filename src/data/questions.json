@@ -133,7 +133,7 @@
     "subpattern": "offset-runners",
     "familyId": "two-pointers-gap-runners",
     "url": "https://leetcode.com/problems/lowest-common-ancestor-of-a-binary-tree-iii/",
-    "leetcodeId": 1790,
+    "leetcodeId": 1650,
     "premium": true
   },
   {
@@ -169,7 +169,7 @@
     "subpattern": "converging-ends",
     "familyId": "two-pointers-converging-symmetry",
     "url": "https://leetcode.com/problems/minimum-number-of-moves-to-make-palindrome/",
-    "leetcodeId": 1356
+    "leetcodeId": 2193
   },
   {
     "id": 11,
@@ -186,7 +186,7 @@
     "subpattern": "block-reversal",
     "familyId": "two-pointers-next-arrangement",
     "url": "https://leetcode.com/problems/next-palindrome-using-same-digits/",
-    "leetcodeId": 1997,
+    "leetcodeId": 1842,
     "premium": true
   },
   {
@@ -203,7 +203,7 @@
     },
     "subpattern": "bounded-window",
     "url": "https://leetcode.com/problems/count-subarrays-with-fixed-bounds/",
-    "leetcodeId": 2527
+    "leetcodeId": 2444
   },
   {
     "id": 13,
@@ -218,7 +218,7 @@
       "space": "O(n)"
     },
     "url": "https://leetcode.com/problems/find-the-lexicographically-largest-string-from-the-box-ii/",
-    "leetcodeId": 3749,
+    "leetcodeId": 3406,
     "premium": true
   },
   {
@@ -235,7 +235,7 @@
     },
     "subpattern": "parallel-sequences",
     "url": "https://leetcode.com/problems/get-the-maximum-score/",
-    "leetcodeId": 1659
+    "leetcodeId": 1537
   },
   {
     "id": 15,
@@ -263,7 +263,7 @@
     "subpattern": "parallel-sequences",
     "familyId": "two-pointers-lockstep-two-sequences",
     "url": "https://leetcode.com/problems/append-characters-to-string-to-make-subsequence/",
-    "leetcodeId": 2572
+    "leetcodeId": 2486
   },
   {
     "id": 17,
@@ -279,7 +279,7 @@
     },
     "subpattern": "converging-ends",
     "url": "https://leetcode.com/problems/squares-of-a-sorted-array/",
-    "leetcodeId": 1019
+    "leetcodeId": 977
   },
   {
     "id": 18,
@@ -329,7 +329,7 @@
     },
     "subpattern": "bounded-window",
     "url": "https://leetcode.com/problems/partition-labels/",
-    "leetcodeId": 768
+    "leetcodeId": 763
   },
   {
     "id": 21,
@@ -465,7 +465,7 @@
     "subpattern": "parallel-sequences",
     "familyId": "two-pointers-lockstep-two-sequences",
     "url": "https://leetcode.com/problems/merge-strings-alternately/",
-    "leetcodeId": 1894
+    "leetcodeId": 1768
   },
   {
     "id": 29,
@@ -515,7 +515,7 @@
     },
     "subpattern": "bounded-window",
     "url": "https://leetcode.com/problems/longest-subarray-of-1s-after-deleting-one-element/",
-    "leetcodeId": 1586
+    "leetcodeId": 1493
   },
   {
     "id": 32,
@@ -532,7 +532,7 @@
     "subpattern": "parallel-sequences",
     "familyId": "two-pointers-lockstep-two-sequences",
     "url": "https://leetcode.com/problems/backspace-string-compare/",
-    "leetcodeId": 874
+    "leetcodeId": 844
   },
   {
     "id": 33,
@@ -566,7 +566,7 @@
     "subpattern": "reader-writer",
     "familyId": "two-pointers-reader-writer",
     "url": "https://leetcode.com/problems/rotating-the-box/",
-    "leetcodeId": 1972
+    "leetcodeId": 1861
   },
   {
     "id": 35,
@@ -617,7 +617,7 @@
     "subpattern": "midpoint-halving",
     "familyId": "fast-slow-pointers-midpoint-split",
     "url": "https://leetcode.com/problems/middle-of-the-linked-list/",
-    "leetcodeId": 908
+    "leetcodeId": 876
   },
   {
     "id": 38,
@@ -715,7 +715,7 @@
     "subpattern": "midpoint-halving",
     "familyId": "fast-slow-pointers-midpoint-split",
     "url": "https://leetcode.com/problems/maximum-twin-sum-of-a-linked-list/",
-    "leetcodeId": 2236
+    "leetcodeId": 2130
   },
   {
     "id": 44,
@@ -732,7 +732,7 @@
     "subpattern": "midpoint-halving",
     "familyId": "fast-slow-pointers-midpoint-split",
     "url": "https://leetcode.com/problems/split-a-circular-linked-list/",
-    "leetcodeId": 2835,
+    "leetcodeId": 2674,
     "premium": true
   },
   {
@@ -886,7 +886,7 @@
     "subpattern": "longest-grow-shrink",
     "familyId": "sliding-window-longest-valid",
     "url": "https://leetcode.com/problems/fruit-into-baskets/",
-    "leetcodeId": 940
+    "leetcodeId": 904
   },
   {
     "id": 54,
@@ -903,7 +903,7 @@
     "subpattern": "longest-grow-shrink",
     "familyId": "sliding-window-longest-valid",
     "url": "https://leetcode.com/problems/frequency-of-the-most-frequent-element/",
-    "leetcodeId": 1966
+    "leetcodeId": 1838
   },
   {
     "id": 55,
@@ -937,7 +937,7 @@
     "subpattern": "fixed-size",
     "familyId": "sliding-window-fixed-size",
     "url": "https://leetcode.com/problems/diet-plan-performance/",
-    "leetcodeId": 1280,
+    "leetcodeId": 1176,
     "premium": true
   },
   {
@@ -955,7 +955,7 @@
     "subpattern": "window-counting",
     "familyId": "sliding-window-count-subarrays",
     "url": "https://leetcode.com/problems/subarrays-with-k-different-integers/",
-    "leetcodeId": 1034
+    "leetcodeId": 992
   },
   {
     "id": 58,
@@ -972,7 +972,7 @@
     "subpattern": "window-counting",
     "familyId": "sliding-window-count-subarrays",
     "url": "https://leetcode.com/problems/count-subarrays-with-score-less-than-k/",
-    "leetcodeId": 2394
+    "leetcodeId": 2302
   },
   {
     "id": 59,
@@ -989,7 +989,7 @@
     "subpattern": "window-counting",
     "familyId": "sliding-window-count-subarrays",
     "url": "https://leetcode.com/problems/count-substrings-with-k-frequency-characters-ii/",
-    "leetcodeId": 3499,
+    "leetcodeId": 3329,
     "premium": true
   },
   {
@@ -1020,7 +1020,7 @@
     "subpattern": "window-counting",
     "familyId": "sliding-window-count-subarrays",
     "url": "https://leetcode.com/problems/binary-subarrays-with-sum/",
-    "leetcodeId": 966
+    "leetcodeId": 930
   },
   {
     "id": 62,
@@ -1054,7 +1054,7 @@
     "subpattern": "window-counting",
     "familyId": "sliding-window-count-subarrays",
     "url": "https://leetcode.com/problems/number-of-substrings-containing-all-three-characters/",
-    "leetcodeId": 1460
+    "leetcodeId": 1358
   },
   {
     "id": 64,
@@ -1088,7 +1088,7 @@
     "subpattern": "longest-grow-shrink",
     "familyId": "sliding-window-longest-valid",
     "url": "https://leetcode.com/problems/max-consecutive-ones-iii/",
-    "leetcodeId": 1046
+    "leetcodeId": 1004
   },
   {
     "id": 66,
@@ -1105,7 +1105,7 @@
     "subpattern": "longest-grow-shrink",
     "familyId": "sliding-window-longest-valid",
     "url": "https://leetcode.com/problems/longest-continuous-subarray-with-absolute-diff-less-than-or-equal-to-limit/",
-    "leetcodeId": 1549
+    "leetcodeId": 1438
   },
   {
     "id": 67,
@@ -1173,7 +1173,7 @@
     "subpattern": "coalesce-sorted",
     "familyId": "intervals-merge-coalesce",
     "url": "https://leetcode.com/problems/interval-list-intersections/",
-    "leetcodeId": 1028
+    "leetcodeId": 986
   },
   {
     "id": 71,
@@ -1190,7 +1190,7 @@
     "subpattern": "coalesce-sorted",
     "familyId": "intervals-merge-coalesce",
     "url": "https://leetcode.com/problems/employee-free-time/",
-    "leetcodeId": 761,
+    "leetcodeId": 759,
     "premium": true
   },
   {
@@ -1241,7 +1241,7 @@
     "subpattern": "coalesce-sorted",
     "familyId": "intervals-merge-coalesce",
     "url": "https://leetcode.com/problems/remove-covered-intervals/",
-    "leetcodeId": 1222
+    "leetcodeId": 1288
   },
   {
     "id": 75,
@@ -1258,7 +1258,7 @@
     "subpattern": "coalesce-sorted",
     "familyId": "intervals-merge-coalesce",
     "url": "https://leetcode.com/problems/count-days-without-meetings/",
-    "leetcodeId": 3430
+    "leetcodeId": 3169
   },
   {
     "id": 76,
@@ -1275,7 +1275,7 @@
     "subpattern": "active-count-sweep",
     "familyId": "intervals-active-sweep",
     "url": "https://leetcode.com/problems/car-pooling/",
-    "leetcodeId": 1184
+    "leetcodeId": 1094
   },
   {
     "id": 77,
@@ -1309,7 +1309,7 @@
     "subpattern": "active-count-sweep",
     "familyId": "intervals-active-sweep",
     "url": "https://leetcode.com/problems/minimum-interval-to-include-each-query/",
-    "leetcodeId": 1977
+    "leetcodeId": 1851
   },
   {
     "id": 79,
@@ -1392,7 +1392,7 @@
       "space": "O(1)"
     },
     "url": "https://leetcode.com/problems/swapping-nodes-in-a-linked-list/",
-    "leetcodeId": 528
+    "leetcodeId": 1721
   },
   {
     "id": 84,
@@ -1409,7 +1409,7 @@
     "subpattern": "window-reversal",
     "familyId": "linked-list-inplace-pointer-reversal",
     "url": "https://leetcode.com/problems/reverse-nodes-in-even-length-groups/",
-    "leetcodeId": 2196
+    "leetcodeId": 2074
   },
   {
     "id": 85,
@@ -1477,7 +1477,7 @@
     "subpattern": "unlink-deletion",
     "familyId": "linked-list-inplace-unlink-deletion",
     "url": "https://leetcode.com/problems/delete-n-nodes-after-m-nodes-of-a-linked-list/",
-    "leetcodeId": 1618,
+    "leetcodeId": 1474,
     "premium": true
   },
   {
@@ -1512,7 +1512,7 @@
     "subpattern": "segment-splicing",
     "familyId": "linked-list-inplace-segment-surgery",
     "url": "https://leetcode.com/problems/insert-into-a-sorted-circular-linked-list/",
-    "leetcodeId": 850,
+    "leetcodeId": 708,
     "premium": true
   },
   {
@@ -1630,7 +1630,7 @@
     "subpattern": "locked-vs-available",
     "familyId": "two-heaps-threshold-release",
     "url": "https://leetcode.com/problems/meeting-rooms-iii/",
-    "leetcodeId": 2479
+    "leetcodeId": 2402
   },
   {
     "id": 98,
@@ -1647,7 +1647,7 @@
     "subpattern": "single-heap-greedy",
     "familyId": "two-heaps-pop-transform-push",
     "url": "https://leetcode.com/problems/minimum-cost-to-connect-sticks/",
-    "leetcodeId": 1126,
+    "leetcodeId": 1167,
     "premium": true
   },
   {
@@ -1665,7 +1665,7 @@
     "subpattern": "single-heap-greedy",
     "familyId": "two-heaps-pop-transform-push",
     "url": "https://leetcode.com/problems/longest-happy-string/",
-    "leetcodeId": 1304
+    "leetcodeId": 1405
   },
   {
     "id": 100,
@@ -1682,7 +1682,7 @@
     "subpattern": "single-heap-greedy",
     "familyId": "two-heaps-pop-transform-push",
     "url": "https://leetcode.com/problems/maximum-average-pass-ratio/",
-    "leetcodeId": 1917
+    "leetcodeId": 1792
   },
   {
     "id": 101,
@@ -1699,7 +1699,7 @@
     "subpattern": "locked-vs-available",
     "familyId": "two-heaps-threshold-release",
     "url": "https://leetcode.com/problems/the-number-of-the-smallest-unoccupied-chair/",
-    "leetcodeId": 2054
+    "leetcodeId": 1942
   },
   {
     "id": 102,
@@ -1716,7 +1716,7 @@
     "subpattern": "two-heap-partition",
     "familyId": "two-heaps-median-partition",
     "url": "https://leetcode.com/problems/largest-number-after-digit-swaps-by-parity/",
-    "leetcodeId": 2327
+    "leetcodeId": 2231
   },
   {
     "id": 103,
@@ -1746,7 +1746,7 @@
     "subpattern": "single-heap-greedy",
     "familyId": "two-heaps-pop-transform-push",
     "url": "https://leetcode.com/problems/construct-target-array-with-multiple-sums/",
-    "leetcodeId": 1479
+    "leetcodeId": 1354
   },
   {
     "id": 105,
@@ -1846,7 +1846,7 @@
     "subpattern": "virtual-sources",
     "familyId": "k-way-merge-virtual-lists",
     "url": "https://leetcode.com/problems/k-th-smallest-prime-fraction/",
-    "leetcodeId": 802
+    "leetcodeId": 786
   },
   {
     "id": 111,
@@ -1880,7 +1880,7 @@
     "subpattern": "bounded-heap-selection",
     "familyId": "top-k-elements-bounded-heap-selection",
     "url": "https://leetcode.com/problems/kth-largest-element-in-a-stream/",
-    "leetcodeId": 789
+    "leetcodeId": 703
   },
   {
     "id": 113,
@@ -1897,7 +1897,7 @@
     "subpattern": "frequency-ranking",
     "familyId": "top-k-elements-frequency-ranking",
     "url": "https://leetcode.com/problems/reorganize-string/",
-    "leetcodeId": 778
+    "leetcodeId": 767
   },
   {
     "id": 114,
@@ -1914,7 +1914,7 @@
     "subpattern": "bounded-heap-selection",
     "familyId": "top-k-elements-bounded-heap-selection",
     "url": "https://leetcode.com/problems/k-closest-points-to-origin/",
-    "leetcodeId": 1014
+    "leetcodeId": 973
   },
   {
     "id": 115,
@@ -1965,7 +1965,7 @@
     "subpattern": "k-greedy-operations",
     "familyId": "top-k-elements-pop-mutate-push",
     "url": "https://leetcode.com/problems/maximal-score-after-applying-k-operations/",
-    "leetcodeId": 2616
+    "leetcodeId": 2530
   },
   {
     "id": 118,
@@ -1982,7 +1982,7 @@
     "subpattern": "bounded-heap-selection",
     "familyId": "top-k-elements-bounded-heap-selection",
     "url": "https://leetcode.com/problems/find-the-kth-largest-integer-in-the-array/",
-    "leetcodeId": 2113
+    "leetcodeId": 1985
   },
   {
     "id": 119,
@@ -2016,7 +2016,7 @@
     "subpattern": "bounded-heap-selection",
     "familyId": "top-k-elements-bounded-heap-selection",
     "url": "https://leetcode.com/problems/find-subsequence-of-length-k-with-the-largest-sum/",
-    "leetcodeId": 2204
+    "leetcodeId": 2099
   },
   {
     "id": 121,
@@ -2033,7 +2033,7 @@
     "subpattern": "two-criteria-sweep",
     "familyId": "top-k-elements-bounded-heap-selection",
     "url": "https://leetcode.com/problems/minimum-cost-to-hire-k-workers/",
-    "leetcodeId": 887
+    "leetcodeId": 857
   },
   {
     "id": 122,
@@ -2067,7 +2067,7 @@
     "subpattern": "two-criteria-sweep",
     "familyId": "top-k-elements-bounded-heap-selection",
     "url": "https://leetcode.com/problems/maximum-performance-of-a-team/",
-    "leetcodeId": 1499
+    "leetcodeId": 1383
   },
   {
     "id": 124,
@@ -2115,7 +2115,7 @@
     "subpattern": "k-way-best-first",
     "familyId": "top-k-elements-best-first-frontier",
     "url": "https://leetcode.com/problems/find-the-k-sum-of-an-array/",
-    "leetcodeId": 2462
+    "leetcodeId": 2386
   },
   {
     "id": 127,
@@ -2132,7 +2132,7 @@
     "subpattern": "k-greedy-operations",
     "familyId": "top-k-elements-pop-mutate-push",
     "url": "https://leetcode.com/problems/maximum-product-after-k-increments/",
-    "leetcodeId": 2329
+    "leetcodeId": 2233
   },
   {
     "id": 128,
@@ -2149,7 +2149,7 @@
     "subpattern": "frequency-ranking",
     "familyId": "top-k-elements-frequency-ranking",
     "url": "https://leetcode.com/problems/least-number-of-unique-integers-after-k-removals/",
-    "leetcodeId": 1604
+    "leetcodeId": 1481
   },
   {
     "id": 129,
@@ -2166,7 +2166,7 @@
     "subpattern": "k-greedy-operations",
     "familyId": "top-k-elements-pop-mutate-push",
     "url": "https://leetcode.com/problems/final-array-state-after-k-multiplication-operations-i/",
-    "leetcodeId": 3555
+    "leetcodeId": 3264
   },
   {
     "id": 130,
@@ -2183,7 +2183,7 @@
     "subpattern": "exact-and-boundary",
     "familyId": "modified-binary-search-boundary-index",
     "url": "https://leetcode.com/problems/binary-search/",
-    "leetcodeId": 792
+    "leetcodeId": 704
   },
   {
     "id": 131,
@@ -2284,7 +2284,7 @@
     "subpattern": "search-as-subroutine",
     "familyId": "modified-binary-search-sorted-counting",
     "url": "https://leetcode.com/problems/the-k-weakest-rows-in-a-matrix/",
-    "leetcodeId": 1463
+    "leetcodeId": 1337
   },
   {
     "id": 137,
@@ -2301,7 +2301,7 @@
     "subpattern": "answer-space-feasibility",
     "familyId": "modified-binary-search-answer-space",
     "url": "https://leetcode.com/problems/maximum-value-at-a-given-index-in-a-bounded-array/",
-    "leetcodeId": 1929
+    "leetcodeId": 1802
   },
   {
     "id": 138,
@@ -2335,7 +2335,7 @@
     "subpattern": "search-as-subroutine",
     "familyId": "modified-binary-search-sorted-counting",
     "url": "https://leetcode.com/problems/count-pairs-whose-sum-is-less-than-target/",
-    "leetcodeId": 2917
+    "leetcodeId": 2824
   },
   {
     "id": 140,
@@ -2369,7 +2369,7 @@
     "subpattern": "answer-space-feasibility",
     "familyId": "modified-binary-search-answer-space",
     "url": "https://leetcode.com/problems/maximum-running-time-of-n-computers/",
-    "leetcodeId": 2263
+    "leetcodeId": 2141
   },
   {
     "id": 142,
@@ -2386,7 +2386,7 @@
     "subpattern": "answer-space-feasibility",
     "familyId": "modified-binary-search-answer-space",
     "url": "https://leetcode.com/problems/minimize-max-distance-to-gas-station/",
-    "leetcodeId": 788,
+    "leetcodeId": 774,
     "premium": true
   },
   {
@@ -2404,7 +2404,7 @@
     "subpattern": "answer-space-feasibility",
     "familyId": "modified-binary-search-answer-space",
     "url": "https://leetcode.com/problems/divide-chocolate/",
-    "leetcodeId": 1192,
+    "leetcodeId": 1231,
     "premium": true
   },
   {
@@ -2421,7 +2421,7 @@
     },
     "subpattern": "search-as-subroutine",
     "url": "https://leetcode.com/problems/partition-array-into-two-arrays-to-minimize-sum-difference/",
-    "leetcodeId": 2162
+    "leetcodeId": 2035
   },
   {
     "id": 145,
@@ -2438,7 +2438,7 @@
     "subpattern": "search-as-subroutine",
     "familyId": "modified-binary-search-sorted-counting",
     "url": "https://leetcode.com/problems/number-of-flowers-in-full-bloom/",
-    "leetcodeId": 2334
+    "leetcodeId": 2251
   },
   {
     "id": 146,
@@ -2455,7 +2455,7 @@
     "subpattern": "answer-space-feasibility",
     "familyId": "modified-binary-search-answer-space",
     "url": "https://leetcode.com/problems/koko-eating-bananas/",
-    "leetcodeId": 907
+    "leetcodeId": 875
   },
   {
     "id": 147,
@@ -2523,7 +2523,7 @@
     "subpattern": "answer-space-feasibility",
     "familyId": "modified-binary-search-answer-space",
     "url": "https://leetcode.com/problems/kth-smallest-product-of-two-sorted-arrays/",
-    "leetcodeId": 2150
+    "leetcodeId": 2040
   },
   {
     "id": 151,
@@ -2555,7 +2555,7 @@
       "space": "O(1)"
     },
     "url": "https://leetcode.com/problems/reaching-points/",
-    "leetcodeId": 796
+    "leetcodeId": 780
   },
   {
     "id": 153,
@@ -2572,7 +2572,7 @@
     "subpattern": "exact-and-boundary",
     "familyId": "modified-binary-search-boundary-index",
     "url": "https://leetcode.com/problems/kth-missing-positive-number/",
-    "leetcodeId": 1646
+    "leetcodeId": 1539
   },
   {
     "id": 154,
@@ -2662,7 +2662,7 @@
     },
     "familyId": "subsets-membership-decision",
     "url": "https://leetcode.com/problems/letter-case-permutation/",
-    "leetcodeId": 800
+    "leetcodeId": 784
   },
   {
     "id": 160,
@@ -2678,7 +2678,7 @@
     },
     "familyId": "subsets-slot-construction",
     "url": "https://leetcode.com/problems/letter-tile-possibilities/",
-    "leetcodeId": 1160
+    "leetcodeId": 1079
   },
   {
     "id": 161,
@@ -2728,7 +2728,7 @@
     "subpattern": "sort-then-match",
     "familyId": "greedy-sort-and-pair",
     "url": "https://leetcode.com/problems/boats-to-save-people/",
-    "leetcodeId": 917
+    "leetcodeId": 881
   },
   {
     "id": 164,
@@ -2762,7 +2762,7 @@
     "subpattern": "sort-then-match",
     "familyId": "greedy-sort-and-pair",
     "url": "https://leetcode.com/problems/two-city-scheduling/",
-    "leetcodeId": 1095
+    "leetcodeId": 1029
   },
   {
     "id": 166,
@@ -2779,7 +2779,7 @@
     "subpattern": "reach-frontier",
     "familyId": "greedy-farthest-reach",
     "url": "https://leetcode.com/problems/minimum-number-of-refueling-stops/",
-    "leetcodeId": 902
+    "leetcodeId": 871
   },
   {
     "id": 167,
@@ -2796,7 +2796,7 @@
     "subpattern": "digit-construction",
     "familyId": "greedy-digit-construction",
     "url": "https://leetcode.com/problems/largest-palindromic-number/",
-    "leetcodeId": 2475
+    "leetcodeId": 2384
   },
   {
     "id": 168,
@@ -2829,7 +2829,7 @@
     },
     "subpattern": "sweep-ledger",
     "url": "https://leetcode.com/problems/number-of-steps-to-reduce-a-number-in-binary-representation-to-one/",
-    "leetcodeId": 1520
+    "leetcodeId": 1404
   },
   {
     "id": 170,
@@ -2846,7 +2846,7 @@
     "subpattern": "sort-then-match",
     "familyId": "greedy-sort-and-pair",
     "url": "https://leetcode.com/problems/rearranging-fruits/",
-    "leetcodeId": 2689
+    "leetcodeId": 2561
   },
   {
     "id": 171,
@@ -2897,7 +2897,7 @@
     "subpattern": "digit-construction",
     "familyId": "greedy-digit-construction",
     "url": "https://leetcode.com/problems/largest-odd-number-in-string/",
-    "leetcodeId": 2032
+    "leetcodeId": 1903
   },
   {
     "id": 174,
@@ -2947,7 +2947,7 @@
     },
     "subpattern": "sweep-ledger",
     "url": "https://leetcode.com/problems/minimum-replacements-to-sort-the-array/",
-    "leetcodeId": 2450
+    "leetcodeId": 2366
   },
   {
     "id": 177,
@@ -2962,7 +2962,7 @@
       "space": "O(n)"
     },
     "url": "https://leetcode.com/problems/sort-an-array/",
-    "leetcodeId": 948
+    "leetcodeId": 912
   },
   {
     "id": 178,
@@ -3071,7 +3071,7 @@
     "tests": "Recognizing that one extreme element should carry every scoring move while the rest exist only to be cashed in for the resource that funds them.",
     "subpattern": "sort-then-match",
     "url": "https://leetcode.com/problems/maximum-points-after-enemy-battles/",
-    "leetcodeId": 3264
+    "leetcodeId": 3207
   },
   {
     "id": 185,
@@ -3179,7 +3179,7 @@
     "subpattern": "group-assignment",
     "familyId": "backtracking-bucket-assignment",
     "url": "https://leetcode.com/problems/minimum-moves-to-spread-stones-over-grid/",
-    "leetcodeId": 3092
+    "leetcodeId": 2850
   },
   {
     "id": 192,
@@ -3248,7 +3248,7 @@
     "subpattern": "string-partitioning",
     "familyId": "backtracking-string-segmentation",
     "url": "https://leetcode.com/problems/split-a-string-into-the-max-number-of-unique-substrings/",
-    "leetcodeId": 1715
+    "leetcodeId": 1593
   },
   {
     "id": 197,
@@ -3282,7 +3282,7 @@
     "subpattern": "path-enumeration",
     "familyId": "backtracking-all-paths-enumeration",
     "url": "https://leetcode.com/problems/all-paths-from-source-to-target/",
-    "leetcodeId": 813
+    "leetcodeId": 797
   },
   {
     "id": 199,
@@ -3310,7 +3310,7 @@
     "subpattern": "grid-search",
     "familyId": "backtracking-grid-walk",
     "url": "https://leetcode.com/problems/unique-paths-iii/",
-    "leetcodeId": 1022
+    "leetcodeId": 980
   },
   {
     "id": 201,
@@ -3438,7 +3438,7 @@
     "subpattern": "1d-linear",
     "familyId": "dynamic-programming-1d-linear",
     "url": "https://leetcode.com/problems/n-th-tribonacci-number/",
-    "leetcodeId": 1236
+    "leetcodeId": 1137
   },
   {
     "id": 209,
@@ -3585,7 +3585,7 @@
     "subpattern": "string-alignment",
     "familyId": "dynamic-programming-string-alignment",
     "url": "https://leetcode.com/problems/longest-common-subsequence/",
-    "leetcodeId": 1250
+    "leetcodeId": 1143
   },
   {
     "id": 218,
@@ -3630,7 +3630,7 @@
       "space": "O(n)"
     },
     "url": "https://leetcode.com/problems/count-the-number-of-good-subsequences/",
-    "leetcodeId": 2683,
+    "leetcodeId": 2539,
     "premium": true
   },
   {
@@ -3663,7 +3663,7 @@
       "space": "O(h)"
     },
     "url": "https://leetcode.com/problems/binary-tree-cameras/",
-    "leetcodeId": 1008
+    "leetcodeId": 968
   },
   {
     "id": 223,
@@ -3675,7 +3675,7 @@
     "tests": "Recognizing that the individual words stop mattering once each column becomes a letter tally, leaving a prefix-pair walk in which every column may be spent at most once.",
     "subpattern": "string-alignment",
     "url": "https://leetcode.com/problems/number-of-ways-to-form-a-target-string-given-a-dictionary/",
-    "leetcodeId": 1744
+    "leetcodeId": 1639
   },
   {
     "id": 224,
@@ -3810,7 +3810,7 @@
     "subpattern": "string-alignment",
     "familyId": "dynamic-programming-string-alignment",
     "url": "https://leetcode.com/problems/shortest-common-supersequence/",
-    "leetcodeId": 1170
+    "leetcodeId": 1092
   },
   {
     "id": 232,
@@ -3877,7 +3877,7 @@
     "subpattern": "1d-linear",
     "familyId": "dynamic-programming-1d-linear",
     "url": "https://leetcode.com/problems/min-cost-climbing-stairs/",
-    "leetcodeId": 747
+    "leetcodeId": 746
   },
   {
     "id": 236,
@@ -3927,7 +3927,7 @@
     },
     "subpattern": "state-dimension",
     "url": "https://leetcode.com/problems/cheapest-flights-within-k-stops/",
-    "leetcodeId": 803
+    "leetcodeId": 787
   },
   {
     "id": 239,
@@ -3990,7 +3990,7 @@
     "subpattern": "knapsack-subset",
     "familyId": "dynamic-programming-knapsack",
     "url": "https://leetcode.com/problems/the-number-of-good-subsets/",
-    "leetcodeId": 2105
+    "leetcodeId": 1994
   },
   {
     "id": 243,
@@ -4018,7 +4018,7 @@
     "tests": "Whether you can notice a recursion converging toward a limit and cut the state space at the point where more precision can no longer change the reported answer.",
     "subpattern": "state-dimension",
     "url": "https://leetcode.com/problems/soup-servings/",
-    "leetcodeId": 826
+    "leetcodeId": 808
   },
   {
     "id": 245,
@@ -4034,7 +4034,7 @@
     },
     "subpattern": "1d-linear",
     "url": "https://leetcode.com/problems/number-of-people-aware-of-a-secret/",
-    "leetcodeId": 2408
+    "leetcodeId": 2327
   },
   {
     "id": 246,
@@ -4129,7 +4129,7 @@
     },
     "familyId": "cyclic-sort-index-home",
     "url": "https://leetcode.com/problems/sort-array-by-parity-ii/",
-    "leetcodeId": 958
+    "leetcodeId": 922
   },
   {
     "id": 252,
@@ -4193,7 +4193,7 @@
     "subpattern": "order-inference",
     "familyId": "topological-sort-order-inference",
     "url": "https://leetcode.com/problems/verifying-an-alien-dictionary/",
-    "leetcodeId": 990
+    "leetcodeId": 953
   },
   {
     "id": 256,
@@ -4244,7 +4244,7 @@
     "subpattern": "dependency-resolution",
     "familyId": "topological-sort-dependency-order",
     "url": "https://leetcode.com/problems/find-all-possible-recipes-from-given-supplies/",
-    "leetcodeId": 2220
+    "leetcodeId": 2115
   },
   {
     "id": 259,
@@ -4261,7 +4261,7 @@
     "subpattern": "order-inference",
     "familyId": "topological-sort-order-inference",
     "url": "https://leetcode.com/problems/build-a-matrix-with-conditions/",
-    "leetcodeId": 2472
+    "leetcodeId": 2392
   },
   {
     "id": 260,
@@ -4278,7 +4278,7 @@
     "subpattern": "dag-longest-path",
     "familyId": "topological-sort-dag-longest-path",
     "url": "https://leetcode.com/problems/longest-path-with-different-adjacent-characters/",
-    "leetcodeId": 2364
+    "leetcodeId": 2246
   },
   {
     "id": 261,
@@ -4295,7 +4295,7 @@
     "subpattern": "dag-longest-path",
     "familyId": "topological-sort-dag-longest-path",
     "url": "https://leetcode.com/problems/parallel-courses-iii/",
-    "leetcodeId": 2176
+    "leetcodeId": 2050
   },
   {
     "id": 262,
@@ -4312,7 +4312,7 @@
     "subpattern": "dag-longest-path",
     "familyId": "topological-sort-dag-longest-path",
     "url": "https://leetcode.com/problems/parallel-courses/",
-    "leetcodeId": 1101,
+    "leetcodeId": 1136,
     "premium": true
   },
   {
@@ -4330,7 +4330,7 @@
     "subpattern": "dependency-resolution",
     "familyId": "topological-sort-dependency-order",
     "url": "https://leetcode.com/problems/sort-items-by-groups-respecting-dependencies/",
-    "leetcodeId": 1309
+    "leetcodeId": 1203
   },
   {
     "id": 264,
@@ -4345,7 +4345,7 @@
       "space": "O(n)"
     },
     "url": "https://leetcode.com/problems/collect-coins-in-a-tree/",
-    "leetcodeId": 2717
+    "leetcodeId": 2603
   },
   {
     "id": 265,
@@ -4362,7 +4362,7 @@
     "subpattern": "prefix-budget-queries",
     "familyId": "sort-search-prefix-budget",
     "url": "https://leetcode.com/problems/sum-of-mutated-array-closest-to-target/",
-    "leetcodeId": 1232
+    "leetcodeId": 1300
   },
   {
     "id": 266,
@@ -4412,7 +4412,7 @@
     "subpattern": "prefix-budget-queries",
     "familyId": "sort-search-prefix-budget",
     "url": "https://leetcode.com/problems/maximum-number-of-integers-to-choose-from-a-range-i/",
-    "leetcodeId": 2640
+    "leetcodeId": 2554
   },
   {
     "id": 269,
@@ -4429,7 +4429,7 @@
     "subpattern": "pair-counting-after-sort",
     "familyId": "sort-search-pair-range-counting",
     "url": "https://leetcode.com/problems/find-the-distance-value-between-two-arrays/",
-    "leetcodeId": 1486
+    "leetcodeId": 1385
   },
   {
     "id": 270,
@@ -4445,7 +4445,7 @@
     },
     "subpattern": "ranks-and-neighbors",
     "url": "https://leetcode.com/problems/find-target-indices-after-sorting-array/",
-    "leetcodeId": 2210
+    "leetcodeId": 2089
   },
   {
     "id": 271,
@@ -4478,7 +4478,7 @@
     "subpattern": "prefix-budget-queries",
     "familyId": "sort-search-prefix-budget",
     "url": "https://leetcode.com/problems/minimum-operations-to-make-all-array-elements-equal/",
-    "leetcodeId": 2718
+    "leetcodeId": 2602
   },
   {
     "id": 273,
@@ -4495,7 +4495,7 @@
     "subpattern": "prefix-budget-queries",
     "familyId": "sort-search-prefix-budget",
     "url": "https://leetcode.com/problems/longest-subsequence-with-limited-sum/",
-    "leetcodeId": 2469
+    "leetcodeId": 2389
   },
   {
     "id": 274,
@@ -4512,7 +4512,7 @@
     "subpattern": "binary-search-the-value",
     "familyId": "sort-search-value-search-over-pairs",
     "url": "https://leetcode.com/problems/range-sum-of-sorted-subarray-sums/",
-    "leetcodeId": 1615
+    "leetcodeId": 1508
   },
   {
     "id": 275,
@@ -4529,7 +4529,7 @@
     "subpattern": "binary-search-the-value",
     "familyId": "sort-search-value-search-over-pairs",
     "url": "https://leetcode.com/problems/magnetic-force-between-two-balls/",
-    "leetcodeId": 1675
+    "leetcodeId": 1552
   },
   {
     "id": 276,
@@ -4546,7 +4546,7 @@
     "subpattern": "prefix-budget-queries",
     "familyId": "sort-search-prefix-budget",
     "url": "https://leetcode.com/problems/minimum-space-wasted-from-packaging/",
-    "leetcodeId": 2018
+    "leetcodeId": 1889
   },
   {
     "id": 277,
@@ -4563,7 +4563,7 @@
     "subpattern": "pair-counting-after-sort",
     "familyId": "sort-search-pair-range-counting",
     "url": "https://leetcode.com/problems/two-sum-less-than-k/",
-    "leetcodeId": 1083,
+    "leetcodeId": 1099,
     "premium": true
   },
   {
@@ -4598,7 +4598,7 @@
     "subpattern": "pair-counting-after-sort",
     "familyId": "sort-search-pair-range-counting",
     "url": "https://leetcode.com/problems/count-pairs-in-two-arrays/",
-    "leetcodeId": 2036,
+    "leetcodeId": 1885,
     "premium": true
   },
   {
@@ -4615,7 +4615,7 @@
     },
     "subpattern": "ranks-and-neighbors",
     "url": "https://leetcode.com/problems/put-marbles-in-bags/",
-    "leetcodeId": 2681
+    "leetcodeId": 2551
   },
   {
     "id": 281,
@@ -4731,7 +4731,7 @@
     "subpattern": "grid-simulation",
     "familyId": "matrices-grid-simulation",
     "url": "https://leetcode.com/problems/where-will-the-ball-fall/",
-    "leetcodeId": 1324
+    "leetcodeId": 1706
   },
   {
     "id": 288,
@@ -4763,7 +4763,7 @@
     "subpattern": "traversal-orders",
     "familyId": "matrices-traversal-orders",
     "url": "https://leetcode.com/problems/convert-1d-array-into-2d-array/",
-    "leetcodeId": 2132
+    "leetcodeId": 2022
   },
   {
     "id": 290,
@@ -4795,7 +4795,7 @@
       "space": "O(m*n)"
     },
     "url": "https://leetcode.com/problems/flip-columns-for-maximum-number-of-equal-rows/",
-    "leetcodeId": 1147
+    "leetcodeId": 1072
   },
   {
     "id": 292,
@@ -4812,7 +4812,7 @@
     "subpattern": "grid-simulation",
     "familyId": "matrices-grid-simulation",
     "url": "https://leetcode.com/problems/number-of-spaces-cleaning-robot-cleaned/",
-    "leetcodeId": 2203,
+    "leetcodeId": 2061,
     "premium": true
   },
   {
@@ -4830,7 +4830,7 @@
     "subpattern": "in-place-transforms",
     "familyId": "matrices-in-place-transforms",
     "url": "https://leetcode.com/problems/transpose-matrix/",
-    "leetcodeId": 898
+    "leetcodeId": 867
   },
   {
     "id": 294,
@@ -4847,7 +4847,7 @@
     "subpattern": "monotone-grid-search",
     "familyId": "matrices-monotone-grid-search",
     "url": "https://leetcode.com/problems/count-negative-numbers-in-a-sorted-matrix/",
-    "leetcodeId": 1476
+    "leetcodeId": 1351
   },
   {
     "id": 295,
@@ -4864,7 +4864,7 @@
     "subpattern": "grid-simulation",
     "familyId": "matrices-grid-simulation",
     "url": "https://leetcode.com/problems/minimum-time-takes-to-reach-destination-without-drowning/",
-    "leetcodeId": 3043,
+    "leetcodeId": 2814,
     "premium": true
   },
   {
@@ -4898,7 +4898,7 @@
       "space": "O(m*n)"
     },
     "url": "https://leetcode.com/problems/minimize-maximum-value-in-a-grid/",
-    "leetcodeId": 2506,
+    "leetcodeId": 2371,
     "premium": true
   },
   {
@@ -4933,7 +4933,7 @@
     "subpattern": "monotone-grid-search",
     "familyId": "matrices-monotone-grid-search",
     "url": "https://leetcode.com/problems/swim-in-rising-water/",
-    "leetcodeId": 794
+    "leetcodeId": 778
   },
   {
     "id": 300,
@@ -4982,7 +4982,7 @@
     },
     "subpattern": "traversal-orders",
     "url": "https://leetcode.com/problems/toeplitz-matrix/",
-    "leetcodeId": 777
+    "leetcodeId": 766
   },
   {
     "id": 303,
@@ -5033,7 +5033,7 @@
     "subpattern": "matching-cancellation",
     "familyId": "stacks-cancel-against-top",
     "url": "https://leetcode.com/problems/remove-all-adjacent-duplicates-in-string/",
-    "leetcodeId": 1128
+    "leetcodeId": 1047
   },
   {
     "id": 306,
@@ -5050,7 +5050,7 @@
     "subpattern": "matching-cancellation",
     "familyId": "stacks-cancel-against-top",
     "url": "https://leetcode.com/problems/minimum-remove-to-make-valid-parentheses/",
-    "leetcodeId": 1371
+    "leetcodeId": 1249
   },
   {
     "id": 307,
@@ -5163,7 +5163,7 @@
     "subpattern": "matching-cancellation",
     "familyId": "stacks-cancel-against-top",
     "url": "https://leetcode.com/problems/minimum-string-length-after-removing-substrings/",
-    "leetcodeId": 2800
+    "leetcodeId": 2696
   },
   {
     "id": 314,
@@ -5180,7 +5180,7 @@
     "subpattern": "monotonic",
     "familyId": "stacks-monotonic-resolver",
     "url": "https://leetcode.com/problems/number-of-valid-subarrays/",
-    "leetcodeId": 1061,
+    "leetcodeId": 1063,
     "premium": true
   },
   {
@@ -5198,7 +5198,7 @@
     "subpattern": "monotonic",
     "familyId": "stacks-monotonic-resolver",
     "url": "https://leetcode.com/problems/number-of-visible-people-in-a-queue/",
-    "leetcodeId": 1305
+    "leetcodeId": 1944
   },
   {
     "id": 316,
@@ -5215,7 +5215,7 @@
     "subpattern": "parsing-evaluation",
     "familyId": "stacks-nested-frames",
     "url": "https://leetcode.com/problems/parsing-a-boolean-expression/",
-    "leetcodeId": 1197
+    "leetcodeId": 1106
   },
   {
     "id": 317,
@@ -5266,7 +5266,7 @@
     "subpattern": "monotonic",
     "familyId": "stacks-monotonic-resolver",
     "url": "https://leetcode.com/problems/next-greater-element-iv/",
-    "leetcodeId": 2549
+    "leetcodeId": 2454
   },
   {
     "id": 320,
@@ -5283,7 +5283,7 @@
     "subpattern": "monotonic",
     "familyId": "stacks-monotonic-resolver",
     "url": "https://leetcode.com/problems/maximum-width-ramp/",
-    "leetcodeId": 1002
+    "leetcodeId": 962
   },
   {
     "id": 321,
@@ -5317,7 +5317,7 @@
     "subpattern": "matching-cancellation",
     "familyId": "stacks-cancel-against-top",
     "url": "https://leetcode.com/problems/remove-all-adjacent-duplicates-in-string-ii/",
-    "leetcodeId": 1320
+    "leetcodeId": 1209
   },
   {
     "id": 323,
@@ -5351,7 +5351,7 @@
     "subpattern": "weighted-shortest-path",
     "familyId": "graphs-weighted-shortest-path",
     "url": "https://leetcode.com/problems/network-delay-time/",
-    "leetcodeId": 744
+    "leetcodeId": 743
   },
   {
     "id": 325,
@@ -5363,7 +5363,7 @@
     "tests": "Recognizing that a fixed-length cycle question is really about shared neighbours between connected pairs, which counting adjacency overlaps answers without walking any paths.",
     "subpattern": "degree-local-scan",
     "url": "https://leetcode.com/problems/paths-in-maze-that-lead-to-same-room/",
-    "leetcodeId": 2218,
+    "leetcodeId": 2077,
     "premium": true
   },
   {
@@ -5411,7 +5411,7 @@
     "subpattern": "state-space-bfs",
     "familyId": "graphs-state-space-bfs",
     "url": "https://leetcode.com/problems/bus-routes/",
-    "leetcodeId": 833
+    "leetcodeId": 815
   },
   {
     "id": 329,
@@ -5444,7 +5444,7 @@
     "subpattern": "degree-local-scan",
     "familyId": "graphs-degree-counting",
     "url": "https://leetcode.com/problems/lucky-numbers-in-a-matrix/",
-    "leetcodeId": 1496
+    "leetcodeId": 1380
   },
   {
     "id": 331,
@@ -5461,7 +5461,7 @@
     "subpattern": "weighted-shortest-path",
     "familyId": "graphs-weighted-shortest-path",
     "url": "https://leetcode.com/problems/path-with-maximum-probability/",
-    "leetcodeId": 1325
+    "leetcodeId": 1514
   },
   {
     "id": 332,
@@ -5477,7 +5477,7 @@
     },
     "subpattern": "traversal-reachability",
     "url": "https://leetcode.com/problems/reorder-routes-to-make-all-paths-lead-to-the-city-zero/",
-    "leetcodeId": 1576
+    "leetcodeId": 1466
   },
   {
     "id": 333,
@@ -5493,7 +5493,7 @@
     },
     "subpattern": "traversal-reachability",
     "url": "https://leetcode.com/problems/tree-diameter/",
-    "leetcodeId": 1177,
+    "leetcodeId": 1245,
     "premium": true
   },
   {
@@ -5511,7 +5511,7 @@
     "subpattern": "degree-local-scan",
     "familyId": "graphs-degree-counting",
     "url": "https://leetcode.com/problems/find-the-town-judge/",
-    "leetcodeId": 1039
+    "leetcodeId": 997
   },
   {
     "id": 335,
@@ -5528,7 +5528,7 @@
     "subpattern": "degree-local-scan",
     "familyId": "graphs-degree-counting",
     "url": "https://leetcode.com/problems/find-center-of-star-graph/",
-    "leetcodeId": 1916
+    "leetcodeId": 1791
   },
   {
     "id": 336,
@@ -5545,7 +5545,7 @@
     "subpattern": "cycle-structure",
     "familyId": "graphs-cycle-structure",
     "url": "https://leetcode.com/problems/longest-cycle-in-a-graph/",
-    "leetcodeId": 2439
+    "leetcodeId": 2360
   },
   {
     "id": 337,
@@ -5562,7 +5562,7 @@
     "subpattern": "weighted-shortest-path",
     "familyId": "graphs-weighted-shortest-path",
     "url": "https://leetcode.com/problems/minimum-cost-to-make-at-least-one-valid-path-in-a-grid/",
-    "leetcodeId": 1485
+    "leetcodeId": 1368
   },
   {
     "id": 338,
@@ -5579,7 +5579,7 @@
     "subpattern": "cycle-structure",
     "familyId": "graphs-cycle-structure",
     "url": "https://leetcode.com/problems/shortest-cycle-in-a-graph/",
-    "leetcodeId": 2671
+    "leetcodeId": 2608
   },
   {
     "id": 339,
@@ -5596,7 +5596,7 @@
     "subpattern": "state-space-bfs",
     "familyId": "graphs-state-space-bfs",
     "url": "https://leetcode.com/problems/shortest-path-visiting-all-nodes/",
-    "leetcodeId": 877
+    "leetcodeId": 847
   },
   {
     "id": 340,
@@ -5629,7 +5629,7 @@
     "subpattern": "state-space-bfs",
     "familyId": "graphs-state-space-bfs",
     "url": "https://leetcode.com/problems/shortest-path-in-a-grid-with-obstacles-elimination/",
-    "leetcodeId": 1414
+    "leetcodeId": 1293
   },
   {
     "id": 342,
@@ -5851,7 +5851,7 @@
     "subpattern": "subtree-aggregation",
     "familyId": "tree-dfs-subtree-aggregation",
     "url": "https://leetcode.com/problems/height-of-binary-tree-after-subtree-removal-queries/",
-    "leetcodeId": 2545
+    "leetcodeId": 2458
   },
   {
     "id": 355,
@@ -5902,7 +5902,7 @@
     "subpattern": "structural-rewiring",
     "familyId": "tree-dfs-rewire-and-return",
     "url": "https://leetcode.com/problems/delete-nodes-and-return-forest/",
-    "leetcodeId": 1207
+    "leetcodeId": 1110
   },
   {
     "id": 358,
@@ -5918,7 +5918,7 @@
     },
     "subpattern": "subtree-aggregation",
     "url": "https://leetcode.com/problems/sum-of-distances-in-tree/",
-    "leetcodeId": 863
+    "leetcodeId": 834
   },
   {
     "id": 359,
@@ -5935,7 +5935,7 @@
     "subpattern": "construction-serialization",
     "familyId": "tree-dfs-rebuild-from-traversal",
     "url": "https://leetcode.com/problems/recover-a-tree-from-preorder-traversal/",
-    "leetcodeId": 1093
+    "leetcodeId": 1028
   },
   {
     "id": 360,
@@ -5966,7 +5966,7 @@
     },
     "subpattern": "subtree-aggregation",
     "url": "https://leetcode.com/problems/univalued-binary-tree/",
-    "leetcodeId": 1005
+    "leetcodeId": 965
   },
   {
     "id": 362,
@@ -6068,7 +6068,7 @@
     },
     "subpattern": "level-processing",
     "url": "https://leetcode.com/problems/vertical-order-traversal-of-a-binary-tree/",
-    "leetcodeId": 1029
+    "leetcodeId": 987
   },
   {
     "id": 368,
@@ -6147,7 +6147,7 @@
     },
     "subpattern": "tree-distance-queries",
     "url": "https://leetcode.com/problems/find-minimum-diameter-after-merging-two-trees/",
-    "leetcodeId": 3439
+    "leetcodeId": 3203
   },
   {
     "id": 373,
@@ -6163,7 +6163,7 @@
     },
     "subpattern": "tree-distance-queries",
     "url": "https://leetcode.com/problems/closest-node-to-path-in-tree/",
-    "leetcodeId": 2420,
+    "leetcodeId": 2277,
     "premium": true
   },
   {
@@ -6180,7 +6180,7 @@
     },
     "subpattern": "level-processing",
     "url": "https://leetcode.com/problems/frog-position-after-t-seconds/",
-    "leetcodeId": 1493
+    "leetcodeId": 1377
   },
   {
     "id": 375,
@@ -6214,7 +6214,7 @@
     "subpattern": "shortest-path-state-bfs",
     "familyId": "tree-bfs-fewest-steps",
     "url": "https://leetcode.com/problems/open-the-lock/",
-    "leetcodeId": 753
+    "leetcodeId": 752
   },
   {
     "id": 377,
@@ -6266,7 +6266,7 @@
     "subpattern": "prefix-storage-lookup",
     "familyId": "trie-prefix-path",
     "url": "https://leetcode.com/problems/search-suggestions-system/",
-    "leetcodeId": 1397
+    "leetcodeId": 1268
   },
   {
     "id": 380,
@@ -6385,7 +6385,7 @@
     "subpattern": "multi-word-matching",
     "familyId": "trie-multi-pattern-matching",
     "url": "https://leetcode.com/problems/index-pairs-of-a-string/",
-    "leetcodeId": 1075,
+    "leetcodeId": 1065,
     "premium": true
   },
   {
@@ -6436,7 +6436,7 @@
     },
     "subpattern": "reversed-key-tries",
     "url": "https://leetcode.com/problems/longest-common-suffix-queries/",
-    "leetcodeId": 3376
+    "leetcodeId": 3093
   },
   {
     "id": 390,
@@ -6470,7 +6470,7 @@
     "subpattern": "prefix-storage-lookup",
     "familyId": "trie-prefix-path",
     "url": "https://leetcode.com/problems/check-if-a-word-occurs-as-a-prefix-of-any-word-in-a-sentence/",
-    "leetcodeId": 1566
+    "leetcodeId": 1455
   },
   {
     "id": 392,
@@ -6487,7 +6487,7 @@
     "subpattern": "prefix-storage-lookup",
     "familyId": "trie-prefix-path",
     "url": "https://leetcode.com/problems/longest-word-with-all-prefixes/",
-    "leetcodeId": 2009,
+    "leetcodeId": 1858,
     "premium": true
   },
   {
@@ -6503,7 +6503,7 @@
       "space": "O(n)"
     },
     "url": "https://leetcode.com/problems/design-hashmap/",
-    "leetcodeId": 817
+    "leetcodeId": 706
   },
   {
     "id": 394,
@@ -6635,7 +6635,7 @@
     "subpattern": "set-membership-dedup",
     "familyId": "tracking-count-table-answer",
     "url": "https://leetcode.com/problems/unique-number-of-occurrences/",
-    "leetcodeId": 1319
+    "leetcodeId": 1207
   },
   {
     "id": 402,
@@ -6652,7 +6652,7 @@
     "subpattern": "lookup-tables-and-joins",
     "familyId": "hash-maps-precomputed-lookup",
     "url": "https://leetcode.com/problems/high-five/",
-    "leetcodeId": 1074,
+    "leetcodeId": 1086,
     "premium": true
   },
   {
@@ -6686,7 +6686,7 @@
     "subpattern": "prefix-state-counting",
     "familyId": "hash-maps-prefix-state-counting",
     "url": "https://leetcode.com/problems/number-of-wonderful-substrings/",
-    "leetcodeId": 2044
+    "leetcodeId": 1915
   },
   {
     "id": 405,
@@ -6721,7 +6721,7 @@
     "subpattern": "lookup-tables-and-joins",
     "familyId": "hash-maps-precomputed-lookup",
     "url": "https://leetcode.com/problems/custom-sort-string/",
-    "leetcodeId": 807
+    "leetcodeId": 791
   },
   {
     "id": 407,
@@ -6738,7 +6738,7 @@
     "subpattern": "occurrence-position-memory",
     "familyId": "hash-maps-first-seen-position",
     "url": "https://leetcode.com/problems/total-appeal-of-a-string/",
-    "leetcodeId": 2340
+    "leetcodeId": 2262
   },
   {
     "id": 408,
@@ -6755,7 +6755,7 @@
     "subpattern": "lookup-tables-and-joins",
     "familyId": "hash-maps-precomputed-lookup",
     "url": "https://leetcode.com/problems/dot-product-of-two-sparse-vectors/",
-    "leetcodeId": 1713,
+    "leetcodeId": 1570,
     "premium": true
   },
   {
@@ -6771,7 +6771,7 @@
       "space": "O(n)"
     },
     "url": "https://leetcode.com/problems/longest-happy-prefix/",
-    "leetcodeId": 1508
+    "leetcodeId": 1392
   },
   {
     "id": 410,
@@ -6784,7 +6784,7 @@
     "subpattern": "occurrence-position-memory",
     "familyId": "hash-maps-first-seen-position",
     "url": "https://leetcode.com/problems/find-longest-self-contained-substring/",
-    "leetcodeId": 3410,
+    "leetcodeId": 3104,
     "premium": true
   },
   {
@@ -6886,7 +6886,7 @@
     "subpattern": "set-membership-dedup",
     "familyId": "hash-maps-membership-oracle",
     "url": "https://leetcode.com/problems/jewels-and-stones/",
-    "leetcodeId": 782
+    "leetcodeId": 771
   },
   {
     "id": 417,
@@ -6903,7 +6903,7 @@
     "subpattern": "canonical-form-grouping",
     "familyId": "hash-maps-canonical-form-key",
     "url": "https://leetcode.com/problems/vowel-spellchecker/",
-    "leetcodeId": 1006
+    "leetcodeId": 966
   },
   {
     "id": 418,
@@ -6920,7 +6920,7 @@
     "subpattern": "set-membership-dedup",
     "familyId": "hash-maps-membership-oracle",
     "url": "https://leetcode.com/problems/n-repeated-element-in-size-2n-array/",
-    "leetcodeId": 1001
+    "leetcodeId": 961
   },
   {
     "id": 419,
@@ -6937,7 +6937,7 @@
     "subpattern": "set-membership-dedup",
     "familyId": "hash-maps-membership-oracle",
     "url": "https://leetcode.com/problems/powerful-integers/",
-    "leetcodeId": 1010
+    "leetcodeId": 970
   },
   {
     "id": 420,
@@ -6954,7 +6954,7 @@
     "subpattern": "lookup-tables-and-joins",
     "familyId": "hash-maps-precomputed-lookup",
     "url": "https://leetcode.com/problems/before-and-after-puzzle/",
-    "leetcodeId": 1132,
+    "leetcodeId": 1181,
     "premium": true
   },
   {
@@ -7005,7 +7005,7 @@
     },
     "subpattern": "set-membership-dedup",
     "url": "https://leetcode.com/problems/identify-the-largest-outlier-in-an-array/",
-    "leetcodeId": 3594
+    "leetcodeId": 3371
   },
   {
     "id": 424,
@@ -7021,7 +7021,7 @@
     },
     "subpattern": "set-membership-dedup",
     "url": "https://leetcode.com/problems/find-the-length-of-the-longest-common-prefix/",
-    "leetcodeId": 3329
+    "leetcodeId": 3043
   },
   {
     "id": 425,
@@ -7107,7 +7107,7 @@
     "subpattern": "count-then-order",
     "familyId": "tracking-frequency-driven-order",
     "url": "https://leetcode.com/problems/maximum-frequency-stack/",
-    "leetcodeId": 931
+    "leetcodeId": 895
   },
   {
     "id": 430,
@@ -7158,7 +7158,7 @@
     "subpattern": "pair-parity",
     "familyId": "tracking-palindrome-pair-parity",
     "url": "https://leetcode.com/problems/longest-palindrome-by-concatenating-two-letter-words/",
-    "leetcodeId": 2237
+    "leetcodeId": 2131
   },
   {
     "id": 433,
@@ -7192,7 +7192,7 @@
     "subpattern": "count-then-order",
     "familyId": "tracking-frequency-driven-order",
     "url": "https://leetcode.com/problems/minimum-number-of-pushes-to-type-word-ii/",
-    "leetcodeId": 3276
+    "leetcodeId": 3016
   },
   {
     "id": 435,
@@ -7209,7 +7209,7 @@
     "subpattern": "count-then-order",
     "familyId": "tracking-frequency-driven-order",
     "url": "https://leetcode.com/problems/rank-teams-by-votes/",
-    "leetcodeId": 1483
+    "leetcodeId": 1366
   },
   {
     "id": 436,
@@ -7225,7 +7225,7 @@
     },
     "subpattern": "frequency-counter-tracking",
     "url": "https://leetcode.com/problems/pairs-of-songs-with-total-durations-divisible-by-60/",
-    "leetcodeId": 1055
+    "leetcodeId": 1010
   },
   {
     "id": 437,
@@ -7242,7 +7242,7 @@
     "subpattern": "anagram-signatures",
     "familyId": "tracking-multiset-equality",
     "url": "https://leetcode.com/problems/count-anagrams/",
-    "leetcodeId": 2605
+    "leetcodeId": 2514
   },
   {
     "id": 438,
@@ -7258,7 +7258,7 @@
     },
     "subpattern": "frequency-counter-tracking",
     "url": "https://leetcode.com/problems/divide-array-into-increasing-sequences/",
-    "leetcodeId": 1118,
+    "leetcodeId": 1121,
     "premium": true
   },
   {
@@ -7305,7 +7305,7 @@
     "subpattern": "anagram-signatures",
     "familyId": "tracking-multiset-equality",
     "url": "https://leetcode.com/problems/find-words-that-can-be-formed-by-characters/",
-    "leetcodeId": 1112
+    "leetcodeId": 1160
   },
   {
     "id": 442,
@@ -7322,7 +7322,7 @@
     "subpattern": "anagram-signatures",
     "familyId": "tracking-multiset-equality",
     "url": "https://leetcode.com/problems/check-if-one-string-swap-can-make-strings-equal/",
-    "leetcodeId": 1915
+    "leetcodeId": 1790
   },
   {
     "id": 443,
@@ -7356,7 +7356,7 @@
     "subpattern": "count-then-order",
     "familyId": "tracking-frequency-driven-order",
     "url": "https://leetcode.com/problems/sort-array-by-increasing-frequency/",
-    "leetcodeId": 1741
+    "leetcodeId": 1636
   },
   {
     "id": 445,
@@ -7371,7 +7371,7 @@
       "space": "O(n)"
     },
     "url": "https://leetcode.com/problems/concatenation-of-array/",
-    "leetcodeId": 2058
+    "leetcodeId": 1929
   },
   {
     "id": 446,
@@ -7403,7 +7403,7 @@
     "subpattern": "running-sums-and-runs",
     "familyId": "tracking-running-aggregate",
     "url": "https://leetcode.com/problems/zero-array-transformation-i/",
-    "leetcodeId": 3639
+    "leetcodeId": 3355
   },
   {
     "id": 448,
@@ -7471,7 +7471,7 @@
     "subpattern": "entity-grouping",
     "familyId": "union-find-entity-grouping",
     "url": "https://leetcode.com/problems/most-stones-removed-with-same-row-or-column/",
-    "leetcodeId": 984
+    "leetcodeId": 947
   },
   {
     "id": 452,
@@ -7505,7 +7505,7 @@
     "subpattern": "incremental-time-reversal",
     "familyId": "union-find-grid-regions",
     "url": "https://leetcode.com/problems/last-day-where-you-can-still-cross/",
-    "leetcodeId": 2101
+    "leetcodeId": 1970
   },
   {
     "id": 454,
@@ -7522,7 +7522,7 @@
     "subpattern": "grid-regions",
     "familyId": "union-find-grid-regions",
     "url": "https://leetcode.com/problems/regions-cut-by-slashes/",
-    "leetcodeId": 999
+    "leetcodeId": 959
   },
   {
     "id": 455,
@@ -7555,7 +7555,7 @@
     },
     "subpattern": "connectivity-queries",
     "url": "https://leetcode.com/problems/minimize-malware-spread/",
-    "leetcodeId": 960
+    "leetcodeId": 924
   },
   {
     "id": 457,
@@ -7584,7 +7584,7 @@
     "subpattern": "connectivity-queries",
     "familyId": "union-find-edge-cycle-gate",
     "url": "https://leetcode.com/problems/find-if-path-exists-in-graph/",
-    "leetcodeId": 2121
+    "leetcodeId": 1971
   },
   {
     "id": 459,
@@ -7616,7 +7616,7 @@
     "subpattern": "entity-grouping",
     "familyId": "union-find-entity-grouping",
     "url": "https://leetcode.com/problems/similar-string-groups/",
-    "leetcodeId": 869
+    "leetcodeId": 839
   },
   {
     "id": 461,
@@ -7633,7 +7633,7 @@
     "subpattern": "incremental-time-reversal",
     "familyId": "union-find-edge-cycle-gate",
     "url": "https://leetcode.com/problems/optimize-water-distribution-in-a-village/",
-    "leetcodeId": 1144,
+    "leetcodeId": 1168,
     "premium": true
   },
   {
@@ -7669,7 +7669,7 @@
     "subpattern": "write-time-indexing",
     "familyId": "custom-data-structures-write-time-indexing",
     "url": "https://leetcode.com/problems/snapshot-array/",
-    "leetcodeId": 1249
+    "leetcodeId": 1146
   },
   {
     "id": 464,
@@ -7686,7 +7686,7 @@
     "subpattern": "write-time-indexing",
     "familyId": "custom-data-structures-write-time-indexing",
     "url": "https://leetcode.com/problems/time-based-key-value-store/",
-    "leetcodeId": 1023
+    "leetcodeId": 981
   },
   {
     "id": 465,
@@ -7847,7 +7847,7 @@
     },
     "subpattern": "build-the-primitive",
     "url": "https://leetcode.com/problems/design-hashset/",
-    "leetcodeId": 816
+    "leetcodeId": 705
   },
   {
     "id": 475,
@@ -7876,7 +7876,7 @@
       "space": "O(n)"
     },
     "url": "https://leetcode.com/problems/stream-of-characters/",
-    "leetcodeId": 1097
+    "leetcodeId": 1032
   },
   {
     "id": 477,
@@ -7910,7 +7910,7 @@
     "subpattern": "running-aggregates",
     "familyId": "custom-data-structures-running-aggregate",
     "url": "https://leetcode.com/problems/finding-mk-average/",
-    "leetcodeId": 1953
+    "leetcodeId": 1825
   },
   {
     "id": 479,
@@ -7944,7 +7944,7 @@
     "subpattern": "bit-surgery",
     "familyId": "bitwise-manipulation-bit-surgery",
     "url": "https://leetcode.com/problems/complement-of-base-10-integer/",
-    "leetcodeId": 1054
+    "leetcodeId": 1009
   },
   {
     "id": 481,
@@ -7961,7 +7961,7 @@
     "subpattern": "bit-surgery",
     "familyId": "bitwise-manipulation-flip-parity",
     "url": "https://leetcode.com/problems/flipping-an-image/",
-    "leetcodeId": 861
+    "leetcodeId": 832
   },
   {
     "id": 482,
@@ -8045,7 +8045,7 @@
     "subpattern": "xor-tricks",
     "familyId": "bitwise-manipulation-xor-cancellation",
     "url": "https://leetcode.com/problems/find-the-longest-substring-containing-vowels-in-even-counts/",
-    "leetcodeId": 1473
+    "leetcodeId": 1371
   },
   {
     "id": 487,
@@ -8060,7 +8060,7 @@
       "space": "O(1)"
     },
     "url": "https://leetcode.com/problems/longest-subarray-with-maximum-bitwise-and/",
-    "leetcodeId": 2503
+    "leetcodeId": 2419
   },
   {
     "id": 488,
@@ -8077,7 +8077,7 @@
     "subpattern": "xor-tricks",
     "familyId": "bitwise-manipulation-xor-cancellation",
     "url": "https://leetcode.com/problems/count-triplets-that-can-form-two-arrays-of-equal-xor/",
-    "leetcodeId": 1553
+    "leetcodeId": 1442
   },
   {
     "id": 489,
@@ -8094,7 +8094,7 @@
     "subpattern": "xor-tricks",
     "familyId": "bitwise-manipulation-binary-encoding",
     "url": "https://leetcode.com/problems/sum-of-all-subset-xor-totals/",
-    "leetcodeId": 1993
+    "leetcodeId": 1863
   },
   {
     "id": 490,
@@ -8111,7 +8111,7 @@
     "subpattern": "binary-counting",
     "familyId": "bitwise-manipulation-binary-encoding",
     "url": "https://leetcode.com/problems/find-the-k-th-lucky-number/",
-    "leetcodeId": 3030,
+    "leetcodeId": 2802,
     "premium": true
   },
   {
@@ -8129,7 +8129,7 @@
     "subpattern": "flip-operations",
     "familyId": "bitwise-manipulation-flip-parity",
     "url": "https://leetcode.com/problems/minimum-number-of-k-consecutive-bit-flips/",
-    "leetcodeId": 1037
+    "leetcodeId": 995
   },
   {
     "id": 492,
@@ -8146,7 +8146,7 @@
     "subpattern": "flip-operations",
     "familyId": "bitwise-manipulation-flip-parity",
     "url": "https://leetcode.com/problems/minimum-one-bit-operations-to-make-integers-zero/",
-    "leetcodeId": 1732
+    "leetcodeId": 1611
   },
   {
     "id": 493,
@@ -8162,7 +8162,7 @@
     },
     "subpattern": "binary-counting",
     "url": "https://leetcode.com/problems/triples-with-bitwise-and-equal-to-zero/",
-    "leetcodeId": 1024
+    "leetcodeId": 982
   },
   {
     "id": 494,
@@ -8213,7 +8213,7 @@
     "subpattern": "binary-counting",
     "familyId": "bitwise-manipulation-binary-encoding",
     "url": "https://leetcode.com/problems/minimum-operations-to-make-the-integer-zero/",
-    "leetcodeId": 2837
+    "leetcodeId": 2749
   },
   {
     "id": 497,
@@ -8230,7 +8230,7 @@
     "subpattern": "distances-and-shapes",
     "familyId": "math-geometry-axis-aligned-rectangles",
     "url": "https://leetcode.com/problems/minimum-area-rectangle/",
-    "leetcodeId": 976
+    "leetcodeId": 939
   },
   {
     "id": 498,
@@ -8243,7 +8243,7 @@
     "subpattern": "distances-and-shapes",
     "familyId": "math-geometry-axis-aligned-rectangles",
     "url": "https://leetcode.com/problems/maximum-area-rectangle-with-point-constraints-i/",
-    "leetcodeId": 3681
+    "leetcodeId": 3380
   },
   {
     "id": 499,
@@ -8277,7 +8277,7 @@
     "subpattern": "points-lines-angles",
     "familyId": "math-geometry-cross-product",
     "url": "https://leetcode.com/problems/minimum-number-of-lines-to-cover-points/",
-    "leetcodeId": 2287,
+    "leetcodeId": 2152,
     "premium": true
   },
   {
@@ -8295,7 +8295,7 @@
     "subpattern": "distances-and-shapes",
     "familyId": "math-geometry-distance-metrics",
     "url": "https://leetcode.com/problems/minimize-manhattan-distances/",
-    "leetcodeId": 3344
+    "leetcodeId": 3102
   },
   {
     "id": 502,
@@ -8330,7 +8330,7 @@
     "subpattern": "points-lines-angles",
     "familyId": "math-geometry-cross-product",
     "url": "https://leetcode.com/problems/check-if-it-is-a-straight-line/",
-    "leetcodeId": 1349
+    "leetcodeId": 1232
   },
   {
     "id": 504,
@@ -8347,7 +8347,7 @@
     "subpattern": "invariants-and-games",
     "familyId": "math-geometry-closed-form-invariant",
     "url": "https://leetcode.com/problems/minimum-cuts-to-divide-a-circle/",
-    "leetcodeId": 2575
+    "leetcodeId": 2481
   },
   {
     "id": 505,
@@ -8381,7 +8381,7 @@
     "subpattern": "distances-and-shapes",
     "familyId": "math-geometry-axis-aligned-rectangles",
     "url": "https://leetcode.com/problems/rectangle-overlap/",
-    "leetcodeId": 866
+    "leetcodeId": 836
   },
   {
     "id": 507,
@@ -8398,7 +8398,7 @@
     "subpattern": "distances-and-shapes",
     "familyId": "math-geometry-distance-metrics",
     "url": "https://leetcode.com/problems/minimum-time-visiting-all-points/",
-    "leetcodeId": 1395
+    "leetcodeId": 1266
   },
   {
     "id": 508,
@@ -8432,7 +8432,7 @@
     "subpattern": "distances-and-shapes",
     "familyId": "math-geometry-distance-metrics",
     "url": "https://leetcode.com/problems/queries-on-number-of-points-inside-a-circle/",
-    "leetcodeId": 1939
+    "leetcodeId": 1828
   },
   {
     "id": 510,
@@ -8465,7 +8465,7 @@
     },
     "subpattern": "points-lines-angles",
     "url": "https://leetcode.com/problems/maximum-number-of-visible-points/",
-    "leetcodeId": 1733
+    "leetcodeId": 1610
   },
   {
     "id": 512,
@@ -8482,7 +8482,7 @@
     "subpattern": "distances-and-shapes",
     "familyId": "math-geometry-distance-metrics",
     "url": "https://leetcode.com/problems/detonate-the-maximum-bombs/",
-    "leetcodeId": 2206
+    "leetcodeId": 2101
   },
   {
     "id": 513,
@@ -8532,7 +8532,7 @@
     "subpattern": "number-theory",
     "familyId": "math-geometry-gcd-structure",
     "url": "https://leetcode.com/problems/nth-magical-number/",
-    "leetcodeId": 910
+    "leetcodeId": 878
   },
   {
     "id": 516,
@@ -8597,7 +8597,7 @@
       "space": "O(1)"
     },
     "url": "https://leetcode.com/problems/fibonacci-number/",
-    "leetcodeId": 1013
+    "leetcodeId": 509
   },
   {
     "id": 520,
@@ -8664,7 +8664,7 @@
     "subpattern": "digit-and-big-number-arithmetic",
     "familyId": "math-geometry-divmod-digit-loop",
     "url": "https://leetcode.com/problems/confusing-number/",
-    "leetcodeId": 1069,
+    "leetcodeId": 1056,
     "premium": true
   },
   {
@@ -8750,7 +8750,7 @@
     "subpattern": "digit-and-big-number-arithmetic",
     "familyId": "math-geometry-carry-arithmetic",
     "url": "https://leetcode.com/problems/add-to-array-form-of-integer/",
-    "leetcodeId": 1031
+    "leetcodeId": 989
   },
   {
     "id": 529,
@@ -8767,7 +8767,7 @@
     "subpattern": "number-theory",
     "familyId": "math-geometry-gcd-structure",
     "url": "https://leetcode.com/problems/greatest-common-divisor-of-strings/",
-    "leetcodeId": 1146
+    "leetcodeId": 1071
   },
   {
     "id": 530,
@@ -8784,7 +8784,7 @@
     "subpattern": "invariants-and-games",
     "familyId": "math-geometry-closed-form-invariant",
     "url": "https://leetcode.com/problems/count-substrings-with-only-one-distinct-letter/",
-    "leetcodeId": 1131,
+    "leetcodeId": 1180,
     "premium": true
   },
   {
@@ -8797,7 +8797,7 @@
     "tests": "Whether you can convert a notation containing a repeating part into an exact value, and accept that two visibly different notations can denote the same number.",
     "subpattern": "digit-and-big-number-arithmetic",
     "url": "https://leetcode.com/problems/equal-rational-numbers/",
-    "leetcodeId": 1012
+    "leetcodeId": 972
   },
   {
     "id": 532,
@@ -8814,7 +8814,7 @@
     "subpattern": "digit-and-big-number-arithmetic",
     "familyId": "math-geometry-carry-arithmetic",
     "url": "https://leetcode.com/problems/adding-two-negabinary-numbers/",
-    "leetcodeId": 1148
+    "leetcodeId": 1073
   },
   {
     "id": 533,
@@ -8860,7 +8860,7 @@
     "subpattern": "digit-and-big-number-arithmetic",
     "familyId": "math-geometry-divmod-digit-loop",
     "url": "https://leetcode.com/problems/sum-of-k-mirror-numbers/",
-    "leetcodeId": 2202
+    "leetcodeId": 2081
   },
   {
     "id": 536,
@@ -8875,7 +8875,7 @@
       "space": "O(1)"
     },
     "url": "https://leetcode.com/problems/sum-of-squares-of-special-elements/",
-    "leetcodeId": 2844
+    "leetcodeId": 2778
   },
   {
     "id": 537,

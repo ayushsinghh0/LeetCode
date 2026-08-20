@@ -148,6 +148,19 @@ export interface SettingsState {
    * company's own page names — and only for the five companies whose pages enumerate any.
    */
   targetCompanyId?: string;
+  /**
+   * Whether Today surfaces contest-library reviews that have come due. Default true.
+   *
+   * It is a setting rather than a decision because the two answers are both defensible and only
+   * the learner knows which is theirs: contest practice is a real second track for someone
+   * working through rated problems, and pure noise for someone who never opens it.
+   *
+   * Note what it does NOT do. Contest work never enters `rankWork`'s ordering, the roadmap, or
+   * the daily plan's counts — the plan's finishability caps are calibrated to the 539, and the
+   * two universes do not merge (PRODUCT.md). The setting governs one clearly-labelled block
+   * beside the day's work, nothing more.
+   */
+  contestOnToday?: boolean;
 }
 
 // --- Daily execution layer -------------------------------------------------------------

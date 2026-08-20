@@ -96,6 +96,7 @@ export function loadInitialState(adapter: StorageAdapter): Partial<RootState> | 
       notifications: persisted.settings.notifications,
       // Optional in older payloads — same boundary-normalization rule as the bonus gates.
       dailyCapacityMin: persisted.settings.dailyCapacityMin ?? 180,
+      contestOnToday: persisted.settings.contestOnToday ?? true,
     },
     gamification: {
       xp: persisted.gamification.xp,

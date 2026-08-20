@@ -52,6 +52,7 @@ interface SettingsFormValues {
   revisionEnabled: boolean;
   notifications: boolean;
   dailyCapacityMin: number;
+  contestOnToday: boolean;
 }
 
 interface SettingRowProps {
@@ -115,6 +116,9 @@ export default function SettingsPage() {
       revisionEnabled: settings.revisionEnabled,
       notifications: settings.notifications,
       dailyCapacityMin: settings.dailyCapacityMin,
+      // Optional in the persisted schema, so it can arrive undefined from an old payload that
+      // skipped the load boundary; the form needs a real boolean either way.
+      contestOnToday: settings.contestOnToday ?? true,
     },
   });
 
@@ -325,6 +329,25 @@ export default function SettingsPage() {
                     checked={field.value}
                     onCheckedChange={field.onChange}
                     aria-label="Spaced revision"
+                  />
+                )}
+              />
+            </SettingRow>
+
+            <SettingRow
+              label="Contest reviews on Today"
+              htmlFor="contestOnToday"
+              description="Show contest-library problems whose review has come due. They stay separate from the day's plan and never change its counts."
+            >
+              <Controller
+                control={control}
+                name="contestOnToday"
+                render={({ field }) => (
+                  <Switch
+                    id="contestOnToday"
+                    checked={field.value}
+                    onCheckedChange={field.onChange}
+                    aria-label="Contest reviews on Today"
                   />
                 )}
               />

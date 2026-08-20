@@ -56,7 +56,11 @@ function setDate(iso: string) {
 async function chooseMode(name: 'Contest' | 'Weak areas' | 'Pattern') {
   const modes = screen.getByRole('radiogroup', { name: 'Revision mode' });
   fireEvent.click(within(modes).getByRole('radio', { name }));
-  return screen.findByRole('heading', { name: 'Due now' });
+  // A generous timeout, not a weaker assertion — the same treatment `questionCard.test.tsx`
+  // documents for its markdown preview. This awaits a `lazy()` boundary whose chunk also decodes
+  // 2,561 records on first import, and under full-suite load that occasionally overran the 1s
+  // default while passing comfortably in isolation.
+  return screen.findByRole('heading', { name: 'Due now' }, { timeout: 5000 });
 }
 
 describe('RevisionPage — the mode selector is additive', () => {

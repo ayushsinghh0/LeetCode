@@ -7,6 +7,7 @@ import { useCelebration, __setConfettiForTests } from '@/hooks/useCelebration';
 import { completeCourseSession, logDrillResult, solveQuestion } from '@/store/actions';
 import { celebrationShown } from '@/store/slices/uiSlice';
 import { settingsUpdated } from '@/store/slices/settingsSlice';
+import { contestProblemSolved } from '@/store/slices/contestLibrarySlice';
 import questionsData from '@/data/questions.json';
 import type { Question } from '@/types';
 
@@ -392,5 +393,65 @@ describe('useCelebration', () => {
     expect(confettiMock).toHaveBeenCalledTimes(4);
 
     vi.useRealTimers();
+  });
+});
+
+/**
+ * V13: Today's one window onto the second question universe — behind a setting, in the rail, and
+ * never inside the day's plan.
+ */
+describe('TodayPage — contest reviews are beside the day, not in it', () => {
+  const SLUG = 'steps-to-make-array-non-decreasing';
+  const TITLE = 'Steps to Make Array Non-decreasing';
+
+  function withDueContestReview() {
+    vi.useFakeTimers({ shouldAdvanceTime: true });
+    vi.setSystemTime(new Date('2026-07-31T12:00:00'));
+    const store = makeStore();
+    store.dispatch(contestProblemSolved({ slug: SLUG, date: '2026-07-30' })); // due 2026-07-31
+    return store;
+  }
+
+  test('a due contest review appears in the context rail when the setting is on', async () => {
+    const store = withDueContestReview();
+    renderWithStore(<TodayPage />, store);
+
+    const rail = screen.getByRole('complementary', { name: "Today's context" });
+    expect(await within(rail).findByText(TITLE)).toBeInTheDocument();
+    // It links out to the problem, and defers grading to the surface that freezes its list.
+    expect(within(rail).getByRole('link', { name: /Contest Revision/ })).toHaveAttribute(
+      'href',
+      '/revision',
+    );
+  });
+
+  test('it never enters the day plan, the hero, or the day\'s counts', async () => {
+    const store = withDueContestReview();
+    renderWithStore(<TodayPage />, store);
+
+    const rail = screen.getByRole('complementary', { name: "Today's context" });
+    await within(rail).findByText(TITLE);
+
+    // The two universes do not merge: rankWork never sees a library problem, so neither the hero
+    // nor the plan may name one. This is the invariant the whole feature is bounded by.
+    expect(within(nextAction()).queryByText(TITLE)).not.toBeInTheDocument();
+    expect(within(sessionPlan()).queryByText(TITLE)).not.toBeInTheDocument();
+  });
+
+  test('the setting switches it off entirely', () => {
+    const store = withDueContestReview();
+    store.dispatch(settingsUpdated({ contestOnToday: false }));
+    renderWithStore(<TodayPage />, store);
+
+    expect(screen.queryByText(TITLE)).not.toBeInTheDocument();
+    expect(screen.queryByRole('heading', { name: 'Contest reviews' })).not.toBeInTheDocument();
+  });
+
+  test('nothing due means no block and no dataset fetch', () => {
+    vi.useFakeTimers({ shouldAdvanceTime: true });
+    vi.setSystemTime(new Date('2026-07-31T12:00:00'));
+    renderWithStore(<TodayPage />, makeStore());
+
+    expect(screen.queryByRole('heading', { name: 'Contest reviews' })).not.toBeInTheDocument();
   });
 });

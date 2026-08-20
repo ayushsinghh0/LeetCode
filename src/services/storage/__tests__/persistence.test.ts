@@ -575,7 +575,7 @@ describe('createPersistenceMiddleware immediate flush', () => {
     expect(adapter.saved[0]).toEqual({
       ...validFixture,
       progress: { ...validFixture.progress, byId: normalizedFixtureById() },
-      settings: { ...validFixture.settings, dailyCapacityMin: 180 },
+      settings: { ...validFixture.settings, dailyCapacityMin: 180, contestOnToday: true },
       gamification: { ...validFixture.gamification, dailyGoalBonusDate: null, weeklyClearBonusDay: null },
     });
   });
@@ -630,7 +630,7 @@ describe('loadInitialState', () => {
     expect(preloaded).toEqual({
       progress: { ...validFixture.progress, byId: normalizedFixtureById() },
       // Optional fields default at the load boundary (capacity -> 180, bonus gates -> null).
-      settings: { ...validFixture.settings, dailyCapacityMin: 180 },
+      settings: { ...validFixture.settings, dailyCapacityMin: 180, contestOnToday: true },
       gamification: { ...validFixture.gamification, dailyGoalBonusDate: null, weeklyClearBonusDay: null },
     });
   });
@@ -913,5 +913,49 @@ describe('logDrillResult cannot write a payload that would quarantine state', ()
     store.dispatch(logDrillResult(0, 0, []));
     expect(store.getState().drills.byDate[todayISO()]).toBeUndefined();
     expect(roundTrip(store)).not.toBeNull();
+  });
+});
+
+/**
+ * `contestOnToday` (V13) — a new persisted setting, exercised on BOTH read paths.
+ *
+ * Slice 6 shipped a channel wired into the write path and `stateImported` but not into
+ * `loadInitialState`, and every gate stayed green while a real learner's data was discarded on
+ * every reload. Any new persisted field gets both paths asserted from now on.
+ */
+describe('contestOnToday survives both read paths', () => {
+  test('an old payload without it boots to the default rather than undefined', () => {
+    const { contestOnToday: _omitted, ...settings } = { ...validFixture.settings } as Record<string, unknown>;
+    const payload = { ...validFixture, settings } as typeof validFixture;
+
+    const preloaded = loadInitialState({ load: () => payload, save: () => {} });
+    expect(preloaded?.settings?.contestOnToday).toBe(true);
+
+    const imported = makeStore();
+    imported.dispatch(stateImported(payload));
+    expect(imported.getState().settings.contestOnToday).toBe(true);
+  });
+
+  test('switching it off round-trips through save and boot', () => {
+    const written = makeStore();
+    written.dispatch(settingsUpdated({ contestOnToday: false }));
+    const saved = JSON.parse(JSON.stringify(selectPersistedState(written.getState())));
+
+    // A validator stricter than its own write path is a data-loss bug — the value the settings
+    // toggle can produce must survive validation.
+    const validated = validatePersisted(saved);
+    expect(validated).not.toBeNull();
+    expect(validated!.settings.contestOnToday).toBe(false);
+
+    const booted = makeStore(loadInitialState({ load: () => validated, save: () => {} }));
+    expect(booted.getState().settings.contestOnToday).toBe(false);
+  });
+
+  test('a non-boolean is corruption, not an evolved payload', () => {
+    const payload = {
+      ...validFixture,
+      settings: { ...validFixture.settings, contestOnToday: 'yes' },
+    };
+    expect(validatePersisted(payload)).toBeNull();
   });
 });

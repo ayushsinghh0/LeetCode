@@ -11,6 +11,9 @@ import {
 import { RATING_BANDS, ratingBand } from '@/utils/engine/contestLibrary';
 import { PATTERNS } from '@/data/patterns';
 import questionsData from '@/data/questions.json';
+// The engineering-time snapshot, read straight from scripts/data — this is the only test that
+// needs the catalog's INTERNAL ids, precisely so it can prove none of them reached the dataset.
+import catalogSnapshot from '../../../scripts/data/leetcode-catalog.json';
 import type { Question } from '@/types';
 
 const questions = questionsData as Question[];
@@ -71,26 +74,53 @@ describe('contest library — identity', () => {
   });
 
   /**
-   * THE ID TRAP, pinned.
+   * THE ID TRAP, pinned — from the other side now.
    *
    * ZeroTrac's `ID` is LeetCode's FRONTEND question id; leetcode-catalog.json stores the INTERNAL
-   * `question_id`. They differ for 2561/2561 records, so joining these sources on a number pairs
-   * every rating with the wrong problem — silently, with no error anywhere. This test exists so
-   * that a future refactor which "simplifies" the pipeline to an id join fails loudly here.
+   * `question_id`, and they differ for 2561/2561 records. Until the §10.1 correction,
+   * `Question.leetcodeId` held the internal id, so this test asserted that the two universes
+   * DISAGREED numerically — a true statement about a bug, guarding the slug join.
+   *
+   * They now agree, because both sides carry the frontend id. That is the correction's whole
+   * point: "LeetCode ID" means one thing across the repo. The guard is inverted rather than
+   * deleted, because the thing worth pinning was never the disagreement itself — it was that
+   * nothing may resolve a problem through the catalog's internal number.
    */
-  it('does not agree with curriculum leetcodeId numerically — the join must be by slug', () => {
+  it('agrees with curriculum leetcodeId on every bridged problem — one meaning of "LeetCode ID"', () => {
     const bridged = CONTEST_PROBLEMS.filter((p) => p.curriculumQuestionId !== null);
     expect(bridged.length).toBeGreaterThan(100);
 
     const byId = new Map(questions.map((q) => [q.id, q]));
-    let numericAgreements = 0;
+    const disagreements: string[] = [];
     for (const p of bridged) {
       const q = byId.get(p.curriculumQuestionId as number)!;
-      if (q.leetcodeId === p.frontendId) numericAgreements++;
+      if (q.leetcodeId !== p.frontendId) {
+        disagreements.push(`${p.title}: question ${q.leetcodeId} vs library ${p.frontendId}`);
+      }
     }
-    // Some low-numbered problems coincide (internal id == frontend id below ~1000), so this is a
-    // "most of them differ" assertion rather than "none of them do".
-    expect(numericAgreements).toBeLessThan(bridged.length);
+    expect(disagreements).toEqual([]);
+  });
+
+  /**
+   * The half of the trap that is still live: the CATALOG's internal id must never be what
+   * `leetcodeId` holds. A regeneration that reverts to `problem.id` would make the test above fail
+   * too, but this one names the actual mistake, and it fails with the internal id in the message.
+   */
+  it('never stores the catalog\'s internal question_id as leetcodeId', () => {
+    const internalById = new Map(
+      (catalogSnapshot.problems as { id: number; slug: string }[]).map((p) => [p.slug, p.id]),
+    );
+    const wrong: string[] = [];
+    for (const p of CONTEST_PROBLEMS) {
+      if (p.curriculumQuestionId === null) continue;
+      const q = questions.find((x) => x.id === p.curriculumQuestionId)!;
+      const internal = internalById.get(p.slug);
+      // Below ~1000 the two ids coincide legitimately, so only a divergent pair is evidence.
+      if (internal !== undefined && internal !== p.frontendId && q.leetcodeId === internal) {
+        wrong.push(`${p.title}: leetcodeId ${q.leetcodeId} is the internal question_id`);
+      }
+    }
+    expect(wrong).toEqual([]);
   });
 
   it('bridges only to curriculum questions that exist, and by matching slug', () => {

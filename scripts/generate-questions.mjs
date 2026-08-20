@@ -987,6 +987,39 @@ const normalizeTitle = (t) =>
 
 const catalog = JSON.parse(readFileSync(join(root, 'scripts', 'data', 'leetcode-catalog.json'), 'utf8'));
 const catalogBySlug = new Map(catalog.problems.map((p) => [p.slug, p]));
+
+/**
+ * ⛔ THE ID TRAP, in its original form.
+ *
+ * The catalog's `id` is LeetCode's INTERNAL `question_id`. The number LeetCode actually shows —
+ * the one a learner would type into a search box, and the one every external dataset keys on — is
+ * the FRONTEND id, and the two diverge for everything past roughly problem 1000 (237 of the 528
+ * linked questions were wrong). The catalog snapshot does not carry the frontend id at all, so
+ * `leetcodeId` shipped as the internal one from the very first generation.
+ *
+ * The topics snapshot does carry it, and the join is on SLUG — the same rule the contest library
+ * lives by, and for the same reason: joining these two universes on a number is what produces
+ * silent, total mis-pairing. Coverage is 528/528, so a miss means the snapshots have drifted
+ * apart, and that is a build failure rather than a silent fallback to the wrong number.
+ */
+const topicsSnapshot = JSON.parse(
+  readFileSync(join(root, 'scripts', 'data', 'leetcode-topics.json'), 'utf8'),
+);
+const frontendIdBySlug = new Map(topicsSnapshot.problems.map((p) => [p.slug, p.frontendId]));
+
+function resolveFrontendId(slug, title) {
+  const frontendId = frontendIdBySlug.get(slug);
+  if (frontendId === undefined) {
+    console.error(
+      `UNRESOLVED FRONTEND ID: "${title}" (${slug}) is in the catalog but not in ` +
+        `scripts/data/leetcode-topics.json. The snapshots have drifted — run ` +
+        `\`npm run fetch:contest-data\`. Refusing to fall back to the internal question_id.`,
+    );
+    process.exitCode = 1;
+    return null;
+  }
+  return frontendId;
+}
 const catalogByTitleKey = new Map();
 for (const p of catalog.problems) {
   const key = normalizeTitle(p.title);
@@ -1090,7 +1123,9 @@ for (const [patternId, patternName, items] of SECTIONS) {
       ...(problem
         ? {
             url: `https://leetcode.com/problems/${problem.slug}/`,
-            leetcodeId: problem.id,
+            // The FRONTEND id — the number LeetCode displays. Never `problem.id`, which is the
+            // internal question_id (see resolveFrontendId above).
+            leetcodeId: resolveFrontendId(problem.slug, title),
             ...(problem.paid ? { premium: true } : {}),
           }
         : {}),

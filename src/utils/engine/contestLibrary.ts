@@ -620,6 +620,35 @@ export function applyContestReview(
 export const isContestProblemDue = (p: ContestProblemProgress, today: string): boolean =>
   p.solved && isLadderDue(p, today);
 
+/**
+ * Days on which contest-library work happened, and how much — DERIVED, never logged.
+ *
+ * This is `mlActivityByDate`'s pattern applied to the second question universe, and the reason is
+ * the same one that put it there: `DayLog` is the curriculum's ledger and must stay one, but a
+ * streak that breaks on an evening spent solving four rated contest problems is a streak that
+ * lies. Deriving the activity from the records the learner already has means no new write, no
+ * second ledger, and nothing that can drift out of step with the progress it describes.
+ *
+ * `lastAttemptedOn` counts only when it differs from `solvedOn`: a solve stamps both, and counting
+ * that day twice would inflate the heatmap's intensity for no reason. Bridged problems never
+ * appear here — their record lives in `progress.byId` and already reaches `DayLog` through
+ * `solveQuestion`, so counting them again would double-count the same afternoon.
+ */
+export function contestLibraryActivityByDate(
+  bySlug: Record<string, ContestProblemProgress>,
+): Map<string, number> {
+  const counts = new Map<string, number>();
+  const bump = (date: string | null | undefined) => {
+    if (typeof date === 'string' && date !== '') counts.set(date, (counts.get(date) ?? 0) + 1);
+  };
+  for (const p of Object.values(bySlug)) {
+    bump(p.solvedOn);
+    if (p.lastAttemptedOn !== p.solvedOn) bump(p.lastAttemptedOn);
+    for (const review of p.revisionHistory) bump(review.date);
+  }
+  return counts;
+}
+
 /** Slugs whose ladder date has arrived. The one input the store needs with no dataset at hand. */
 export function dueContestSlugs(
   bySlug: Record<string, ContestProblemProgress>,

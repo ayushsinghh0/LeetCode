@@ -35,6 +35,10 @@ import {
 } from '@/utils/engine/mlTrack';
 import { patternWeakness, type PatternWeakness } from '@/utils/engine/weakness';
 import { isHintReliant } from '@/utils/engine/hints';
+// The ENGINE module, dataset-free by contract. `@/data/contestLibrary` must never be imported
+// here — it would put the 336 kB `data-contests` chunk into the app bundle with no error and no
+// failing test (the `mlTrackIndex.ts` trap).
+import { contestLibraryActivityByDate, dueContestSlugs } from '@/utils/engine/contestLibrary';
 import {
   analyzeContest,
   stalledIdsFromRecord,
@@ -129,13 +133,37 @@ export const selectMlActivityByDate = createSelector(
  * activity surface reads this rather than the course alone — otherwise an evening spent rebuilding
  * backprop from a blank file would break a streak.
  */
+/**
+ * Contest-library work per date, derived from the slug register alone (V13). No dataset is needed
+ * and none may be imported: the records carry their own dates.
+ */
+export const selectContestLibraryActivityByDate = createSelector(
+  [(state: RootState) => state.contestLibrary.bySlug],
+  (bySlug) => contestLibraryActivityByDate(bySlug),
+);
+
 export const selectOtherTrackActivityByDate = createSelector(
-  [selectCourseActivityByDate, selectMlActivityByDate],
-  (course, ml): Map<string, number> => {
+  [selectCourseActivityByDate, selectMlActivityByDate, selectContestLibraryActivityByDate],
+  (course, ml, contest): Map<string, number> => {
     const merged = new Map(course);
     for (const [date, count] of ml) merged.set(date, (merged.get(date) ?? 0) + count);
+    // V13: solving or reviewing a rated contest problem makes the day active. Same derived-merge
+    // as the course and the ML tracks, and for the same reason — `DayLog` stays the curriculum's
+    // ledger, but a streak that breaks on an evening of contest practice is a streak that lies.
+    for (const [date, count] of contest) merged.set(date, (merged.get(date) ?? 0) + count);
     return merged;
   },
+);
+
+/**
+ * Contest-library problems whose ladder date has arrived, most overdue first.
+ *
+ * Slugs only — resolving them to titles needs the dataset, which happens at the lazy surface that
+ * renders them, never here.
+ */
+export const selectDueContestSlugs = createSelector(
+  [(state: RootState) => state.contestLibrary.bySlug, selectTodayArg],
+  (bySlug, today): string[] => dueContestSlugs(bySlug, today),
 );
 
 export const selectOtherTrackActiveDates = createSelector(

@@ -355,6 +355,11 @@ export function validatePersisted(raw: unknown): PersistedStateV1 | null {
   if ('targetCompanyId' in settings && target !== undefined && target !== null) {
     if (typeof target !== 'string' || target === '') return null;
   }
+  // Optional (predates V13). A plain boolean; the load boundary defaults it to true.
+  const contestOnToday = settings.contestOnToday;
+  if ('contestOnToday' in settings && contestOnToday !== undefined) {
+    if (typeof contestOnToday !== 'boolean') return null;
+  }
 
   const gamification = raw.gamification;
   if (!isPlainObject(gamification)) return null;
@@ -763,6 +768,9 @@ export function validatePersisted(raw: unknown): PersistedStateV1 | null {
       ...('dailyCapacityMin' in settings && capacity !== undefined ? { dailyCapacityMin: capacity as number } : {}),
       ...('targetCompanyId' in settings && typeof target === 'string'
         ? { targetCompanyId: target }
+        : {}),
+      ...('contestOnToday' in settings && typeof contestOnToday === 'boolean'
+        ? { contestOnToday }
         : {}),
     },
     // Bonus gates are echoed only when the payload carried them — validation preserves the

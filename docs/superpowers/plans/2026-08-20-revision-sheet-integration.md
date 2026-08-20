@@ -34,7 +34,7 @@ slugs.
 | Task | Status |
 |---|---|
 | 0. Baseline + shared pattern mapper | ✅ done (baseline 1,306 green; mapper extracted; output proven byte-identical) |
-| 1. Generator + dataset + npm script | ⬜ pending |
+| 1. Generator + dataset + npm script | ✅ done (53.5 kB; 315/587/173/134/1 rows; 159 uniques: 140 exact · 17 strong · 1 heuristic · 1 unmapped) |
 | 2. Types + decoder + chunk pin + dataset tests | ⬜ pending |
 | 3. Validator rules (`validate:data`) | ⬜ pending |
 | 4. Scorer-core extraction in `engine/contestLibrary.ts` | ⬜ pending |
@@ -178,7 +178,7 @@ the first unticked step of the first non-done task.
 
 **Steps:**
 
-- [ ] **1.1 Write the generator.** Logic, in order:
+- [x] **1.1 Write the generator.** Logic, in order:
   1. Load sources; build `curriculumBySlug` (from `questions.json` urls — the contest
      generator's `slugOfQuestion` idiom), `librarySlugs` (Set of `contestLibrary.problems[i][0]`),
      `topicsBySlug`, pattern ids from `patterns.ts` regex (same as contest generator, expect 28).
@@ -203,13 +203,13 @@ the first unticked step of the first non-done task.
      `resolved.summary.newAndUnrated`; kind-0 id not in questions.json.
   6. Print an audit report (counts per kind, per topic, mapping confidence tallies for the 159,
      encoded size), mirroring the contest generator's closing report.
-- [ ] **1.2 Add the npm script** (see Files above).
-- [ ] **1.3 Run** `node scripts/generate-revision-sheet.mjs` — expect: 1,210 rows; kinds
+- [x] **1.2 Add the npm script** (see Files above).
+- [x] **1.3 Run** `node scripts/generate-revision-sheet.mjs` — expect: 1,210 rows; kinds
       295-roadmap-backed rows≥295 (row-level counts: curriculum rows 315 by topic-sum? NO —
       row-level counts are what they are; the check is `sheetProblems.length === 159` and
       unique-slug tallies match the resolver summary: curriculum 295, library 562, sheet 159
       **by unique slug**), 134 externals, 1 ambiguous; size ≲ 100 kB.
-- [ ] **1.4 Commit** `feat: V14 revision sheet — shared tag mapper + sheet dataset generator`
+- [x] **1.4 Commit** `feat: V14 revision sheet — shared tag mapper + sheet dataset generator`
       (includes Task 0's mapper extraction).
 
 ---

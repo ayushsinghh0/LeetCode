@@ -1,5 +1,12 @@
 # HANDOFF — V13 Contest Intelligence: ALL SLICES SHIPPED (2026-08-20)
 
+> **⚡ V14 IS IN FLIGHT (2026-08-20, branch `v14-revision-sheet`).** The topic-wise revision
+> sheet integration is being implemented from
+> **`docs/superpowers/plans/2026-08-20-revision-sheet-integration.md`** — that plan's progress
+> ledger and step checkboxes are the resume point, kept current as work lands. Read it FIRST;
+> everything below describes the V13 state it builds on. (Task 12 rewrites this file when V14
+> completes.)
+
 ## Read this first, then start
 
 **Branch: `v13-contest-intelligence`** (`main` is at `43eecf4`, untouched).

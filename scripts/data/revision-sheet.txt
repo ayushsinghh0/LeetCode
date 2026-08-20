@@ -1,0 +1,1332 @@
+# 2 Pointers
+## Two Pointer on Arrays
+Merge Two 2D Arrays by Summing Values|Easy
+Merge Sorted Array|Easy
+Sort Array by Parity|Easy
+Sort Array by Parity II|Easy
+Rearrange Array Elements by Sign|Medium
+Remove Duplicates from Sorted Array|Easy
+Remove Element|Easy
+Partition Array According to Given Pivot|Medium
+Rotate Array|Medium
+Apply Operations to an Array|Easy
+Find All K-Distant Indices in an Array|Easy
+Two Sum|Easy
+3Sum|Medium
+3Sum Closest|Medium
+4Sum|Medium
+Sort Colors|Medium
+Container With Most Water|Medium
+Watering Plants II|Medium
+Next Permutation|Medium
+Next Greater Element III|Medium
+## Two Pointer on Strings
+Reverse String|Easy
+Reverse Prefix of Word|Easy
+Reverse Vowels of a String|Easy
+Reverse Words in a String|Medium
+Reverse Words in a String III|Easy
+Valid Palindrome|Easy
+Valid Palindrome II|Easy
+Lexicographically Smallest Palindrome|Easy
+Merge Strings Alternately|Easy
+Largest Merge of Two Strings|Medium
+Shortest Distance to a Character|Easy
+DI String Match|Easy
+Make String a Subsequence Using Cyclic Increments|Medium
+Count Binary Substrings|Easy
+Minimum Length of String After Deleting Similar Ends|Medium
+String Compression|Medium
+Separate Black and White Balls|Medium
+Move Pieces to Obtain a String|Medium
+Sentence Similarity III|Medium
+# Prefix Sum
+## Prefix Sum
+Range Sum Query - Immutable|Easy
+Left and Right Sum Differences|Easy
+Count Vowel Strings in Ranges|Medium
+Minimum Penalty for a Shop|Medium
+Find Good Days to Rob the Bank|Medium
+Sum of Absolute Differences in a Sorted Array|Medium
+Product of Array Except Self|Medium
+Product of the Last K Numbers|Medium
+Removing Minimum Number of Magic Beans|Medium
+Find All Good Indices|Medium
+Movement of Robots|Medium
+Range Sum Query 2D - Immutable|Medium
+Increment Submatrices by One|Medium
+Power of Heroes|Hard
+Minimum Cost to Make Array Equal|Hard
+## Line Sweep
+Maximum Population Year|Easy
+Points That Intersect With Cars|Easy
+Pongal Bunk|Medium
+Car Pooling|Medium
+My Calendar II|Medium
+Shifting Letters II|Medium
+Perfect Rectangle|Hard
+Rectangle Area II|Hard
+Number of Flowers in Full Bloom|Hard
+# Matrix
+## Matrix Transformation and Modification
+Convert 1D Array Into 2D Array|Easy
+Modify the Matrix|Easy
+Set Matrix Zeroes|Medium
+Sort the Matrix Diagonally|Medium
+Minimum Operations to Write the Letter Y on a Grid|Medium
+Shift 2D Grid|Easy
+Matrix Similarity After Cyclic Shifts|Easy
+Transpose Matrix|Easy
+Rotate Image|Medium
+Rotating the Box|Medium
+Cyclically Rotating a Grid|Medium
+Game of Life|Medium
+Matrix Cells in Distance Order|Easy
+## Matrix Patterns and Validity Checks
+Find Valid Matrix Given Row and Column Sums|Medium
+Check if Matrix is X-Matrix|Easy
+Queens That Can Attack the King|Medium
+Max Increase to Keep City Skyline|Medium
+Make a Square with the Same Color|Easy
+Subrectangle Queries|Easy
+Count Submatrices with Top-Left Element and Sum Less Than k|Medium
+Find the Minimum Area to Cover All Ones I|Medium
+Find the Minimum Area to Cover All Ones II|Hard
+Valid Sudoku|Medium
+Check if Move is Legal|Medium
+Valid Tic-Tac-Toe State|Medium
+Number of Laser Beams in a Bank|Medium
+Where Will the Ball Fall|Medium
+Image Overlap|Medium
+Minimum Operations to Make a Uni-Value Grid|Medium
+## Matrix Traversal and Summation
+Row With Maximum Ones|Easy
+Richest Customer Wealth|Easy
+Lucky Numbers in a Matrix|Easy
+Equal Row and Column Pairs|Medium
+Difference Between Ones and Zeros in Row and Column|Medium
+Matrix Diagonal Sum|Easy
+Prime in Diagonal|Easy
+Diagonal Traverse|Medium
+Matrix Block Sum|Medium
+Largest Local Values in a Matrix|Easy
+Maximum Sum of an Hourglass|Medium
+Maximum Matrix Sum|Medium
+Find the Grid of Region Average|Medium
+Spiral Matrix|Medium
+Spiral Matrix II|Medium
+# Hashing
+## Implementary Problems
+Find Common Elements Between Two Arrays|Easy
+Contains Duplicate|Easy
+Sum of Unique Elements|Easy
+Find All Duplicates in an Array|Medium
+Check if All Characters Have Equal Number of Occurrences|Easy
+Unique Number of Occurrences|Easy
+Find Common Characters|Easy
+Number of Good Pairs|Easy
+Permutation Difference Between Two Strings|Easy
+Check if the Sentence is Pangram|Easy
+Decode the Message|Easy
+Replace Elements in an Array|Medium
+Count the Number of Special Characters II|Medium
+Reconstruct Original Digits from English|Medium
+Integer to Roman|Medium
+Find Words That Can Be Formed by Characters|Easy
+Find the XOR of Numbers Which Appear Twice|Easy
+Sort the People|Easy
+Form Smallest Number from Two-Digit Arrays|Easy
+Increasing Decreasing String|Easy
+Sort Array by Increasing Frequency|Easy
+Sort Characters by Frequency|Medium
+Merge Similar Items|Easy
+Substrings of Size Three with Distinct Characters|Easy
+Clear Digits|Easy
+HTML Entity Parser|Medium
+Largest Substring Between Two Equal Characters|Easy
+Remove Letter to Equalize Frequency|Easy
+Distribute Candies|Easy
+Path Crossing|Easy
+Buddy Strings|Easy
+Word Pattern|Easy
+Valid Anagram|Easy
+Find Resultant Array After Removing Anagrams|Easy
+Group Anagrams|Medium
+Majority Element|Easy
+Majority Element II|Medium
+Find All Lonely Numbers in the Array|Medium
+Smallest Missing Integer Greater Than Sequential Prefix Sum|Easy
+First Missing Positive|Hard
+Shortest Impossible Sequence of Rolls|Hard
+Find Occurrences of an Element in an Array|Medium
+Redistribute Characters to Make All Strings Equal|Easy
+Isomorphic Strings|Easy
+Groups of Special Equivalent Strings|Medium
+Word Subsets|Medium
+Find the Maximum Number of Elements in Subset|Medium
+People Whose List of Favorite Companies is Not a Subset of Another List|Medium
+Count the Number of Good Partitions|Hard
+Optimal Partition of String|Medium
+Custom Sort String|Medium
+Finding the Users Active Minutes|Medium
+Convert an Array into a 2D Array with Conditions|Medium
+Group the People Given the Group Size They Belong To|Medium
+Evaluate the Bracket Pairs of a String|Medium
+Minimum Number of Operations to Make Word K-Periodic|Medium
+Can Convert String in K Moves|Medium
+Restore the Array from Adjacent Pairs|Medium
+Tuple with Same Product|Medium
+Split the Array to Make Coprime Products|Hard
+4Sum II|Medium
+Count Artifacts That Can Be Extracted|Medium
+Brick Wall|Medium
+Pairs of Songs with Total Durations Divisible by 60|Medium
+Alphabet Board Path|Medium
+Vowel Spellchecker|Medium
+Bulls and Cows|Medium
+Card Flipping Game|Medium
+Maximum Size of a Set After Removals|Medium
+Minimum Absolute Difference Queries|Medium
+Check if Array Pairs are Divisible by K|Medium
+Count Pairs That Form a Complete Day II|Medium
+Count Number of Bad Pairs|Medium
+Minimum Seconds to Equalize a Circular Array|Medium
+Sum of Imbalance Numbers of All Subarrays|Hard
+Grid Illumination|Hard
+Maximum Equal Frequency|Hard
+Rearranging Fruits|Hard
+## Hashing With Prefix Sum
+Subarray Sum Equals K|Medium
+Subarray Sums Divisible by K|Medium
+Make Sum Divisible by P|Medium
+Count Number of Bad Pairs|Medium
+Continuous Subarray Sum|Medium
+Count of Interesting Subarrays|Medium
+Count Number of Nice Subarrays|Medium
+Count Beautiful Substrings II|Hard
+Sum of Digit Differences of All Pairs|Medium
+Binary Subarrays with Sum|Medium
+Number of Wonderful Substrings|Medium
+Count the Number of Beautiful Subarrays|Medium
+Number of Submatrices That Sum to Target|Hard
+Count Subarrays with Median K|Hard
+# Sliding Window
+## Fixed Size Sliding-Window
+Substrings of Size Three with Distinct Characters|Easy
+Find All Anagrams in a String|Medium
+Permutation in String|Medium
+Check If a String Contains All Binary Codes of Size K|Medium
+Maximum Number of Vowels in a Substring of Given Length|Medium
+Maximum Average Subarray I|Easy
+Number of Sub-arrays of Size K and Average Greater than or Equal to Threshold|Medium
+K Radius Subarray Averages|Medium
+Maximum Sum of Distinct Subarrays With Length K|Medium
+Sliding Subarray Beauty|Medium
+Maximum Points You Can Obtain from Cards|Medium
+Sliding Window Median|Hard
+Sliding Window Maximum|Hard
+Max Value of Equation|Hard
+Maximum Sum of 3 Non-Overlapping Subarrays|Hard
+## Dynamic Size Sliding-Window
+Longest Substring Without Repeating Characters|Medium
+Longest Repeating Character Replacement|Medium
+Maximum Number of Occurrences of a Substring|Medium
+Max Consecutive Ones III|Medium
+Count the Number of Substrings With Dominant Ones|Medium
+Minimum Window Substring|Hard
+Substring with Concatenation of All Words|Hard
+Minimum Size Subarray Sum|Medium
+Longest Continuous Subarray With Absolute Diff Less Than or Equal to Limit|Medium
+Fruit Into Baskets|Medium
+Subarray Product Less Than K|Medium
+Grumpy Bookstore Owner|Medium
+Moving Stones Until Consecutive II|Medium
+Count Number of Nice Subarrays|Medium
+Number of Subarrays with Bounded Maximum|Medium
+Maximum Erasure Value|Medium
+Longest Subarray of 1's After Deleting One Element|Medium
+Count the Number of Good Subarrays|Medium
+Minimum Consecutive Cards to Pick Up|Medium
+Minimum Operations to Reduce X to Zero|Medium
+Frequency of the Most Frequent Element|Medium
+Subarrays with K Different Integers|Hard
+# Linked List
+## Linked List (Part 1)
+Convert Binary Number in a Linked List to Integer|Easy
+Intersection of Two Linked Lists|Easy
+Middle of the Linked List|Easy
+Linked List Cycle|Easy
+Linked List Cycle II|Medium
+Find Length of Loop|Easy
+Reverse Linked List|Easy
+Palindrome Linked List|Easy
+Reverse Nodes in k-Group|Hard
+Odd Even Linked List|Easy
+Remove Duplicates from Sorted List|Easy
+Remove Nth Node From End of List|Medium
+Delete the Middle Node of a Linked List|Medium
+Add 1 to a Linked List Number|Medium
+Add Two Numbers|Medium
+Sort a Linked List of 0s, 1s, and 2s|Medium
+Sort List|Medium
+Linked List Random Node|Medium
+Copy List with Random Pointer|Medium
+Flattening a Linked List|Medium
+Merge Two Sorted Lists|Easy
+Merge k Sorted Lists|Hard
+## Linked List (Part 2) : Design Pattern
+Design HashSet|Easy
+Design HashMap|Easy
+Design Browser History|Medium
+Design a Text Editor|Hard
+All O'one Data Structure|Hard
+LRU Cache|Medium
+LFU Cache|Hard
+# Stack
+## Parentheses Problem
+Valid Parentheses|Easy
+Maximum Nesting Depth of the Parentheses|Easy
+Remove Outermost Parentheses|Easy
+Minimum Add to Make Parentheses Valid|Medium
+Minimum Remove to Make Valid Parentheses|Medium
+Maximum Nesting Depth of Two Valid Parentheses Strings|Medium
+Check if a Parentheses String Can Be Valid|Medium
+Reverse Substrings Between Each Pair of Parentheses|Medium
+Score of Parentheses|Medium
+Minimum Insertions to Balance a Parentheses String|Medium
+Longest Valid Parentheses|Hard
+Redundant Parenthesis|Hard
+## Design Problems
+Min Stack|Medium
+Maximum Frequency Stack|Hard
+Design a Stack With Increment Operation|Medium
+Dinner Plate Stacks|Hard
+## Advance Stack Problems
+Merge Intervals|Medium
+Insert Intervals|Medium
+Asteroid Collision|Medium
+Construct Smallest Number From DI String|Medium
+Evaluate Reverse Polish Notation|Medium
+Simplify Path|Medium
+Basic Calculator|Hard
+Basic Calculator II|Medium
+Basic Calculator IV|Hard
+Replace Non-Coprime Numbers in Array|Hard
+Robot Collisons|Hard
+Number of atoms|Hard
+## Monotonic Stack
+Final Prices With a Special Discount in a Shop|Easy
+Next Greater Element I|Easy
+Next Greater Element II|Medium
+Next Greater Element IV|Hard
+Daily Temperatures|Medium
+Car Fleet|Medium
+Car Fleet II|Hard
+132 Pattern|Medium
+Smallest Subsequence of Distinct Characters|Medium
+Count Submatrices With All Ones|Medium
+Remove Duplicate Letters|Medium
+The Number of Weak Characters in the Game|Medium
+Maximum Subarray Min-Product|Medium
+Sum of Subarray Minimums|Medium
+Shortest Unsorted Continuous Subarray|Medium
+Remove K Digits|Medium
+Beautiful Towers I|Medium
+Beautiful Towers II|Medium
+Online Stock Span|Medium
+Minimum Number of Increments on Subarrays to Form a Target Array|Hard
+Maximum Score of a Good Subarray|Hard
+Number of Visible People in a Queue|Hard
+Trapping Rain Water|Hard
+Maximal Rectangle|Hard
+Largest Rectangle in Histogram|Hard
+Create Maximum Number|Hard
+Find Building Where Alice And Bob Can Meet|Hard
+Sum Of Total Strength Of Wizards|Hard
+Find the Number of Subarrays Where Boundary Elements Are Maximum|Hard
+# Queue
+## Implementation Problems
+C++ STL (queue)|Easy
+Implement Queue using Array|Easy
+Implement Stack using Queues|Easy
+Implement Queue using Stacks|Easy
+Queue using Two Stacks|Easy
+Implement Queue using Linked List|Easy
+Design Circular Queue|Medium
+Design Front Middle Back Queue|Medium
+N-Queue using Array|Hard
+## Singly-Ended Queue
+Reverse First K Elements of Queue|Easy
+First Non-Repeating Character in a Stream|Easy
+First Negative Integer in Every Window of Size K|Medium
+Dota2 Senate|Medium
+Find the Winner of the Circular Game|Medium
+Reveal Cards in Increasing Order|Medium
+Minimum Number of K Consecutive Bit Flips|Hard
+Stamping the Sequence|Hard
+## Doubly-Ended Queue
+Deque Implementations|Easy
+Design Circular Deque|Medium
+Jump Game VI|Medium
+Continuous Subarrays|Medium
+Max Value of Equation|Hard
+Sliding Window Maximum|Hard
+Shortest Subarray with Sum at Least K|Hard
+Constrained Subsequence Sum|Hard
+# Binary Search
+## Introductory Problems
+Binary Search|Easy
+Guess Number Higher or Lower|Easy
+H-Index II|Medium
+## Upper Bound and Lower Bound
+Find First and Last Position of Element in Sorted Array|Medium
+Special Array With X Elements Greater Than or Equal X|Easy
+Find Smallest Letter Greater Than Target|Easy
+Longest Subsequence With Limited Sum|Easy
+First Bad Version|Easy
+Arranging Coins|Easy
+Find the Distance Value Between Two Arrays|Easy
+Search Insert Position|Easy
+Find Target Indices After Sorting Array|Easy
+Find Right Interval|Medium
+Online Election|Medium
+Most Beautiful Item for Each Query|Medium
+Time Based Key-Value Store|Medium
+Random Pick with Weight|Medium
+Plates Between Candles|Medium
+Successful Pairs of Spells and Potions|Medium
+Range Frequency Queries|Medium
+Minimum Operations to Make All Array Elements Equal|Medium
+Count Number of Rectangles Containing Each Point|Medium
+Count the Number of Fair Pairs|Medium
+Minimum Absolute Sum Difference|Medium
+Find the Longest Valid Obstacle Course at Each Position|Hard
+Find the Number of Subarrays Where Boundary Elements Are Maximum|Hard
+## Search on Matrix
+Count Negative Numbers in a Sorted Matrix|Easy
+Search a 2D Matrix|Medium
+Search a 2D Matrix II|Medium
+Median in a Row-wise Sorted Matrix|Hard
+## Missing and Repeating Number
+Missing Number|Easy
+Kth Missing Positive Number|Easy
+Single Element in a Sorted Array|Medium
+Minimum Common Value|Easy
+Find the Duplicate Number|Medium
+## Binary Search on Semi-Sorted Space
+Find Peak Element|Medium
+Find a Peak Element II|Medium
+Find Minimum in Rotated Sorted Array|Medium
+Peak Index in a Mountain Array|Medium
+Search in Rotated Sorted Array|Medium
+Search in Rotated Sorted Array II|Medium
+Rotation|Medium
+Find Minimum in Rotated Sorted Array II|Hard
+Find in Mountain Array|Hard
+## Binary Search On Answer
+Sqrt(x)|Easy
+Capacity to Ship Packages Within D Days|Medium
+Koko Eating Bananas|Medium
+Find the Smallest Divisor Given a Threshold|Medium
+Minimum Number of Days to Make M Bouquets|Medium
+Aggressive Cows|Medium
+Maximum Candies Allocated to K Children|Medium
+Most Profit Assigning Work|Medium
+Maximum Value at a Given Index in a Bounded Array|Medium
+Maximum Side Length of a Square With Sum Less Than or Equal to Threshold|Medium
+Minimum Speed to Arrive on Time|Medium
+Minimum Time to Repair Cars|Medium
+Maximum Number of Removable Characters|Medium
+Heaters|Medium
+Earliest Second to Mark Indices I|Medium
+Maximum White Tiles Covered by a Carpet|Medium
+Minimum Absolute Difference Between Elements with Constraint|Medium
+Sell Diminishing-Valued Colored Balls|Medium
+Ugly Number III|Medium
+Minimize the Maximum of Two Arrays|Medium
+Split Array Largest Sum|Medium
+Maximum Running Time of N Computers|Medium
+Maximum Number of Robots Within Budget|Hard
+Maximum Number of Groups With Increasing Length|Hard
+Maximum Number of Tasks You Can Assign|Hard
+Median of Two Sorted Arrays|Hard
+## Minmax Problems
+Magnetic Force Between Two Balls|Medium
+Maximum Tastiness of Candy Basket|Medium
+Minimum Limit of Balls in a Bag|Medium
+Minimized Maximum of Products Distributed to Any Store|Medium
+Minimize the Maximum Difference of Pairs|Medium
+Maximize the Minimum Powered City|Hard
+## Finding the K-th Element
+Kth Smallest Number in Multiplication Table|Hard
+Find K-th Smallest Pair Distance|Hard
+Kth Smallest Element in a Sorted Matrix|Hard
+Find the Median of the Uniqueness Array|Hard
+Kth Smallest Product of Two Sorted Arrays|Hard
+Kth Smallest Amount With Single Denomination Combination|Hard
+Find the Kth Smallest Sum of a Matrix With Sorted Rows|Hard
+# Bit Manipulation
+## Basic Bit Concepts
+Decimal to Binary|Easy
+Get, Set, Clear ith Bit|Easy
+Kth Bit is Set or Not|Easy
+Check Odd or Even|Easy
+Set the Rightmost Unset Bit|Easy
+Number Complement|Easy
+Number of 1 Bits|Easy
+Counting Bits|Easy
+Count Total Set Bits|Medium
+Reverse Bits|Easy
+Power of Two|Easy
+Power of Four|Easy
+Hamming Distance|Easy
+Add Binary|Easy
+Total Hamming Distance|Medium
+UTF-8 Validation|Easy
+Single Number II|Medium
+Divide Two Integers|Medium
+## Bitwise XOR operator
+Decode Xored Array|Easy
+Single Number|Easy
+Single Number III|Medium
+Sum of Two Integers|Medium
+Swap Two Numbers (with Temp Variable)|Easy
+Missing Number|Easy
+Decode Xored Permutation|Easy
+Find the Original Array of Prefix XOR|Medium
+Gray Code|Medium
+XOR Queries of a Subarray|Medium
+XOR Sequences|Medium
+Minimum Number of Operations to Make Array XOR Equal to K|Medium
+Maximum XOR Product|Medium
+Neighboring Bitwise XOR|Medium
+Minimum XOR Sum of Two Arrays|Hard
+Find XOR Sum of All Pairs Bitwise AND|Hard
+Find Longest Awesome Substring|Hard
+## Bitwise OR operator
+Shortest Subarray with OR at Least K|Medium
+Minimum Array End|Medium
+Maximum OR|Medium
+Find Subarray with Bitwise OR Closest to K|Hard
+Minimize OR of Remaining Elements Using Operations|Hard
+## Bitwise AND operator
+Minimum Flips to Make A or B Equal to C|Medium
+Longest Nice Subarray|Medium
+Bitwise AND of Numbers Range|Medium
+Longest Subarray with Maximum Bitwise AND|Medium
+Number of Subarrays with AND Value of K|Hard
+Triples with Bitwise AND Equal to Zero|Hard
+Minimum Operations to Form Subsequence with Target Sum|Hard
+# Recursion & Backtracking
+## Recursion Problems
+Power of Two|Easy
+Power of Three|Easy
+Power of Four|Easy
+Fibonacci Number|Easy
+Pow(x, n)|Medium
+Count Good Numbers|Easy
+Minimum Non-Zero Product of the Array Elements|Medium
+Delete Middle Element of a Stack|Easy
+Sort a Stack|Medium
+Josephus Problem|Easy
+Find the Winner of the Circular Game|Medium
+Predict the Winner|Medium
+Tower of Hanoi|Medium
+Different Ways to Add Parentheses|Medium
+Basic Calculator|Hard
+Permutation Sequence|Hard
+Regular Expression Matching|Hard
+Wildcard Matching|Hard
+Integer to English Words|Hard
+Special Binary String|Hard
+## Permutation Problems
+Permutations|Medium
+Construct Smallest Number from DI String|Medium
+Beautiful Arrangement|Medium
+## Combination Problems
+Target Sum|Medium
+Combinations|Medium
+Letter Combinations of a Phone Number|Medium
+Letter Case Permutation|Medium
+K-th Lexicographical String of All Happy Strings of Length n|Medium
+Combination Sum|Medium
+Combination Sum II|Medium
+Combination Sum III|Medium
+Maximum Compatibility Score Sum|Medium
+Numbers with Same Consecutive Differences|Medium
+N-Queens|Hard
+## Subsets Problems
+Subsets|Medium
+Subsets II|Medium
+Non-Decreasing Subsequences|Medium
+Number of Beautiful Subsets|Medium
+## Path on Grid Problems
+Rat in a Maze Problem|Medium
+Sudoku Solver|Hard
+# Binary Tree
+## Traversals
+Binary Tree Preorder Traversal|Easy
+Binary Tree Inorder Traversal|Easy
+Binary Tree Postorder Traversal|Easy
+Preorder, Postorder, Inorder in a Single Traversal|Easy
+## Properties of trees
+Remove Half Nodes|Easy
+Balanced Binary Tree|Easy
+Maximum Depth of Binary Tree|Easy
+Diameter of Binary Tree|Easy
+Count Complete Tree Nodes|Easy
+Minimum Depth of Binary Tree|Easy
+Check Completeness of a Binary Tree|Medium
+## Construction of Tree
+Construct Binary Tree from Parent Array|Medium
+Linked List to Binary Tree|Medium
+Construct Binary Tree from Preorder and Inorder Traversal|Medium
+Construct Binary Tree from Inorder and Postorder Traversal|Medium
+Construct Binary Tree from Preorder and Postorder Traversal|Medium
+Construct Binary Tree from String with Bracket Representation|Medium
+## Two tree Validation
+Same Tree|Easy
+Two Mirror Trees|Easy
+Merge Two Binary Trees|Easy
+Subtree of Another Tree|Easy
+Check if Tree is Isomorphic|Easy
+Leaf-Similar Trees|Easy
+Check if Subtree|Medium
+Mirror Tree|Medium
+## Level Order Traversal
+Binary Tree Level Order Traversal|Medium
+Binary Tree Level Order Traversal II|Medium
+Cousins in Binary Tree|Easy
+Average of Levels in Binary Tree|Easy
+Minimum Number of Operations to Sort a Binary Tree by Level|Medium
+Binary Tree Right Side View|Easy
+Left View of Binary Tree|Easy
+Top View of Binary Tree|Medium
+Vertical Order Traversal of a Binary Tree|Hard
+Serialize and Deserialize Binary Tree|Hard
+All Nodes Distance K in Binary Tree|Medium
+Burning Tree|Hard
+Populating Next Right Pointers in Each Node|Medium
+## Binary Tree Path
+Binary Tree Paths|Easy
+Path Sum|Easy
+Children Sum in a Binary Tree|Medium
+Path Sum II|Medium
+Sum Root to Leaf Numbers|Medium
+Binary Tree Maximum Path Sum|Hard
+Path Sum III|Medium
+Lowest Common Ancestor of a Binary Tree|Medium
+## N-ary Tree
+N-ary Tree|Theory
+N-ary Tree Postorder Traversal|Easy
+N-ary Tree Preorder Traversal|Easy
+Maximum Depth of N-ary Tree|Easy
+# Binary Search Tree
+## Basic Operations
+Search in a Binary Search Tree|Easy
+Insert into a Binary Search Tree|Medium
+Delete Node in a BST|Medium
+## Construction of BST
+Convert Sorted Array to Binary Search Tree|Easy
+Convert Sorted List to Binary Search Tree|Medium
+Convert BST to Greater Tree|Medium
+Trim a Binary Search Tree|Medium
+Serialize and Deserialize BST|Medium
+Construct Binary Search Tree from Preorder Traversal|Medium
+Construct BST from Postorder|Medium
+Balance a Binary Search Tree|Medium
+Binary Search Tree to Greater Sum Tree|Medium
+## Validation and Property
+Find Mode in Binary Search Tree|Easy
+Range Sum of BST|Easy
+Validate Binary Search Tree|Medium
+Minimum Distance Between BST Nodes|Easy
+Kth Smallest Element in a BST|Medium
+Increasing Order Search Tree|Easy
+Two Sum IV - Input is a BST|Easy
+Maximum Sum BST in Binary Tree|Hard
+Find Common Nodes in two BSTs|Medium
+All Elements in Two Binary Search Trees|Medium
+Unique Binary Search Trees|Medium
+Recover Binary Search Tree|Medium
+Number of Ways to Reorder Array to Get Same BST|Hard
+Binary Search Tree Iterator|Medium
+Lowest Common Ancestor of a Binary Search Tree|Medium
+Closest Nodes Queries in a Binary Search Tree|Medium
+# Heap (Priority Queue)
+## Introductory Questions
+Implementation of Priority Queue using Binary Heap|Easy
+Heap Sort|Medium
+Does Array Represent Heap?|Easy
+Is Binary Tree Heap?|Medium
+Operations on Binary Min Heap|Medium
+Convert Min Heap to Max Heap|Medium
+## Implementary Questions
+Relative Ranks|Easy
+Take Gifts From the Richest Pile|Easy
+Last Stone Weight|Easy
+Largest Number After Digit Swaps by Parity|Easy
+Minimum Amount of Time to Fill Cups|Easy
+Seat Reservation Manager|Medium
+Sort Characters By Frequency|Medium
+Reduce Array Size to The Half|Medium
+Longest Happy String|Medium
+Reorganize String|Medium
+Maximum Average Pass Ratio|Medium
+Find Score of an Array After Marking All Elements|Medium
+Furthest Building You Can Reach|Medium
+Distant Barcodes|Medium
+Task Scheduler|Medium
+Maximal Score After Applying K Operations|Medium
+Single Threaded CPU|Medium
+Most Popular Video Creator|Medium
+Total Cost to Hire K Workers|Medium
+Most Frequent IDs|Medium
+Process Tasks Using Servers|Medium
+Maximum Number of Eaten Apples|Medium
+Maximum Number of Events That Can Be Attended|Medium
+Minimum Operations to Exceed Threshold Value II|Medium
+Put Marbles in Bags|Hard
+Maximum Spending After Buying Items|Hard
+Trapping Rain Water II|Hard
+Maximum Subsequence Score|Medium
+Maximum Performance of a Team|Hard
+Max Value of Equation|Hard
+The Skyline Problem|Hard
+Maximum Elegance of a K-Length Subsequence|Hard
+## Kth Pattern Problems
+The K Weakest Rows in a Matrix|Easy
+Kth Largest Element in an Array|Medium
+Kth Largest Element in a Stream|Easy
+Find Subsequence of Length K With the Largest Sum|Easy
+K-th Smallest Prime Fraction|Medium
+K Closest Points to Origin|Medium
+Top K Frequent Elements|Medium
+Kth Smallest Element in a Sorted Matrix|Medium
+Find Kth Largest XOR Coordinate Value|Medium
+Top K Frequent Words|Medium
+Find K Closest Elements|Medium
+Ugly Number II|Medium
+Find the Kth Largest Integer in the Array|Medium
+Reward Top K Students|Medium
+Query Kth Smallest Trimmed Number|Medium
+K Highest Ranked Items Within a Price Range|Medium
+Find the Kth Smallest Sum of a Matrix With Sorted Rows|Hard
+Find the K-Sum of an Array|Hard
+## Minimize Operations
+Remove Stones to Minimize the Total|Medium
+Minimum Operations to Halve Array Sum|Medium
+The Number of the Smallest Unoccupied Chair|Medium
+Lexicographically Minimum String After Removing Stars|Medium
+Replace Question Marks in String to Minimize Its Value|Medium
+Minimum Sum of Squared Difference|Medium
+Minimum Cost to Hire K Workers|Hard
+Minimize Deviation in Array|Hard
+Minimum Moves to Move a Box to Their Target Location|Hard
+Minimum Interval to Include Each Query|Hard
+## Merge K Sorted Patterns
+Merge K Sorted Lists|Hard
+Find K Pairs with Smallest Sums|Hard
+Merge K Sorted Arrays|Medium
+## Two Heap Pattern
+Number of Orders in the Backlog|Medium
+Sliding Window Median|Hard
+IPO|Hard
+Find Median from Data Stream|Hard
+Meeting Rooms III|Hard
+Time to Cross a Bridge|Hard
+# Tries
+## Introductory Questions
+Implement Trie (Prefix Tree)|Medium
+Trie Delete|Hard
+Design Add and Search Words Data Structure|Medium
+Map Sum Pairs|Medium
+## Trie with Bit Manipulation
+Maximum XOR of Two Numbers in an Array|Hard
+Minimum XOR Value Pair|Hard
+Maximum XOR With an Element From Array|Hard
+Count Pairs With XOR in a Range|Hard
+Maximum Strong Pair XOR II|Hard
+## Trie involving String
+Longest Common Prefix|Medium
+Find the Length of the Longest Common Prefix|Medium
+Search Suggestions System|Medium
+Sum of Prefix Scores of Strings|Hard
+Prefix and Suffix Search|Hard
+Longest Common Suffix Queries|Hard
+Count Prefix and Suffix Pairs II|Hard
+Stream of Characters|Hard
+Extra Characters in a String|Medium
+Implement Magic Dictionary|Medium
+Number of Matching Subsequences|Medium
+Camelcase Matching|Medium
+Short Encoding of Words|Medium
+Encrypt and Decrypt Strings|Hard
+Longest Word in Dictionary|Medium
+Construct String With Minimum Cost|Hard
+## Trie involving Recursion
+Shortest Uncommon Substring in an Array|Medium
+Word Break|Medium
+Word Break II|Hard
+Word Search II|Hard
+Palindrome Pairs|Hard
+## Trie involving File System
+Remove Sub-Folders from the Filesystem|Hard
+Delete Duplicate Folders in System|Medium
+# Greedy
+## Part I
+Maximum 69 Number|Easy
+Maximum Sum with Exactly K Elements|Easy
+Minimum Time to Type Word Using Special Typewriter|Easy
+Minimum Operations to Make the Array Increasing|Easy
+Minimum Number of Operations to Convert Time|Easy
+Assign Cookies|Easy
+Play with Chips|Easy
+Jump Game|Medium
+Jump Game II|Medium
+Wiggle Subsequence|Medium
+Cinema Seat Allocation|Medium
+Advantage Shuffle|Medium
+Minimum Score by Changing Two Elements|Medium
+Minimum Operations to Make Array Equal II|Medium
+Mice and Cheese|Medium
+Minimum Seconds to Equalize a Circular Array|Medium
+Maximum Bags with Full Capacity of Rocks|Medium
+Minimize Maximum of Array|Medium
+Minimum Platforms|Medium
+Fractional Knapsack|Medium
+Activity Selection|Medium
+Job Sequencing Problem|Medium
+Non-Overlapping Intervals|Medium
+Divide Intervals into Minimum Number of Groups|Medium
+Task Scheduler|Medium
+Minimum Number of Operations to Make Arrays Similar|Hard
+Minimum Cost for Cutting Cake II|Hard
+Patching Array|Hard
+Reverse Subarray to Maximize Array Value|Hard
+Super Washing Machines|Hard
+Minimum Cost to Equalize Array|Hard
+Optimal Partition of String|Medium
+Minimum Swaps to Make Strings Equal|Medium
+Maximum Number of Non-Overlapping Substrings|Hard
+Lexicographically Smallest Beautiful String|Hard
+Count K-Subsequences of a String with Maximum Beauty|Hard
+Bag of Tokens|Medium
+Boats to Save People|Medium
+Maximum Matching of Players with Trainers|Medium
+Candy|Hard
+## Part II
+Lemonade Change|Easy
+Gas Station|Medium
+Group the People Given the Group Size They Belong To|Medium
+Divide Array in Sets of K Consecutive Numbers|Medium
+Previous Permutation with One Swap|Medium
+Partition Labels|Medium
+Construct K Palindrome Strings|Medium
+Reorganize String|Medium
+String Without AAA or BBB|Medium
+Check If a String Can Break Another String|Medium
+Remove Duplicate Letters|Medium
+Largest Merge of Two Strings|Medium
+Shortest String That Contains Three Strings|Medium
+Lexicographically Smallest String After Substring Operation|Medium
+Minimum Rounds to Complete All Tasks|Medium
+Number of Burgers with No Waste of Ingredients|Medium
+Queue Reconstruction by Height|Medium
+Car Pooling|Medium
+# Dynamic Programming Level 1
+## Linear DP
+Climbing Stairs|Easy
+Min Cost Climbing Stairs|Easy
+Perfect Squares|Medium
+Decode Ways|Medium
+Unique Binary Search Trees|Medium
+House Robber|Medium
+Coin Change|Medium
+Best Time to Buy and Sell Stock|Easy
+Minimum Cost For Tickets|Medium
+Delete and Earn|Medium
+Maximum Total Damage With Spell Casting|Medium
+Arithmetic Slices|Medium
+Longest Arithmetic Subsequence of Given Difference|Medium
+Partition Array for Maximum Sum|Medium
+Maximize Consecutive Elements in an Array After Modification|Hard
+## 2 Dimensional DP
+Coin Change II|Medium
+Knight Dialer|Medium
+Partition Equal Subset Sum|Medium
+Triangle|Medium
+Student Attendance Record Leetcode|Hard
+Find the Maximum Length of a Good Subsequence II|Hard
+K Inverse Pairs Array|Hard
+Combination Sum IV|Medium
+Largest Sum of Averages|Medium
+Longest Arithmetic Subsequence|Medium
+Number of Dice Rolls With Target Sum|Medium
+Dice Roll Simulation|Medium
+Number of Strings Which Can Be Rearranged to Contain Substring|Hard
+Frog Jump|Hard
+Best Time to Buy and Sell Stock II|Hard
+Best Time to Buy and Sell Stock III|Hard
+Best Time to Buy and Sell Stock IV|Hard
+Freedom Trail|Hard
+Number of Music Playlists|Hard
+Count Vowels Permutation|Hard
+Best Time to Buy and Sell Stock with Transaction Fee|Medium
+Minimum Distance to Type a Word Using Two Fingers|Hard
+Minimum Difficulty of a Job Schedule|Hard
+Best Time to Buy and Sell Stock with Cooldown|Medium
+Number of Ways to Paint N x 3 Grid|Hard
+Build Array Where You Can Find The Maximum Exactly K Comparisons|Hard
+Number of Ways of Cutting a Pizza|Hard
+Paint House III|Hard
+Count All Possible Routes|Hard
+## DP On Grid
+Geek's Training|Medium
+Unique Paths|Medium
+Unique Paths II|Medium
+Minimum Path Sum|Medium
+Maximum Non Negative Product in a Matrix|Medium
+Maximum Difference Score in a Grid|Medium
+Minimum Number of Operations to Satisfy Conditions|Medium
+Maximum Number of Moves in a Grid|Medium
+Where Will the Ball Fall|Medium
+Dungeon Game|Hard
+Cherry Pickup|Hard
+Number of Paths with Max Score|Hard
+Cherry Pickup II|Hard
+Minimum Falling Path Sum II|Hard
+Out of Boundary Paths|Medium
+Minimum Falling Path Sum|Medium
+## Knapsack DP
+Knapsack - 1|Medium
+Knapsack - 2|Medium
+Ones and Zeroes|Medium
+Target Sum|Medium
+2 Keys Keyboard|Medium
+Best Team With No Conflicts|Medium
+Shopping Offers|Medium
+Minimum Number of Coins for Fruits|Medium
+Last Stone Weight II|Medium
+Rod Cutting|Medium
+Filling Bookcase Shelves|Medium
+Video Stitching|Medium
+Maximize Total Cost of Alternating Subarrays|Hard
+Pizza With 3n Slices|Hard
+Minimum Swaps To Make Sequences Increasing|Hard
+Profitable Schemes|Hard
+Reducing Dishes|Hard
+Find Number of Ways to Reach the K-th Stair|Hard
+Find the Sum of Subsequence Powers|Hard
+Count of Sub-Multisets With Bounded Sum|Hard
+## Longest Increasing Subsequence
+Longest Increasing Subsequence|Medium
+Printing Longest Increasing Subsequence|Medium
+Number of Longest Increasing Subsequence|Medium
+Largest Divisible Subset|Medium
+Longest Unequal Adjacent Groups Subsequence II|Medium
+Max Sum Increasing Subsequence|Medium
+Find the Maximum Length of Valid Subsequence II|Medium
+Wiggle Subsequence|Medium
+Find the Count of Monotonic Pairs I|Hard
+Russian Doll Envelopes|Hard
+Delete Columns to Make Sorted III|Hard
+Minimum Number of Removals to Make Mountain Array|Hard
+Maximum Height by Stacking Cuboids|Hard
+Maximum Length of Pair Chain|Hard
+Make Array Strictly Increasing|Hard
+## Longest Common Subsequence
+Longest Common Subsequence|Medium
+Print all LCS sequences|Hard
+Count Common Subsequence in Two Strings|Theory
+Delete operation for two strings|Medium
+Longest Palindromic Substring|Medium
+Longest Palindromic Subsequence|Medium
+Maximum Length of Repeated Subarray|Medium
+Edit Distance|Medium
+Interleaving String|Medium
+Regular Expression Matching|Hard
+Wildcard Matching|Hard
+Shortest Common Supersequence|Hard
+Minimum Insertion Steps to Make a String Palindrome|Hard
+Max Dot Product of Two Subsequences|Hard
+## DP on String
+Minimum Substring Partition of Equal Character Frequency|Medium
+Apply Operations to Make Two Strings Equal|Medium
+Minimum ASCII Delete Sum for Two Strings|Medium
+Word Break|Medium
+Longest String Chain|Medium
+Unique Substrings in Wraparound String|Medium
+Longest Valid Parentheses|Hard
+Distinct Subsequences|Hard
+Word Break II|Hard
+Sort an Array|Hard
+Concatenated Words|Hard
+Count Different Palindromic Subsequences|Hard
+Distinct Subsequences II|Hard
+Longest Chunked Palindrome Decomposition|Hard
+String Compression II|Hard
+Number of Ways to Form a Target String Given a Dictionary|Hard
+Minimum Changes to Make K Semi-palindromes|Hard
+## Cummulative Sum
+Maximal Square|Medium
+Range Sum Query 2D - Immutable|Medium
+Largest Plus Sign|Medium
+Largest 1-Bordered Square|Medium
+Count Square Submatrices with All Ones|Medium
+Matrix Block Sum|Medium
+Count Submatrices With All Ones|Medium
+Ways to Make a Fair Array|Medium
+Maximal Rectangle|Hard
+Max Sum of Rectangle No Larger Than K|Hard
+Super Washing Machines|Hard
+Maximum Sum of 3 Non-Overlapping Subarrays|Hard
+Number of Submatrices That Sum to Target|Hard
+Find the Count of Monotonic Pairs II|Hard
+Get the Maximum Score|Hard
+## Matrix Chain Multiplication
+Matrix Chain Multiplication|Hard
+Guess Number Higher or Lower II|Medium
+Predict the Winner|Medium
+Stone Game|Medium
+Burst Balloons|Hard
+Minimum Score Triangulation of Polygon|Medium
+Minimum Cost Tree From Leaf Values|Medium
+Partition Array for Maximum Sum|Medium
+Palindrome Partitioning II|Hard
+Stone Game VII|Medium
+Remove Boxes|Hard
+Strange Printer|Hard
+Valid Permutations for DI Sequence|Hard
+Minimum Cost to Merge Stones|Hard
+Allocate Mailboxes|Hard
+Minimum Cost to Cut a Stick|Hard
+Stone Game V|Hard
+Palindrome Partitioning III|Hard
+## Kadane Algo
+Maximum Subarray|Medium
+Maximum Product Subarray|Medium
+Bitwise ORs of Subarrays|Medium
+Longest Turbulent Subarray|Medium
+Maximum Subarray Sum with One Deletion|Medium
+K-Concatenation Maximum Sum|Medium
+Length of Longest Fibonacci Subsequence|Medium
+# Graphs
+## DFS and BFS on Graphs
+DFS Traversal|Easy
+Find if Path Exists in Graph|Easy
+Keys and Rooms|Medium
+Number of Provinces|Medium
+Count the Number of Complete Components|Medium
+Reorder Routes to Make All Paths Lead to the City Zero|Medium
+Longest Cycle in a Graph|Hard
+BFS in Graph|Easy
+Snakes and Ladders|Medium
+Open the Lock|Medium
+Round Trip|Medium
+Word Ladder|Hard
+Valid BFS?|Hard
+Count the Number of Houses at a Certain Distance I|Medium
+As Far from Land as Possible|Medium
+Minimum Operations to Convert Number|Medium
+Minimum Score of a Path Between Two Cities|Medium
+Shortest Path with Alternating Colors|Medium
+Minimum Number of Operations to Make X and Y Equal|Medium
+Shortest Path Visiting All Nodes|Hard
+Jump Game III|Medium
+Clone Graph|Medium
+Last Day Where You Can Still Cross|Hard
+Sliding Puzzle|Hard
+Maximum Candies You Can Get from Boxes|Hard
+Shortest Path to Get All Keys|Hard
+Jump Game IV|Hard
+Word Ladder II|Hard
+Escape the Spreading Fire|Hard
+## Cycle Detection
+Detect Cycle in an Undirected Graph (GeeksforGeeks)|Medium
+Detect Cycle in a Directed Graph (GeeksforGeeks)|Medium
+Check if a Graph Has a Cycle of Odd Length|Medium
+Detect Cycles in 2D Grid|Medium
+Shortest Cycle in a Graph|Hard
+Is Graph Bipartite?|Medium
+Possible Bipartition|Medium
+Flower Planting With No Adjacent|Medium
+Divide Nodes into the Maximum Number of Groups|Hard
+## Topological Sort
+Course Schedule|Medium
+Course Schedule II|Medium
+Find Eventual Safe States|Medium
+Minimum Height Trees|Medium
+Loud and Rich|Medium
+All Ancestors of a Node in a Directed Acyclic Graph|Medium
+Find All Possible Recipes from Given Supplies|Hard
+Alien Dictionary|Hard
+Longest Increasing Path in a Matrix|Hard
+Cat and Mouse|Hard
+Sort Items by Groups Respecting Dependencies|Hard
+Largest Color Value in a Directed Graph|Hard
+Parallel Courses III|Hard
+Parallel Courses II|Hard
+Number of Increasing Paths in a Grid|Hard
+Build a Matrix With Conditions|Hard
+## Flood Fill
+Flood Fill|Easy
+Island Perimeter|Easy
+Battleships in a Board|Medium
+Number of Islands|Medium
+Max Area of Island|Medium
+Count Sub Islands|Medium
+Find All Groups of Farmland|Medium
+## Multi Source BFS
+Rotting Oranges|Medium
+Number of Enclaves|Medium
+Map of Highest Peak|Medium
+Surrounded Regions|Medium
+Number of Closed Islands|Medium
+01 Matrix|Medium
+Shortest Bridge|Medium
+## Dijsktra Algorithm
+Shortest Route I|Medium
+Dijkstra?|Medium
+Investigation|Medium
+Flight Discount|Medium
+Network Delay Time|Medium
+Cheapest Flights Within K Stops|Medium
+Number of Ways to Arrive at Destination|Medium
+Path with Maximum Probability|Medium
+Path with Minimum Effort|Medium
+Number of Restricted Paths from First to Last Node|Medium
+Reachable Nodes in Subdivided Graph|Hard
+Minimum Cost to Make at Least One Valid Path in a Grid|Hard
+Minimum Obstacle Removal to Reach Corner|Hard
+Shortest Path in Binary Matrix|Medium
+Nearest Exit from Entrance in Maze|Medium
+Second Minimum Time to Reach Destination|Hard
+## Bellman Ford
+High Score|Medium
+Cycle Finding|Medium
+Bus Routes|Hard
+## Floyd Warshall
+Road Construction|Medium
+Course Schedule IV|Medium
+Find the City With the Smallest Number of Neighbors at a Threshold Distance|Medium
+Count the Number of Houses at a Certain Distance I|Medium
+Minimum Cost to Convert String I|Medium
+Greg and Array|Medium
+Design Graph With Shortest Path Calculator|Hard
+Number of Possible Sets of Closing Branches|Hard
+## Travelling Salesman Problem
+Find the Shortest Superstring|Hard
+## Disjoint Set Union
+Redundant Connection|Medium
+Satisfiability of Equality Equations|Medium
+Smallest String With Swaps|Medium
+Accounts Merge|Medium
+Most Stones Removed with Same Row or Column|Medium
+Find Latest Group of Size M|Medium
+Redundant Connection II|Hard
+Making a Large Island|Hard
+GCD Sort of an Array|Hard
+Bricks Falling When Hit|Hard
+Checking Existence of Edge Length Limited Paths|Hard
+Remove Max Number of Edges to Keep Graph Fully Traversable|Hard
+Rank Transform of a Matrix|Hard
+## Minimum Spanning Tree
+Prim's Minimum Spanning Tree (MST) - Greedy Algorithm|Theory
+Kruskal's Minimum Spanning Tree Algorithm - Greedy Algorithm|Theory
+Minimum Spanning Tree|Medium
+Min Cost to Connect All Points|Hard
+Water Connection Problem|Hard
+Connecting Cities with Minimum Cost|Medium
+Find Critical and Pseudo-Critical Edges in Minimum Spanning Tree|Hard
+## Additional Graph Algorithm
+Articulation Points (or Cut Vertices) in a Graph|Theory
+Strongly Connected Components|Theory
+Critical Connections in a Network|Medium
+# Combinatorics & Geometry
+## Line
+Check if it is a Straight Line|Easy
+Minimum Lines to Represent a Line Chart|Medium
+K Closest Points to Origin|Medium
+Check If Two Line Segments Intersect|Medium
+Max Points on a Line|Hard
+Minimize Manhattan Distances|Hard
+Self Crossing|Hard
+## Rectangle
+Rectangle Overlap|Easy
+Largest Triangle Area|Easy
+Minimum Rectangles to Cover Points|Medium
+Rectangle Area|Medium
+Minimum Area Rectangle|Medium
+Minimum Area Rectangle II|Medium
+Mirror Reflection|Medium
+Find the Largest Area of Square Inside Two Rectangles|Medium
+## Circle
+Minimum Cuts to Divide a Circle|Medium
+Generate Random Point in a Circle|Medium
+Circle and Rectangle Overlapping|Medium
+Count Lattice Points Inside a Circle|Medium
+Queries on Number of Points Inside a Circle|Medium
+Maximum Number of Darts Inside of a Circular Dartboard|Hard
+## Combinatorics
+Factorial of Large Numbers|Medium
+nCr Mod m|Medium
+Tiles|Medium
+Distribute Candies Among Children II|Medium
+Unique Paths|Medium
+Right Triangles|Medium
+Permutation Sequence|Hard
+Count Anagrams|Hard
+Number of Ways to Reorder Array to Get Same BST|Hard
+Count the Number of Ideal Arrays|Hard
+Count All Valid Pickup and Delivery Options|Hard
+Bitwise OR of All Subsequence Sums|Hard
+Count the Arrays|Hard
+Beautiful Numbers|Hard
+String Mark|Hard
+# Game Theory
+## Level I
+Divisor Game|Easy
+Nim Game|Easy
+Find the Winning Player in Coin Game|Easy
+Yet Another String Game|Easy
+Substring Removal Game|Easy
+Sasha and Sticks|Easy
+Card Game|Easy
+01 Game|Easy
+Digit Game|Easy
+## Level II
+Can I Win|Medium
+Guess Number Higher or Lower II|Medium
+Maximum Number of Coins You Can Get|Medium
+Remove Colored Pieces if Both Neighbors are the Same Color|Medium
+Digit Game|Medium
+Dinner With Emma|Medium
+Matrix Game|Medium
+Sequential Game|Medium
+Ping-pong|Medium
+Godsend|Medium
+PolandBall and Game|Medium
+Even-Odd Game|Medium
+Palindrome Game|Medium
+## Level III
+Cat and Mouse|Hard
+Cat and Mouse II|Hard
+Guess the Word|Hard
+# Dynamic Programming Level 2
+## DP with Bitmask
+Can I Win|Medium
+Partition to K Equal Sum Subsets|Medium
+Stickers to Spell Word|Hard
+Smallest Sufficient Team|Hard
+Maximum Students Taking Exam|Hard
+Number of Ways to Wear Different Hats to Each Other|Hard
+Minimum Cost to Connect Two Groups of Points|Hard
+Maximum Number of Achievable Transfer Requests|Hard
+Little Elephant and T-Shirts|Hard
+Distribute Repeating Integers|Hard
+Maximize Grid Happiness|Hard
+Find Minimum Time to Finish All Jobs|Hard
+Minimum Sum of Values by Dividing Array|Hard
+Shortest Path Visiting All Nodes|Hard
+Grouping|Hard
+Matching|Hard
+## Digit DP
+Counting Numbers|Hard
+Non-negative Integers without Consecutive Ones|Hard
+Numbers At Most N Given Digit Set|Hard
+Numbers With Repeated Digits|Hard
+Number of Digit One|Hard
+Number of Beautiful Integers in the Range|Hard
+Count the Number of Powerful Integers|Hard
+Find All Good Strings|Hard
+## DP on Trees
+House Robber III|Medium
+Longest ZigZag Path in a Binary Tree|Medium
+Maximum Score After Applying Operations on a Tree|Medium
+Subordinates|Medium
+Tree Matching|Hard
+Maximum Sum BST in Binary Tree|Hard
+Number of Ways to Reorder Array to Get Same BST|Hard
+Maximum Points After Collecting Coins From All Nodes|Hard
+Sum of Distances in Tree|Hard
+Count Paths That Can Form a Palindrome in a Tree|Hard
+Find Number of Coins to Place in Tree Nodes|Hard
+Minimize the Total Price of the Trips|Hard
+Tree Distances 1|Hard
+Tree Distances II|Hard
+Company Queries I|Hard
+Company Queries II|Hard
+Distance Queries|Hard
+Time Taken to Mark All Nodes|Hard
+## DP with Math
+Ugly Number II|Medium
+Count Sorted Vowel Strings|Medium
+Race Car|Hard
+Super Egg Drop|Hard
+Least Operators to Express Number|Hard
+Largest Multiple of Three|Hard
+Kth Smallest Instructions|Hard
+Number of Sets of K Non-Overlapping Line Segments|Medium
+Domino and Tromino Tiling|Medium
+Count Numbers with Unique Digits|Medium
+Minimum One Bit Operations to Make Integers Zero|Hard
+Find All Possible Stable Binary Arrays II|Hard
+Counting Tilings|Hard
+## Dp with Probability
+Soup Servings|Medium
+New 21 Game|Medium
+Airplane Seat Assignment Probability|Medium
+Knight Probability in Chessboard|Medium
+Champagne Tower|Medium
+Sushi|Hard
+Coins|Hard
+Probability of a Two Boxes Having the Same Number of Distinct Balls|Hard
+# String Matching Algos
+## Introduction
+KMP Algorithm for Pattern Searching|Theory
+Rabin-Karp Algorithm for Pattern Searching|Theory
+Z Algorithm (Linear-Time Pattern Searching Algorithm)|Theory
+## Implementary Problems
+Count Prefix and Suffix Pairs II|Hard
+Number of Subarrays That Match a Pattern II|Hard
+Minimum Time to Revert Word to Initial State II|Hard
+Find Beautiful Indices in the Given Array II|Hard
+String Transformation|Hard
+Find Substring with Given Hash Value|Hard
+Maximum Deletions on a String|Hard
+Match Substring After Replacement|Hard
+Sum of Scores of Built Strings|Hard
+Find All Good Strings|Hard
+Longest Happy Prefix|Hard
+Shortest Palindrome|Hard
+Distinct Echo Substrings|Hard
+Longest Chunked Palindrome Decomposition|Hard
+Maximum Product of the Length of Two Palindromic Substrings|Hard
+Longest Duplicate Substring|Hard
+# Advance algorithm
+## Fenwick Tree
+Alternating Groups III|Medium
+Number of Pairs Satisfying Inequality|Hard
+Count Good Triplets in an Array|Hard
+Booking Concert Tickets in Groups|Hard
+## Segment Tree
+Longest Uploaded Prefix|Medium
+Range Sum Query - Mutable|Medium
+Falling Squares|Hard
+Range Module|Hard
+Count of Range Sum|Hard
+Longest Substring of One Repeating Character|Hard
+Maximum Sum Queries|Hard
+Handling Sum Queries After Update|Hard
+Peaks in Array|Hard
+Maximum Sum of Subsequence With Non-Adjacent Elements|Hard
+Block Placement Queries|Hard
+## Sparse Table
+Range Minimum Query|Hard
+Catapult that ball|Hard
+Miraculous|Hard
+Negative Score|Hard
+DIFERENCIJA|Hard
+Find a Value of a Mysterious Function Closest to Target|Hard
+Maximum Binary Tree|UNKNOWN

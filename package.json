@@ -13,7 +13,8 @@
     "audit:links": "node scripts/audit-links-live.mjs",
     "audit:companies": "node scripts/audit-companies-live.mjs",
     "fetch:contest-data": "node scripts/fetch-zerotrac-ratings.mjs && node scripts/fetch-leetcode-topics.mjs && node scripts/generate-contest-library.mjs",
-    "generate:contest-library": "node scripts/generate-contest-library.mjs"
+    "generate:contest-library": "node scripts/generate-contest-library.mjs",
+    "report:revision-sheet": "node scripts/resolve-revision-sheet.mjs && node scripts/report-revision-sheet.mjs"
   },
   "dependencies": {
     "@fontsource-variable/besley": "^5.3.0",

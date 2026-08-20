@@ -50,6 +50,20 @@ npm run build                           # expect app chunk ~295.80 kB (budget 30
 |---|---|---|---|
 | **7** | Mixed-pattern contest (weak-areas draw via `selectPatternWeakness` at the page call site, `distinctPatterns: false`), "Recreate contest" (`distinctContests: false` over one contest's own Q1–Q4 — `index.byContest` already exists), progression polish (band recommendation on the library page). | 0.5–1 d | design record §7.4, §17.5 |
 
+### Queued behind V13 — the topic-wise revision sheet
+
+A 1,210-row curated sheet (23 topics, 99 sub-topics) was resolved offline against the committed
+snapshots on 2026-08-20. **`revision-sheet-report.md`** is the evidence (every problem, LeetCode id
+and link, topic-wise); **`docs/superpowers/specs/2026-08-20-revision-sheet-design.md`** is the
+plan. Regenerate with `npm run report:revision-sheet`.
+
+The measurement that shaped the plan: **857 of its 1,016 unique LeetCode problems (84%) are
+already in this repo**, so it becomes a *lens* over the two existing universes plus 159 additions —
+no third universe, no third register. ~2.5–3 days, four slices, **after slice 7**. Three questions
+need the user's answer first (XP for sheet-only solves; what to do with the 134 non-LeetCode rows;
+one ambiguous title), and `/sheet` would be the **17th nav destination** — resolve the 590px rail
+arithmetic before building the route, not after.
+
 ### Open decisions — ALL FOUR ARE CLOSED (2026-08-20)
 
 Nothing here is waiting on anyone. Kept as a record of what was decided and why (design record §18).

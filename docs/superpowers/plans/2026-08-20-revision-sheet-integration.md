@@ -36,7 +36,7 @@ slugs.
 | 0. Baseline + shared pattern mapper | ✅ done (baseline 1,306 green; mapper extracted; output proven byte-identical) |
 | 1. Generator + dataset + npm script | ✅ done (53.5 kB; 315/587/173/134/1 rows; 159 uniques: 140 exact · 17 strong · 1 heuristic · 1 unmapped) |
 | 2. Types + decoder + chunk pin + dataset tests | ✅ done (16 dataset tests; `data-sheet` pinned; = master plan T1.1) |
-| 3. Validator rules (`validate:data`) | ⬜ pending |
+| 3. Validator rules (`validate:data`) | ✅ done (= master plan T1.2) |
 | 4. Scorer-core extraction in `engine/contestLibrary.ts` | ⬜ pending |
 | 5. `engine/revisionSheet.ts` + tests | ⬜ pending |
 | 6. `solveSheetProblem` thunk + tests | ⬜ pending |
@@ -305,15 +305,16 @@ export const SHEET_TOTAL: number;                    // rows.length
 **Files:** Modify `scripts/validate-questions.mjs` (append a "revision sheet" section following
 the file's existing fail/warn idioms; read the file first and mirror its structure).
 
-- [ ] **3.1** Add checks over `src/data/revisionSheet.json` + `questions.json` +
+- [x] **3.1** Add checks over `src/data/revisionSheet.json` + `questions.json` +
   `contestLibrary.json`: row/dictionary index bounds; kind codes 0–4 only; kind-0 ids exist in
   questions.json; kind-1 slugs exist in the library; **sheet-only slugs in neither universe**
   (hard fail — "a roadmap problem may never ship as a sheet addition"); slug format; positive
   frontendIds; non-blank titles/platforms/notes; no per-problem invented rating field on
   sheetProblems rows (row length exactly 9); counts (23/99/159) consistent with the file's own
   dictionaries; every pattern id in the patterns dictionary is one of the 28.
-- [ ] **3.2** Run `npm run validate:data` — expect OK with the new section's counts printed.
-- [ ] **3.3 Commit** `feat: V14 — validate:data learns the sheet's invariants`.
+- [x] **3.2** Run `npm run validate:data` — expect OK with the new section's counts printed.
+      *(OK: 315/587/173 rows, 159 additions, 134 external, 1 ambiguous.)*
+- [x] **3.3 Commit** `feat: V14 — validate:data learns the sheet's invariants`.
 
 ---
 

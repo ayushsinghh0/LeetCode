@@ -452,6 +452,149 @@ const CL_CONTEST = /^(weekly|biweekly)-contest-\d+$/;
   contestLibrary._stats = { bridged, filterable };
 }
 
+// --- Revision sheet (V14) ---------------------------------------------------------------
+// The sheet is a LENS: rows reference the universe that owns each problem, and the one thing
+// this gate exists to hard-fail is a referenced identity that is wrong — a curriculum id that
+// does not exist, a library slug the library does not hold, or a "sheet-only" problem that in
+// fact lives in a universe (a roadmap problem may never ship as a sheet addition). Same
+// artifact-not-generator relationship as the contest library block above.
+const revisionSheet = JSON.parse(readFileSync(join(root, 'src', 'data', 'revisionSheet.json'), 'utf8'));
+const RS_SLUG = CL_SLUG;
+const RS_TOPICS = 23;
+const RS_SUBTOPICS = 99;
+const RS_SHEET_ONLY = 159;
+const RS_SHEET_PROBLEM_COLUMNS = 9; // exactly — an invented per-problem rating column fails here
+const RS_ROW_STATS = { curriculum: 0, library: 0, sheet: 0, external: 0, ambiguous: 0 };
+
+{
+  const d = revisionSheet.dictionaries ?? {};
+  if (!Array.isArray(revisionSheet.rows)) fail('revision sheet: `rows` is not an array');
+  if (revisionSheet.total !== revisionSheet.rows.length) {
+    fail(`revision sheet: total ${revisionSheet.total} disagrees with ${revisionSheet.rows.length} rows`);
+  }
+  for (const key of ['resolvedFrom', 'metadataFetchedAt', 'generatedAt']) {
+    if (!stated(revisionSheet.provenance?.[key])) fail(`revision sheet: provenance.${key} is missing`);
+  }
+  if ((d.topics ?? []).length !== RS_TOPICS) {
+    fail(`revision sheet: expected ${RS_TOPICS} topics, found ${(d.topics ?? []).length}`);
+  }
+  if ((d.subtopics ?? []).length !== RS_SUBTOPICS) {
+    fail(`revision sheet: expected ${RS_SUBTOPICS} sub-topics, found ${(d.subtopics ?? []).length}`);
+  }
+  for (const [i, name] of (d.topics ?? []).entries()) {
+    if (!stated(name)) fail(`revision sheet: topic ${i} is blank`);
+  }
+  for (const [i, sub] of (d.subtopics ?? []).entries()) {
+    if (!Array.isArray(sub) || sub.length !== 2) fail(`revision sheet: malformed subtopic entry ${i}`);
+    else {
+      if (d.topics?.[sub[0]] === undefined) fail(`revision sheet: subtopic ${i} parent index ${sub[0]} out of range`);
+      if (!stated(sub[1])) fail(`revision sheet: subtopic ${i} name is blank`);
+    }
+  }
+  for (const [i, name] of (d.platforms ?? []).entries()) {
+    if (!stated(name)) fail(`revision sheet: platform ${i} is blank`);
+  }
+  for (const p of d.patterns ?? []) {
+    if (!VALID_PATTERNS.has(p)) fail(`revision sheet: pattern dictionary holds unknown id "${p}"`);
+  }
+
+  const librarySlugs = new Set((contestLibrary.problems ?? []).map((row) => row[0]));
+  const questionIds = new Set(questions.map((q) => q.id));
+  const curriculumSlugById = new Map(
+    questions.filter((q) => q.url).map((q) => [q.id, q.url.split('/problems/')[1].replace(/\//g, '')]),
+  );
+  const curriculumSlugs = new Set(curriculumSlugById.values());
+
+  // The 159 additions.
+  const sheetOnlySlugs = new Set();
+  if ((revisionSheet.sheetProblems ?? []).length !== RS_SHEET_ONLY) {
+    fail(`revision sheet: expected ${RS_SHEET_ONLY} sheet-only problems, found ${(revisionSheet.sheetProblems ?? []).length}`);
+  }
+  for (const row of revisionSheet.sheetProblems ?? []) {
+    if (!Array.isArray(row) || row.length !== RS_SHEET_PROBLEM_COLUMNS) {
+      fail(`revision sheet: sheet-only row must have exactly ${RS_SHEET_PROBLEM_COLUMNS} columns, got ${row?.length} — an extra column would be an invented field (a rating, most likely)`);
+      continue;
+    }
+    const [slug, frontendId, title, diff, premium, tagIdxs, patternIdxs, inferredIdxs, conf] = row;
+    const where = `revision sheet ${slug}`;
+    if (typeof slug !== 'string' || !RS_SLUG.test(slug)) fail(`${where}: malformed slug`);
+    if (sheetOnlySlugs.has(slug)) fail(`${where}: duplicate sheet-only slug`);
+    sheetOnlySlugs.add(slug);
+    if (!Number.isInteger(frontendId) || frontendId <= 0) fail(`${where}: malformed frontend id`);
+    if (!stated(title)) fail(`${where}: missing title`);
+    if (CL_DIFFICULTY[diff] === undefined) fail(`${where}: invalid difficulty code ${diff}`);
+    if (premium !== 0 && premium !== 1) fail(`${where}: premium must be 0 or 1`);
+    for (const i of tagIdxs ?? []) if (d.tags?.[i] === undefined) fail(`${where}: tag index ${i} out of range`);
+    for (const i of [...(patternIdxs ?? []), ...(inferredIdxs ?? [])]) {
+      if (d.patterns?.[i] === undefined) fail(`${where}: pattern index ${i} out of range`);
+    }
+    if (CL_CONFIDENCE[conf] === undefined) fail(`${where}: invalid confidence code ${conf}`);
+    // The library's honesty invariants, held on this artifact too.
+    const confidence = CL_CONFIDENCE[conf];
+    if (confidence === 'unmapped' && ((patternIdxs ?? []).length > 0 || (inferredIdxs ?? []).length > 0)) {
+      fail(`${where}: marked unmapped but carries patterns`);
+    }
+    if (confidence === 'heuristic' && (patternIdxs ?? []).length > 0) {
+      fail(`${where}: heuristic mappings must not enter the filterable set`);
+    }
+    if ((patternIdxs ?? []).length > 0 && !['exact', 'strong'].includes(confidence)) {
+      fail(`${where}: filterable patterns require exact or strong confidence`);
+    }
+    const confidentSet = new Set(patternIdxs ?? []);
+    for (const i of inferredIdxs ?? []) {
+      if (confidentSet.has(i)) fail(`${where}: pattern "${d.patterns[i]}" is both confident and inferred`);
+    }
+    // THE exclusion check: a sheet addition must exist in NEITHER universe.
+    if (librarySlugs.has(slug)) fail(`${where}: sheet-only slug is a contest-library problem`);
+    if (curriculumSlugs.has(slug)) fail(`${where}: a roadmap problem may never ship as a sheet addition`);
+  }
+
+  // The rows.
+  const kindBySlug = new Map();
+  const claimKind = (slug, kind, where) => {
+    const prior = kindBySlug.get(slug);
+    if (prior !== undefined && prior !== kind) {
+      fail(`${where}: slug "${slug}" appears as both ${prior} and ${kind}`);
+    }
+    kindBySlug.set(slug, kind);
+  };
+  for (const [i, row] of (revisionSheet.rows ?? []).entries()) {
+    const where = `revision sheet row ${i}`;
+    if (!Array.isArray(row) || row.length < 3) {
+      fail(`${where}: malformed row`);
+      continue;
+    }
+    const [subIdx, kind] = row;
+    if (d.subtopics?.[subIdx] === undefined) fail(`${where}: subtopic index ${subIdx} out of range`);
+    if (kind === 0) {
+      RS_ROW_STATS.curriculum++;
+      if (!questionIds.has(row[2])) fail(`${where}: curriculum id ${row[2]} does not exist`);
+      else claimKind(curriculumSlugById.get(row[2]), 'curriculum', where);
+    } else if (kind === 1) {
+      RS_ROW_STATS.library++;
+      if (!librarySlugs.has(row[2])) fail(`${where}: library slug "${row[2]}" is not in the contest library`);
+      claimKind(row[2], 'library', where);
+    } else if (kind === 2) {
+      RS_ROW_STATS.sheet++;
+      const p = revisionSheet.sheetProblems?.[row[2]];
+      if (p === undefined) fail(`${where}: sheet-only index ${row[2]} out of range`);
+      else claimKind(p[0], 'sheet', where);
+    } else if (kind === 3) {
+      RS_ROW_STATS.external++;
+      if (!stated(row[2])) fail(`${where}: external row has no title`);
+      if (row[3] !== null && ![0, 1, 2, 3].includes(row[3])) fail(`${where}: invalid difficulty code ${row[3]}`);
+      if (d.platforms?.[row[4]] === undefined) fail(`${where}: platform index ${row[4]} out of range — an external row must name its platform`);
+    } else if (kind === 4) {
+      RS_ROW_STATS.ambiguous++;
+      if (!stated(row[2])) fail(`${where}: ambiguous row has no title`);
+      if (row[3] !== null && ![0, 1, 2, 3].includes(row[3])) fail(`${where}: invalid difficulty code ${row[3]}`);
+      if (!stated(row[4])) fail(`${where}: an ambiguous row must state its candidates note`);
+    } else {
+      fail(`${where}: unknown kind code ${kind}`);
+    }
+  }
+}
+
 // --- Report ----------------------------------------------------------------------------
 const unresolved = questions.filter((q) => q.url === undefined);
 console.log(`questions: ${questions.length}, leetcode-linked: ${linked}, unresolved: ${unresolved.length}`);
@@ -477,6 +620,13 @@ console.log(
   `contest library: ${contestLibrary.total} rated problems, ` +
     `${contestLibrary._stats.filterable} with a filterable AICM pattern, ` +
     `${contestLibrary._stats.bridged} bridged to curriculum questions`,
+);
+console.log(
+  `revision sheet: ${revisionSheet.total} rows over ${revisionSheet.dictionaries.topics.length} topics / ` +
+    `${revisionSheet.dictionaries.subtopics.length} sub-topics — ` +
+    `${RS_ROW_STATS.curriculum} curriculum / ${RS_ROW_STATS.library} library / ` +
+    `${RS_ROW_STATS.sheet} sheet-only rows (${revisionSheet.sheetProblems.length} additions), ` +
+    `${RS_ROW_STATS.external} external, ${RS_ROW_STATS.ambiguous} ambiguous`,
 );
 if (unresolved.length > 0) {
   console.log('unresolved (declared not-on-leetcode in the generator):');

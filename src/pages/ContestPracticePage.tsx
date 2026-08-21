@@ -26,11 +26,14 @@ import {
   GROUP_CLASS,
   GROUP_LABEL_CLASS,
 } from '@/components/shared/QuestionFilterRow';
+import { ChipRadioRow } from '@/components/shared/ChipRadioRow';
 import { DifficultyBadge } from '@/components/questions/DifficultyBadge';
 import { PatternChip } from '@/components/questions/PatternChip';
+import { SheetView } from '@/components/sheet/SheetView';
 import { PATTERNS, patternById } from '@/data/patterns';
 import { SUBPATTERNS } from '@/data/curriculum';
 import { CONTEST_PROBLEMS, CONTEST_RATING_NOTE } from '@/data/contestLibrary';
+import { SHEET_TOPICS, SHEET_TOTAL } from '@/data/revisionSheet';
 import {
   CONTEST_TARGET_MINUTES,
   RATING_BANDS,
@@ -112,6 +115,12 @@ const questionEstimateById = new Map(
 
 /** How many problems a filtered draw aims for — Full Contest's own set size. */
 const DRAW_COUNT = 4;
+
+/** The two lenses this page offers. The sheet folds in HERE, never as a 17th nav destination
+ *  (D4: sixteen rows × 26px is what the 590px rail can hold). */
+const VIEW_OPTIONS = ['library', 'sheet'] as const;
+type View = (typeof VIEW_OPTIONS)[number];
+const VIEW_LABEL: Record<View, string> = { library: 'Contest problems', sheet: 'Revision sheet' };
 
 /** UI filter state: one value per dimension, 'all' meaning unconstrained. */
 interface Filters {
@@ -435,12 +444,16 @@ export default function ContestPracticePage() {
   const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
   const urlPattern = asPatternId(searchParams.get('pattern'));
+  const urlView: View = searchParams.get('view') === 'sheet' ? 'sheet' : 'library';
 
   const [filters, setFilters] = useState<Filters>(() => ({
     ...DEFAULT_FILTERS,
     pattern: urlPattern ?? 'all',
   }));
   const [shown, setShown] = useState(FOLD_INITIAL);
+  // The `?pattern=` discipline applied to the view: state initialized from the URL, the URL
+  // mirrored on change, and an in-app navigation that changes the query re-syncs the state.
+  const [view, setView] = useState<View>(urlView);
 
   // The pattern-page CTA deep-links here with the filter already applied (§7.2). The initializer
   // covers the mount; this covers an in-app navigation that changes the query string while the
@@ -448,6 +461,19 @@ export default function ContestPracticePage() {
   useEffect(() => {
     if (urlPattern) setFilters((f) => ({ ...f, pattern: urlPattern }));
   }, [urlPattern]);
+  useEffect(() => {
+    setView(urlView);
+  }, [urlView]);
+
+  function selectView(next: View) {
+    setView(next);
+    const wanted = next === 'library' ? null : next;
+    if (searchParams.get('view') === wanted) return;
+    const params = new URLSearchParams(searchParams);
+    if (wanted === null) params.delete('view');
+    else params.set('view', wanted);
+    setSearchParams(params, { replace: true });
+  }
 
   const set = (patch: Partial<Filters>) => setFilters((f) => ({ ...f, ...patch }));
 
@@ -714,6 +740,28 @@ export default function ContestPracticePage() {
     );
   }
 
+  if (view === 'sheet') {
+    return (
+      <Screen>
+        <ScreenHeader
+          eyebrow={`${NUM.format(SHEET_TOTAL)} rows · ${SHEET_TOPICS.length} topics`}
+          title="Revision Sheet"
+          support="Your topic-wise sheet as a lens over the problems this app already tracks — browse by topic, mark what you've solved, and start timed sets from a sub-topic."
+        />
+        <ScreenBody>
+          <ChipRadioRow
+            label="Library view"
+            options={VIEW_OPTIONS}
+            value={view}
+            onSelect={selectView}
+            format={(v) => VIEW_LABEL[v]}
+          />
+          <SheetView contestRunning={contestRunning} />
+        </ScreenBody>
+      </Screen>
+    );
+  }
+
   return (
     <Screen>
       <ScreenHeader
@@ -751,6 +799,13 @@ export default function ContestPracticePage() {
       />
 
       <ScreenBody>
+        <ChipRadioRow
+          label="Library view"
+          options={VIEW_OPTIONS}
+          value={view}
+          onSelect={selectView}
+          format={(v) => VIEW_LABEL[v]}
+        />
         {/* The Screen step (`gap-5 lg:gap-6`) rides the Panel itself — a page-local wrapper
             re-declaring it is how rhythm drifts (DESIGN.md § The rhythm: pages do not set their
             own section step). */}

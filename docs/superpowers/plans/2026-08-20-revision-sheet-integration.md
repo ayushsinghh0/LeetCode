@@ -41,7 +41,7 @@ slugs.
 | 5. `engine/revisionSheet.ts` + tests | ✅ done (13 tests incl. the structural-exclusion critical; = master plan T1.4) |
 | 6. `solveSheetProblem` thunk + tests | ✅ done (= master plan T1.5, amended: `selfReported` provenance flag stamped; lenient validator; both read paths round-tripped) |
 | 7. Null-rating widening (`FilteredContestProblem`) + run-page guard | ✅ done (= master plan T1.7) |
-| 8. Sheet view on `/contest-practice` + tests | ⬜ pending |
+| 8. Sheet view on `/contest-practice` + tests | ✅ done (7 tests; `data-sheet` 53.9 kB, importer = ContestPracticePage only; app chunk 296.73 kB; = master plan T1.8) |
 | 9. `Sheet` mode in ContestRevision + RevisionPage deep link + tests | ⬜ pending |
 | 10. ContestDue → "Practice reviews" + tests | ⬜ pending |
 | 11. Report augmentation (explicit states, contest column) | ⬜ pending |
@@ -600,7 +600,7 @@ export const solveSheetProblem =
     `contestRunning` or eligible pool empty, with the library page's `title` wording.
 
 **Tests (extend `contestPractice.test.tsx`; fake timers pinned as the file already does):**
-- [ ] **8.1** Failing tests:
+- [x] **8.1** Failing tests:
   - `?view=sheet` renders the Revision Sheet header + topic list; chips switch views and the
     URL param follows;
   - expanding `2 Pointers` shows `Two Pointer on Arrays` with Two Sum row; its detail offers
@@ -614,11 +614,14 @@ export const solveSheetProblem =
     include toggle is off (**the UI-level exclusion test**); with the toggle on, curriculum
     rows may appear with positive ids;
   - the sheet view never renders while `view` is default.
-- [ ] **8.2** Run — FAIL. **8.3** Implement component + page wiring. **8.4** PASS + tsc.
-- [ ] **8.5** `npm run build` — verify `data-sheet` chunk emitted; app chunk unchanged
+- [x] **8.2** Run — FAIL. **8.3** Implement component + page wiring. **8.4** PASS + tsc.
+      *(24/24 in the page suite.)*
+- [x] **8.5** `npm run build` — verify `data-sheet` chunk emitted; app chunk unchanged
   (~296 kB); `grep -l 'from"./contestLibrary-' dist/assets/*.js` still names only the three
   permitted chunk files (SheetView folds into ContestPracticePage's).
-- [ ] **8.6 Commit** `feat: V14 — the sheet as a second view on /contest-practice`.
+  *(data-sheet 53.91 kB; app 296.73 kB (+0.64 from thunk+validator, budget 301); contestLibrary
+  importers exactly the three; data-sheet importer = ContestPracticePage only.)*
+- [x] **8.6 Commit** `feat: V14 — the sheet as a second view on /contest-practice`.
 
 ---
 

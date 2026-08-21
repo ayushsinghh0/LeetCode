@@ -5,6 +5,7 @@ import { makeStore } from '@/store/store';
 import { logDrillResult, solveQuestion, startFilteredContest } from '@/store/actions';
 import { contestProblemSolved } from '@/store/slices/contestLibrarySlice';
 import { CONTEST_PROBLEMS } from '@/data/contestLibrary';
+import { SHEET_TOPICS } from '@/data/revisionSheet';
 import { RATING_BANDS, ratingBand } from '@/utils/engine/contestLibrary';
 import type { ContestLibraryProblem } from '@/types';
 
@@ -383,5 +384,115 @@ describe('ContestPracticePage — the band reading (slice 7)', () => {
     ).toHaveAttribute('aria-pressed', 'true');
     // Once the filter already points there, the offer would be noise — it goes away.
     expect(screen.queryByRole('button', { name: 'Filter to 1600–1799' })).not.toBeInTheDocument();
+  });
+});
+
+/* ------------------------------------------------------------------------------------------- */
+/* The sheet view — the second lens on /contest-practice (V14)                                  */
+/* ------------------------------------------------------------------------------------------- */
+
+describe('the sheet view', () => {
+  test('stays out of the way by default, and the view chips switch lenses', () => {
+    renderWithStore(<ContestPracticePage />, makeStore(), '/contest-practice');
+    expect(screen.queryByRole('heading', { name: 'Revision Sheet' })).not.toBeInTheDocument();
+
+    const chips = screen.getByRole('radiogroup', { name: 'Library view' });
+    fireEvent.click(within(chips).getByRole('radio', { name: 'Revision sheet' }));
+    expect(screen.getByRole('heading', { name: 'Revision Sheet' })).toBeInTheDocument();
+    expect(screen.queryByRole('heading', { name: 'Contest Library' })).not.toBeInTheDocument();
+
+    fireEvent.click(within(chips).getByRole('radio', { name: 'Contest problems' }));
+    expect(screen.getByRole('heading', { name: 'Contest Library' })).toBeInTheDocument();
+  });
+
+  test('?view=sheet deep-links straight to the sheet and its topic list', () => {
+    renderWithStore(<ContestPracticePage />, makeStore(), '/contest-practice?view=sheet');
+    expect(screen.getByRole('heading', { name: 'Revision Sheet' })).toBeInTheDocument();
+    for (const topic of SHEET_TOPICS.slice(0, 3)) {
+      expect(screen.getAllByText(topic.name).length).toBeGreaterThan(0);
+    }
+  });
+
+  test('a sheet-only row can be marked solved once, through the one thunk', () => {
+    const store = makeStore();
+    renderWithStore(<ContestPracticePage />, store, '/contest-practice?view=sheet');
+
+    const row = screen.getAllByText('Two Sum')[0]!.closest('details')!;
+    fireEvent.click(within(row).getByRole('button', { name: 'Mark solved' }));
+
+    const entry = store.getState().contestLibrary.bySlug['two-sum']!;
+    expect(entry.solved).toBe(true);
+    expect(entry.selfReported).toBe(true);
+    expect(store.getState().gamification.xp).toBe(10); // Two Sum is easy
+
+    // The action gives way to the state line — there is no second click to double-pay.
+    expect(within(row).queryByRole('button', { name: 'Mark solved' })).not.toBeInTheDocument();
+    expect(within(row).getByText(/Solved · next review/)).toBeInTheDocument();
+  });
+
+  test('a curriculum row is a reference: viewable, never mutable from here', () => {
+    const store = makeStore();
+    renderWithStore(<ContestPracticePage />, store, '/contest-practice?view=sheet');
+
+    const row = screen.getAllByText('Merge Sorted Array')[0]!.closest('details')!;
+    expect(within(row).getByText('On roadmap')).toBeInTheDocument();
+    expect(within(row).queryByRole('button', { name: 'Mark solved' })).not.toBeInTheDocument();
+
+    fireEvent.click(within(row).getByRole('button', { name: 'View in curriculum' }));
+    expect(store.getState().ui.activeQuestionId).toBe(105);
+  });
+
+  test('an external row names its platform and links nothing', () => {
+    renderWithStore(<ContestPracticePage />, makeStore(), '/contest-practice?view=sheet');
+    const item = screen.getAllByText('Pongal Bunk')[0]!.closest('li')!;
+    expect(within(item).getByText(/not on LeetCode · Codeforces/)).toBeInTheDocument();
+    expect(within(item).queryByRole('link')).not.toBeInTheDocument();
+  });
+
+  test('a timed sub-topic set draws only non-roadmap rows while the toggle is off', () => {
+    const store = makeStore();
+    renderWithStore(<ContestPracticePage />, store, '/contest-practice?view=sheet');
+
+    const region = screen.getByRole('region', { name: 'Two Pointer on Arrays' });
+    fireEvent.click(within(region).getByRole('button', { name: 'Start timed set' }));
+
+    const rows = store.getState().contest.libraryProblems!;
+    expect(rows.length).toBeGreaterThan(0);
+    expect(rows.length).toBeLessThanOrEqual(4);
+    // THE UI-level exclusion: not one curriculum row, and the negative-id rule holds.
+    for (const row of rows) {
+      expect(row.kind).toBe('library');
+      expect(row.id).toBeLessThan(0);
+    }
+  });
+
+  test('with every practice row solved, the draw waits until the roadmap toggle admits the curriculum', () => {
+    const store = makeStore();
+    const sub = SHEET_TOPICS.find((t) => t.name === '2 Pointers')!.subtopics.find(
+      (s) => s.name === 'Two Pointer on Arrays',
+    )!;
+    for (const row of sub.rows) {
+      if (row.ref.kind === 'library') {
+        store.dispatch(contestProblemSolved({ slug: row.ref.slug, date: '2026-07-01' }));
+      } else if (row.ref.kind === 'sheet') {
+        store.dispatch(contestProblemSolved({ slug: row.ref.problem.slug, date: '2026-07-01' }));
+      }
+    }
+    renderWithStore(<ContestPracticePage />, store, '/contest-practice?view=sheet');
+
+    const region = screen.getByRole('region', { name: 'Two Pointer on Arrays' });
+    expect(within(region).getByRole('button', { name: 'Start timed set' })).toBeDisabled();
+
+    fireEvent.click(
+      screen.getByRole('button', { name: 'Include problems already on my roadmap' }),
+    );
+    fireEvent.click(within(region).getByRole('button', { name: 'Start timed set' }));
+
+    const rows = store.getState().contest.libraryProblems!;
+    expect(rows.length).toBeGreaterThan(0);
+    for (const row of rows) {
+      expect(row.kind).toBe('curriculum');
+      expect(row.id).toBeGreaterThan(0);
+    }
   });
 });

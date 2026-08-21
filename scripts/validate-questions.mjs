@@ -584,6 +584,11 @@ const RS_ROW_STATS = { curriculum: 0, library: 0, sheet: 0, external: 0, ambiguo
       if (!stated(row[2])) fail(`${where}: external row has no title`);
       if (row[3] !== null && ![0, 1, 2, 3].includes(row[3])) fail(`${where}: invalid difficulty code ${row[3]}`);
       if (d.platforms?.[row[4]] === undefined) fail(`${where}: platform index ${row[4]} out of range — an external row must name its platform`);
+      // The optional 6th column is a hand-verified link (T1.13) — https or absent, never http,
+      // never a bare string that merely looks like a link.
+      if (row.length > 5 && (typeof row[5] !== 'string' || !row[5].startsWith('https://'))) {
+        fail(`${where}: external link must be https`);
+      }
     } else if (kind === 4) {
       RS_ROW_STATS.ambiguous++;
       if (!stated(row[2])) fail(`${where}: ambiguous row has no title`);
@@ -591,6 +596,53 @@ const RS_ROW_STATS = { curriculum: 0, library: 0, sheet: 0, external: 0, ambiguo
       if (!stated(row[4])) fail(`${where}: an ambiguous row must state its candidates note`);
     } else {
       fail(`${where}: unknown kind code ${kind}`);
+    }
+  }
+
+  // --- The verified external-links table (T1.13) — closed world, like everything else. An
+  // entry must be https, name a platform the sheet itself uses, match an external row exactly,
+  // and never name an LC-resolved title: a fabricated entry fails here, and unlisted externals
+  // simply stay unlinked.
+  const externalLinks = JSON.parse(
+    readFileSync(join(root, 'scripts', 'data', 'external-links.json'), 'utf8'),
+  );
+  if (!Array.isArray(externalLinks)) {
+    fail('external-links: must be an array');
+  } else {
+    const platformIdxByName = new Map((d.platforms ?? []).map((name, i) => [name, i]));
+    const externalRows = (revisionSheet.rows ?? []).filter((row) => row[1] === 3);
+    const lcTitles = new Set([
+      ...questions.map((q) => q.title),
+      ...(contestLibrary.problems ?? []).map((row) => row[2]),
+      ...(revisionSheet.sheetProblems ?? []).map((row) => row[2]),
+    ]);
+    for (const entry of externalLinks) {
+      const where = `external-links "${entry?.title}"`;
+      if (!stated(entry?.platform) || !stated(entry?.title)) {
+        fail(`${where}: entry needs platform and title`);
+        continue;
+      }
+      if (typeof entry.url !== 'string' || !entry.url.startsWith('https://')) fail(`${where}: url must be https`);
+      if (!ISO_DATE.test(entry.verifiedAt ?? '')) fail(`${where}: verifiedAt must be yyyy-MM-dd`);
+      const pIdx = platformIdxByName.get(entry.platform);
+      if (pIdx === undefined) {
+        fail(`${where}: platform "${entry.platform}" is not one the sheet names`);
+        continue;
+      }
+      if (lcTitles.has(entry.title)) {
+        fail(`${where}: names an LC-resolved title — LeetCode links come from their own universe`);
+        continue;
+      }
+      const matches = externalRows.filter((row) => row[2] === entry.title && row[4] === pIdx);
+      if (matches.length === 0) {
+        fail(`${where}: matches no external row — a link with no row is a fabrication`);
+      } else {
+        // The generator must have stamped the URL onto every matching row — a table the shipped
+        // artifact ignores would be a silent no-op wearing a feature's name.
+        for (const row of matches) {
+          if (row[5] !== entry.url) fail(`${where}: matching row does not carry the verified url — regenerate the sheet`);
+        }
+      }
     }
   }
 }

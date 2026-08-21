@@ -159,7 +159,7 @@ describe('sheetEntry', () => {
 
   it('gives external and ambiguous rows no identity, no url, no status', () => {
     const external = sheetEntry(
-      row({ kind: 'external', title: 'Pongal Bunk', difficulty: 'medium', platform: 'Codeforces' }),
+      row({ kind: 'external', title: 'Pongal Bunk', difficulty: 'medium', platform: 'Codeforces', url: null }),
       resolvers({}),
       TODAY,
     )!;
@@ -195,8 +195,8 @@ describe('sheetStats', () => {
       row({ kind: 'library', slug: 'lib-a' }, { subtopicIndex: 1, subtopic: 'Another' }),
       row({ kind: 'sheet', problem: sheetOnly('sheet-b') }),
       row({ kind: 'curriculum', questionId: 7 }),
-      row({ kind: 'external', title: 'Ext', difficulty: null, platform: 'CSES' }),
-      row({ kind: 'external', title: 'Ext', difficulty: null, platform: 'CSES' }),
+      row({ kind: 'external', title: 'Ext', difficulty: null, platform: 'CSES', url: null }),
+      row({ kind: 'external', title: 'Ext', difficulty: null, platform: 'CSES', url: null }),
     ];
     const stats = sheetStats(
       rows,
@@ -225,7 +225,7 @@ describe('selectSheetRevision', () => {
     row({ kind: 'curriculum', questionId: 7 }),
     row({ kind: 'library', slug: 'lib-a' }),
     row({ kind: 'sheet', problem: sheetOnly('sheet-b') }),
-    row({ kind: 'external', title: 'Ext', difficulty: null, platform: 'CSES' }),
+    row({ kind: 'external', title: 'Ext', difficulty: null, platform: 'CSES', url: null }),
     row({ kind: 'ambiguous', title: 'Amb', difficulty: null, note: 'note' }),
   ];
   const mixedResolvers = () =>

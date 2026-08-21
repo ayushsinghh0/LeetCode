@@ -61,7 +61,9 @@ type EncodedSheetProblem = [
 /**
  * `[subIdx, kind, ...rest]` where the tail depends on the kind:
  * 0 curriculum `[questionId]` · 1 library `[slug]` · 2 sheet-only `[sheetProblemIdx]` ·
- * 3 external `[title, diffCode|null, platformIdx]` · 4 ambiguous `[title, diffCode|null, note]`.
+ * 3 external `[title, diffCode|null, platformIdx, verifiedUrl?]` (the optional 6th column is a
+ * hand-verified https link from scripts/data/external-links.json — unlisted rows stay unlinked) ·
+ * 4 ambiguous `[title, diffCode|null, note]`.
  */
 type EncodedRow = [subIdx: number, kind: number, ...rest: (string | number | null)[]];
 
@@ -115,6 +117,7 @@ function decodeRef(row: EncodedRow): SheetRowRef {
         title: row[2] as string,
         difficulty: rowDifficulty(row[3] as number | null),
         platform: encoded.dictionaries.platforms[row[4] as number]!,
+        url: (row[5] as string | undefined) ?? null,
       };
     default:
       return {

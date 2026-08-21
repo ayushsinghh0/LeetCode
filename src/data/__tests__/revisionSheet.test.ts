@@ -151,7 +151,7 @@ describe('revision sheet — the 159 additions', () => {
 });
 
 describe('revision sheet — untracked rows never gain an identity', () => {
-  it('externals carry a named platform and no slug or url anywhere', () => {
+  it('externals carry a named platform, no slug, and no url beyond the hand-verified table', () => {
     const externals = SHEET_ROWS.filter((r) => r.ref.kind === 'external');
     expect(externals.length).toBeGreaterThan(100);
     for (const row of externals) {
@@ -159,7 +159,9 @@ describe('revision sheet — untracked rows never gain an identity', () => {
       expect(row.ref.platform.trim()).not.toBe('');
       expect(row.ref.title.trim()).not.toBe('');
       expect('slug' in row.ref).toBe(false);
-      expect('url' in row.ref).toBe(false);
+      // T1.13: a url is either a hand-verified https link from external-links.json or null —
+      // unlisted rows stay unlinked, and nothing may invent one at decode time.
+      if (row.ref.url !== null) expect(row.ref.url).toMatch(/^https:\/\//);
     }
   });
 

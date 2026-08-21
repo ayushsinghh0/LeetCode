@@ -491,7 +491,18 @@ export type SheetRowRef =
   | { kind: 'curriculum'; questionId: number }
   | { kind: 'library'; slug: string }
   | { kind: 'sheet'; problem: SheetOnlyProblem }
-  | { kind: 'external'; title: string; difficulty: Difficulty | 'theory' | null; platform: string }
+  | {
+      kind: 'external';
+      title: string;
+      difficulty: Difficulty | 'theory' | null;
+      platform: string;
+      /**
+       * A HAND-VERIFIED link from scripts/data/external-links.json — display only, never an
+       * identity and never tracked. Null (the shipped norm) = unlisted, stays unlinked; a
+       * guessed URL is the failure the whole pipeline exists to avoid.
+       */
+      url: string | null;
+    }
   | { kind: 'ambiguous'; title: string; difficulty: Difficulty | 'theory' | null; note: string };
 
 export interface SheetRow {

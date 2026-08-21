@@ -73,11 +73,14 @@ interface SheetRowItemProps {
   onViewInCurriculum: (questionId: number) => void;
 }
 
-function SheetRowItem({ entry, onMarkSolved, onViewInCurriculum }: SheetRowItemProps) {
+/** Exported for its own unit test — the verified-link rendering has no dataset row to pin it on
+ *  while `external-links.json` ships empty. Everything else reaches it through SheetView. */
+export function SheetRowItem({ entry, onMarkSolved, onViewInCurriculum }: SheetRowItemProps) {
   const ref = entry.row.ref;
 
   // Untracked rows: a muted statement, no disclosure for externals (there is nothing behind it),
-  // a note disclosure for the one ambiguous row. Never a link — D2.
+  // a note disclosure for the one ambiguous row. A link appears ONLY when the hand-verified
+  // external-links table supplied one (T1.13) — unlisted rows stay unlinked, never guessed.
   if (ref.kind === 'external') {
     return (
       <RuledItem padded={false}>
@@ -85,7 +88,18 @@ function SheetRowItem({ entry, onMarkSolved, onViewInCurriculum }: SheetRowItemP
           <span aria-hidden="true" className="figures w-8 shrink-0 text-right text-xs">
             {entry.row.order + 1}
           </span>
-          <span className="min-w-0 flex-1 truncate">{entry.title}</span>
+          {ref.url !== null ? (
+            <a
+              href={ref.url}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="min-w-0 flex-1 truncate font-medium text-foreground transition-colors duration-150 ease-swift hover:text-primary"
+            >
+              {entry.title}
+            </a>
+          ) : (
+            <span className="min-w-0 flex-1 truncate">{entry.title}</span>
+          )}
           <span className="shrink-0 truncate text-xs">not on LeetCode · {ref.platform}</span>
         </div>
       </RuledItem>

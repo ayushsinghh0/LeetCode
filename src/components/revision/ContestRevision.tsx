@@ -13,9 +13,11 @@ import {
   RuledList,
   Section,
 } from '@/components/layout/Page';
+import { CHIP_ACTIVE, CHIP_CLASS, CHIP_IDLE } from '@/components/shared/QuestionFilterRow';
 import { DifficultyBadge } from '@/components/questions/DifficultyBadge';
 import { PATTERNS, patternById } from '@/data/patterns';
 import { CONTEST_PROBLEMS, contestProblemBySlug } from '@/data/contestLibrary';
+import { SHEET_ROWS, SHEET_TOPICS } from '@/data/revisionSheet';
 import {
   CONTEST_RATING_NOTE,
   MIN_BAND_EVIDENCE,
@@ -28,11 +30,17 @@ import {
   type ProgressLookup,
   type ScoredProblem,
 } from '@/utils/engine/contestLibrary';
+import {
+  selectSheetRevision,
+  type ScoredSheetEntry,
+  type SheetResolvers,
+} from '@/utils/engine/revisionSheet';
 import { MASTERED_STAGE } from '@/utils/engine/spacedRepetition';
 import { reviseLibraryProblem, reviseQuestion } from '@/store/actions';
-import { selectPatternWeakness } from '@/store/selectors';
+import { selectPatternWeakness, selectQuestionById } from '@/store/selectors';
 import { useAppDispatch, useAppSelector } from '@/store/hooks';
 import { useToday } from '@/hooks/useToday';
+import { cn } from '@/utils/cn';
 import type { ContestLibraryProblem, PatternId } from '@/types';
 
 /**
@@ -59,7 +67,7 @@ import type { ContestLibraryProblem, PatternId } from '@/types';
  */
 
 /** Which pool the ranked list is drawn from. `standard` never reaches this component. */
-export type ContestRevisionMode = 'contest' | 'weak' | 'pattern';
+export type ContestRevisionMode = 'contest' | 'weak' | 'pattern' | 'sheet';
 
 const NUM = new Intl.NumberFormat('en-US');
 
@@ -158,11 +166,86 @@ function CandidateRow({ scored, state, today, scopedPattern, action }: RowProps)
   );
 }
 
+/**
+ * A sheet-flavoured candidate row (V14). Same anatomy as CandidateRow — meta, title, the scorer's
+ * own reasons verbatim, action or schedule line — but resolved from a SheetEntry, so the rating
+ * appears only where one exists (sheet-only rows are honestly unrated) and the provenance line is
+ * the sheet's own `topic → subtopic` rather than a contest label.
+ */
+function SheetCandidateRow({
+  scored,
+  today,
+  action,
+}: {
+  scored: ScoredSheetEntry;
+  today: string;
+  action?: ReactNode;
+}) {
+  const { entry, reasons } = scored;
+  return (
+    <RuledItem className="flex flex-col gap-2">
+      <div className="flex items-start justify-between gap-3">
+        <div className="flex min-w-0 flex-col gap-1">
+          <Meta
+            items={[
+              entry.officialDifficulty !== null && entry.officialDifficulty !== 'theory' && (
+                <DifficultyBadge difficulty={entry.officialDifficulty} variant="bare" />
+              ),
+              entry.contestRating !== null && (
+                <Tooltip>
+                  <TooltipTrigger className="cursor-help underline decoration-dotted underline-offset-2">
+                    Contest rating {entry.contestRating}
+                  </TooltipTrigger>
+                  <TooltipContent className="max-w-72">{CONTEST_RATING_NOTE}</TooltipContent>
+                </Tooltip>
+              ),
+              `${entry.row.topic} → ${entry.row.subtopic}`,
+              entry.onRoadmap && 'On your roadmap',
+              entry.premium && 'Premium',
+            ]}
+          />
+          <p className="font-medium">{entry.title}</p>
+          {/* The scorer's own reasons, verbatim — the thing that did the choosing explains it. */}
+          <p className="max-w-prose text-sm text-muted-foreground">{reasons.join(' · ')}</p>
+          {action === undefined &&
+            entry.state?.solved &&
+            entry.state.nextRevision !== null &&
+            entry.state.nextRevision > today && (
+              <p className="figures text-xs text-muted-foreground">
+                Next review {shortDate(entry.state.nextRevision)}
+              </p>
+            )}
+        </div>
+        <div className="flex shrink-0 flex-col items-end gap-2">
+          {action}
+          {entry.url !== null && (
+            <a
+              href={entry.url}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="text-sm font-medium text-primary hover:underline"
+            >
+              Open on LeetCode →
+            </a>
+          )}
+        </div>
+      </div>
+    </RuledItem>
+  );
+}
+
 /* ------------------------------------------------------------------------------------------- */
 /* The mode                                                                                     */
 /* ------------------------------------------------------------------------------------------- */
 
-export default function ContestRevision({ mode }: { mode: ContestRevisionMode }) {
+export default function ContestRevision({
+  mode,
+  initialTopic,
+}: {
+  mode: ContestRevisionMode;
+  /** Sheet mode's `?topic=` deep link — honoured only when it names a real sheet topic. */
+  initialTopic?: string;
+}) {
   const today = useToday();
   const dispatch = useAppDispatch();
 
@@ -173,6 +256,14 @@ export default function ContestRevision({ mode }: { mode: ContestRevisionMode })
 
   const [pattern, setPattern] = useState<PatternId | ''>('');
   const [dueShown, setDueShown] = useState(DUE_INITIAL);
+  // Sheet mode's own scope controls. `topic === ''` means the whole sheet; the roadmap toggle
+  // defaults OFF because the exclusion is the sheet draw's defining rule (spec §6).
+  const [topic, setTopic] = useState<string>(() =>
+    initialTopic !== undefined && SHEET_TOPICS.some((t) => t.name === initialTopic)
+      ? initialTopic
+      : '',
+  );
+  const [includeRoadmap, setIncludeRoadmap] = useState(false);
 
   // The two registers behind one lookup, exactly as the Library page composes it: a bridged
   // problem reads through to its ONE curriculum record, a contest-only problem to the slug-keyed
@@ -314,6 +405,115 @@ export default function ContestRevision({ mode }: { mode: ContestRevisionMode })
     dispatch(reviseLibraryProblem(problem.slug, problem.officialDifficulty, passed));
   }
 
+  /* --- Sheet mode (V14): the sheet lens over the same ladder ------------------------------- */
+
+  const sheetResolvers = useMemo<SheetResolvers>(
+    () => ({
+      questionById: selectQuestionById,
+      libraryBySlug: (slug) => contestProblemBySlug.get(slug),
+      questionState: (id) => progressById[id],
+      slugState: (slug) => contestBySlug[slug],
+    }),
+    [progressById, contestBySlug],
+  );
+
+  const sheetRows = useMemo(
+    () =>
+      topic === ''
+        ? SHEET_ROWS
+        : (SHEET_TOPICS.find((t) => t.name === topic)?.subtopics.flatMap((s) => s.rows) ??
+          SHEET_ROWS),
+    [topic],
+  );
+
+  // The one sheet ranking (engine/revisionSheet.ts): exclusion-by-default, the shared scorer
+  // core, the same weakness input. Runs only when the mode is on screen.
+  const sheetRanked = useMemo(
+    () =>
+      mode === 'sheet'
+        ? selectSheetRevision({
+            rows: sheetRows,
+            resolvers: sheetResolvers,
+            today,
+            includeRoadmap,
+            weakPatterns,
+          })
+        : [],
+    [mode, sheetRows, sheetResolvers, today, includeRoadmap, weakPatterns],
+  );
+
+  const sheetRankedByIdentity = useMemo(
+    () => new Map(sheetRanked.map((s) => [s.entry.identity!, s])),
+    [sheetRanked],
+  );
+
+  const liveSheetDue = useMemo(
+    () => sheetRanked.filter((s) => s.entry.status === 'due').map((s) => s.entry.identity!),
+    [sheetRanked],
+  );
+
+  // The frozen-list rule, applied to this surface too (the same commitment `frozenDue` makes
+  // above): membership AND order hold for the sitting, keyed by date and pool, so grading moves
+  // the ladder without moving the row out from under the learner.
+  const sheetFrozenKey = `${today}|sheet|${topic}|${includeRoadmap}`;
+  const [frozenSheet, setFrozenSheet] = useState<{ key: string; identities: string[] }>({
+    key: '',
+    identities: [],
+  });
+  if (mode === 'sheet' && frozenSheet.key !== sheetFrozenKey) {
+    setFrozenSheet({ key: sheetFrozenKey, identities: liveSheetDue });
+  }
+  const sheetDueIdentities =
+    frozenSheet.key === sheetFrozenKey ? frozenSheet.identities : liveSheetDue;
+
+  const sheetDue = useMemo(
+    () =>
+      sheetDueIdentities
+        .map((identity) => sheetRankedByIdentity.get(identity))
+        .filter((s): s is ScoredSheetEntry => s !== undefined),
+    [sheetDueIdentities, sheetRankedByIdentity],
+  );
+
+  const sheetPractice = useMemo(() => {
+    const held = new Set(sheetDueIdentities);
+    const out: ScoredSheetEntry[] = [];
+    for (const s of sheetRanked) {
+      if (held.has(s.entry.identity!)) continue;
+      out.push(s);
+      if (out.length === PRACTICE_SHOWN) break;
+    }
+    return out;
+  }, [sheetRanked, sheetDueIdentities]);
+
+  function gradeSheet(s: ScoredSheetEntry, passed: boolean) {
+    // One problem, one record: a curriculum row grades through the curriculum's own thunk, and
+    // everything else through the slug register's.
+    if (s.entry.questionId !== null) {
+      dispatch(reviseQuestion(s.entry.questionId, passed));
+      return;
+    }
+    if (
+      s.entry.slug !== null &&
+      s.entry.officialDifficulty !== null &&
+      s.entry.officialDifficulty !== 'theory'
+    ) {
+      dispatch(reviseLibraryProblem(s.entry.slug, s.entry.officialDifficulty, passed));
+    }
+  }
+
+  /** `gradedTodayFor`, for a sheet entry — read from whichever register owns the record. */
+  function sheetGradedToday(s: ScoredSheetEntry): { nextRevision: string | null } | null {
+    if (s.entry.questionId !== null) {
+      const qp = progressById[s.entry.questionId];
+      return qp && qp.lastReviewed === today ? { nextRevision: qp.nextRevision } : null;
+    }
+    const p = s.entry.slug !== null ? contestBySlug[s.entry.slug] : undefined;
+    if (!p) return null;
+    if (p.lastReviewed === today) return { nextRevision: p.nextRevision };
+    if (p.revisionStage >= MASTERED_STAGE) return { nextRevision: null };
+    return null;
+  }
+
   const visibleDue = due.slice(0, dueShown);
   const hiddenDue = due.length - visibleDue.length;
 
@@ -373,6 +573,119 @@ export default function ContestRevision({ mode }: { mode: ContestRevisionMode })
         </>
       }
     >
+      {mode === 'sheet' ? (
+        <>
+          <div className="flex flex-wrap items-center gap-x-4 gap-y-2">
+            <span aria-hidden="true" className="text-xs uppercase tracking-[0.12em] text-muted-foreground">
+              Topic
+            </span>
+            <Select
+              value={topic === '' ? 'all' : topic}
+              onValueChange={(v) => setTopic(v === 'all' ? '' : v)}
+            >
+              <SelectTrigger aria-label="Revise a sheet topic" className="w-full sm:w-64">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">All topics</SelectItem>
+                {SHEET_TOPICS.map((t) => (
+                  <SelectItem key={t.index} value={t.name}>
+                    {t.name}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            {/* THE toggle (spec §6), same wording as the sheet view: roadmap problems stay out
+                of the draw until asked — the daily plan already schedules them. */}
+            <button
+              type="button"
+              aria-pressed={includeRoadmap}
+              onClick={() => setIncludeRoadmap((v) => !v)}
+              className={cn(CHIP_CLASS, includeRoadmap ? CHIP_ACTIVE : CHIP_IDLE)}
+            >
+              Include problems already on my roadmap
+            </button>
+          </div>
+
+          <Section
+            title="Due now"
+            support={
+              sheetDue.length === 0
+                ? "Nothing on the sheet's ladder has come due. A late review costs nothing here either."
+                : 'The ladder date has arrived. Re-implement it, then say how it went.'
+            }
+            action={
+              sheetDue.length > 0 ? (
+                <p className="figures text-sm text-muted-foreground">
+                  {sheetDue.length} {sheetDue.length === 1 ? 'problem' : 'problems'}
+                </p>
+              ) : undefined
+            }
+          >
+            {sheetDue.length > 0 && (
+              <RuledList aria-label="Sheet problems due for revision">
+                {sheetDue.map((scored) => {
+                  const gradedToday = sheetGradedToday(scored);
+                  return (
+                    <SheetCandidateRow
+                      key={scored.entry.identity!}
+                      scored={scored}
+                      today={today}
+                      action={
+                        gradedToday ? (
+                          // One grade per calendar day — the row states the fact instead of
+                          // offering buttons the thunks would refuse.
+                          <p className="text-right text-sm text-muted-foreground">
+                            Reviewed today
+                            {gradedToday.nextRevision !== null
+                              ? ` · next review ${shortDate(gradedToday.nextRevision)}`
+                              : ' · no further reviews'}
+                          </p>
+                        ) : (
+                          <div className="flex gap-2">
+                            <Button variant="outline" size="sm" onClick={() => gradeSheet(scored, true)}>
+                              Recalled it
+                            </Button>
+                            <Button variant="ghost" size="sm" onClick={() => gradeSheet(scored, false)}>
+                              Not yet
+                            </Button>
+                          </div>
+                        )
+                      }
+                    />
+                  );
+                })}
+              </RuledList>
+            )}
+          </Section>
+
+          <Section
+            title="Worth practising"
+            support="Nothing is due on these. They are what the evidence ranks highest right now."
+          >
+            {sheetPractice.length === 0 ? (
+              <p className="max-w-prose text-sm text-muted-foreground">
+                Nothing left to practise in this scope — widen the topic, or browse the sheet.
+              </p>
+            ) : (
+              // Unsolved rows carry no grade buttons — there is nothing to grade; the link opens
+              // the problem itself.
+              <RuledList aria-label="Sheet problems worth practising">
+                {sheetPractice.map((scored) => (
+                  <SheetCandidateRow key={scored.entry.identity!} scored={scored} today={today} />
+                ))}
+              </RuledList>
+            )}
+            <Link
+              to="/contest-practice?view=sheet"
+              className="self-start text-sm font-medium text-primary hover:underline"
+            >
+              Browse the full sheet →
+            </Link>
+          </Section>
+        </>
+      ) : (
+        <>
       {mode === 'pattern' && (
         <div className="flex flex-wrap items-center gap-2">
           <span aria-hidden="true" className="text-xs uppercase tracking-[0.12em] text-muted-foreground">
@@ -520,6 +833,8 @@ export default function ContestRevision({ mode }: { mode: ContestRevisionMode })
               </Link>
             </Disclosure>
           </Section>
+        </>
+      )}
         </>
       )}
     </PageColumns>

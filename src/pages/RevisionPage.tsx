@@ -1,5 +1,5 @@
 import { Suspense, lazy, useMemo, useRef, useState, type KeyboardEvent } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useSearchParams } from 'react-router-dom';
 import { format, parseISO } from 'date-fns';
 import { Check, GraduationCap, RotateCcw } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -89,12 +89,13 @@ const ContestRevision = lazy(() => import('@/components/revision/ContestRevision
 
 type RevisionMode = 'standard' | ContestRevisionMode;
 
-const MODES: RevisionMode[] = ['standard', 'contest', 'weak', 'pattern'];
+const MODES: RevisionMode[] = ['standard', 'contest', 'weak', 'pattern', 'sheet'];
 const MODE_LABEL: Record<RevisionMode, string> = {
   standard: 'Standard',
   contest: 'Contest',
   weak: 'Weak areas',
   pattern: 'Pattern',
+  sheet: 'Sheet',
 };
 
 export default function RevisionPage() {
@@ -118,7 +119,14 @@ export default function RevisionPage() {
   }, [journal]);
 
   const [showMastered, setShowMastered] = useState(false);
-  const [mode, setMode] = useState<RevisionMode>('standard');
+  // Deep-link initialization only (D10): `?mode=` and `?topic=` are read once at mount — a
+  // one-way init, unlike /contest-practice's two-way `?view=` sync, because this page's mode
+  // chips are a live control the URL has no business re-asserting mid-visit.
+  const [searchParams] = useSearchParams();
+  const urlMode = searchParams.get('mode');
+  const [mode, setMode] = useState<RevisionMode>(
+    urlMode !== null && (MODES as string[]).includes(urlMode) ? (urlMode as RevisionMode) : 'standard',
+  );
 
   const running = startedOn !== null && completedOn === null;
   const finished = completedOn !== null;
@@ -213,7 +221,9 @@ export default function RevisionPage() {
         support={
           mode === 'standard'
             ? 'Tell it how long you have. It works out what is worth doing in that time — and what can wait.'
-            : 'Rated contest problems, ranked by what is worth doing now. Separate from the roadmap and the daily plan.'
+            : mode === 'sheet'
+              ? 'Your topic-wise sheet, ranked by what is worth doing now. Roadmap problems stay out of the draw unless you ask.'
+              : 'Rated contest problems, ranked by what is worth doing now. Separate from the roadmap and the daily plan.'
         }
       />
 
@@ -236,7 +246,7 @@ export default function RevisionPage() {
         <Suspense
           fallback={<p className="text-sm text-muted-foreground">Loading the contest library…</p>}
         >
-          <ContestRevision mode={mode} />
+          <ContestRevision mode={mode} initialTopic={searchParams.get('topic') ?? undefined} />
         </Suspense>
       ) : (
       /* The session is the work; everything else on this page only explains, forecasts or

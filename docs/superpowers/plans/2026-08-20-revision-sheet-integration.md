@@ -42,7 +42,7 @@ slugs.
 | 6. `solveSheetProblem` thunk + tests | ✅ done (= master plan T1.5, amended: `selfReported` provenance flag stamped; lenient validator; both read paths round-tripped) |
 | 7. Null-rating widening (`FilteredContestProblem`) + run-page guard | ✅ done (= master plan T1.7) |
 | 8. Sheet view on `/contest-practice` + tests | ✅ done (7 tests; `data-sheet` 53.9 kB, importer = ContestPracticePage only; app chunk 296.73 kB; = master plan T1.8) |
-| 9. `Sheet` mode in ContestRevision + RevisionPage deep link + tests | ⬜ pending |
+| 9. `Sheet` mode in ContestRevision + RevisionPage deep link + tests | ✅ done (frozen sheet due list; exclusion pinned in UI; deep links; standard 30 unmodified; = master plan T1.9) |
 | 10. ContestDue → "Practice reviews" + tests | ⬜ pending |
 | 11. Report augmentation (explicit states, contest column) | ⬜ pending |
 | 12. Docs (CLAUDE.md, HANDOFF, design record) + full gates | ⬜ pending |
@@ -669,14 +669,15 @@ and pass `initialTopic={searchParams.get('topic') ?? undefined}` to `<ContestRev
 - link `Browse the full sheet →` → `/contest-practice?view=sheet`.
 
 **Tests:**
-- [ ] **9.1** Failing tests: the `Sheet` chip renders the mode; a due sheet-only record (seeded
+- [x] **9.1** Failing tests: the `Sheet` chip renders the mode; a due sheet-only record (seeded
   register) appears under Due now and grading it moves the ladder (register's `nextRevision`
   changes) while THE ROW STAYS (frozen list); **a curriculum question due today does NOT appear
   in sheet mode by default** and DOES appear with the toggle on (graded through
   `reviseQuestion`); `?mode=sheet` deep link lands on the mode; `?topic=Binary Search` scopes
   it.
-- [ ] **9.2** FAIL → **9.3** implement → **9.4** PASS + tsc.
-- [ ] **9.5 Commit** `feat: V14 — Sheet mode on /revision, frozen and exclusion-correct`.
+- [x] **9.2** FAIL → **9.3** implement → **9.4** PASS + tsc. *(15/15 contestRevision;
+  30/30 standard revision unmodified; tsc clean.)*
+- [x] **9.5 Commit** `feat: V14 — Sheet mode on /revision, frozen and exclusion-correct`.
 
 ---
 

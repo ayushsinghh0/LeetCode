@@ -299,3 +299,80 @@ describe('Contest Revision — pattern mode asks before it answers', () => {
     expect(screen.queryByRole('heading', { name: 'Due now' })).not.toBeInTheDocument();
   });
 });
+
+/* ------------------------------------------------------------------------------------------- */
+/* Sheet mode — the sheet lens on /revision (V14)                                               */
+/* ------------------------------------------------------------------------------------------- */
+
+describe('Sheet mode', () => {
+  async function chooseSheet() {
+    const modes = screen.getByRole('radiogroup', { name: 'Revision mode' });
+    fireEvent.click(within(modes).getByRole('radio', { name: 'Sheet' }));
+    return screen.findByRole('heading', { name: 'Due now' }, { timeout: 5000 });
+  }
+
+  test('a due sheet-only record is graded in place, and the frozen row stays', async () => {
+    useClock();
+    const store = makeStore();
+    // `two-sum` is one of the 159 sheet-only additions: solving it on the 29th makes its first
+    // rung due on the 30th.
+    store.dispatch(contestProblemSolved({ slug: 'two-sum', date: '2026-07-29' }));
+    setDate('2026-07-30');
+
+    renderWithStore(<RevisionPage />, store);
+    await chooseSheet();
+
+    const due = screen.getByRole('list', { name: 'Sheet problems due for revision' });
+    const row = within(due).getByText('Two Sum').closest('li')!;
+    fireEvent.click(within(row).getByRole('button', { name: 'Recalled it' }));
+
+    // The one ladder moved (stage 0 → 1, next review three days out)...
+    expect(store.getState().contestLibrary.bySlug['two-sum']!.revisionStage).toBe(1);
+    expect(store.getState().contestLibrary.bySlug['two-sum']!.nextRevision).toBe('2026-08-02');
+    // ...while the row STAYS, stating its outcome — the frozen-list rule every grading surface keeps.
+    expect(within(due).getByText('Two Sum')).toBeInTheDocument();
+    expect(within(row).getByText(/Reviewed today/)).toBeInTheDocument();
+  });
+
+  test('a curriculum question due today stays out until the roadmap toggle admits it', async () => {
+    useClock();
+    setDate('2026-07-29');
+    const store = makeStore();
+    store.dispatch(solveQuestion(105)); // Merge Sorted Array — a curriculum row of the sheet
+    setDate('2026-07-30'); // its first rung is due
+
+    renderWithStore(<RevisionPage />, store);
+    await chooseSheet();
+
+    // THE structural exclusion, seen from the UI: due on the roadmap, absent from the sheet draw.
+    expect(screen.queryByText('Merge Sorted Array')).not.toBeInTheDocument();
+
+    fireEvent.click(
+      screen.getByRole('button', { name: 'Include problems already on my roadmap' }),
+    );
+    const title = await screen.findByText('Merge Sorted Array');
+    const row = title.closest('li')!;
+    fireEvent.click(within(row).getByRole('button', { name: 'Recalled it' }));
+
+    // Graded through the curriculum's own thunk — one problem, one record.
+    expect(store.getState().progress.byId[105]!.revisionStage).toBe(1);
+    expect(store.getState().contestLibrary.bySlug['merge-sorted-array']).toBeUndefined();
+  });
+
+  test('?mode=sheet&topic= deep-links into the scoped mode', async () => {
+    useClock();
+    setDate('2026-07-30');
+    renderWithStore(<RevisionPage />, makeStore(), '/revision?mode=sheet&topic=Binary Search');
+    await screen.findByRole('heading', { name: 'Due now' }, { timeout: 5000 });
+
+    const modes = screen.getByRole('radiogroup', { name: 'Revision mode' });
+    expect(within(modes).getByRole('radio', { name: 'Sheet' })).toBeChecked();
+    expect(screen.getByRole('combobox', { name: 'Revise a sheet topic' })).toHaveTextContent(
+      'Binary Search',
+    );
+    expect(screen.getByRole('link', { name: 'Browse the full sheet →' })).toHaveAttribute(
+      'href',
+      '/contest-practice?view=sheet',
+    );
+  });
+});

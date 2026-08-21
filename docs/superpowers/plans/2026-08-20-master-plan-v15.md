@@ -924,7 +924,7 @@ for these tasks except where amended here)
 
 | Phase | Status | Gate record |
 |---|---|---|
-| 0 | ⬜ | — |
+| 0 | ✅ 2026-08-22 | tsc clean · 91 files / 1,306 tests green (`--no-file-parallelism`; first run had 1 non-reproducing timeout flake — the documented load-sensitivity, clean on re-run) · `validate:data` OK (539/528/11; library 2561/2153/207) · build clean: app chunk 296.09 kB (301 budget), `data-contests` 343.72 kB · contestLibrary static importers = exactly ContestDue/ContestPracticePage/ContestRevision |
 | 1 (T1.1–T1.13) | ⬜ | — |
 | 2 | ⬜ | — |
 | 3 | ⬜ | — |

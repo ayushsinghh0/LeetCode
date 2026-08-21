@@ -45,7 +45,7 @@ slugs.
 | 9. `Sheet` mode in ContestRevision + RevisionPage deep link + tests | ✅ done (frozen sheet due list; exclusion pinned in UI; deep links; standard 30 unmodified; = master plan T1.9) |
 | 10. ContestDue → "Practice reviews" + tests | ✅ done (both datasets resolved; unrated stays absent; = master plan T1.10) |
 | 11. Report augmentation (explicit states, contest column) | ✅ done (7-state partition sums to 1,210, script-enforced; W/B contest column; closing sections; = master plan T1.11) |
-| 12. Docs (CLAUDE.md, HANDOFF, design record) + full gates | ⬜ pending |
+| 12. Docs (CLAUDE.md, HANDOFF, design record) + full gates | ✅ done (94 files / 1,359 green; app 296.78/301 kB; = master plan T1.12) |
 
 **Resume procedure:** `git checkout v14-revision-sheet` → read this ledger → run
 `npx vitest run --no-file-parallelism` to confirm the last committed task's state → continue at
@@ -726,22 +726,23 @@ and pass `initialTopic={searchParams.get('topic') ?? undefined}` to `<ContestRev
 **Files:** `CLAUDE.md`, `HANDOFF.md`,
 `docs/superpowers/specs/2026-08-20-revision-sheet-design.md`, this plan's ledger.
 
-- [ ] **12.1** CLAUDE.md: extend the contest-library section with a **revision sheet**
+- [x] **12.1** CLAUDE.md: extend the contest-library section with a **revision sheet**
   subsection: the lens architecture; `data-sheet` chunk + its three permitted importers; the
   slug register's widened meaning ("non-curriculum problems on the one ladder" — record it,
   rename nothing); the structural exclusion rule + where it lives
   (`selectSheetRevision`); `solveSheetProblem`'s scope; D4's no-17th-destination resolution;
-  the `?view=`/`?mode=` deep links; "Practice reviews" naming.
-- [ ] **12.2** Design record: status flip to implemented; log D1–D10 with rationale;
+  the `?view=`/`?mode=` deep links; "Practice reviews" naming. *(Plus the top resume note.)*
+- [x] **12.2** Design record: status flip to implemented; log D1–D10 with rationale (§8);
   note the §5 open questions' adopted recommendations awaiting user confirmation.
-- [ ] **12.3** HANDOFF.md: rewrite as the V14 resume point (state, gates, decisions,
-  what to watch, the user-confirmation items D1–D3).
-- [ ] **12.4** Full gates: `npx tsc --noEmit` · `npx vitest run --no-file-parallelism`
-  (expect ≥1,306 + new, all green) · `npm run build` (app chunk ≤ 301 kB; `data-sheet`
-  present; the contestLibrary importer grep) · `npm run validate:data`.
-- [ ] **12.5** Tick this plan's ledger; final commit
-  `feat: V14 — the topic-wise revision sheet, a lens over the two universes` (or amendments
-  per-task already made); summarize for the user with D1–D3 confirmation asks.
+- [x] **12.3** HANDOFF.md: rewritten as the V15 Phase 1 resume point (state, gates, decisions,
+  what to watch, the user-confirmation items; resume at Phase 2 T2.1).
+- [x] **12.4** Full gates: `npx tsc --noEmit` clean · `npx vitest run --no-file-parallelism`
+  **94 files / 1,359 green** · `npm run build` app chunk **296.78 kB** (301 budget),
+  `data-sheet` 53.91 kB, `data-contests` unchanged; importer greps: `contestLibrary-*` ←
+  exactly the three permitted chunks; `data-sheet` ← the shared decoder chunk alone ·
+  `npm run validate:data` OK.
+- [x] **12.5** Ledger ticked; committed per-task throughout (T1.1–T1.13); D1–D3 confirmation
+  asks summarized to the user in the session wrap.
 
 ---
 

@@ -3,11 +3,13 @@
 This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 
 **Resuming prior work? Read `HANDOFF.md` first** — it records where the last session stopped,
-what is verified vs. pending, and the exact pick-up order. Design decisions behind in-flight
-feature work live in `docs/superpowers/specs/`; V13
-(`2026-08-19-contest-intelligence-design.md`) is **complete — slices 0–7 shipped** (slice 7's
-browser pass is recorded debt); the next plan in the queue is
-`2026-08-20-revision-sheet-design.md`.
+what is verified vs. pending, and the exact pick-up order. The governing document for in-flight
+work is the V15 master plan (`docs/superpowers/plans/2026-08-20-master-plan-v15.md`, ledger
+§B16): **Phases 0–1 are shipped** (the topic-wise revision sheet — design record
+`docs/superpowers/specs/2026-08-20-revision-sheet-design.md`, §8 the implementation log); next
+is Phase 2 (the capability reader). V13 (`2026-08-19-contest-intelligence-design.md`) is
+complete — slices 0–7 shipped (slice 7's browser pass is recorded debt, absorbed by the master
+plan's Phase 11).
 
 ## Commands
 
@@ -97,6 +99,54 @@ same register; the Library page's band reading is silent below threshold — the
 rail is the one surface that counts toward it.
 
 `src/data/contestLibrary.ts` is the only door to the dataset and decodes its dictionary-encoded form (1,232.9 kB naive → 336.5 kB encoded; `url`, contest type and number are derived at load, not stored). **`store/selectors.ts` and `store/actions.ts` must never import it** — the `mlTrackIndex.ts` trap, same silence. Nothing in the store needs dataset facts today: due counts come from `dueContestSlugs` over the slice alone, and pattern resolution for weakness happens at the lazy page's call site before the thunk. **Nor may a shared route import it**: `/revision` is a daily page, so Contest Revision (`components/revision/ContestRevision.tsx`) is `lazy()`-ed behind the mode chips and `RevisionPage` keeps only a type-only import. The permitted static importers are exactly `ContestPracticePage`, `ContestRevision` and `ContestDue` — check that with `grep -l 'from"./contestLibrary-*.js"' dist/assets/*.js` after `npm run build`, because a `__vite__mapDeps` entry naming the chunk is a dynamic-import dependency list, not an import.
+
+### The revision sheet — a LENS over the two universes (V14 = V15 Phase 1, shipped)
+
+`src/data/revisionSheet.json` is generated (`scripts/generate-revision-sheet.mjs` from
+`scripts/data/revision-sheet-resolved.json` + both universes + the topics/catalog snapshots +
+the ONE shared tag mapper `scripts/lib/pattern-map.mjs`) — never hand-edit it. **It is not a
+third universe.** Each of its 1,210 rows *references* the universe that owns its problem —
+kind 0 a curriculum question id, kind 1 a library slug, and only kind 2 (the 159 additions in
+neither) carries its own metadata (`SheetOnlyProblem`: deliberately not a `Question`, and with
+**no `contestRating` field at all** — unrated is typed absence, and `FilteredContestProblem.
+contestRating` widened to `number | null` so a sitting row renders that absence). Kinds 3/4
+(134 externals, 1 ambiguous) have no identity: platform named, nothing tracked, and a link
+ONLY via the hand-authored closed-world table `scripts/data/external-links.json` (ships empty;
+a fabricated entry fails the generator AND `validate:data`; unlisted rows stay unlinked).
+
+**Where progress lives — the slug register's meaning widened, renamed nothing.**
+`contestLibrary.bySlug` now means "non-curriculum problems on the one 1/3/7/15/30 ladder", not
+"contest problems". Sheet-only solves enter it via `solveSheetProblem` — the sheet's ONE direct
+write: non-curriculum rows only, ordinary `SOLVE_XP` once per slug, no day log, idempotent —
+which stamps **`ContestProblemProgress.selfReported: true`**. That flag is the A5.1 honesty fix:
+an untimed tick is a claim, not an outcome, so `bandEvidenceFromRegister` skips self-reported
+records entirely and both band surfaces state their basis ("timed contest practice only"). A
+later TIMED solve clears the flag (provenance upgrades, never downgrades); absent = sitting-made,
+which is historically exact (OQ-6). Validator is lenient (`true` echoed, `false` dropped,
+non-boolean rejects). A curriculum row is a REFERENCE: status shown, opened via
+`activeQuestionSet`, never mutated from the sheet.
+
+**THE structural exclusion.** `selectSheetRevision` (engine/revisionSheet.ts — pure, dataset-
+free, resolvers in) drops `onRoadmap` entries unless `includeRoadmap: true` — in the DRAW, never
+a UI filter: the daily plan already schedules roadmap questions, and a second surface silently
+re-drawing them would put one problem on two schedules. Scoring goes through
+`scoreRevisionFacts`, the universe-agnostic core extracted from `scoreRevisionCandidates` — one
+scorer, so the sheet and contest revision can never rank through different arithmetic.
+
+**Surfaces, and the D4 ruling: no 17th nav destination** (16 rows × 26px is the 590px rail's
+capacity). The sheet is a second VIEW on `/contest-practice` (`?view=sheet`, two-way synced like
+`?pattern=`; `SheetView` statically imported by the page), a fifth **Sheet** mode on `/revision`
+(`?mode=sheet&topic=` one-way init at mount; frozen due list keyed `date|sheet|topic|toggle` —
+the frozen-list rule again; curriculum rows grade via `reviseQuestion`, everything else via
+`reviseLibraryProblem`), timed sub-topic sets through `selectContestSet` +
+`startFilteredContest` (`distinctPatterns: false` — a sub-topic IS one theme; SheetView's row
+mapping extends the page's negative-id rule to entries the library index cannot resolve), and
+Today's rail block retitled **"Practice reviews"** (`ContestDue` resolves due slugs against
+`contestProblemBySlug` THEN `sheetOnlyBySlug`; the gating setting keeps its `contestOnToday`
+key/label — a recorded naming seam). `src/data/revisionSheet.ts` is the dataset's only door,
+imports no other dataset, and rides its own pinned `data-sheet` chunk; permitted static
+importers are exactly `ContestPracticePage` (via SheetView), `ContestRevision` and `ContestDue`
+— same grep discipline as `data-contests`. The store never imports it.
 
 ### Invariants that bite if forgotten
 

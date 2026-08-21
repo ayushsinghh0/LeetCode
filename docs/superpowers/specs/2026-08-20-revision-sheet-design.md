@@ -1,8 +1,10 @@
 # The Topic-Wise Revision Sheet — integration design (2026-08-20)
 
-**Status: planned, not started.** V13 slice 7 is still the active work; this is queued behind it.
-The evidence this plan rests on is `revision-sheet-report.md`, generated from committed snapshots
-with no network.
+**Status: IMPLEMENTED (2026-08-22)** as V15 master-plan Phase 1 (T1.1–T1.13), which absorbed the
+V14 execution plan (`docs/superpowers/plans/2026-08-20-revision-sheet-integration.md` holds the
+per-task record; `2026-08-20-master-plan-v15.md` §Phase 1 the amendments). The implementation log
+is §8 at the end of this document. The evidence this plan rests on is `revision-sheet-report.md`,
+generated from committed snapshots with no network.
 
 ---
 
@@ -163,3 +165,69 @@ already on the roadmap → toggle *exclude roadmap* off and on and the list chan
 revision draw and **not one roadmap question appears** → grade a sheet-only problem and it climbs
 the same 1/3/7/15/30 ladder → reload and it is still there → **the 539, Full Contest, Standard
 Revision and Contest Revision are all bit-for-bit what they were.**
+
+---
+
+## 8. Implementation log (V15 Phase 1, 2026-08-22)
+
+Shipped task-by-task on `v14-revision-sheet`, one commit per task, suite green throughout
+(baseline 1,306 → 1,359 tests, 91 → 94 files). The V14 plan's step detail was binding; the master plan's A5
+amendments changed three things, noted below.
+
+### Decisions D1–D10, as shipped
+
+- **D1 — XP (OQ-2 default kept).** Sheet-only solves pay ordinary `SOLVE_XP[difficulty]` once,
+  on the first solve; reviews pay `revisionXp` both ways; no day log ever. The real safeguard is
+  not the XP number: the record is stamped `selfReported` and the evidential layers ignore it.
+- **D2 → amended by A5.3.** "Never link" became "never link WITHOUT hand verification": the
+  closed-world `scripts/data/external-links.json` (ships empty) may supply verified https links;
+  the generator and `validate:data` both fail on a fabricated entry; unlisted rows stay unlinked.
+- **D3 — "Beautiful Numbers"** stays AMBIGUOUS with its candidates note. One word from the user
+  makes it a one-line alias in `resolve-revision-sheet.mjs`.
+- **D4 — no 17th nav destination.** The sheet is `?view=sheet` on `/contest-practice`; nav label
+  stays "Contest Library"; discovery via /revision's Sheet mode and the view chips.
+- **D5 — REPORT.md** cannot exist (case-insensitive FS beside `report.md`);
+  `revision-sheet-report.md` is the audit of record, extended with the 7-state partition
+  (script-enforced to sum to 1,210), the compact Contest column, and closing sections.
+- **D6 — zero persistence changes** for the register itself; the ONE schema addition is the
+  A5.1 amendment: `ContestProblemProgress.selfReported?: true`, optional-with-boundary-default,
+  lenient validator (`true` echoed, `false` dropped, non-boolean rejects), round-tripped through
+  BOTH read paths with a pre-V15 fixture. A later timed solve clears the flag — provenance
+  upgrades, never downgrades. Absent = sitting-made, historically exact (OQ-6).
+- **D7 — unrated stays unrated.** `SheetOnlyProblem` has no rating field (the validator fails a
+  10th column); `FilteredContestProblem.contestRating` widened to `number | null`; ContestPage
+  renders the rating item only when present.
+- **D8 — "Practice reviews".** ContestDue resolves due slugs against `contestProblemBySlug` then
+  `sheetOnlyBySlug`; sheet rows render honestly unrated. The gating setting keeps its
+  `contestOnToday` key and label — a recorded naming seam, not migrated.
+- **D9 — direct solves.** "Mark solved" exists only on the sheet view, only for non-curriculum
+  rows, through `solveSheetProblem` (blank-slug no-op, idempotent, stamps `selfReported`).
+  Curriculum rows offer "View in curriculum" via `activeQuestionSet` and are never mutated here.
+- **D10 — deep links.** `/contest-practice?view=sheet` two-way (the `?pattern=` discipline);
+  `/revision?mode=sheet&topic=<name>` one-way at mount.
+
+### The A5 amendments, beyond D1–D10
+
+1. **A5.1 (`selfReported`)** — see D6/D9; plus `bandEvidenceFromRegister` skips self-reported
+   records entirely, and both band surfaces now state their basis ("timed contest practice
+   only… never curriculum solves or self-reported ticks" on the rail; "in timed practice" in the
+   Library page's figure).
+2. **A5.3 (external links)** — see D2.
+3. **A5.4 (basis tripwire)** — the band-surface copy above.
+
+### §7's one-line test, discharged in unit form
+
+Browse: sheet-view tests (topic list, `Two Pointer on Arrays` region, roadmap rows marked).
+Toggle changes the draw: timed-set tests (off → zero curriculum rows, negative ids; on →
+curriculum rows, positive ids). Draw excludes the roadmap: the engine's critical test + the
+sheet-mode UI test (a due curriculum question absent by default, admitted by the toggle, graded
+through `reviseQuestion`). Sheet-only grade climbs the one ladder: slice + sheet-mode tests
+(stage 0→1, +3 days). Survives reload: `selfReported` round-trips both read paths; the register
+channel's boot-path test predates this work. Nothing else moved: the 62 contest tests, Standard
+Revision's 30, and Contest Revision's suite all pass unmodified.
+
+### What Phase 1 leaves open
+
+The Settings toggle's name (D8 seam); the ambiguous row (D3, waiting on the user); the empty
+external-links table (maintainer work); XP-curve watching after real usage (V13's own carry-over,
+now with direct solves in the mix — mitigated by `selfReported` being evidentially inert).

@@ -1,174 +1,135 @@
-# HANDOFF — V13 Contest Intelligence: ALL SLICES SHIPPED (2026-08-20)
+# HANDOFF — V15 Phase 1 (the revision sheet) SHIPPED · resume at Phase 2 (2026-08-22)
 
-> **⚡ V14→V15 IS IN FLIGHT (2026-08-20, branch `v14-revision-sheet`), PAUSED CLEANLY.**
-> The governing document is the APPROVED master plan
-> **`docs/superpowers/plans/2026-08-20-master-plan-v15.md`** — 13 phases / 48 tasks: audit
-> (Part A), architecture + models (Part B), open questions (Part C), resume procedure
-> (Part D + the B16 phase ledger). Its Phase 1 absorbs the earlier V14 execution plan
-> (`2026-08-20-revision-sheet-integration.md`, still binding for step-level detail of
-> T1.1–T1.12, with the A5 amendments).
-> **State at pause:** groundwork committed (`5f36816` shared tag mapper + V14 plan;
-> `66ad94c` sheet dataset generator + `src/data/revisionSheet.json`). Baseline 1,306 tests
-> green. **Resume at Phase 0 T0.1** (re-run gates), then Phase 1 T1.1 (= V14 Task 2: types +
-> decoder + `data-sheet` chunk + dataset tests). Everything below describes the V13 state
-> this builds on.
+> **The governing document is the approved master plan
+> `docs/superpowers/plans/2026-08-20-master-plan-v15.md`** — 13 phases / 48 tasks, ledger in
+> §B16. **Phases 0–1 are complete and ticked.** Phase 1 absorbed the V14 execution plan
+> (`2026-08-20-revision-sheet-integration.md`, whose per-task checkboxes are the step-level
+> record), with the A5 amendments (`selfReported` provenance, band-evidence guard, verified
+> external links). The design record is
+> `docs/superpowers/specs/2026-08-20-revision-sheet-design.md` — §8 is the implementation log,
+> D1–D10 as shipped.
+>
+> **Resume at Phase 2 T2.1** (`engine/capability.ts`, the pattern-mastery READER per master
+> plan §B5) — but note OQ-3 (mastery thresholds) should be confirmed with the user before
+> Phase 2's copy lands, and OQ-6 is already discharged (absent `selfReported` = sitting-made).
 
 ## Read this first, then start
 
-**Branch: `v13-contest-intelligence`** (`main` is at `43eecf4`, untouched).
-**State: slices 0–7 are all implemented and green. V13 has ONE piece of outstanding debt:
-slice 7 never had its browser pass** (the session's Chrome extension was paired to a browser on a
-different machine, and the user chose to skip rather than re-pair). Everything else — the §63
-journey, Contest Revision, the weak-areas contest, Recreate contest, the band reading — is done,
-tested, and documented in the design record (§14–§19).
-
-If you are resuming, the two candidate tasks, in order:
-
-1. **Slice 7 browser QA** (small): `/contest-practice` at 1280×590 / 768 / 375 in both themes —
-   the two header buttons (does the pair wrap acceptably at 375?), the weak-areas draw landing on
-   `/contest`, Recreate from a row detail (original Q-order on the run page), the band reading
-   line and its one-tap filter, light-theme contrast of the new text. Four of V13's five defects
-   were browser-found; treat this as real verification, not a formality.
-2. **The topic-wise revision sheet** (next feature): plan is
-   `docs/superpowers/specs/2026-08-20-revision-sheet-design.md`, evidence is
-   `revision-sheet-report.md` (`npm run report:revision-sheet` regenerates). Three questions need
-   the user first (XP for sheet-only solves; the 134 non-LeetCode rows; one ambiguous title), and
-   `/sheet` would be the **17th nav destination** — resolve the 590px rail arithmetic (16 rows @
-   `short:` = 26px in `Sidebar.tsx`) before building the route.
+**Branch: `v14-revision-sheet`** (`main` is at `7240a10`, untouched — the branch holds Phase 0–1
+plus the plan docs). Working tree clean; every task landed as its own commit with the suite green.
 
 ```powershell
-git checkout v13-contest-intelligence   # if not already on it
-npx vitest run --no-file-parallelism    # expect 91 files / 1,306 tests green
+git checkout v14-revision-sheet
+npx vitest run --no-file-parallelism    # expect 94 files / 1,359 tests green
 npx tsc --noEmit                        # expect clean
-npm run build                           # expect app chunk ~296.09 kB (budget 301); data-contests 343.72 kB
+npm run validate:data                   # OK — now also validates the sheet + external-links
+npm run build                           # app chunk 296.73 kB (budget 301); data-sheet 53.9 kB
 ```
-
----
 
 ## Where things stand
 
 | | |
 |---|---|
-| Tests | **91 files / 1,306 passing** (V13 total: +130 over the 1,176 baseline) |
+| Tests | **94 files / 1,359 passing** (+53 over V13's 1,306 baseline) |
 | Type-check | clean |
-| Build | clean; app chunk **296.09 kB** / 301 kB budget (**4.9 kB headroom**); `data-contests` 343.72 kB; `ContestRevision` / `ContestDue` / `ContestPracticePage` their own lazy chunks |
-| `validate:data` | OK — checks `leetcodeId` against the FRONTEND id |
-| Browser QA | done for slices 4–6 (design record §17.3, §18.1); **slice 7 outstanding — see above** |
-| Standard revision | 30 tests pass unmodified |
-| Full Contest | locked spec intact: the 62 pre-existing contest tests pass unmodified |
-| Contest Revision | its suite passes **unmodified** after slice 7's band-evidence refactor |
+| Build | app chunk **296.73 kB** / 301 budget (~4.3 kB headroom); `data-sheet` **53.91 kB** new; `data-contests` 343.72 kB unchanged |
+| `validate:data` | OK — sheet section (1,210 rows partitioned, exclusion, 9-column rule) + external-links closed world |
+| Chunk imports | `data-sheet` is imported by the shared decoder chunk (`contestLibrary-*.js`), whose importers are exactly ContestDue/ContestPracticePage/ContestRevision — the three permitted surfaces and nothing else |
+| Locked specs | 62 contest tests, Standard Revision's 30, Contest Revision's suite — all pass **unmodified** |
+| Browser QA | **not run for Phase 1** (deliberate: master plan Phase 11 is the one real pass); V13 slice 7's pass is still outstanding debt too |
 
-### What shipped, by slice (design record §14–§19 hold the detail)
+### What Phase 1 shipped (T1.1–T1.13, one commit each)
 
-| Slice | What landed |
-|---|---|
-| **0–3** | Pipeline, mapping table, engine (`engine/contestLibrary.ts`), generalized `selectContestSet`, slug-keyed `contestLibrarySlice`. |
-| **4** | `/contest-practice` (nav: Contest Library): simple mode, advanced filters, always-visible count, verified widening hint, 50-row fold, `?pattern=` two-way sync. |
-| **5** | The §63 journey: pattern CTA → preselected filter → seeded 4-problem filtered contest → ContestPage's clock → verdict → evidence banked. |
-| **6** | Contest Revision on `/revision` (Standard · Contest · Weak areas · Pattern), frozen due list, `reviseLibraryProblem`, conservative band reading in the rail. |
-| **7** | **Weak-areas contest** (`selectPatternWeakness` at the page call site, `distinctPatterns: false`, disabled-not-hidden without evidence), **Recreate contest** (row detail → the contest's own Q1–Q4/Q5 in original order, solved rows included, `distinctContests: false`), **band reading on the Library page** (`bandEvidenceFromRegister` shared with Contest Revision, one-tap band filter, silent below threshold). Row-builder extracted once (`toCandidates`/`toRows`/`startSitting`); `WEAK_PATTERN_REASON` is the one weakness-selection sentence. |
+- **T1.1** types + `src/data/revisionSheet.ts` decoder (the dataset's only door, imports no
+  other dataset) + `data-sheet` chunk pin + 16 dataset tests.
+- **T1.2** `validate:data` sheet section — artifact re-check independent of the generator;
+  sheet-only slugs in NEITHER universe; exactly-9-column sheetProblems rows.
+- **T1.3** `scoreRevisionFacts` extracted from `scoreRevisionCandidates` — the one revision
+  scorer's universe-agnostic core; 65 tests unmodified (pure refactor).
+- **T1.4** `engine/revisionSheet.ts`: `sheetEntry` / `sheetStats` / `selectSheetRevision` with
+  THE structural exclusion (roadmap rows out of draws unless `includeRoadmap`) in the draw
+  itself, never a UI filter.
+- **T1.5** `ContestProblemProgress.selfReported?: true` (A5.1): stamped by direct solves, never
+  by sittings; a later TIMED solve clears it; lenient validator; round-tripped through BOTH
+  read paths (import + boot) with a pre-V15 fixture. Plus `solveSheetProblem` — the sheet's one
+  direct write (ordinary SOLVE_XP once per slug = OQ-2 default, no day log, idempotent).
+- **T1.6** `bandEvidenceFromRegister` skips self-reported records entirely; both band surfaces
+  state their basis ("timed contest practice only…").
+- **T1.7** `FilteredContestProblem.contestRating: number | null`; ContestPage renders absence.
+- **T1.8** the sheet as `?view=sheet` on `/contest-practice` (D4: no 17th nav destination):
+  `SheetView` topic disclosures, Mark solved on non-curriculum rows only, curriculum rows are
+  references (`View in curriculum`), timed sub-topic sets (`distinctPatterns: false` — a
+  sub-topic IS one theme; the negative-id rule extended to sheet-only entries).
+- **T1.9** fifth **Sheet** mode on `/revision`: topic Select + roadmap toggle, frozen due list
+  keyed `date|sheet|topic|toggle`, curriculum grades via `reviseQuestion`, deep links
+  `?mode=sheet&topic=` (one-way at mount).
+- **T1.10** ContestDue → **"Practice reviews"**, resolving due slugs against both datasets;
+  sheet rows honestly unrated. (The gating setting keeps its `contestOnToday` key/label — a
+  recorded naming seam.)
+- **T1.11** report: 7-state partition of all 1,210 rows (script-throws if it stops summing),
+  compact Contest column, Data model / Validation / Known limitations / Next steps sections.
+- **T1.12** docs (CLAUDE.md sheet section; design record §8; this file) + full gates.
+- **T1.13** `scripts/data/external-links.json` (ships EMPTY): hand-verified https links for
+  external rows; fabricated entries fail generator AND validator (both proven live); unlisted
+  rows stay unlinked; `SheetRowItem` unit-tests the linked/unlinked branches.
 
-### Decisions log (all closed; §18–§19)
+### Open items for the user (unchanged decisions, awaiting confirmation)
 
-`leetcodeId` = frontend id (237/528 were wrong). Library solves pay ordinary `SOLVE_XP` once, no
-day log; library reviews pay `revisionXp` both ways, no day log. Contest reviews on Today behind
-`settings.contestOnToday` (default on), rail-only, never in `rankWork`. Library work marks the day
-active (derived). Weak draw ignores page filters. Recreation includes solved rows and is never
-capped at `DRAW_COUNT`. The band reading is silent below threshold on the Library page — the
-Contest Revision rail is the one surface that counts toward the threshold. The only thing left to
-watch is the XP curve after real usage.
+1. **OQ-2 / D1 (XP for sheet ticks)** — shipped the default: ordinary SOLVE_XP once per slug.
+   Alternative (half/zero XP for `selfReported`) is one constant in one thunk, no migration.
+2. **D3 / OQ-1 ("Beautiful Numbers")** — still AMBIGUOUS; say which problem and it becomes a
+   one-line alias in `resolve-revision-sheet.mjs`.
+3. **OQ-3 (mastery thresholds)** — needed before Phase 2 lands copy; recommendation is the
+   codebase's own precedents (MIN_SAMPLES 5, MIN_BAND_EVIDENCE 4, weakness MIN_OBSERVATIONS).
+4. **D8 naming seam** — the Settings toggle still reads "Contest reviews on Today" while the
+   block it gates is now "Practice reviews".
 
----
+## Rules that bit during V13/V14 — do not relearn these
 
-## Five defects the browser found in slices 0–6 — why the slice-7 pass matters
-
-1. **⛔ `loadInitialState` never mapped `contestLibrary`** — live for three slices, all gates
-   green, every library solve silently discarded on reload. Any new persisted channel needs a
-   `loadInitialState` spread AND a `makeStore(loadInitialState(...))` boot-path test.
-2. **The due list reshuffled under the learner** — Contest Revision now freezes membership and
-   order per `date|mode|pattern`; any surface grading a due item must freeze its own list.
-3. **`recommendBand` named a band as the step up from itself** at the top band.
-4. **"Why this problem?" named the wrong pattern** — the stated reason must be the actual
-   selection reason (slice 7's `reasonsFor` callbacks exist because of this).
-5. **The row title was crushed at 375px** — the id column yields below `sm`.
-
-## Slice-7 code map (for the QA pass or future work)
-
-- `src/pages/ContestPracticePage.tsx` — all three entry points; `toCandidates`/`toRows`/
-  `startSitting` are the shared builders; the band line sits under the Rating chips.
-- `src/utils/engine/contestLibrary.ts` — `bandEvidenceFromRegister`, `WEAK_PATTERN_REASON`.
-- `src/components/revision/ContestRevision.tsx` — now reads the shared band helper; nothing else
-  changed.
-- Tests: `src/pages/__tests__/contestPractice.test.tsx` (three new describes),
-  `src/utils/engine/__tests__/contestLibrary.test.ts` (`bandEvidenceFromRegister`).
-
-## Rules that bit during V13 — do not relearn these
-
-- **⛔ Never join the two universes on a number.** ZeroTrac↔catalog: slug only (ids differ
-  2561/2561). Live sitting: library rows carry sitting-local NEGATIVE ids; a positive id in
-  `contestSlice` MEANS "curriculum question N". Persisted `ContestStallRecord.problems[]` is
-  curriculum-only.
-- **The dataset's only permitted static importers are `ContestPracticePage`, `ContestRevision`
-  and `ContestDue`.** Verify after a build: `grep -l 'from"./contestLibrary-' dist/assets/*.js`.
-  A chunk name in a `__vite__mapDeps` array is a dynamic-import dep list, not an import.
-- **A bridged problem is graded through `reviseQuestion`, never `reviseLibraryProblem`.**
-- **`attempted` is computed first; the stalled-pattern list trims to it.** One sitting record per
-  calendar date, first-write-wins.
-- The catalog has no topic tags; tags come from the GraphQL snapshot. A Q5 exists (Weekly 68 —
-  and slice 7 pins that recreation carries it). Dictionary encoding is mandatory. Generator title
-  warnings (#144 #276 #358 #454) are expected. `npm run fetch:contest-data` is engineering-time
-  only.
-- **16 nav rows @ `short:` = 26px each** (`Sidebar.tsx`); a 17th destination breaks 590px.
-
-## QA recipes
-
-- **The Chrome extension can be paired to a browser on ANOTHER machine.** Before driving it at a
-  local dev server, check `list_connected_browsers` for `isLocal: true` (this session lost an
-  hour to ERR_CONNECTION_REFUSED from a remote browser; a public-IP comparison settled it).
-  The Vite dev server may bind IPv6-only (`[::1]:5173`) — `npx vite --host 127.0.0.1` pins it.
-- Browser QA recipe that worked in prior sessions (in-app pane, when available):
-  `preview_start {name:'dsa-roadmap-dev'}` → resize 1280×590 → seed
-  `localStorage['dsa-roadmap:v1']` → navigate with `force:true` → drive via `javascript_tool`
-  clicks by accessible name → measure layout with JS, never screenshots.
-
-## Rules that bit during V6–V12 — still standing
-
-- Verify layouts at ~590px effective height, not just 720/800.
-- `overflow-y: auto` computes `overflow-x` to `auto` — prefer removing inner scroll regions.
-- Git Bash mangles `/route` args — `MSYS_NO_PATHCONV=1` for node CLIs.
+- **⛔ Never join the two universes on a number** (slug only; ids differ 2561/2561). Library
+  rows in a sitting carry NEGATIVE ids; positive id = curriculum question N. SheetView extends
+  this: a sheet-only entry gets a negative ordinal too.
+- **The register means "non-curriculum problems on the one ladder" now**, not "contest
+  problems" — and `selfReported` is what keeps untimed ticks out of the band/mastery evidence.
+  Absent = sitting-made (historically exact; no direct-solve path existed before V15).
+- **Any surface grading a due item freezes its own list** — Sheet mode froze membership AND
+  order from day one (`date|sheet|topic|toggle`).
+- **A validator stricter than its own write path is a data-loss bug** — `selfReported: false`
+  is dropped, not quarantined; a non-boolean rejects.
+- **Bundle law**: `store/selectors.ts` / `store/actions.ts` never import `@/data/revisionSheet`
+  or `@/data/contestLibrary`. After `npm run build`:
+  `grep -l 'from"./contestLibrary-' dist/assets/*.js` → exactly three files, and
+  `grep -l 'from"./data-sheet-' dist/assets/*.js` → the shared `contestLibrary-*.js` decoder
+  chunk alone, whose own importers are those same three (a `__vite__mapDeps` mention in the app
+  chunk is a preload list, not an import).
+- **Testing Library only detects Jest's fake timers** — `vi.useFakeTimers({ shouldAdvanceTime:
+  true })` for anything awaiting a lazy boundary; `findBy*` across `lazy()` gets
+  `{ timeout: 5000 }`.
+- **The suite is load-sensitive**: confirm any failure with `--no-file-parallelism` and a
+  re-run before believing it (Phase 0 hit exactly one such flake).
+- Never edit source via PowerShell text replacement (mojibake); Edit tool only. Commit via
+  `git commit -F <file>`. PowerShell chains with `;`.
 - **Pushing needs the credential override** (global gh config routes github.com to the
   professional account, which only has read here):
   ```powershell
   git -c "credential.https://github.com.helper=" -c "credential.helper=" -c "credential.helper=manager" push origin <branch>
   ```
-- **Testing Library only detects *Jest's* fake timers.** Under plain `vi.useFakeTimers()` any test
-  that awaits a query deadlocks; use `vi.useFakeTimers({ shouldAdvanceTime: true })` — see
-  `contestRevision.test.tsx`.
-- **The suite is load-sensitive.** Under full parallelism 1–2 varying async tests time out.
-  Confirm with `npx vitest run --no-file-parallelism` before believing a failure. Give a new
-  `findBy*` crossing a `lazy()` boundary `{ timeout: 5000 }`.
-- Never edit source via PowerShell text replacement (mojibake); Edit tool only. Commit messages
-  via `git commit -F <file>`. PowerShell chains with `;`, not `&&`.
-- Hand-built progress fixtures build from `initialProgress()`; hand-built `ContestState` fixtures
-  need `libraryProblems: null`.
-- Imports of `@/data/mlTracks`, `@/data/mlProjects`, `@/data/contestLibrary` or
-  `@/utils/engine/insights` in `selectors.ts`/`actions.ts` silently bloat the app chunk.
-- jsdom keeps closed `<details>` content queryable — scope queries with `within(details)` (the
-  slice-7 recreate tests do) and assert the `open` attribute.
-- `text-muted-foreground/80` fails AA on light; full-alpha is the floor for small text.
 
 ## Known limitations carried forward
 
-- `button.tsx` ships 40/36px controls; the 44px scale move awaits a design call.
-- **No CI and no linter** — all four gates are manual. See `report.md` §16.1.
-- Dataset estimates imply ~7h/day at the default pace; absorbed by capacity chips by design.
-- App-chunk headroom is **4.9 kB**. Re-check `npm run build` whenever `actions.ts` or
-  `selectors.ts` grows.
+- `button.tsx` ships 40/36px controls; the 44px move awaits a design call.
+- **No CI and no linter** — all four gates are manual.
+- App-chunk headroom is ~4.3 kB. Re-check `npm run build` whenever `actions.ts`/`selectors.ts`
+  grows (Phase 2 adds `selectPatternCapability` there — watch it).
+- V13 slice 7 browser QA never ran; Phase 11 covers it.
+- The sheet's Due list in Sheet mode has no fold (the contest modes fold at 8) — fine at
+  current volumes, revisit if all-topics due counts grow.
 
 ## The law books
 
-`CLAUDE.md` (architecture law — the contest-library section reflects slices 0–7), `PRODUCT.md`
-(locked product truth), `DESIGN.md` (visual system + mandatory composition contract), `report.md`
-(repo audit), and the design records under `docs/superpowers/specs/` — with
-**2026-08-19-contest-intelligence-design.md the completed V13 record (§14–§19 are the
-implementation logs), and 2026-08-20-revision-sheet-design.md the next plan in the queue.**
+`CLAUDE.md` (architecture law — now including the revision-sheet section), `PRODUCT.md`,
+`DESIGN.md`, `report.md`, and under `docs/superpowers/`: the **master plan**
+(`plans/2026-08-20-master-plan-v15.md`, THE governing document, ledger §B16), the V14 step
+record (`plans/2026-08-20-revision-sheet-integration.md`), and the design records in `specs/`
+(`2026-08-20-revision-sheet-design.md` §8 is Phase 1's log;
+`2026-08-19-contest-intelligence-design.md` is V13's).

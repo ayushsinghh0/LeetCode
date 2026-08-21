@@ -925,7 +925,7 @@ for these tasks except where amended here)
 | Phase | Status | Gate record |
 |---|---|---|
 | 0 | ✅ 2026-08-22 | tsc clean · 91 files / 1,306 tests green (`--no-file-parallelism`; first run had 1 non-reproducing timeout flake — the documented load-sensitivity, clean on re-run) · `validate:data` OK (539/528/11; library 2561/2153/207) · build clean: app chunk 296.09 kB (301 budget), `data-contests` 343.72 kB · contestLibrary static importers = exactly ContestDue/ContestPracticePage/ContestRevision |
-| 1 (T1.1–T1.13) | ⬜ | — |
+| 1 (T1.1–T1.13) | ✅ 2026-08-22 | All 13 tasks landed, one commit each (V14 doc holds step ticks). Gates: tsc clean · **94 files / 1,359 tests** green (`--no-file-parallelism`) · `validate:data` OK (sheet section + external-links closed world) · build: app **296.78 kB**/301, `data-sheet` 53.91 kB, `data-contests` unchanged; `data-sheet` imported only via the shared decoder chunk whose importers are exactly ContestDue/ContestPracticePage/ContestRevision. A5.1/A5.3/A5.4 amendments shipped (selfReported + band guard + verified links, fabrication failing both gates — proven live). Locked specs unmodified: 62 contest, 30 standard revision, contest-revision suite. §7 journey discharged in unit form (design record §8). |
 | 2 | ⬜ | — |
 | 3 | ⬜ | — |
 | 4 | ⬜ | — |

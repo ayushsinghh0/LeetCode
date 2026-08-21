@@ -419,10 +419,30 @@ describe('TodayPage — contest reviews are beside the day, not in it', () => {
     const rail = screen.getByRole('complementary', { name: "Today's context" });
     expect(await within(rail).findByText(TITLE)).toBeInTheDocument();
     // It links out to the problem, and defers grading to the surface that freezes its list.
-    expect(within(rail).getByRole('link', { name: /Contest Revision/ })).toHaveAttribute(
+    expect(within(rail).getByRole('link', { name: /Review it in Revision/ })).toHaveAttribute(
       'href',
       '/revision',
     );
+  });
+
+  test('a due sheet-only review surfaces too — same block, honestly unrated', async () => {
+    vi.useFakeTimers({ shouldAdvanceTime: true });
+    vi.setSystemTime(new Date('2026-07-31T12:00:00'));
+    const store = makeStore();
+    // `two-sum` is one of the 159 sheet additions: in the register, absent from the library
+    // dataset. A due review that silently never surfaced would be a scheduled recall the
+    // learner cannot see — the reason this block resolves against both datasets (V14 D8).
+    store.dispatch(contestProblemSolved({ slug: 'two-sum', date: '2026-07-30' }));
+    renderWithStore(<TodayPage />, store);
+
+    const rail = screen.getByRole('complementary', { name: "Today's context" });
+    expect(await within(rail).findByText('Two Sum')).toBeInTheDocument();
+    expect(within(rail).getByRole('heading', { name: 'Practice reviews' })).toBeInTheDocument();
+
+    const row = within(rail).getByText('Two Sum').closest('li')!;
+    expect(within(row).getByText('Easy')).toBeInTheDocument();
+    // Unrated is absence — no invented figure beside the difficulty.
+    expect(within(row).queryByText(/^\d{3,4}$/)).not.toBeInTheDocument();
   });
 
   test('it never enters the day plan, the hero, or the day\'s counts', async () => {
@@ -444,7 +464,7 @@ describe('TodayPage — contest reviews are beside the day, not in it', () => {
     renderWithStore(<TodayPage />, store);
 
     expect(screen.queryByText(TITLE)).not.toBeInTheDocument();
-    expect(screen.queryByRole('heading', { name: 'Contest reviews' })).not.toBeInTheDocument();
+    expect(screen.queryByRole('heading', { name: 'Practice reviews' })).not.toBeInTheDocument();
   });
 
   test('nothing due means no block and no dataset fetch', () => {
@@ -452,6 +472,6 @@ describe('TodayPage — contest reviews are beside the day, not in it', () => {
     vi.setSystemTime(new Date('2026-07-31T12:00:00'));
     renderWithStore(<TodayPage />, makeStore());
 
-    expect(screen.queryByRole('heading', { name: 'Contest reviews' })).not.toBeInTheDocument();
+    expect(screen.queryByRole('heading', { name: 'Practice reviews' })).not.toBeInTheDocument();
   });
 });

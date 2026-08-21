@@ -43,7 +43,7 @@ slugs.
 | 7. Null-rating widening (`FilteredContestProblem`) + run-page guard | ✅ done (= master plan T1.7) |
 | 8. Sheet view on `/contest-practice` + tests | ✅ done (7 tests; `data-sheet` 53.9 kB, importer = ContestPracticePage only; app chunk 296.73 kB; = master plan T1.8) |
 | 9. `Sheet` mode in ContestRevision + RevisionPage deep link + tests | ✅ done (frozen sheet due list; exclusion pinned in UI; deep links; standard 30 unmodified; = master plan T1.9) |
-| 10. ContestDue → "Practice reviews" + tests | ⬜ pending |
+| 10. ContestDue → "Practice reviews" + tests | ✅ done (both datasets resolved; unrated stays absent; = master plan T1.10) |
 | 11. Report augmentation (explicit states, contest column) | ⬜ pending |
 | 12. Docs (CLAUDE.md, HANDOFF, design record) + full gates | ⬜ pending |
 
@@ -687,16 +687,18 @@ and pass `initialTopic={searchParams.get('topic') ?? undefined}` to `<ContestRev
 - Modify: `src/components/today/ContestDue.tsx`
 - Test: locate the ContestDue assertions (`grep -rln "Contest reviews" src`) and update.
 
-- [ ] **10.1** Failing test: a due sheet-only slug (seeded register + a slug in
+- [x] **10.1** Failing test: a due sheet-only slug (seeded register + a slug in
   `sheetOnlyBySlug`) renders its title/difficulty with no rating; block titled
   `Practice reviews`.
-- [ ] **10.2** Implement: resolve each slug via `contestProblemBySlug` then `sheetOnlyBySlug`
+- [x] **10.2** Implement: resolve each slug via `contestProblemBySlug` then `sheetOnlyBySlug`
   into a unified `{slug,title,url,officialDifficulty,contestRating:number|null,label:string|null}`;
   unknown slugs stay inert. Copy: title `Practice reviews`, support
   `From your practice pools — separate from the day's plan.`; link text
   `Review these and N more →` / `Review it in Revision →` (adjusted from "Contest Revision").
-- [ ] **10.3** Update the existing copy assertions deliberately; suite green.
-- [ ] **10.4 Commit** `feat: V14 — Today's rail block covers both practice pools`.
+- [x] **10.3** Update the existing copy assertions deliberately; suite green. *(26/26 today
+  suite; tsc clean. The Settings toggle keeps its `contestOnToday` key and label — recorded as
+  a naming limitation for the report/docs tasks.)*
+- [x] **10.4 Commit** `feat: V14 — Today's rail block covers both practice pools`.
 
 ---### Task 11: Report augmentation + regeneration
 

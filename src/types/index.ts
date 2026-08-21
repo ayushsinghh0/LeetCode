@@ -459,6 +459,55 @@ export interface ContestLibraryState {
   bySlug: Record<string, ContestProblemProgress>;
 }
 
+/**
+ * A problem the topic-wise revision sheet names that exists in NEITHER universe — one of the
+ * 159 additions. Deliberately NOT a Question (no authored type/tests/minutes) and NOT a
+ * ContestLibraryProblem (no contest, and no contestRating field at all: these are unrated, and
+ * absence is typed rather than zeroed).
+ */
+export interface SheetOnlyProblem {
+  slug: string;
+  frontendId: number;
+  title: string;
+  url: string;
+  officialDifficulty: Difficulty;
+  premium: boolean;
+  leetcodeTopics: string[];
+  aicmPatterns: PatternId[];
+  inferredPatterns: PatternId[];
+  mappingConfidence: MappingConfidence;
+}
+
+/** One sheet row's identity — which universe owns it, or the fact that none does. */
+export type SheetRowRef =
+  | { kind: 'curriculum'; questionId: number }
+  | { kind: 'library'; slug: string }
+  | { kind: 'sheet'; problem: SheetOnlyProblem }
+  | { kind: 'external'; title: string; difficulty: Difficulty | 'theory' | null; platform: string }
+  | { kind: 'ambiguous'; title: string; difficulty: Difficulty | 'theory' | null; note: string };
+
+export interface SheetRow {
+  topicIndex: number;
+  topic: string;
+  subtopicIndex: number;
+  subtopic: string;
+  /** 0-based position within the sub-topic — the sheet's own teaching order. */
+  order: number;
+  ref: SheetRowRef;
+}
+
+export interface SheetSubtopic {
+  index: number;
+  name: string;
+  rows: SheetRow[];
+}
+
+export interface SheetTopic {
+  index: number;
+  name: string;
+  subtopics: SheetSubtopic[];
+}
+
 export interface PersistedStateV1 {
   version: 1;
   progress: {

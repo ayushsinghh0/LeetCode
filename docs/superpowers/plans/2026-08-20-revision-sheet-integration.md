@@ -35,7 +35,7 @@ slugs.
 |---|---|
 | 0. Baseline + shared pattern mapper | ✅ done (baseline 1,306 green; mapper extracted; output proven byte-identical) |
 | 1. Generator + dataset + npm script | ✅ done (53.5 kB; 315/587/173/134/1 rows; 159 uniques: 140 exact · 17 strong · 1 heuristic · 1 unmapped) |
-| 2. Types + decoder + chunk pin + dataset tests | ⬜ pending |
+| 2. Types + decoder + chunk pin + dataset tests | ✅ done (16 dataset tests; `data-sheet` pinned; = master plan T1.1) |
 | 3. Validator rules (`validate:data`) | ⬜ pending |
 | 4. Scorer-core extraction in `engine/contestLibrary.ts` | ⬜ pending |
 | 5. `engine/revisionSheet.ts` + tests | ⬜ pending |
@@ -281,7 +281,7 @@ export const SHEET_TOTAL: number;                    // rows.length
 
 **Steps:**
 
-- [ ] **2.1 Write the failing tests** (`src/data/__tests__/revisionSheet.test.ts`), asserting:
+- [x] **2.1 Write the failing tests** (`src/data/__tests__/revisionSheet.test.ts`), asserting:
   - shape: 23 topics, 99 subtopics, 1,210 flat rows, 159 sheet-only problems;
   - **membership (the spec's critical dataset tests):** every `kind:'curriculum'` questionId
     resolves in `questions.json`; every `kind:'library'` slug resolves in
@@ -293,10 +293,10 @@ export const SHEET_TOTAL: number;                    // rows.length
     ambiguous; "Pongal Bunk" is external platform "Codeforces";
   - dedupe integrity: a slug never appears under two different kinds;
   - order: first row of the sheet is `merge-two-2d-arrays-by-summing-values` (library).
-- [ ] **2.2 Run tests** — expect FAIL (module missing).
-- [ ] **2.3 Add the types, write the decoder, pin the chunk.**
-- [ ] **2.4 Run tests** — expect PASS. Run `npx tsc --noEmit` — clean.
-- [ ] **2.5 Commit** `feat: V14 — sheet dataset decoder, types, data-sheet chunk`.
+- [x] **2.2 Run tests** — expect FAIL (module missing). *(16/16 failed as expected.)*
+- [x] **2.3 Add the types, write the decoder, pin the chunk.**
+- [x] **2.4 Run tests** — expect PASS. Run `npx tsc --noEmit` — clean. *(16/16 pass; tsc clean.)*
+- [x] **2.5 Commit** `feat: V14 — sheet dataset decoder, types, data-sheet chunk`.
 
 ---
 

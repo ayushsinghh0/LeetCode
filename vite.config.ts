@@ -50,6 +50,14 @@ export default defineConfig({
           // in every cache. The store must reach contest problems through
           // src/data/contestLibraryIndex.ts, never through this chunk.
           'data-contests': ['./src/data/contestLibrary.json'],
+          // The topic-wise revision sheet: 1,210 dictionary-encoded rows referencing the two
+          // universes above (plus the 159 additions that live in neither). Pinned for the
+          // data-contests reason — only the sheet surfaces read it, and any new large generated
+          // JSON left unlisted silently lands in the app chunk. Permitted static importers of
+          // its decoder (src/data/revisionSheet.ts): ContestPracticePage (via SheetView),
+          // ContestRevision, ContestDue — the same three lazy chunks allowed to hold
+          // data-contests. The store never imports it.
+          'data-sheet': ['./src/data/revisionSheet.json'],
         },
       },
     },

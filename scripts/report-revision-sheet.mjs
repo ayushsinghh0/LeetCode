@@ -32,6 +32,13 @@ for (const r of bySlug.values()) tally[membership(r)]++;
 const DIFF = { easy: 'Easy', medium: 'Medium', hard: 'Hard' };
 const topics = [...new Set(sheet.map((r) => r.topic))];
 
+/** `weekly-contest-333 · Q1` → `W333 · Q1` — column-width honesty for the per-subtopic tables. */
+const compactContest = (label) => {
+  if (!label) return '—';
+  const m = /^(weekly|biweekly)-contest-(\d+) · (Q\d)$/.exec(label);
+  return m ? `${m[1] === 'biweekly' ? 'B' : 'W'}${m[2]} · ${m[3]}` : label;
+};
+
 /* ------------------------------------------------------------------------------------------- */
 
 w('# The Topic-Wise Revision Sheet — resolution report');
@@ -73,6 +80,81 @@ w(`| Unresolved | **${summary.unresolved}** |`);
 w(`| Ambiguous | ${summary.ambiguous} (listed in full below) |`);
 w(`| Premium-gated | ${summary.premium} |`);
 w();
+
+/* --- Every row's explicit state -------------------------------------------------------------- */
+
+// The master spec's §1 demand: every one of the 1,210 rows carries exactly one named state, and
+// the states partition the sheet — nothing disappears silently. A row repeating an earlier row's
+// identity is DUPLICATE (the repetition is deliberate sheet design; it is counted, not hidden).
+const STATE_ORDER = [
+  'ROADMAP_ALREADY_EXISTS',
+  'CONTEST_LIBRARY_ALREADY_EXISTS',
+  'REVISION_ONLY_NEW',
+  'NON_LEETCODE_EXTERNAL',
+  'AMBIGUOUS',
+  'UNRESOLVED',
+  'DUPLICATE',
+];
+const STATE_MEANING = {
+  ROADMAP_ALREADY_EXISTS: 'On the 539 roadmap — referenced, never copied; excluded from draws by default',
+  CONTEST_LIBRARY_ALREADY_EXISTS: 'In the 2,561 contest library — referenced by slug',
+  REVISION_ONLY_NEW: 'In neither universe — one of the additions the sheet actually brings',
+  NON_LEETCODE_EXTERNAL: 'Another platform — platform named, nothing linked, nothing tracked',
+  AMBIGUOUS: 'Title names more than one problem — reported with candidates, never guessed',
+  UNRESOLVED: 'Could not be resolved at all',
+  DUPLICATE: 'Repeats an earlier row\'s identity — deliberate sheet design, counted here',
+};
+const stateTally = Object.fromEntries(STATE_ORDER.map((s) => [s, { rows: 0, unique: 0 }]));
+{
+  const seenIdentity = new Set();
+  for (const r of sheet) {
+    const identity =
+      r.status === 'leetcode'
+        ? r.slug
+        : r.status === 'other-platform'
+          ? `ext|${r.platform}|${r.title}`
+          : `amb|${r.title}`;
+    if (seenIdentity.has(identity)) {
+      stateTally.DUPLICATE.rows++;
+      continue;
+    }
+    seenIdentity.add(identity);
+    const state =
+      r.status === 'leetcode'
+        ? r.inRoadmap !== null
+          ? 'ROADMAP_ALREADY_EXISTS'
+          : r.contestRating !== null
+            ? 'CONTEST_LIBRARY_ALREADY_EXISTS'
+            : 'REVISION_ONLY_NEW'
+        : r.status === 'other-platform'
+          ? 'NON_LEETCODE_EXTERNAL'
+          : r.status === 'ambiguous'
+            ? 'AMBIGUOUS'
+            : 'UNRESOLVED';
+    stateTally[state].rows++;
+    stateTally[state].unique++;
+  }
+}
+const stateRowSum = STATE_ORDER.reduce((a, s) => a + stateTally[s].rows, 0);
+if (stateRowSum !== summary.rows) {
+  throw new Error(`state partition broken: ${stateRowSum} rows classified, sheet has ${summary.rows}`);
+}
+
+w('### Every row\'s explicit state');
+w();
+w('The states partition the sheet — every row carries exactly one, and the row counts sum to');
+w(`**${NUM.format(summary.rows)}** by construction (the script fails if they do not). \`DUPLICATE\` marks a row`);
+w('repeating an earlier row\'s identity; unique counts are first occurrences.');
+w();
+w('| State | Rows | Unique problems | Meaning |');
+w('|---|---:|---:|---|');
+for (const s of STATE_ORDER) {
+  const t = stateTally[s];
+  w(`| \`${s}\` | ${t.rows} | ${s === 'DUPLICATE' ? '—' : t.unique} | ${STATE_MEANING[s]} |`);
+}
+w(`| **Total** | **${NUM.format(stateRowSum)}** | | |`);
+w();
+
 w('### The finding that should shape the plan');
 w();
 w(`**${NUM.format(tally.both + tally.roadmap + tally.library)} of the ${NUM.format(bySlug.size)} unique LeetCode problems — ${Math.round(((tally.both + tally.roadmap + tally.library) / bySlug.size) * 100)}% — are already in this repository.**`);
@@ -160,6 +242,7 @@ w('|---|---|');
 w('| **#** | LeetCode\'s **frontend id** — the number LeetCode displays, and the one you can search. |');
 w('| **Difficulty** | LeetCode\'s official difficulty. Where the sheet disagrees, the sheet\'s value is shown in brackets and the row is listed again under *Difficulty disagreements*. |');
 w('| **Rating** | ZeroTrac\'s estimated contest rating, when the problem was a rated contest problem. An estimate for relative comparison — never an official LeetCode number. |');
+w('| **Contest** | The contest the problem premiered in, compact: `W333 · Q1` = Weekly Contest 333, first problem; `B71` = Biweekly 71. `—` = not a rated contest problem. |');
 w('| **Have it?** | `roadmap #N` = already question N of your 539. `library` = already in the 2,561 contest pool. `NEW` = in neither. |');
 w();
 
@@ -185,8 +268,8 @@ for (const topic of topics) {
     const subRows = rows.filter((r) => r.sub === sub);
     w(`#### ${sub}`);
     w();
-    w('| # | Problem | Difficulty | Rating | Have it? |');
-    w('|---:|---|---|---:|---|');
+    w('| # | Problem | Difficulty | Rating | Contest | Have it? |');
+    w('|---:|---|---|---:|---|---|');
     for (const r of subRows) {
       if (r.status === 'leetcode') {
         const diff =
@@ -201,14 +284,14 @@ for (const topic of topics) {
               : '**NEW**';
         const prem = r.premium ? ' 🔒' : '';
         w(
-          `| ${r.frontendId} | [${r.title}](${r.url})${prem} | ${diff} | ${r.contestRating ?? '—'} | ${have} |`,
+          `| ${r.frontendId} | [${r.title}](${r.url})${prem} | ${diff} | ${r.contestRating ?? '—'} | ${compactContest(r.contestLabel)} | ${have} |`,
         );
       } else if (r.status === 'other-platform') {
-        w(`| — | ${r.title} | ${r.difficulty} | — | not on LeetCode · ${r.platform} |`);
+        w(`| — | ${r.title} | ${r.difficulty} | — | — | not on LeetCode · ${r.platform} |`);
       } else if (r.status === 'ambiguous') {
-        w(`| — | ${r.title} | ${r.difficulty} | — | **ambiguous — see below** |`);
+        w(`| — | ${r.title} | ${r.difficulty} | — | — | **ambiguous — see below** |`);
       } else {
-        w(`| — | ${r.title} | ${r.difficulty} | — | **unresolved** |`);
+        w(`| — | ${r.title} | ${r.difficulty} | — | — | **unresolved** |`);
       }
     }
     w();
@@ -320,6 +403,47 @@ w('this report exists to prevent.');
 w();
 w('Three questions in the plan need your answer before slice S1 — XP for sheet-only solves, what');
 w('to do with the non-LeetCode rows, and the one ambiguous title.');
+w();
+
+w('## Data model — how a row references its problem');
+w();
+w('The shipped dataset (`src/data/revisionSheet.json`, decoded by `src/data/revisionSheet.ts`) is');
+w('a list of **references**, one per row: a `curriculum` row carries a question id into the 539, a');
+w('`library` row carries a slug into the 2,561, and only a `sheet` row — one of the additions —');
+w('carries its own metadata, because it exists nowhere else. External and ambiguous rows carry no');
+w('identity at all. Progress for every non-curriculum row lives in the existing slug-keyed');
+w('register (`contestLibrary.bySlug`), on the one 1/3/7/15/30 ladder; curriculum rows keep their');
+w('one record in `progress.byId`. One problem, one identity, never a second copy — the design is');
+w('`docs/superpowers/specs/2026-08-20-revision-sheet-design.md`.');
+w();
+w('## Validation — what `validate:data` now enforces');
+w();
+w('The offline gate re-checks the shipped artifact independently of the generator that wrote it:');
+w('index bounds and kind codes; every curriculum id exists in `questions.json`; every library slug');
+w('exists in the contest library; **every sheet-only slug exists in NEITHER universe** (a roadmap');
+w('problem may never ship as a sheet addition); slug shape, positive frontend ids, non-blank');
+w('titles/platforms/notes; exactly nine columns per sheet-only row, so an invented rating field');
+w('fails loudly; and the library\'s mapping-honesty rules (unmapped claims nothing, heuristic');
+w('never filters).');
+w();
+w('## Known limitations');
+w();
+w(`- **${summary.premium} premium rows** link correctly but need a LeetCode subscription to open.`);
+w('- **The ambiguous row** (Appendix D) stays unresolved until the user says which problem it is.');
+w('- **Today\'s rail block** is titled "Practice reviews" and covers both pools, but the setting');
+w('  that gates it keeps its original `contestOnToday` key and "Contest reviews on Today" label —');
+w('  a naming seam, recorded rather than migrated.');
+w('- **External rows are display-only**: platform named, nothing linked, nothing tracked. A');
+w('  verified-links table (master plan T1.13) can add hand-checked URLs; unlisted rows stay');
+w('  unlinked.');
+w();
+w('## Next steps');
+w();
+w('The integration itself is tracked in `docs/superpowers/plans/2026-08-20-revision-sheet-');
+w('integration.md` (V14 tasks, absorbed as Phase 1 of `docs/superpowers/plans/2026-08-20-master-');
+w('plan-v15.md`). After Phase 1 the master plan continues into the capability reader, failure');
+w('routing, contextual revision, and the contest/interview deltas — the sheet is the data ground');
+w('those phases build on.');
 w();
 
 writeFileSync(join(root, 'revision-sheet-report.md'), out.join('\n'));

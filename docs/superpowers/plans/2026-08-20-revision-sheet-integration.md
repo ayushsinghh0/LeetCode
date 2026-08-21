@@ -44,7 +44,7 @@ slugs.
 | 8. Sheet view on `/contest-practice` + tests | ✅ done (7 tests; `data-sheet` 53.9 kB, importer = ContestPracticePage only; app chunk 296.73 kB; = master plan T1.8) |
 | 9. `Sheet` mode in ContestRevision + RevisionPage deep link + tests | ✅ done (frozen sheet due list; exclusion pinned in UI; deep links; standard 30 unmodified; = master plan T1.9) |
 | 10. ContestDue → "Practice reviews" + tests | ✅ done (both datasets resolved; unrated stays absent; = master plan T1.10) |
-| 11. Report augmentation (explicit states, contest column) | ⬜ pending |
+| 11. Report augmentation (explicit states, contest column) | ✅ done (7-state partition sums to 1,210, script-enforced; W/B contest column; closing sections; = master plan T1.11) |
 | 12. Docs (CLAUDE.md, HANDOFF, design record) + full gates | ⬜ pending |
 
 **Resume procedure:** `git checkout v14-revision-sheet` → read this ledger → run
@@ -704,19 +704,20 @@ and pass `initialTopic={searchParams.get('topic') ?? undefined}` to `<ContestRev
 
 **Files:** Modify `scripts/report-revision-sheet.mjs`; regenerate `revision-sheet-report.md`.
 
-- [ ] **11.1** Add, after "The headline": **"Every row's explicit state"** — the master spec §1
+- [x] **11.1** Add, after "The headline": **"Every row's explicit state"** — the master spec §1
   state table computed from resolved data (row counts AND unique-problem counts):
   `ROADMAP_ALREADY_EXISTS`, `CONTEST_LIBRARY_ALREADY_EXISTS`, `REVISION_ONLY_NEW`,
   `NON_LEETCODE_EXTERNAL`, `AMBIGUOUS`, `UNRESOLVED` (0), `DUPLICATE` (rows repeating an
   earlier row's identity). Nothing disappears silently — the counts must sum to 1,210.
-- [ ] **11.2** Add a compact `Contest` column (e.g. `W333 · Q1`) to every per-subtopic table,
+  *(295/562/159/133/1/0/60 = 1,210; the script throws if the partition breaks.)*
+- [x] **11.2** Add a compact `Contest` column (e.g. `W333 · Q1`) to every per-subtopic table,
   from the resolved `contestLabel`.
-- [ ] **11.3** Append short closing sections: **Data model** (the row-reference design, three
+- [x] **11.3** Append short closing sections: **Data model** (the row-reference design, three
   kinds, where progress lives), **Validation** (what `validate:data` now enforces),
   **Known limitations** (premium rows; ambiguous row pending the user; ContestDue naming),
   **Next steps** — each a few sentences pointing at the design doc and this plan.
-- [ ] **11.4** `npm run report:revision-sheet` — regenerated cleanly; diff reviewed.
-- [ ] **11.5 Commit** `docs: V14 — the report carries the spec's explicit row states`.
+- [x] **11.4** `npm run report:revision-sheet` — regenerated cleanly; diff reviewed.
+- [x] **11.5 Commit** `docs: V14 — the report carries the spec's explicit row states`.
 
 ---
 

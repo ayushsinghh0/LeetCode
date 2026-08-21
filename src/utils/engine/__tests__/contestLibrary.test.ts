@@ -376,6 +376,20 @@ describe('bandEvidenceFromRegister — one computation behind every band surface
     expect(evidence.solvedRatings).toEqual([]);
     expect(evidence.missedRatings).toEqual([]);
   });
+
+  it('gives a self-reported solve zero band weight — an untimed tick is not contest evidence', () => {
+    // The A5.1 scenario: a 2200-rated problem ticked "Mark solved" on the sheet. Counting it
+    // would inflate the recommendation off work never performed under contest conditions.
+    const evidence = bandEvidenceFromRegister(
+      {
+        a: entry({ solved: true, attempts: 1, solvedOn: '2026-07-01' }),
+        hard: entry({ solved: true, attempts: 1, solvedOn: '2026-07-02', selfReported: true }),
+      },
+      (slug) => (slug === 'hard' ? 2200 : ratingFor(slug)),
+    );
+    expect(evidence.solvedRatings).toEqual([1450]);
+    expect(evidence.missedRatings).toEqual([]);
+  });
 });
 
 describe('contestStateFromQuestionProgress — the 207 bridge read-through', () => {

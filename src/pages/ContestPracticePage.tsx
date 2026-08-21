@@ -557,7 +557,9 @@ export default function ContestPracticePage() {
   /**
    * What the learner's own contest practice says about the band worth working in. The evidence is
    * the slug register only — bridged curriculum solves are done with the roadmap's guidance and no
-   * clock, so they say nothing about contest conditions. Below `recommendBand`'s stated minimum
+   * clock, so they say nothing about contest conditions, and self-reported sheet ticks are
+   * excluded inside `bandEvidenceFromRegister` for the same reason (the register holds sheet work
+   * too now; an untimed tick is a claim, not an outcome). Below `recommendBand`'s stated minimum
    * this is null and the page simply says nothing; the Contest Revision rail is the surface that
    * narrates progress toward the threshold.
    */
@@ -794,9 +796,11 @@ export default function ContestPracticePage() {
             {bandReading && (
               <p className="max-w-prose text-sm text-muted-foreground">
                 {bandReading.statement}{' '}
+                {/* The basis travels with the claim (A5.4): the register holds sheet ticks too
+                    now, so the sentence says which work counted. */}
                 <span className="figures">
                   From {bandReading.sampleSize} rated{' '}
-                  {bandReading.sampleSize === 1 ? 'outcome' : 'outcomes'}.
+                  {bandReading.sampleSize === 1 ? 'outcome' : 'outcomes'} in timed practice.
                 </span>
                 {filters.band !== bandReading.band.id && (
                   <>

@@ -590,6 +590,11 @@ export function recommendBand(evidence: BandEvidence, current?: RatingBand): Ban
  * `ratingFor` resolves a slug to its contest rating; a slug it does not know (a retired problem)
  * is inert, never an error. A never-attempted entry contributes nothing — absence of evidence is
  * not a miss. Solved ratings come back most recent first, the `BandEvidence` contract.
+ *
+ * SELF-REPORTED SOLVES ARE IGNORED (V15/A5.1). The register now also holds the sheet's
+ * "Mark solved" ticks, and an untimed tick on a 2200-rated problem is the learner's claim, not a
+ * timed outcome — counting it would inflate the recommendation. The record contributes nothing at
+ * all (not a solve, not a miss); a later timed solve clears the flag and re-admits it.
  */
 export function bandEvidenceFromRegister(
   bySlug: Record<string, ContestProblemProgress>,
@@ -600,6 +605,7 @@ export function bandEvidenceFromRegister(
   for (const [slug, p] of Object.entries(bySlug)) {
     const rating = ratingFor(slug);
     if (rating === undefined) continue;
+    if (p.selfReported === true) continue;
     if (p.solved) solved.push({ rating, on: p.solvedOn ?? '' });
     else if (p.attempts > 0) missedRatings.push(rating);
   }

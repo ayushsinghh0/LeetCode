@@ -284,8 +284,10 @@ export default function ContestRevision({ mode }: { mode: ContestRevisionMode })
    * The evidence is the SLUG register only — contest problems solved as contest practice. Bridged
    * curriculum solves are deliberately excluded: those are done with the roadmap's guidance, its
    * hints and no clock, so counting them here would read a band off work that was not performed
-   * under anything like contest conditions. `recommendBand` then stays quiet below its own stated
-   * minimum and never advances more than one band.
+   * under anything like contest conditions. Self-reported sheet ticks are excluded inside
+   * `bandEvidenceFromRegister` for the same reason — the register holds sheet work too now, and
+   * an untimed tick is a claim, not an outcome. `recommendBand` then stays quiet below its own
+   * stated minimum and never advances more than one band.
    */
   const band = useMemo(() => {
     // The one shared computation (engine/contestLibrary.ts) — the Library page reads the same
@@ -332,7 +334,7 @@ export default function ContestRevision({ mode }: { mode: ContestRevisionMode })
 
           <Section
             title="Your band"
-            support="Read from contest practice only — not from curriculum solves."
+            support="Read from timed contest practice only — never from curriculum solves or self-reported ticks."
           >
             {band.reading ? (
               <>

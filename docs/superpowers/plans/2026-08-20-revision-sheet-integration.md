@@ -37,7 +37,7 @@ slugs.
 | 1. Generator + dataset + npm script | ✅ done (53.5 kB; 315/587/173/134/1 rows; 159 uniques: 140 exact · 17 strong · 1 heuristic · 1 unmapped) |
 | 2. Types + decoder + chunk pin + dataset tests | ✅ done (16 dataset tests; `data-sheet` pinned; = master plan T1.1) |
 | 3. Validator rules (`validate:data`) | ✅ done (= master plan T1.2) |
-| 4. Scorer-core extraction in `engine/contestLibrary.ts` | ⬜ pending |
+| 4. Scorer-core extraction in `engine/contestLibrary.ts` | ✅ done (pure refactor; 65 tests unmodified; = master plan T1.3) |
 | 5. `engine/revisionSheet.ts` + tests | ⬜ pending |
 | 6. `solveSheetProblem` thunk + tests | ⬜ pending |
 | 7. Null-rating widening (`FilteredContestProblem`) + run-page guard | ⬜ pending |
@@ -343,7 +343,7 @@ export function scoreRevisionFacts(
 ): { score: number; reasons: string[] };
 ```
 
-- [ ] **4.1** Move scoring blocks 1–5 of `scoreRevisionCandidates` verbatim into
+- [x] **4.1** Move scoring blocks 1–5 of `scoreRevisionCandidates` verbatim into
   `scoreRevisionFacts` (weakness block iterates `facts.patterns`; block 5 becomes
   `if (facts.unmapped) score -= 5`). Rewrite `scoreRevisionCandidates`'s loop as:
 
@@ -359,10 +359,10 @@ for (const problem of filtered) {
 ```
 
   Sort unchanged.
-- [ ] **4.2** Run `npx vitest run src/utils/engine/__tests__/contestLibrary.test.ts
+- [x] **4.2** Run `npx vitest run src/utils/engine/__tests__/contestLibrary.test.ts
   src/pages/__tests__/contestPractice.test.tsx src/pages/__tests__/contestRevision.test.tsx`
-  — all pass unmodified. `npx tsc --noEmit` clean.
-- [ ] **4.3 Commit** `refactor: V14 — extract scoreRevisionFacts, the one revision scorer's core`.
+  — all pass unmodified. `npx tsc --noEmit` clean. *(65/65 green.)*
+- [x] **4.3 Commit** `refactor: V14 — extract scoreRevisionFacts, the one revision scorer's core`.
 
 ---
 

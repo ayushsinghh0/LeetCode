@@ -365,6 +365,81 @@ export interface ScoredProblem {
  */
 export const WEAK_PATTERN_REASON = 'In a pattern your recent evidence says is not holding';
 
+/** The facts the one revision scorer needs about a candidate, universe-agnostic. */
+export interface RevisionScoringFacts {
+  /** Confident (exact/strong) AICM patterns. */
+  patterns: PatternId[];
+  /** True when the classification is a guess at best — costs a small penalty, never exclusion. */
+  unmapped: boolean;
+}
+
+/**
+ * The one revision scorer's core, universe-agnostic.
+ *
+ * Extracted from `scoreRevisionCandidates` so the sheet's revision draw and the contest one rank
+ * through the SAME arithmetic — two scorers would let two surfaces disagree about what is worth
+ * doing now, the same failure the one-weakness-model rule exists to prevent. Every term is
+ * additive and explainable; the reasons are what "Why this problem?" renders, verbatim.
+ */
+export function scoreRevisionFacts(
+  facts: RevisionScoringFacts,
+  state: ContestProblemState | undefined,
+  today: string,
+  weakPatterns: PatternId[],
+): { score: number; reasons: string[] } {
+  const reasons: string[] = [];
+  let score = 0;
+
+  // 1. Due on the ladder. The single strongest signal, and the only one that can make a
+  //    already-solved problem the best thing to do.
+  if (state?.nextRevision != null && state.nextRevision <= today) {
+    const overdue = diffDays(today, state.nextRevision);
+    score += 100 + Math.min(overdue, 30);
+    reasons.push(
+      overdue > 0
+        ? `Due for revision — ${overdue} ${overdue === 1 ? 'day' : 'days'} past its scheduled date`
+        : 'Due for revision today',
+    );
+  } else if (state?.solved) {
+    // 2. Recency penalty, decaying rather than excluding (§26). Solved yesterday is nearly
+    //    worthless to redo; solved two months ago is worth as much as anything else.
+    const since = state.solvedOn === null ? RECENCY_CLEAR_DAYS : diffDays(today, state.solvedOn);
+    if (since < RECENCY_STRONG_DAYS) {
+      score -= 60;
+      reasons.push(`Solved ${since === 0 ? 'today' : `${since}d ago`} — not due yet`);
+    } else if (since < RECENCY_CLEAR_DAYS) {
+      score -= 30 * (1 - (since - RECENCY_STRONG_DAYS) / (RECENCY_CLEAR_DAYS - RECENCY_STRONG_DAYS));
+      reasons.push(`Solved ${since}d ago`);
+    } else {
+      reasons.push('Solved over a month ago');
+    }
+  } else {
+    // 3. Unsolved. The default case, and worth something on its own.
+    score += 30;
+    if ((state?.attempts ?? 0) > 0) {
+      score += 15;
+      reasons.push('Attempted before, never solved');
+    } else {
+      reasons.push('Not solved yet');
+    }
+  }
+
+  // 4. Weakness. Reads the ONE weakness model's output — this module never computes weakness
+  //    itself, because weakness is claimed in exactly one place.
+  const weakIndex = facts.patterns.findIndex((p) => weakPatterns.includes(p));
+  if (weakIndex !== -1) {
+    const rank = weakPatterns.indexOf(facts.patterns[weakIndex]!);
+    score += Math.max(20 - rank * 4, 8);
+    reasons.push(WEAK_PATTERN_REASON);
+  }
+
+  // 5. Confidence in the classification. A problem we can only guess at is a worse
+  //    recommendation than one we know, all else equal — but it is not excluded.
+  if (facts.unmapped) score -= 5;
+
+  return { score, reasons };
+}
+
 /**
  * Rank contest problems by how much practising them now is worth.
  *
@@ -384,56 +459,12 @@ export function scoreRevisionCandidates(input: RevisionPoolInput): ScoredProblem
 
   for (const problem of filtered) {
     const state = progress(problem.slug);
-    const reasons: string[] = [];
-    let score = 0;
-
-    // 1. Due on the ladder. The single strongest signal, and the only one that can make a
-    //    already-solved problem the best thing to do.
-    if (state?.nextRevision != null && state.nextRevision <= today) {
-      const overdue = diffDays(today, state.nextRevision);
-      score += 100 + Math.min(overdue, 30);
-      reasons.push(
-        overdue > 0
-          ? `Due for revision — ${overdue} ${overdue === 1 ? 'day' : 'days'} past its scheduled date`
-          : 'Due for revision today',
-      );
-    } else if (state?.solved) {
-      // 2. Recency penalty, decaying rather than excluding (§26). Solved yesterday is nearly
-      //    worthless to redo; solved two months ago is worth as much as anything else.
-      const since = state.solvedOn === null ? RECENCY_CLEAR_DAYS : diffDays(today, state.solvedOn);
-      if (since < RECENCY_STRONG_DAYS) {
-        score -= 60;
-        reasons.push(`Solved ${since === 0 ? 'today' : `${since}d ago`} — not due yet`);
-      } else if (since < RECENCY_CLEAR_DAYS) {
-        score -= 30 * (1 - (since - RECENCY_STRONG_DAYS) / (RECENCY_CLEAR_DAYS - RECENCY_STRONG_DAYS));
-        reasons.push(`Solved ${since}d ago`);
-      } else {
-        reasons.push('Solved over a month ago');
-      }
-    } else {
-      // 3. Unsolved. The default case, and worth something on its own.
-      score += 30;
-      if ((state?.attempts ?? 0) > 0) {
-        score += 15;
-        reasons.push('Attempted before, never solved');
-      } else {
-        reasons.push('Not solved yet');
-      }
-    }
-
-    // 4. Weakness. Reads the ONE weakness model's output — this module never computes weakness
-    //    itself, because weakness is claimed in exactly one place.
-    const weakIndex = problem.aicmPatterns.findIndex((p) => weakPatterns.includes(p));
-    if (weakIndex !== -1) {
-      const rank = weakPatterns.indexOf(problem.aicmPatterns[weakIndex]!);
-      score += Math.max(20 - rank * 4, 8);
-      reasons.push(WEAK_PATTERN_REASON);
-    }
-
-    // 5. Confidence in the classification. A problem we can only guess at is a worse
-    //    recommendation than one we know, all else equal — but it is not excluded.
-    if (problem.mappingConfidence === 'unmapped') score -= 5;
-
+    const { score, reasons } = scoreRevisionFacts(
+      { patterns: problem.aicmPatterns, unmapped: problem.mappingConfidence === 'unmapped' },
+      state,
+      today,
+      weakPatterns,
+    );
     scored.push({ problem, score, reasons });
   }
 

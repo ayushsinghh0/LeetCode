@@ -1,6 +1,6 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { makeStore } from '@/store/store';
-import { reviseLibraryProblem } from '@/store/actions';
+import { reviseLibraryProblem, solveSheetProblem } from '@/store/actions';
 import {
   contestProblemAttempted,
   contestProblemReviewed,
@@ -234,6 +234,162 @@ describe('reviseLibraryProblem — the ladder guards live in the thunk', () => {
     store.dispatch(reviseLibraryProblem(SLUG, 'medium', true));
 
     expect(store.getState().progress.dayLogs['2026-07-31']).toBeUndefined();
+  });
+});
+
+/**
+ * The V15 provenance flag (master plan A5.1). `selfReported` marks a solve whose only evidence
+ * is the learner's own tick — the sheet's "Mark solved" — and exists so `bandEvidenceFromRegister`
+ * can keep untimed ticks out of the band reading. Absent = sitting-made, which is historically
+ * exact: no direct-solve path existed before the flag (OQ-6).
+ */
+describe('selfReported — solve provenance', () => {
+  it('stamps a direct solve, and never a sitting solve', () => {
+    const direct = makeStore();
+    direct.dispatch(contestProblemSolved({ slug: SLUG, date: '2026-07-30', selfReported: true }));
+    expect(direct.getState().contestLibrary.bySlug[SLUG]!.selfReported).toBe(true);
+
+    const sitting = makeStore();
+    sitting.dispatch(contestProblemSolved({ slug: SLUG, date: '2026-07-30' }));
+    expect('selfReported' in sitting.getState().contestLibrary.bySlug[SLUG]!).toBe(false);
+  });
+
+  it('upgrades provenance on a later timed solve, and never downgrades a timed one', () => {
+    // Self-reported first, then genuinely solved in a sitting: real timed evidence now exists.
+    const upgraded = makeStore();
+    upgraded.dispatch(contestProblemSolved({ slug: SLUG, date: '2026-07-01', selfReported: true }));
+    upgraded.dispatch(contestProblemSolved({ slug: SLUG, date: '2026-07-10' }));
+    const entry = upgraded.getState().contestLibrary.bySlug[SLUG]!;
+    expect('selfReported' in entry).toBe(false);
+    // The re-solve stays idempotent on the schedule: ladder and solvedOn never move.
+    expect(entry.solvedOn).toBe('2026-07-01');
+    expect(entry.attempts).toBe(2);
+
+    // Timed first: a later self-reported tick must not erase the timed provenance.
+    const timed = makeStore();
+    timed.dispatch(contestProblemSolved({ slug: SLUG, date: '2026-07-01' }));
+    timed.dispatch(contestProblemSolved({ slug: SLUG, date: '2026-07-10', selfReported: true }));
+    expect('selfReported' in timed.getState().contestLibrary.bySlug[SLUG]!).toBe(false);
+  });
+
+  it('round-trips through validate, import AND boot — both read paths preserve it', () => {
+    const store = makeStore();
+    store.dispatch(contestProblemSolved({ slug: SLUG, date: '2026-07-30', selfReported: true }));
+    const payload = JSON.parse(JSON.stringify(selectPersistedState(store.getState())));
+
+    const validated = validatePersisted(payload);
+    expect(validated).not.toBeNull();
+    expect(validated!.contestLibrary!.bySlug[SLUG]!.selfReported).toBe(true);
+
+    const imported = makeStore();
+    imported.dispatch(stateImported(validated!));
+    expect(imported.getState().contestLibrary.bySlug[SLUG]!.selfReported).toBe(true);
+
+    const booted = makeStore(loadInitialState({ load: () => validated, save: () => {} }));
+    expect(booted.getState().contestLibrary.bySlug[SLUG]!.selfReported).toBe(true);
+  });
+
+  it('keeps validating pre-V15 payloads, and drops a false flag rather than quarantining', () => {
+    // A record written before the flag existed: absent stays absent after the boundary.
+    const preV15 = emptyPersisted();
+    preV15.contestLibrary = {
+      bySlug: {
+        [SLUG]: {
+          solved: true,
+          attempts: 1,
+          lastAttemptedOn: '2026-07-01',
+          solvedOn: '2026-07-01',
+          revisionStage: 1,
+          nextRevision: '2026-07-04',
+          lastReviewed: '2026-07-02',
+          revisionHistory: [{ date: '2026-07-02', passed: true }],
+        },
+      },
+    };
+    const validated = validatePersisted(JSON.parse(JSON.stringify(preV15)));
+    expect(validated).not.toBeNull();
+    expect('selfReported' in validated!.contestLibrary!.bySlug[SLUG]!).toBe(false);
+
+    // `selfReported: false` — no write path produces it, but quarantining the learner's whole
+    // state over a representable boolean would be the validator-stricter-than-write-path bug.
+    const withFalse = JSON.parse(JSON.stringify(preV15));
+    withFalse.contestLibrary.bySlug[SLUG].selfReported = false;
+    const lenient = validatePersisted(withFalse);
+    expect(lenient).not.toBeNull();
+    expect('selfReported' in lenient!.contestLibrary!.bySlug[SLUG]!).toBe(false);
+
+    // A non-boolean IS corruption: nothing representable writes it.
+    const corrupt = JSON.parse(JSON.stringify(preV15));
+    corrupt.contestLibrary.bySlug[SLUG].selfReported = 'yes';
+    expect(validatePersisted(corrupt)).toBeNull();
+  });
+});
+
+/**
+ * The sheet's one direct write (V14 T6 / master plan T1.5). Ordinary SOLVE_XP once per slug —
+ * OQ-2's default ruling — with the register entry stamped selfReported so the mastery and band
+ * layers can give the tick zero evidential weight.
+ */
+describe('solveSheetProblem — the sheet\'s one direct write', () => {
+  afterEach(() => {
+    vi.useRealTimers();
+  });
+
+  function at(iso: string) {
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date(`${iso}T12:00:00`));
+  }
+
+  it('records the solve, enters the ladder, stamps provenance, pays SOLVE_XP once', () => {
+    at('2026-07-30');
+    const store = makeStore();
+    store.dispatch(solveSheetProblem(SLUG, 'easy'));
+
+    const entry = store.getState().contestLibrary.bySlug[SLUG]!;
+    expect(entry.solved).toBe(true);
+    expect(entry.solvedOn).toBe('2026-07-30');
+    expect(entry.nextRevision).toBe('2026-07-31');
+    expect(entry.selfReported).toBe(true);
+    expect(store.getState().gamification.xp).toBe(10);
+  });
+
+  it('is idempotent on a re-click: another attempt, no schedule reset, no second XP', () => {
+    at('2026-07-30');
+    const store = makeStore();
+    store.dispatch(solveSheetProblem(SLUG, 'medium'));
+    store.dispatch(solveSheetProblem(SLUG, 'medium'));
+
+    const entry = store.getState().contestLibrary.bySlug[SLUG]!;
+    expect(entry.attempts).toBe(2);
+    expect(entry.solvedOn).toBe('2026-07-30');
+    expect(store.getState().gamification.xp).toBe(20);
+  });
+
+  it('refuses a blank slug', () => {
+    at('2026-07-30');
+    const store = makeStore();
+    store.dispatch(solveSheetProblem('  ', 'easy'));
+    expect(store.getState().contestLibrary.bySlug).toEqual({});
+    expect(store.getState().gamification.xp).toBe(0);
+  });
+
+  it('writes no day log — DayLog is the curriculum ledger', () => {
+    at('2026-07-30');
+    const store = makeStore();
+    store.dispatch(solveSheetProblem(SLUG, 'hard'));
+    expect(store.getState().progress.dayLogs).toEqual({});
+  });
+
+  it('leaves the record gradeable through reviseLibraryProblem', () => {
+    at('2026-07-31');
+    const store = makeStore();
+    store.dispatch(contestProblemSolved({ slug: SLUG, date: '2026-07-30', selfReported: true }));
+    store.dispatch(reviseLibraryProblem(SLUG, 'easy', true));
+
+    const entry = store.getState().contestLibrary.bySlug[SLUG]!;
+    expect(entry.revisionStage).toBe(1);
+    expect(entry.revisionHistory).toHaveLength(1);
+    expect(store.getState().gamification.xp).toBe(5);
   });
 });
 

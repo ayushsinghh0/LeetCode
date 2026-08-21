@@ -655,10 +655,16 @@ export function applyContestAttempt(
  *
  * Re-solving an already-laddered problem does NOT restart it. A learner revisiting something for
  * practice must not be able to reset their own schedule by accident.
+ *
+ * `selfReported` marks a solve whose only evidence is the learner's own tick (the sheet's
+ * "Mark solved") — stamped on the first solve so band evidence and mastery can give it zero
+ * weight. Provenance upgrades but never downgrades: a later timed solve clears the flag (real
+ * evidence now exists), while a self-reported tick on a timed record changes nothing.
  */
 export function applyContestSolve(
   p: ContestProblemProgress,
   date: string,
+  selfReported = false,
 ): ContestProblemProgress {
   const base = {
     ...p,
@@ -667,7 +673,16 @@ export function applyContestSolve(
     lastAttemptedOn: date,
     solvedOn: p.solvedOn ?? date,
   };
-  return p.solved ? base : { ...base, ...ladderEntry(date) };
+  if (!p.solved) {
+    return selfReported
+      ? { ...base, ...ladderEntry(date), selfReported: true }
+      : { ...base, ...ladderEntry(date) };
+  }
+  if (!selfReported && base.selfReported) {
+    const { selfReported: _upgraded, ...timed } = base;
+    return timed;
+  }
+  return base;
 }
 
 /** A graded review. Pass climbs, fail restarts at stage 0 due tomorrow — the one ladder. */

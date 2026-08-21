@@ -39,7 +39,7 @@ slugs.
 | 3. Validator rules (`validate:data`) | ✅ done (= master plan T1.2) |
 | 4. Scorer-core extraction in `engine/contestLibrary.ts` | ✅ done (pure refactor; 65 tests unmodified; = master plan T1.3) |
 | 5. `engine/revisionSheet.ts` + tests | ✅ done (13 tests incl. the structural-exclusion critical; = master plan T1.4) |
-| 6. `solveSheetProblem` thunk + tests | ⬜ pending |
+| 6. `solveSheetProblem` thunk + tests | ✅ done (= master plan T1.5, amended: `selfReported` provenance flag stamped; lenient validator; both read paths round-tripped) |
 | 7. Null-rating widening (`FilteredContestProblem`) + run-page guard | ⬜ pending |
 | 8. Sheet view on `/contest-practice` + tests | ⬜ pending |
 | 9. `Sheet` mode in ContestRevision + RevisionPage deep link + tests | ⬜ pending |
@@ -502,13 +502,15 @@ export const solveSheetProblem =
   };
 ```
 
-- [ ] **6.1** Failing tests: first solve → register entry solved, ladder entered
+- [x] **6.1** Failing tests: first solve → register entry solved, ladder entered
   (`revisionStage 0`? — `ladderEntry` sets stage/nextRevision; assert `nextRevision` is
   tomorrow+? use the register's own invariants: `solved: true`, `nextRevision !== null`), XP
   +SOLVE_XP; second call → attempts 2, `solvedOn` unchanged, XP unchanged; blank slug → no-op;
   `dayLogs` untouched; then `reviseLibraryProblem` on that slug works (grades pass).
-- [ ] **6.2** Run — FAIL. **6.3** Implement. **6.4** Run — PASS.
-- [ ] **6.5 Commit** `feat: V14 — solveSheetProblem, the sheet's one direct write`.
+  *(Plus the A5.1 amendment's provenance tests: stamp/never-stamp, upgrade-never-downgrade,
+  both-read-paths round-trip, pre-V15 fixture, lenient false, corrupt non-boolean.)*
+- [x] **6.2** Run — FAIL. **6.3** Implement. **6.4** Run — PASS. *(27/27 slice tests; 139 with storage suites; tsc clean.)*
+- [x] **6.5 Commit** `feat: V14 — solveSheetProblem, the sheet's one direct write`.
 
 ---
 

@@ -663,6 +663,12 @@ export function validatePersisted(raw: unknown): PersistedStateV1 | null {
       }
       if (nextRevision !== null && !isIsoDate(nextRevision)) return null;
       if (!Array.isArray(entry.revisionHistory)) return null;
+      // V15 provenance flag — lenient boolean: `true` is echoed, `false` (which no write path
+      // produces) is dropped rather than quarantining, and only a non-boolean rejects, because
+      // nothing representable writes one.
+      if ('selfReported' in entry && entry.selfReported !== undefined && typeof entry.selfReported !== 'boolean') {
+        return null;
+      }
 
       const revisionHistory: RevisionEvent[] = [];
       for (const event of entry.revisionHistory) {
@@ -681,6 +687,7 @@ export function validatePersisted(raw: unknown): PersistedStateV1 | null {
         nextRevision: nextRevision as string | null,
         lastReviewed: lastReviewed as string | null,
         revisionHistory,
+        ...(entry.selfReported === true ? { selfReported: true as const } : {}),
       };
     }
     contestLibrary = { bySlug };

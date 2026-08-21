@@ -452,6 +452,14 @@ export interface ContestProblemProgress {
   nextRevision: string | null;
   lastReviewed: string | null;
   revisionHistory: RevisionEvent[];
+  /**
+   * V15 provenance: present when the solve's only evidence is the learner's own tick — the
+   * sheet's "Mark solved" — never a timed sitting. Band evidence and the mastery layer give
+   * self-reported solves zero weight. A later TIMED solve clears it (provenance upgrades, never
+   * downgrades). Absent = sitting-made, which is historically exact: no direct-solve path
+   * existed before this flag (OQ-6). Optional-with-boundary-default; absence is the default.
+   */
+  selfReported?: true;
 }
 
 export interface ContestLibraryState {

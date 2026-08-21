@@ -42,11 +42,17 @@ const contestLibrarySlice = createSlice({
       state.bySlug[slug] = applyContestAttempt(current, date);
     },
 
-    /** A solve. Enters the shared ladder on the first one; a later re-solve does not restart it. */
-    contestProblemSolved(state, action: PayloadAction<{ slug: string; date: string }>) {
-      const { slug, date } = action.payload;
+    /**
+     * A solve. Enters the shared ladder on the first one; a later re-solve does not restart it.
+     * `selfReported` marks a direct tick (the sheet's "Mark solved") — sitting solves omit it.
+     */
+    contestProblemSolved(
+      state,
+      action: PayloadAction<{ slug: string; date: string; selfReported?: true }>,
+    ) {
+      const { slug, date, selfReported } = action.payload;
       const current = state.bySlug[slug] ?? initialContestProgress();
-      state.bySlug[slug] = applyContestSolve(current, date);
+      state.bySlug[slug] = applyContestSolve(current, date, selfReported === true);
     },
 
     /** A graded review. Pass climbs 1/3/7/15/30; any fail restarts at stage 0, due tomorrow. */

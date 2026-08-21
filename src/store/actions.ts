@@ -1010,6 +1010,30 @@ export const reviseLibraryProblem =
   };
 
 /**
+ * A solve recorded from the revision sheet — the sheet's one direct write (V14).
+ *
+ * Non-curriculum rows only: a roadmap question is solved through its own surfaces, never from
+ * here. The record enters the slug-keyed register (the same one contest-library solves use —
+ * one ladder, one register for everything non-curriculum) and pays the ordinary SOLVE_XP once,
+ * on the first solve, exactly the §10.2 ruling (OQ-2's default). No day log and no daily-goal
+ * interaction: `DayLog` is the curriculum's ledger and the plan's finishability caps are
+ * calibrated to it. Idempotent on re-solve: another attempt is recorded, the ladder and
+ * `solvedOn` never reset, and no XP is paid twice.
+ *
+ * The A5.1 amendment: the record is stamped `selfReported` — an untimed tick is the learner's
+ * own claim, so band evidence and the mastery layer give it zero weight. XP is explicitly not
+ * skill in this product; the provenance flag is the real safeguard.
+ */
+export const solveSheetProblem =
+  (slug: string, difficulty: Difficulty): AppThunk =>
+  (dispatch, getState) => {
+    if (typeof slug !== 'string' || slug.trim() === '') return;
+    const already = getState().contestLibrary.bySlug[slug]?.solved === true;
+    dispatch(libraryProblemSolved({ slug, date: todayISO(), selfReported: true }));
+    if (!already) dispatch(xpAdded(SOLVE_XP[difficulty]));
+  };
+
+/**
  * The single line that closes the contest→weakness loop. Finishing stamps the sitting, then the
  * engine's own reading of it (`selectContestAnalysis`, which runs `analyzeContest`) is banked as
  * a dated record in the persisted `contests` channel — the live contest slice itself never

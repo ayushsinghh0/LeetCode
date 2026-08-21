@@ -5,6 +5,8 @@ import PatternDetailPage from '@/pages/PatternDetailPage';
 import ContestPracticePage from '@/pages/ContestPracticePage';
 import ContestPage from '@/pages/ContestPage';
 import { makeStore } from '@/store/store';
+import { startFilteredContest } from '@/store/actions';
+import type { FilteredContestProblem } from '@/store/slices/contestSlice';
 import { CONTEST_PROBLEMS } from '@/data/contestLibrary';
 
 // The §63 acceptance journey, end to end through the real router: pattern page CTA → the Contest
@@ -139,5 +141,53 @@ describe('the §63 journey: pattern → library → filtered contest → verdict
     for (const row of rows) {
       expect(CONTEST_PROBLEMS.some((p) => p.slug === row.slug)).toBe(true);
     }
+  });
+});
+
+/**
+ * V14 T7: a sitting row may be honestly unrated. Sheet-only problems carry no ZeroTrac estimate,
+ * and the run page must render their absence as absence — never a zero, never an invented number.
+ */
+describe('an honestly unrated sitting row', () => {
+  const sittingRow = (over: Partial<FilteredContestProblem>): FilteredContestProblem => ({
+    id: -1,
+    kind: 'library',
+    slug: 'a-row',
+    title: 'A Row',
+    url: 'https://leetcode.com/problems/a-row/',
+    difficulty: 'medium',
+    targetMinutes: 25,
+    patterns: [],
+    contestLabel: null,
+    contestRating: 1500,
+    frontendId: 1234,
+    premium: false,
+    reasons: [],
+    ...over,
+  });
+
+  test('renders title and difficulty without a rating line when contestRating is null', () => {
+    const store = makeStore();
+    store.dispatch(
+      startFilteredContest(
+        [
+          sittingRow({ id: -1, slug: 'rated-row', title: 'Rated Row' }),
+          sittingRow({ id: -2, slug: 'unrated-row', title: 'Unrated Row', contestRating: null }),
+        ],
+        '2026-07-30|test-seed',
+      ),
+    );
+    renderJourney('/contest', store);
+
+    const list = screen.getByRole('list', { name: 'Contest problems' });
+    const items = within(list).getAllByRole('listitem');
+    const unrated = items.find((el) => within(el).queryByText('Unrated Row') !== null)!;
+    expect(unrated).toBeDefined();
+    expect(within(unrated).getByText('Medium')).toBeInTheDocument();
+    expect(within(unrated).queryByText(/Contest rating/)).not.toBeInTheDocument();
+
+    // The rated row keeps both signals side by side, exactly as before.
+    const rated = items.find((el) => within(el).queryByText('Rated Row') !== null)!;
+    expect(within(rated).getByText('Contest rating 1500')).toBeInTheDocument();
   });
 });

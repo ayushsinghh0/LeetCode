@@ -317,7 +317,8 @@ export default function ContestPage() {
                             // Both signals, side by side, for a library-drawn row — the estimate
                             // never replaces the official difficulty (types §3.4), and the claim
                             // carries its basis (the note lives in the engine, dataset-free).
-                            libraryRow && (
+                            // A null rating renders nothing: unrated is absence, never zero.
+                            libraryRow && libraryRow.contestRating !== null && (
                               <Tooltip>
                                 <TooltipTrigger className="figures cursor-help underline decoration-dotted underline-offset-2">
                                   Contest rating {libraryRow.contestRating}

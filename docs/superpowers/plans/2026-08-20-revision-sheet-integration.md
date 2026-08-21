@@ -40,7 +40,7 @@ slugs.
 | 4. Scorer-core extraction in `engine/contestLibrary.ts` | ✅ done (pure refactor; 65 tests unmodified; = master plan T1.3) |
 | 5. `engine/revisionSheet.ts` + tests | ✅ done (13 tests incl. the structural-exclusion critical; = master plan T1.4) |
 | 6. `solveSheetProblem` thunk + tests | ✅ done (= master plan T1.5, amended: `selfReported` provenance flag stamped; lenient validator; both read paths round-tripped) |
-| 7. Null-rating widening (`FilteredContestProblem`) + run-page guard | ⬜ pending |
+| 7. Null-rating widening (`FilteredContestProblem`) + run-page guard | ✅ done (= master plan T1.7) |
 | 8. Sheet view on `/contest-practice` + tests | ⬜ pending |
 | 9. `Sheet` mode in ContestRevision + RevisionPage deep link + tests | ⬜ pending |
 | 10. ContestDue → "Practice reviews" + tests | ⬜ pending |
@@ -527,9 +527,10 @@ export const solveSheetProblem =
   with `contestRating: null` renders its title and difficulty and does NOT render
   `Contest rating`.
 
-- [ ] **7.1** Failing test → **7.2** widen + guard → **7.3** suite green
+- [x] **7.1** Failing test → **7.2** widen + guard → **7.3** suite green
   (`contest*.test` files + tsc). Existing fixtures stay valid (number satisfies the union).
-- [ ] **7.4 Commit** `feat: V14 — a sitting row may be honestly unrated`.
+  *(35/35 across the three contest suites; tsc clean.)*
+- [x] **7.4 Commit** `feat: V14 — a sitting row may be honestly unrated`.
 
 ---
 

@@ -31,7 +31,8 @@ export interface FilteredContestProblem {
   patterns: PatternId[];
   /** "Weekly Contest 462 · Q3" — provenance shown on the row. Null when unknown. */
   contestLabel: string | null;
-  contestRating: number;
+  /** Null for sheet-only rows — unrated, and never zeroed. The run page renders absence. */
+  contestRating: number | null;
   /** The number LeetCode displays. Display only, never a join key. */
   frontendId: number;
   /** Paywalled on LeetCode. Shown on the run row so a timed sitting is never ambushed by it. */

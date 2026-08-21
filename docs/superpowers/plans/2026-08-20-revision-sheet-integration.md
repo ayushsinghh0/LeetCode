@@ -38,7 +38,7 @@ slugs.
 | 2. Types + decoder + chunk pin + dataset tests | ✅ done (16 dataset tests; `data-sheet` pinned; = master plan T1.1) |
 | 3. Validator rules (`validate:data`) | ✅ done (= master plan T1.2) |
 | 4. Scorer-core extraction in `engine/contestLibrary.ts` | ✅ done (pure refactor; 65 tests unmodified; = master plan T1.3) |
-| 5. `engine/revisionSheet.ts` + tests | ⬜ pending |
+| 5. `engine/revisionSheet.ts` + tests | ✅ done (13 tests incl. the structural-exclusion critical; = master plan T1.4) |
 | 6. `solveSheetProblem` thunk + tests | ⬜ pending |
 | 7. Null-rating widening (`FilteredContestProblem`) + run-page guard | ⬜ pending |
 | 8. Sheet view on `/contest-practice` + tests | ⬜ pending |
@@ -453,7 +453,7 @@ export function selectSheetRevision(input: SheetRevisionInput): ScoredSheetEntry
   5. sort: score desc → difficulty rank asc (easy 0 / medium 1 / hard 2 / other 3) →
      `contestRating` asc with null last → identity asc. Deterministic, explainable, no RNG.
 
-- [ ] **5.1 Write the failing tests.** Fixtures: hand-build rows via small helpers
+- [x] **5.1 Write the failing tests.** Fixtures: hand-build rows via small helpers
   (`row(kind, …)`), resolvers over Maps; spread `QF` from `@/test/questionFixture` for
   Question fixtures. Cases:
   - **critical:** default draw over mixed rows contains NO curriculum entry;
@@ -465,8 +465,9 @@ export function selectSheetRevision(input: SheetRevisionInput): ScoredSheetEntry
   - determinism: same input twice → identical order; unrated (null) sorts after rated within
     a difficulty;
   - `sheetEntry` returns null for a dangling questionId/slug; `sheetStats` counts uniques.
-- [ ] **5.2** Run — FAIL (module missing). **5.3** Implement. **5.4** Run — PASS; tsc clean.
-- [ ] **5.5 Commit** `feat: V14 — the sheet engine: entries, stats, exclusion-by-default draws`.
+- [x] **5.2** Run — FAIL (module missing). **5.3** Implement. **5.4** Run — PASS; tsc clean.
+      *(13/13 green.)*
+- [x] **5.5 Commit** `feat: V14 — the sheet engine: entries, stats, exclusion-by-default draws`.
 
 ---
 
